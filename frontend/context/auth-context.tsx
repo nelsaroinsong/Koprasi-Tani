@@ -22,6 +22,7 @@ interface AuthContextType {
   isLoading: boolean;
   loginWithGoogle: (customData?: Partial<User>) => Promise<void>;
   selectRole: (role: 'PETANI' | 'PEMBELI', kelompokTaniId?: string) => Promise<void>;
+  updateProfile: (data: Partial<User>) => void;
   logout: () => void;
 }
 
@@ -30,6 +31,7 @@ const AuthContext = createContext<AuthContextType>({
   isLoading: true,
   loginWithGoogle: async () => {},
   selectRole: async () => {},
+  updateProfile: () => {},
   logout: () => {},
 });
 
@@ -40,7 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [localUser, setLocalUser] = useState<User | null>(null);
   const router = useRouter();
 
-  // Load local user on mount as fallback/cache
+  // Load local user on mount and sync with database
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -50,23 +52,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (e) {
       console.error('Failed to load user from localStorage', e);
     }
-  }, []);
 
-  // Sync with NextAuth session whenever it updates
-  const currentUser: User | null = session?.user
+    // Fetch fresh profile from database via API
+    fetch('/api/user/profile')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.user) {
+          setLocalUser((prev) => {
+            const merged = { ...prev, ...data.user };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+            return merged;
+          });
+        }
+      })
+      .catch((err) => console.log('Offline or unauthenticated user'));
+  }, [session]);
+
+  // Sync with NextAuth session and local storage
+  const currentUser: User | null = session?.user || localUser
     ? {
-        id: session.user.id || 'usr-google',
-        name: session.user.name || 'Pengguna Google',
-        email: session.user.email || '',
-        avatarUrl: session.user.image || '',
-        // @ts-ignore
-        role: (session.user.role as UserRole) || localUser?.role || null,
-        // @ts-ignore
-        isVerified: session.user.isVerified ?? localUser?.isVerified ?? false,
-        // @ts-ignore
-        kelompokTaniId: session.user.kelompokTaniId || localUser?.kelompokTaniId,
+        id: session?.user?.id || localUser?.id || 'usr-google',
+        name: localUser?.name || session?.user?.name || 'Pengguna',
+        email: session?.user?.email || localUser?.email || '',
+        avatarUrl:
+          localUser?.avatarUrl ||
+          // @ts-ignore
+          session?.user?.avatarUrl ||
+          session?.user?.image ||
+          '',
+        phone:
+          localUser?.phone ||
+          // @ts-ignore
+          session?.user?.phone ||
+          '',
+        role:
+          (localUser?.role as UserRole) ||
+          // @ts-ignore
+          (session?.user?.role as UserRole) ||
+          null,
+        isVerified:
+          localUser?.isVerified ??
+          // @ts-ignore
+          session?.user?.isVerified ??
+          false,
+        kelompokTaniId:
+          localUser?.kelompokTaniId ||
+          // @ts-ignore
+          session?.user?.kelompokTaniId,
       }
-    : localUser;
+    : null;
 
   const saveUser = (u: User | null) => {
     setLocalUser(u);
@@ -132,6 +166,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.push('/toko');
   };
 
+  // Update Profile (Name, Phone, Avatar) ke database dan session
+  const updateProfile = async (data: Partial<User>) => {
+    if (!currentUser) return;
+    const updated: User = {
+      ...currentUser,
+      ...data,
+    };
+    saveUser(updated);
+
+    // Kirim perubahan (Nama, No Telepon, Avatar) ke database PostgreSQL
+    try {
+      await fetch('/api/user/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: currentUser.email,
+          name: data.name,
+          phone: data.phone,
+          avatarUrl: data.avatarUrl,
+        }),
+      });
+    } catch (err) {
+      console.warn('Gagal sinkronisasi profil ke database:', err);
+    }
+
+    if (updateSession) {
+      await updateSession({ user: data });
+    }
+  };
+
   // Logout Handler
   const logout = async () => {
     saveUser(null);
@@ -151,6 +215,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         loginWithGoogle,
         selectRole,
+        updateProfile,
         logout,
       }}
     >

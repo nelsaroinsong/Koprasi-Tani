@@ -15,15 +15,99 @@ import {
   ShoppingCart,
   X,
   Phone,
+  Camera,
+  Trash2,
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 
 export default function UserProfileDropdown() {
-  const { user, logout } = useAuth();
+  const { user, logout, updateProfile } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [cartCount, setCartCount] = useState(1);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Edit Profile Form State
+  const [editName, setEditName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editAvatar, setEditAvatar] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Sync edit form with current user on modal open
+  useEffect(() => {
+    if (user) {
+      setEditName(user.name || '');
+      setEditPhone(user.phone || '+62 812-4455-6677');
+      setEditAvatar(user.avatarUrl || '');
+      setSelectedFile(null);
+      setUploadError(null);
+    }
+  }, [user, activeModal]);
+
+  // Handle local avatar image selection
+  const handleAvatarFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setSelectedFile(file);
+    setUploadError(null);
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setEditAvatar(reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Upload ke R2 & Simpan Profil
+  const handleSaveProfile = async () => {
+    setIsUploading(true);
+    setUploadError(null);
+    let finalAvatarUrl = editAvatar;
+
+    try {
+      if (selectedFile) {
+        // Upload langsung ke Cloudflare R2 bucket koperasi-images/profiles/
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        if (user?.email) {
+          formData.append('email', user.email);
+        }
+
+        const res = await fetch('/api/upload/profile', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const data = await res.json();
+        if (!res.ok || data.error) {
+          throw new Error(data.error || 'Gagal mengunggah foto ke Cloudflare R2');
+        }
+
+        finalAvatarUrl = data.url;
+      }
+
+      // Simpan perubahan ke auth context & session
+      updateProfile({
+        name: editName,
+        phone: editPhone,
+        avatarUrl: finalAvatarUrl,
+      });
+
+      setActiveModal(null);
+      setSelectedFile(null);
+    } catch (err: any) {
+      console.error(err);
+      setUploadError(err.message || 'Terjadi kesalahan saat mengunggah foto ke R2.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   // Close dropdown when clicked outside
   useEffect(() => {
@@ -268,19 +352,71 @@ export default function UserProfileDropdown() {
 
             {activeModal === 'edit-profile' && (
               <div>
-                <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center mb-4">
-                  <UserIcon className="w-6 h-6" />
-                </div>
-                <h3 className="text-lg font-bold text-slate-900">Edit Profil Pembeli</h3>
-                <p className="text-xs text-slate-500 mt-1 mb-4">
-                  Perbarui nama lengkap, nomor WhatsApp, dan alamat pengiriman di Minahasa Utara.
+                <h3 className="text-lg font-bold text-slate-900 mb-1">Edit Profil Akun</h3>
+                <p className="text-xs text-slate-500 mb-5">
+                  Perbarui foto profil, nama lengkap, dan nomor kontak Anda.
                 </p>
+
+                {/* Photo Profile Editor */}
+                <div className="flex flex-col items-center justify-center mb-6">
+                  <div className="relative group">
+                    <div className="w-20 h-20 rounded-full bg-emerald-800 text-white flex items-center justify-center font-bold text-2xl shadow-md border-2 border-emerald-500 overflow-hidden">
+                      {editAvatar ? (
+                        <img src={editAvatar} alt="Foto Profil" className="w-full h-full object-cover" />
+                      ) : (
+                        <span>{userInitial}</span>
+                      )}
+                    </div>
+
+                    {/* Camera Button */}
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center shadow-md ring-2 ring-white cursor-pointer transition"
+                      title="Ganti Foto Profil"
+                    >
+                      <Camera className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  {/* Hidden File Input */}
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    accept="image/*"
+                    onChange={handleAvatarFile}
+                    className="hidden"
+                  />
+
+                  {/* Photo Action Buttons */}
+                  <div className="flex items-center gap-3 mt-2.5">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="text-[11px] font-semibold text-emerald-700 hover:text-emerald-800 hover:underline cursor-pointer"
+                    >
+                      Unggah Foto Baru
+                    </button>
+                    {editAvatar && (
+                      <button
+                        type="button"
+                        onClick={() => setEditAvatar('')}
+                        className="text-[11px] text-red-500 hover:text-red-700 flex items-center gap-1 cursor-pointer"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        <span>Hapus</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
                 <div className="space-y-3 mb-5">
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-700 mb-1">Nama Lengkap</label>
                     <input
                       type="text"
-                      defaultValue={user.name}
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
                       className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600"
                     />
                   </div>
@@ -297,16 +433,27 @@ export default function UserProfileDropdown() {
                     <label className="block text-[11px] font-semibold text-slate-700 mb-1">Nomor WhatsApp / Telepon</label>
                     <input
                       type="tel"
-                      defaultValue={user.phone || '+62 812-4455-6677'}
+                      value={editPhone}
+                      onChange={(e) => setEditPhone(e.target.value)}
+                      placeholder="+62 812-xxxx-xxxx"
                       className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600"
                     />
                   </div>
                 </div>
+
+                {uploadError && (
+                  <div className="mb-4 p-2.5 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs">
+                    {uploadError}
+                  </div>
+                )}
+
                 <button
-                  onClick={() => setActiveModal(null)}
-                  className="w-full py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl font-semibold text-xs transition"
+                  type="button"
+                  disabled={isUploading}
+                  onClick={handleSaveProfile}
+                  className="w-full py-2.5 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white rounded-xl font-semibold text-xs transition cursor-pointer shadow-xs"
                 >
-                  Simpan Perubahan
+                  {isUploading ? 'Mengunggah Foto ke Cloudflare R2...' : 'Simpan Perubahan'}
                 </button>
               </div>
             )}
