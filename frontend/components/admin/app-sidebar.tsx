@@ -2,16 +2,14 @@
 
 import * as React from "react"
 import {
-  AudioWaveform,
-  BookOpen,
-  Bot,
-  Command,
-  Frame,
-  GalleryVerticalEnd,
-  Map,
-  PieChart,
+  LayoutDashboard,
+  Sprout,
+  Users,
+  Package,
   Settings2,
-  SquareTerminal,
+  ShoppingCart,
+  Tractor,
+  BookOpen,
 } from "lucide-react"
 
 import { NavMain } from "@/components/admin/nav-main"
@@ -26,132 +24,116 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 
-// This is sample data.
 const data = {
   user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
+    name: "Lionel Roinsong",
+    email: "admin@sinarpagisejahtera.co.id",
+    avatar: "",
   },
   teams: [
     {
-      name: "Acme Inc",
-      logo: GalleryVerticalEnd,
-      plan: "Enterprise",
-    },
-    {
-      name: "Acme Corp.",
-      logo: AudioWaveform,
-      plan: "Startup",
-    },
-    {
-      name: "Evil Corp.",
-      logo: Command,
-      plan: "Free",
+      name: "Sinar Pagi Sejahtera",
+      logo: Sprout,
+      plan: "Koperasi Minahasa Utara",
     },
   ],
   navMain: [
     {
-      title: "Playground",
-      url: "#",
-      icon: SquareTerminal,
+      title: "Dashboard",
+      url: "/admin",
+      icon: LayoutDashboard,
       isActive: true,
       items: [
         {
-          title: "History",
-          url: "#",
+          title: "Ringkasan",
+          url: "/admin",
         },
         {
-          title: "Starred",
-          url: "#",
-        },
-        {
-          title: "Settings",
-          url: "#",
+          title: "Aktivitas Terbaru",
+          url: "/admin",
         },
       ],
     },
     {
-      title: "Models",
-      url: "#",
-      icon: Bot,
+      title: "Kelompok Tani",
+      url: "/admin",
+      icon: Sprout,
       items: [
         {
-          title: "Genesis",
-          url: "#",
+          title: "Semua Kelompok",
+          url: "/admin",
         },
         {
-          title: "Explorer",
-          url: "#",
-        },
-        {
-          title: "Quantum",
-          url: "#",
+          title: "Tambah Kelompok",
+          url: "/admin",
         },
       ],
     },
     {
-      title: "Documentation",
-      url: "#",
-      icon: BookOpen,
+      title: "Pengguna",
+      url: "/admin",
+      icon: Users,
       items: [
         {
-          title: "Introduction",
-          url: "#",
+          title: "Petani",
+          url: "/admin",
         },
         {
-          title: "Get Started",
-          url: "#",
+          title: "Pembeli",
+          url: "/admin",
         },
         {
-          title: "Tutorials",
-          url: "#",
-        },
-        {
-          title: "Changelog",
-          url: "#",
+          title: "Pengurus",
+          url: "/admin",
         },
       ],
     },
     {
-      title: "Settings",
-      url: "#",
+      title: "Produk",
+      url: "/admin",
+      icon: Package,
+      items: [
+        {
+          title: "Katalog Komoditas",
+          url: "/admin",
+        },
+        {
+          title: "Tambah Produk",
+          url: "/admin",
+        },
+      ],
+    },
+    {
+      title: "Pengaturan",
+      url: "/admin",
       icon: Settings2,
       items: [
         {
-          title: "General",
-          url: "#",
+          title: "Umum",
+          url: "/admin",
         },
         {
-          title: "Team",
-          url: "#",
-        },
-        {
-          title: "Billing",
-          url: "#",
-        },
-        {
-          title: "Limits",
-          url: "#",
+          title: "Keamanan",
+          url: "/admin",
         },
       ],
     },
   ],
   projects: [
     {
-      name: "Design Engineering",
-      url: "#",
-      icon: Frame,
+      name: "Toko Online",
+      url: "/admin",
+      icon: ShoppingCart,
     },
     {
-      name: "Sales & Marketing",
-      url: "#",
-      icon: PieChart,
+      name: "Sewa Alsintan",
+      url: "/admin",
+      icon: Tractor,
     },
     {
-      name: "Travel",
-      url: "#",
-      icon: Map,
+      name: "Edukasi Tani",
+      url: "/admin",
+      icon: BookOpen,
     },
   ],
 }
