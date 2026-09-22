@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { LogIn, Menu, X } from 'lucide-react';
+import { LogIn, Menu, X, Home, ShoppingBag, Tractor } from 'lucide-react';
 
 interface NavbarProps {
   onOpenModal: (type: 'toko' | 'alsintan') => void;
@@ -29,18 +29,18 @@ export default function Navbar({
 
   return (
     <header id="main-header" className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-2">
         {/* Brand Logo dan Nama Koperasi */}
         <a
           id="brand-logo-link"
           href="#"
           onClick={(e) => handleNavClick(e, 'beranda')}
-          className="flex items-center gap-3 group focus:outline-none"
+          className="flex items-center gap-2 sm:gap-3 group focus:outline-none min-w-0"
         >
-          <div className="w-10 h-10 rounded-xl bg-forest-accent flex items-center justify-center text-white shadow-sm group-hover:scale-105 transition-transform">
-            {/* Custom SVG Daun / Tunas identik */}
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-forest-accent flex items-center justify-center text-white shadow-xs shrink-0 group-hover:scale-105 transition-transform">
+            {/* Custom SVG Daun / Tunas */}
             <svg
-              className="w-5 h-5 text-emerald-300"
+              className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-300"
               fill="none"
               stroke="currentColor"
               strokeLinecap="round"
@@ -54,11 +54,11 @@ export default function Navbar({
               <path d="M12 22V12" />
             </svg>
           </div>
-          <div>
-            <h1 className="text-sm font-bold tracking-tight text-slate-900 leading-none mt-1">
+          <div className="min-w-0">
+            <h1 className="text-[11px] sm:text-sm font-bold tracking-tight text-slate-900 leading-tight">
               SINAR PAGI SEJAHTERA
             </h1>
-            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mt-0.5">
+            <p className="text-[9px] sm:text-[11px] font-semibold text-slate-400 uppercase tracking-wider mt-0.5">
               Minahasa Utara
             </p>
           </div>
@@ -105,12 +105,12 @@ export default function Navbar({
         </nav>
 
         {/* Right Utility (Tombol Masuk & Menu Mobile) */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           {/* Tombol Masuk / Login */}
           <button
             id="login-btn"
             onClick={() => alert('Fitur Masuk / Login Anggota Koperasi & Petani sedang disiapkan.')}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-forest-accent text-forest-accent hover:bg-forest-accent hover:text-white font-semibold text-xs transition cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-full border border-forest-accent text-forest-accent hover:bg-forest-accent hover:text-white font-semibold text-xs transition cursor-pointer"
             type="button"
           >
             <LogIn className="w-3.5 h-3.5" />
@@ -122,49 +122,75 @@ export default function Navbar({
             id="mobile-menu-toggle"
             aria-label="Toggle Menu"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg md:hidden transition cursor-pointer"
+            className="p-1.5 sm:p-2 text-slate-600 hover:bg-slate-100 rounded-lg md:hidden transition cursor-pointer"
             type="button"
           >
-            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            {mobileMenuOpen ? <X className="w-5 h-5 sm:w-6 sm:h-6" /> : <Menu className="w-5 h-5 sm:w-6 sm:h-6" />}
           </button>
         </div>
       </div>
 
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
-        <div id="mobile-nav-drawer" className="md:hidden bg-white border-b border-slate-200 px-4 pt-2 pb-4 space-y-2 shadow-lg">
+        <div id="mobile-nav-drawer" className="md:hidden bg-white border-b border-slate-200 px-4 pt-3 pb-4 space-y-1.5 shadow-lg">
           <button
             onClick={(e) => handleNavClick(e, 'beranda')}
-            className="w-full text-left px-4 py-2.5 rounded-xl font-medium text-slate-700 hover:bg-slate-100 text-sm flex items-center justify-between"
+            className={`w-full text-left px-3.5 py-2.5 rounded-xl font-medium text-sm flex items-center justify-between transition cursor-pointer ${
+              activeSection === 'beranda'
+                ? 'bg-forest-accent text-white font-semibold shadow-xs'
+                : 'text-slate-700 hover:bg-slate-100'
+            }`}
             type="button"
           >
-            <span>Beranda</span>
+            <span className="flex items-center gap-2.5">
+              <Home className="w-4 h-4" />
+              <span>Beranda</span>
+            </span>
           </button>
+
           <button
             onClick={(e) => handleNavClick(e, 'toko')}
-            className="w-full text-left px-4 py-2.5 rounded-xl font-medium text-slate-700 hover:bg-slate-100 text-sm flex items-center justify-between"
+            className={`w-full text-left px-3.5 py-2.5 rounded-xl font-medium text-sm flex items-center justify-between transition cursor-pointer ${
+              activeSection === 'toko'
+                ? 'bg-forest-accent text-white font-semibold shadow-xs'
+                : 'text-slate-700 hover:bg-slate-100'
+            }`}
             type="button"
           >
-            <span>Toko Online Komoditas</span>
+            <span className="flex items-center gap-2.5">
+              <ShoppingBag className="w-4 h-4" />
+              <span>Toko Online</span>
+            </span>
           </button>
+
           <button
             onClick={(e) => handleNavClick(e, 'alsintan')}
-            className="w-full text-left px-4 py-2.5 rounded-xl font-medium text-slate-700 hover:bg-slate-100 text-sm flex items-center justify-between"
+            className={`w-full text-left px-3.5 py-2.5 rounded-xl font-medium text-sm flex items-center justify-between transition cursor-pointer ${
+              activeSection === 'alsintan'
+                ? 'bg-forest-accent text-white font-semibold shadow-xs'
+                : 'text-slate-700 hover:bg-slate-100'
+            }`}
             type="button"
           >
-            <span>Sewa Alsintan &amp; Traktor</span>
+            <span className="flex items-center gap-2.5">
+              <Tractor className="w-4 h-4" />
+              <span>Sewa Alat</span>
+            </span>
           </button>
+
           <div className="pt-2 border-t border-slate-100">
             <button
               onClick={() => {
                 setMobileMenuOpen(false);
                 alert('Fitur Masuk / Login Anggota Koperasi & Petani sedang disiapkan.');
               }}
-              className="w-full text-left px-4 py-2.5 rounded-xl font-semibold text-forest-accent bg-emerald-50 hover:bg-emerald-100 text-sm flex items-center justify-between cursor-pointer"
+              className="w-full text-left px-3.5 py-2.5 rounded-xl font-semibold text-forest-accent bg-emerald-50 hover:bg-emerald-100 text-sm flex items-center justify-between cursor-pointer transition"
               type="button"
             >
-              <span>Masuk / Login</span>
-              <LogIn className="w-4 h-4" />
+              <span className="flex items-center gap-2.5">
+                <LogIn className="w-4 h-4" />
+                <span>Masuk / Login</span>
+              </span>
             </button>
           </div>
         </div>

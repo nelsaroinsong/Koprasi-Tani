@@ -1,31 +1,52 @@
 'use client';
 
-import React from 'react';
-import { ArrowRight, Tractor } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ArrowRight } from 'lucide-react';
+
+interface LogoItem {
+  key: string;
+  name: string;
+  url: string;
+}
 
 interface HeroSectionProps {
-  onExploreToko: () => void;
-  onSewaAlsintan: () => void;
+  onJoinKoperasi?: () => void;
+  onExploreToko?: () => void;
+  onSewaAlsintan?: () => void;
   onBookingBanner?: () => void;
 }
 
 export default function HeroSection({
+  onJoinKoperasi,
   onExploreToko,
-  onSewaAlsintan,
 }: HeroSectionProps) {
+  const [logos, setLogos] = useState<LogoItem[]>([]);
+  const [, setIsLoadingLogos] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/storage/logos')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.logos && data.logos.length > 0) {
+          setLogos(data.logos);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setIsLoadingLogos(false));
+  }, []);
+
+  const handleJoin =
+    onJoinKoperasi ||
+    onExploreToko ||
+    (() => alert('Pendaftaran anggota Koperasi Sinar Pagi Sejahtera sedang dibuka.'));
+
   return (
-    <section id="hero-section" className="relative pt-16 pb-20 lg:pt-24 lg:pb-32 overflow-hidden">
+    <section id="hero-section" className="relative pt-12 pb-6 lg:pt-16 lg:pb-8 overflow-hidden">
       {/* Background glow effects */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-forest-accent/5 rounded-full blur-3xl pointer-events-none -z-10" />
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center space-y-6 sm:space-y-8">
-          {/* Cooperative Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-forest-50 border border-forest-200/80 text-forest-accent text-xs font-semibold tracking-wide mx-auto shadow-xs">
-            <span className="w-2 h-2 rounded-full bg-forest-accent animate-pulse" />
-            <span>Koperasi Sinar Pagi Sejahtera &bull; Sinergi Kelompok Tani Minahasa Utara</span>
-          </div>
-
           {/* Headline */}
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-slate-900 leading-[1.15] tracking-tight max-w-4xl mx-auto">
             Petani Berdaya, Hasil Panen{' '}
@@ -40,46 +61,61 @@ export default function HeroSection({
             Satu ekosistem terpadu yang menaungi berbagai kelompok tani di Minahasa Utara. Memfasilitasi jual beli komoditas unggulan panen kelapa &amp; jagung langsung, serta penyediaan sewa alsintan modern berbiaya subsidi langsung dari kebun ke pembeli.
           </p>
 
-          {/* Action Buttons CTA */}
-          <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
+          {/* Action Button CTA */}
+          <div className="flex items-center justify-center pt-2">
             <button
-              id="btn-eksplorasi-toko"
-              onClick={onExploreToko}
-              className="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-xl bg-forest-accent text-white font-semibold text-sm hover:bg-forest-800 transition-all duration-200 shadow-md shadow-forest-900/10 hover:shadow-lg hover:shadow-forest-900/20 active:scale-[0.98] cursor-pointer"
+              id="btn-join-koperasi"
+              onClick={handleJoin}
+              className="inline-flex items-center justify-center gap-2.5 px-8 py-3.5 rounded-xl bg-forest-accent text-white font-semibold text-base hover:bg-forest-800 transition-all duration-200 shadow-md shadow-forest-900/15 hover:shadow-lg hover:shadow-forest-900/25 active:scale-[0.98] cursor-pointer"
               type="button"
             >
-              <span>Mulai Eksplorasi Toko Online</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-
-            <button
-              id="btn-sewa-alsintan-hero"
-              onClick={onSewaAlsintan}
-              className="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-xl bg-white border border-slate-300 text-slate-700 font-semibold text-sm hover:bg-slate-50 hover:border-slate-400 transition-all duration-200 shadow-xs active:scale-[0.98] cursor-pointer"
-              type="button"
-            >
-              <Tractor className="w-4 h-4 text-forest-700" />
-              <span>Sewa Alsintan Pertanian</span>
+              <span>Bergabung Bersama Koperasi</span>
+              <ArrowRight className="w-5 h-5" />
             </button>
           </div>
 
-          {/* Highlight Metric Mini-Ribbon */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 pt-10 border-t border-slate-200/80 max-w-3xl mx-auto">
-            <div id="stat-kelompok" className="text-center">
-              <p className="text-3xl font-black text-forest-accent">18+</p>
-              <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">Kelompok Tani</p>
-            </div>
-            <div id="stat-petani" className="text-center">
-              <p className="text-3xl font-black text-forest-accent">1.240+</p>
-              <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">Petani Tergabung</p>
-            </div>
-            <div id="stat-alsintan" className="text-center">
-              <p className="text-3xl font-black text-forest-accent">35+ Unit</p>
-              <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">Alsintan Modern</p>
-            </div>
-            <div id="stat-transaksi" className="text-center">
-              <p className="text-3xl font-black text-forest-accent">Rp 4.2 M</p>
-              <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">Transaksi Panen</p>
+          {/* Supported By Section */}
+          <div className="pt-8 border-t border-slate-200/80 max-w-4xl mx-auto">
+            <p className="text-xs uppercase tracking-widest font-bold text-slate-400 mb-3">
+              Supported by
+            </p>
+
+            <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-10">
+              {logos.length > 0 ? (
+                logos.map((logo) => (
+                  <div
+                    key={logo.key}
+                    className="flex items-center justify-center px-4 py-2 bg-white/90 rounded-xl border border-slate-200/70 shadow-2xs hover:shadow-xs hover:border-slate-300 transition-all duration-200"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={logo.url}
+                      alt={logo.name}
+                      className="h-6 sm:h-7 w-auto object-contain max-w-[105px] transition-all duration-200"
+                      title={logo.name}
+                    />
+                  </div>
+                ))
+              ) : (
+                <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 text-xs font-semibold text-slate-600">
+                  <div className="px-4 py-2 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-forest-accent" />
+                    Kementerian Pertanian RI
+                  </div>
+                  <div className="px-4 py-2 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-forest-accent" />
+                    Dinas Pertanian Minut
+                  </div>
+                  <div className="px-4 py-2 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-forest-accent" />
+                    Bank Mitra KUR Tani
+                  </div>
+                  <div className="px-4 py-2 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-forest-accent" />
+                    Gabungan Kelompok Tani (Gapoktan)
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
