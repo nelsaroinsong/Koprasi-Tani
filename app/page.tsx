@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import Navbar from '@/components/Navbar';
 import HeroSection from '@/components/HeroSection';
-import CorePillarsSection from '@/components/CorePillarsSection';
 import MainFooter from '@/components/MainFooter';
 import CartDrawer from '@/components/CartDrawer';
 import TokoModal from '@/components/TokoModal';
@@ -153,17 +152,6 @@ export default function Home() {
             setSelectedAlsintan(alsintanList[0]);
             setAlsintanModalOpen(true);
           }}
-        />
-
-        {/* 4 Pilar Layanan Koperasi */}
-        <CorePillarsSection
-          onOpenToko={() => setTokoModalOpen(true)}
-          onOpenAlsintan={() => {
-            setSelectedAlsintan(alsintanList[0]);
-            setAlsintanModalOpen(true);
-          }}
-          onOpenAi={() => setAiModalOpen(true)}
-          onOpenKur={() => setKurModalOpen(true)}
         />
       </main>
 
