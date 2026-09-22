@@ -33,17 +33,9 @@ export default function MainFooter({ onNavClick }: MainFooterProps) {
               </div>
             </div>
             <p className="text-slate-500 leading-relaxed">
-              Ekosistem digital agribisnis kelapa &amp; jagung berkelanjutan. Membawa kesejahteraan bagi kelompok tani bumi Tonsea.
-            </p>
-          </div>
-
-          {/* Kolom Jam Operasional & Layanan Bantuan */}
-          <div>
-            <p className="font-bold text-slate-900 mb-3 uppercase tracking-wider text-[11px]">
-              Pusat Bantuan Petani
-            </p>
-            <p className="text-slate-500 leading-relaxed mb-3">
-              Layanan penimbangan panen dan sewa alat buka setiap Senin - Sabtu pukul 07.00 - 17.00 WITA.
+              Ekosistem digital agribisnis berkelanjutan,
+              <br/>
+              mensejahterakan petani Indonesia.
             </p>
           </div>
         </div>
@@ -51,7 +43,7 @@ export default function MainFooter({ onNavClick }: MainFooterProps) {
         {/* Bottom Bar */}
         <div className="pt-8 mt-8 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-slate-500 text-[11px]">
-            © 2026 Koperasi Sinar Pagi Sejahtera — Ekosistem Digital Kelapa &amp; Jagung Berkelanjutan Minahasa Utara.
+            © 2026 Koperasi Sinar Pagi Sejahtera.
           </p>
           <div className="flex items-center gap-6 text-[11px]">
             <a href="#pusat-bantuan" onClick={(e) => { e.preventDefault(); alert('Hotline Call Center: 0812-4422-9011'); }} className="hover:text-forest-accent transition">

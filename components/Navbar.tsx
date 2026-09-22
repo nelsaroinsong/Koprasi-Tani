@@ -55,11 +55,11 @@ export default function Navbar({
             </svg>
           </div>
           <div>
-            <h1 className="text-sm font-bold tracking-tight text-slate-900 leading-none">
+            <h1 className="text-sm font-bold tracking-tight text-slate-900 leading-none mt-1">
               SINAR PAGI SEJAHTERA
             </h1>
             <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mt-0.5">
-              Minahasa Utara • Tani Naik Kelas
+              Minahasa Utara
             </p>
           </div>
         </a>
