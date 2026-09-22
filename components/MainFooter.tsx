@@ -3,7 +3,7 @@
 import React from 'react';
 
 interface MainFooterProps {
-  onNavClick: (target: 'toko' | 'alsintan' | 'ai' | 'kur' | 'jurnal') => void;
+  onNavClick: (target: 'toko' | 'alsintan') => void;
 }
 
 export default function MainFooter({ onNavClick }: MainFooterProps) {
@@ -57,30 +57,6 @@ export default function MainFooter({ onNavClick }: MainFooterProps) {
                   className="hover:text-forest-accent transition cursor-pointer text-left"
                 >
                   Sewa Alsintan &amp; Drone
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => onNavClick('ai')}
-                  className="hover:text-forest-accent transition cursor-pointer text-left"
-                >
-                  Klinik Tanaman AI
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => onNavClick('kur')}
-                  className="hover:text-forest-accent transition cursor-pointer text-left"
-                >
-                  Verifikasi Kelayakan KUR
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => onNavClick('jurnal')}
-                  className="hover:text-forest-accent transition cursor-pointer text-left"
-                >
-                  Buku Kas &amp; Jurnal Panen
                 </button>
               </li>
             </ul>

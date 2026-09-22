@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ShoppingCart, LogOut, Menu, X, Sparkles } from 'lucide-react';
+import { ShoppingCart, LogOut, Menu, X } from 'lucide-react';
 
 interface NavbarProps {
   cartCount: number;
   onOpenCart: () => void;
-  onOpenModal: (type: 'toko' | 'alsintan' | 'ai' | 'jurnal' | 'dashboard' | 'kur') => void;
+  onOpenModal: (type: 'toko' | 'alsintan') => void;
   activeSection: string;
 }
 
@@ -20,21 +20,12 @@ export default function Navbar({
 
   const handleNavClick = (
     e: React.MouseEvent,
-    target: 'beranda' | 'toko' | 'alsintan' | 'ai' | 'jurnal' | 'dashboard' | 'kur',
-    hash?: string
+    target: 'beranda' | 'toko' | 'alsintan'
   ) => {
     e.preventDefault();
     setMobileMenuOpen(false);
     if (target === 'beranda') {
       window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else if (target === 'toko') {
-      const el = document.getElementById('toko');
-      if (el) el.scrollIntoView({ behavior: 'smooth' });
-      else onOpenModal('toko');
-    } else if (target === 'alsintan') {
-      const el = document.getElementById('sewa-alat');
-      if (el) el.scrollIntoView({ behavior: 'smooth' });
-      else onOpenModal('alsintan');
     } else {
       onOpenModal(target);
     }
@@ -71,7 +62,7 @@ export default function Navbar({
             <h1 className="text-sm font-bold tracking-tight text-slate-900 leading-none">
               SINAR PAGI SEJAHTERA
             </h1>
-            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mt-0.5">
+            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mt-0.5">
               Minahasa Utara • Tani Naik Kelas
             </p>
           </div>
@@ -142,8 +133,10 @@ export default function Navbar({
           <div
             id="user-profile-chip"
             className="flex items-center gap-2 pl-2 border-l border-slate-200 cursor-pointer"
-            onClick={() => onOpenModal('dashboard')}
-            title="Buka Profil & Dashboard Petani"
+            onClick={() => {
+              alert('Profil Anggota Petani Resmi:\nNama: Lio Runtuwene\nID Anggota: SPS-MU-2024-0891\nWilayah: Kec. Airmadidi, Minahasa Utara\nStatus: Aktif');
+            }}
+            title="Lihat Profil Petani"
           >
             <div className="w-8 h-8 rounded-full bg-forest-accent text-white font-bold text-xs flex items-center justify-center shadow-inner">
               L

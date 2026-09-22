@@ -7,10 +7,6 @@ import MainFooter from '@/components/MainFooter';
 import CartDrawer from '@/components/CartDrawer';
 import TokoModal from '@/components/TokoModal';
 import AlsintanModal from '@/components/AlsintanModal';
-import EdukasiAiModal from '@/components/EdukasiAiModal';
-import KurModal from '@/components/KurModal';
-import JurnalModal from '@/components/JurnalModal';
-import DashboardModal from '@/components/DashboardModal';
 import { initialProducts, initialAlsintan } from '@/lib/data';
 import { Product, AlsintanItem, CartItem } from '@/lib/types';
 import { CheckCircle2 } from 'lucide-react';
@@ -27,17 +23,13 @@ export default function Home() {
     },
   ]);
 
-  const [activeSection, setActiveSection] = useState<'beranda' | 'toko' | 'alsintan' | 'ai' | 'jurnal' | 'dashboard' | 'kur'>('beranda');
+  const [activeSection, setActiveSection] = useState<'beranda' | 'toko' | 'alsintan'>('beranda');
 
   // Modals & Drawers state
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
   const [tokoModalOpen, setTokoModalOpen] = useState(false);
   const [alsintanModalOpen, setAlsintanModalOpen] = useState(false);
   const [selectedAlsintan, setSelectedAlsintan] = useState<AlsintanItem | null>(null);
-  const [aiModalOpen, setAiModalOpen] = useState(false);
-  const [kurModalOpen, setKurModalOpen] = useState(false);
-  const [jurnalModalOpen, setJurnalModalOpen] = useState(false);
-  const [dashboardModalOpen, setDashboardModalOpen] = useState(false);
 
   // Toast notification
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -90,12 +82,6 @@ export default function Home() {
     setCartDrawerOpen(false);
   };
 
-  // Alsintan booking
-  const handleSewaAlsintan = (item: AlsintanItem) => {
-    setSelectedAlsintan(item);
-    setAlsintanModalOpen(true);
-  };
-
   const handleConfirmBooking = (bookingDetails: {
     item: AlsintanItem;
     date: string;
@@ -108,13 +94,10 @@ export default function Home() {
     showToast(`✓ Berhasil booking ${bookingDetails.item.name} untuk tanggal ${bookingDetails.date} di ${bookingDetails.pool}!`);
   };
 
-  const handleOpenModal = (type: 'toko' | 'alsintan' | 'ai' | 'jurnal' | 'dashboard' | 'kur') => {
-    if (type === 'toko') setTokoModalOpen(true);
-    else if (type === 'ai') setAiModalOpen(true);
-    else if (type === 'kur') setKurModalOpen(true);
-    else if (type === 'jurnal') setJurnalModalOpen(true);
-    else if (type === 'dashboard') setDashboardModalOpen(true);
-    else if (type === 'alsintan') {
+  const handleOpenModal = (type: 'toko' | 'alsintan') => {
+    if (type === 'toko') {
+      setTokoModalOpen(true);
+    } else if (type === 'alsintan') {
       setSelectedAlsintan(alsintanList[0]);
       setAlsintanModalOpen(true);
     }
@@ -158,10 +141,7 @@ export default function Home() {
       {/* Footer */}
       <MainFooter
         onNavClick={(target) => {
-          if (target === 'ai') setAiModalOpen(true);
-          else if (target === 'kur') setKurModalOpen(true);
-          else if (target === 'jurnal') setJurnalModalOpen(true);
-          else if (target === 'alsintan') {
+          if (target === 'alsintan') {
             setSelectedAlsintan(alsintanList[0]);
             setAlsintanModalOpen(true);
           } else if (target === 'toko') {
@@ -195,35 +175,6 @@ export default function Home() {
         selectedItem={selectedAlsintan}
         allItems={alsintanList}
         onConfirmBooking={handleConfirmBooking}
-      />
-
-      {/* Edukasi AI Modal */}
-      <EdukasiAiModal
-        isOpen={aiModalOpen}
-        onClose={() => setAiModalOpen(false)}
-      />
-
-      {/* KUR Scoring Modal */}
-      <KurModal
-        isOpen={kurModalOpen}
-        onClose={() => setKurModalOpen(false)}
-      />
-
-      {/* Jurnal Panen Modal */}
-      <JurnalModal
-        isOpen={jurnalModalOpen}
-        onClose={() => setJurnalModalOpen(false)}
-      />
-
-      {/* Dashboard Petani Modal */}
-      <DashboardModal
-        isOpen={dashboardModalOpen}
-        onClose={() => setDashboardModalOpen(false)}
-        onOpenSewa={() => {
-          setSelectedAlsintan(alsintanList[0]);
-          setAlsintanModalOpen(true);
-        }}
-        onOpenKur={() => setKurModalOpen(true)}
       />
     </div>
   );
