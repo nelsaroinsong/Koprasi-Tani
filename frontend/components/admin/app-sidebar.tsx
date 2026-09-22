@@ -25,7 +25,7 @@ import {
 
 const data = {
   user: {
-    name: "Lionel Roinsong",
+    name: "admin",
     email: "admin@sinarpagisejahtera.co.id",
     avatar: "",
   },

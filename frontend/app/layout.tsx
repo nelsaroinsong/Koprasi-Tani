@@ -11,17 +11,17 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 
 export const metadata: Metadata = {
   icons: [],
-  title: 'Tani Naik Kelas | Koperasi Sinar Pagi Sejahtera - Minahasa Utara',
-  description: 'Ekosistem digital agribisnis kelapa & jagung terpadu Minahasa Utara - Tani Naik Kelas. Jual beli komoditas, sewa alsintan bersubsidi, edukasi AI & permodalan KUR.',
+  title: 'Koperasi Sinar Pagi Sejahtera - Minahasa Utara',
+  description: 'Platform digital agribisnis, jual beli komoditas, sewa alat.',
   openGraph: {
-    title: 'Tani Naik Kelas | Koperasi Sinar Pagi Sejahtera - Minahasa Utara',
-    description: 'Ekosistem digital agribisnis kelapa & jagung terpadu Minahasa Utara - Tani Naik Kelas.',
+    title: 'Koperasi Sinar Pagi Sejahtera - Minahasa Utara',
+    description: 'Platform digital agribisnis, jual beli komoditas, sewa alat.',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Tani Naik Kelas | Koperasi Sinar Pagi Sejahtera - Minahasa Utara',
-    description: 'Ekosistem digital agribisnis kelapa & jagung terpadu Minahasa Utara - Tani Naik Kelas.',
+    title: 'Koperasi Sinar Pagi Sejahtera - Minahasa Utara',
+    description: 'Platform digital agribisnis, jual beli komoditas, sewa alat.',
   },
 };
 
