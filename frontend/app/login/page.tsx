@@ -12,11 +12,15 @@ export default function LoginPage() {
   const [showManualDemo, setShowManualDemo] = useState(false);
 
   const handleGoogleLogin = async () => {
-    // Normal Google OAuth trigger
-    await loginWithGoogle({
-      name: testName || 'Anggota Koperasi',
-      email: testEmail || 'anggota@gmail.com',
-    });
+    if (testName.trim() || testEmail.trim()) {
+      await loginWithGoogle({
+        name: testName.trim(),
+        email: testEmail.trim(),
+      });
+    } else {
+      // Menjalankan Google OAuth resmi via NextAuth
+      await loginWithGoogle();
+    }
   };
 
   return (

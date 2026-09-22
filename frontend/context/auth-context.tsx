@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession, signIn as nextAuthSignIn, signOut as nextAuthSignOut } from 'next-auth/react';
 
 export type UserRole = 'PETANI' | 'PEMBELI' | 'ADMIN';
 
@@ -34,27 +35,40 @@ const AuthContext = createContext<AuthContextType>({
 const STORAGE_KEY = 'koperasi_auth_user';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: session, status, update: updateSession } = useSession();
+  const [localUser, setLocalUser] = useState<User | null>(null);
   const router = useRouter();
 
-  // Load user from localStorage on mount
+  // Load local user on mount as fallback/cache
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
-        setUser(JSON.parse(saved));
+        setLocalUser(JSON.parse(saved));
       }
     } catch (e) {
       console.error('Failed to load user from localStorage', e);
-    } finally {
-      setIsLoading(false);
     }
   }, []);
 
-  // Save to localStorage when user changes
+  // Sync with NextAuth session whenever it updates
+  const currentUser: User | null = session?.user
+    ? {
+        id: session.user.id || 'usr-google',
+        name: session.user.name || 'Pengguna Google',
+        email: session.user.email || '',
+        avatarUrl: session.user.image || '',
+        // @ts-ignore
+        role: (session.user.role as UserRole) || localUser?.role || null,
+        // @ts-ignore
+        isVerified: session.user.isVerified ?? localUser?.isVerified ?? false,
+        // @ts-ignore
+        kelompokTaniId: session.user.kelompokTaniId || localUser?.kelompokTaniId,
+      }
+    : localUser;
+
   const saveUser = (u: User | null) => {
-    setUser(u);
+    setLocalUser(u);
     if (u) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
     } else {
@@ -64,71 +78,81 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Google Login Handler
   const loginWithGoogle = async (customData?: Partial<User>) => {
-    setIsLoading(true);
-    try {
-      // If user already exists in localStorage or backend, retrieve it
-      const existing = localStorage.getItem(STORAGE_KEY);
-      let userData: User;
-
-      if (existing) {
-        userData = JSON.parse(existing);
-      } else {
-        // New Google Account default
-        userData = {
-          id: 'usr-' + Math.random().toString(36).substring(2, 9),
-          name: customData?.name || 'Pengguna Baru',
-          email: customData?.email || 'user@gmail.com',
-          avatarUrl: customData?.avatarUrl || '',
-          role: null, // Role belum dipilih, harus ke onboarding
-          isVerified: false,
-        };
-      }
-
-      if (customData) {
-        userData = { ...userData, ...customData };
-      }
-
+    // Jika user mengisi form coba akun khusus (custom data)
+    if (customData && customData.name && customData.name !== 'Anggota Koperasi') {
+      const userData: User = {
+        id: 'usr-' + Math.random().toString(36).substring(2, 9),
+        name: customData.name || 'Pengguna Baru',
+        email: customData.email || 'user@gmail.com',
+        avatarUrl: customData.avatarUrl || '',
+        role: null,
+        isVerified: false,
+        ...customData,
+      };
       saveUser(userData);
-
-      // Redirect logic: jika belum pilih role -> /onboarding, jika sudah -> /toko
-      if (!userData.role) {
-        router.push('/onboarding');
-      } else {
-        router.push('/toko');
-      }
-    } finally {
-      setIsLoading(false);
+      router.push('/onboarding');
+      return;
     }
+
+    // Google OAuth resmi NextAuth
+    await nextAuthSignIn('google', { callbackUrl: '/onboarding' });
   };
 
   // Onboarding Role Selection Handler
   const selectRole = async (role: 'PETANI' | 'PEMBELI', kelompokTaniId?: string) => {
-    if (!user) return;
+    try {
+      // Simpan ke PostgreSQL database via API
+      await fetch('/api/user/role', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role, kelompokTaniId }),
+      });
+    } catch (e) {
+      console.warn('Gagal sinkronisasi peran ke backend API:', e);
+    }
 
-    // Pembeli langsung terverifikasi, Petani menunggu verifikasi admin
     const isVerified = role === 'PEMBELI';
-
     const updatedUser: User = {
-      ...user,
+      ...(currentUser || {
+        id: 'usr-' + Math.random().toString(36).substring(2, 9),
+        name: 'Pengguna',
+        email: 'user@gmail.com',
+      }),
       role,
       isVerified,
       kelompokTaniId,
     };
 
     saveUser(updatedUser);
+    if (updateSession) {
+      await updateSession({ user: { role, isVerified } });
+    }
 
-    // Setelah role dipilih, langsung arahkan ke Toko Online
     router.push('/toko');
   };
 
   // Logout Handler
-  const logout = () => {
+  const logout = async () => {
     saveUser(null);
-    router.push('/');
+    if (session) {
+      await nextAuthSignOut({ callbackUrl: '/' });
+    } else {
+      router.push('/');
+    }
   };
 
+  const isLoading = status === 'loading';
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, loginWithGoogle, selectRole, logout }}>
+    <AuthContext.Provider
+      value={{
+        user: currentUser,
+        isLoading,
+        loginWithGoogle,
+        selectRole,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

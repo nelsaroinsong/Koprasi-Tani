@@ -1,0 +1,77 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  ADMIN
+  PETANI
+  PEMBELI
+}
+
+model User {
+  id             String        @id @default(uuid())
+  email          String        @unique
+  password       String?
+  googleId       String?       @unique
+  name           String
+  phone          String?
+  role           Role          @default(PEMBELI)
+  avatarUrl      String?
+  isVerified     Boolean       @default(false)
+  isActive       Boolean       @default(true)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  // Relasi ke Kelompok Tani (opsional untuk Petani)
+  kelompokTani   KelompokTani? @relation(fields: [kelompokTaniId], references: [id])
+  kelompokTaniId String?
+
+  // Relasi ke Produk komoditas yang dijual petani
+  products       Product[]
+
+  @@map("users")
+}
+
+model KelompokTani {
+  id             String    @id @default(uuid())
+  nama           String
+  desa           String
+  kecamatan      String
+  kabupaten      String    @default("Minahasa Utara")
+  komoditasUtama String    // contoh: "Kelapa & Jagung"
+  jumlahAnggota  Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  members        User[]
+  products       Product[]
+
+  @@map("kelompok_tani")
+}
+
+model Product {
+  id             String        @id @default(uuid())
+  nama           String
+  deskripsi      String?
+  kategori       String        // "Kelapa", "Jagung", "Olahan"
+  hargaPerSatuan Decimal       @db.Decimal(12, 2)
+  satuan         String        @default("kg") // "kg", "karung", "butir"
+  stok           Int           @default(0)
+  imageUrl       String?
+  isTersedia     Boolean       @default(true)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  petani         User          @relation(fields: [petaniId], references: [id])
+  petaniId       String
+
+  kelompokTani   KelompokTani? @relation(fields: [kelompokTaniId], references: [id])
+  kelompokTaniId String?
+
+  @@map("products")
+}
