@@ -1,7 +1,8 @@
-'use client';
-
 import React, { useState } from 'react';
-import { LogIn, Menu, X, Home, ShoppingBag, Tractor } from 'lucide-react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { LogIn, Menu, X, Home, ShoppingBag, Tractor, LogOut, User as UserIcon } from 'lucide-react';
+import { useAuth } from '@/context/auth-context';
 
 interface NavbarProps {
   onOpenModal: (type: 'toko' | 'alsintan') => void;
@@ -13,6 +14,8 @@ export default function Navbar({
   activeSection,
 }: NavbarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { user, logout } = useAuth();
+  const router = useRouter();
 
   const handleNavClick = (
     e: React.MouseEvent,
@@ -22,8 +25,10 @@ export default function Navbar({
     setMobileMenuOpen(false);
     if (target === 'beranda') {
       window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else {
-      onOpenModal(target);
+    } else if (target === 'toko') {
+      router.push('/toko');
+    } else if (target === 'alsintan') {
+      router.push('/sewa-alat');
     }
   };
 
@@ -106,16 +111,34 @@ export default function Navbar({
 
         {/* Right Utility (Tombol Masuk & Menu Mobile) */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          {/* Tombol Masuk / Login */}
-          <button
-            id="login-btn"
-            onClick={() => alert('Fitur Masuk / Login Anggota Koperasi & Petani sedang disiapkan.')}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-full border border-forest-accent text-forest-accent hover:bg-forest-accent hover:text-white font-semibold text-xs transition cursor-pointer"
-            type="button"
-          >
-            <LogIn className="w-3.5 h-3.5" />
-            <span>Masuk</span>
-          </button>
+          {user ? (
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="hidden sm:block text-right">
+                <div className="text-xs font-bold text-slate-800 leading-tight">{user.name}</div>
+                <div className="text-[10px] font-semibold text-emerald-700">
+                  {user.role === 'PETANI' ? (user.isVerified ? 'Petani' : 'Petani (Pending)') : 'Pembeli'}
+                </div>
+              </div>
+              <button
+                onClick={logout}
+                title="Keluar"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-slate-200 text-slate-600 hover:text-red-600 hover:border-red-200 font-semibold text-xs transition cursor-pointer"
+                type="button"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Keluar</span>
+              </button>
+            </div>
+          ) : (
+            <Link
+              id="login-btn"
+              href="/login"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-full border border-forest-accent text-forest-accent hover:bg-forest-accent hover:text-white font-semibold text-xs transition cursor-pointer"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Masuk</span>
+            </Link>
+          )}
 
           {/* Mobile Menu Hamburger */}
           <button
@@ -179,19 +202,32 @@ export default function Navbar({
           </button>
 
           <div className="pt-2 border-t border-slate-100">
-            <button
-              onClick={() => {
-                setMobileMenuOpen(false);
-                alert('Fitur Masuk / Login Anggota Koperasi & Petani sedang disiapkan.');
-              }}
-              className="w-full text-left px-3.5 py-2.5 rounded-xl font-semibold text-forest-accent bg-emerald-50 hover:bg-emerald-100 text-sm flex items-center justify-between cursor-pointer transition"
-              type="button"
-            >
-              <span className="flex items-center gap-2.5">
-                <LogIn className="w-4 h-4" />
-                <span>Masuk / Login</span>
-              </span>
-            </button>
+            {user ? (
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  logout();
+                }}
+                className="w-full text-left px-3.5 py-2.5 rounded-xl font-semibold text-red-600 bg-red-50 hover:bg-red-100 text-sm flex items-center justify-between cursor-pointer transition"
+                type="button"
+              >
+                <span className="flex items-center gap-2.5">
+                  <LogOut className="w-4 h-4" />
+                  <span>Keluar ({user.name})</span>
+                </span>
+              </button>
+            ) : (
+              <Link
+                href="/login"
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full text-left px-3.5 py-2.5 rounded-xl font-semibold text-forest-accent bg-emerald-50 hover:bg-emerald-100 text-sm flex items-center justify-between cursor-pointer transition"
+              >
+                <span className="flex items-center gap-2.5">
+                  <LogIn className="w-4 h-4" />
+                  <span>Masuk / Login</span>
+                </span>
+              </Link>
+            )}
           </div>
         </div>
       )}

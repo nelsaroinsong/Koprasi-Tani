@@ -1,13 +1,28 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import HeroSection from '@/components/HeroSection';
 import MainFooter from '@/components/MainFooter';
 import { CheckCircle2 } from 'lucide-react';
+import { useAuth } from '@/context/auth-context';
 
 export default function Home() {
+  const { user, isLoading } = useAuth();
+  const router = useRouter();
   const [activeSection] = useState<'beranda' | 'toko' | 'alsintan'>('beranda');
+
+  // Jika sudah login, beranda otomatis diarahkan ke Toko Online
+  useEffect(() => {
+    if (!isLoading && user) {
+      if (!user.role) {
+        router.replace('/onboarding');
+      } else {
+        router.replace('/toko');
+      }
+    }
+  }, [user, isLoading, router]);
 
   // Toast notification
   const [toastMessage, setToastMessage] = useState<string | null>(null);
