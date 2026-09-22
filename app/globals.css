@@ -1,16 +1,8 @@
 @import "tailwindcss";
+@import "./colors.css";
 
 @theme {
   --font-sans: var(--font-sans), "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
-  --color-forest-50: #f2f8f5;
-  --color-forest-100: #e1efe8;
-  --color-forest-600: #1b5a42;
-  --color-forest-700: #154835;
-  --color-forest-800: #123e2d;
-  --color-forest-900: #0c2a1f;
-  --color-forest-dark: #143d2d;
-  --color-forest-accent: #194637;
-  --color-amber-soft: #fef7e6;
 }
 
 .bg-dot-pattern {

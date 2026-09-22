@@ -1,0 +1,46 @@
+/**
+ * Palet Warna CSS - Koperasi Sinar Pagi Sejahtera & Kelompok Tani Minahasa Utara
+ */
+
+@theme {
+  /* Hijau Hutan & Daun Subur (Forest Green) */
+  --color-forest-50: #f2f8f5;
+  --color-forest-100: #e1efe8;
+  --color-forest-200: #c4e0d2;
+  --color-forest-300: #99c9b3;
+  --color-forest-400: #68ac8f;
+  --color-forest-500: #428f70;
+  --color-forest-600: #1b5a42;
+  --color-forest-700: #154835;
+  --color-forest-800: #123e2d;
+  --color-forest-900: #0c2a1f;
+  --color-forest-950: #061711;
+  --color-forest-dark: #143d2d;
+  --color-forest-accent: #194637;
+
+  /* Kuning Emas Panen Jagung & VCO (Harvest Gold) */
+  --color-harvest-50: #fefdf6;
+  --color-harvest-100: #fef7e6;
+  --color-harvest-200: #feeec7;
+  --color-harvest-500: #f59e0b;
+  --color-harvest-600: #d97706;
+  --color-harvest-700: #b45309;
+  --color-amber-soft: #fef7e6;
+
+  /* Cokelat Serat Sabut Kelapa & Kopra (Earth / Husk) */
+  --color-earth-50: #fbf8f5;
+  --color-earth-100: #f5eee6;
+  --color-earth-200: #ebddcc;
+  --color-earth-600: #a37c54;
+  --color-earth-700: #836142;
+
+  /* Biru Irigasi & Pesisir Likupang (Coastal Blue) */
+  --color-coastal-50: #f0f9ff;
+  --color-coastal-100: #e0f2fe;
+  --color-coastal-500: #0ea5e9;
+  --color-coastal-700: #0369a1;
+
+  /* Latar Belakang & Kanvas (Canvas) */
+  --color-canvas-bg: #fafbf9;
+  --color-canvas-card: #ffffff;
+}
