@@ -73,7 +73,6 @@ export default function Home() {
       <main className="flex-1">
         {/* Hero Section */}
         <HeroSection
-          onJoinKoperasi={() => showToast('Pendaftaran anggota Koperasi Sinar Pagi Sejahtera segera dibuka!')}
           onExploreToko={() => handleOpenModal('toko')}
           onSewaAlsintan={() => handleOpenModal('alsintan')}
           onBookingBanner={() => handleOpenModal('alsintan')}

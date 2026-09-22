@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 
 interface LogoItem {
@@ -8,6 +9,14 @@ interface LogoItem {
   name: string;
   url: string;
 }
+
+const DEFAULT_LOGOS: LogoItem[] = [
+  {
+    key: 'logo/logo-icare.webp',
+    name: 'ICARE',
+    url: '/api/storage/logo/logo-icare.webp',
+  },
+];
 
 interface HeroSectionProps {
   onJoinKoperasi?: () => void;
@@ -20,7 +29,7 @@ export default function HeroSection({
   onJoinKoperasi,
   onExploreToko,
 }: HeroSectionProps) {
-  const [logos, setLogos] = useState<LogoItem[]>([]);
+  const [logos, setLogos] = useState<LogoItem[]>(DEFAULT_LOGOS);
   const [, setIsLoadingLogos] = useState(true);
 
   useEffect(() => {
@@ -34,11 +43,6 @@ export default function HeroSection({
       .catch(() => {})
       .finally(() => setIsLoadingLogos(false));
   }, []);
-
-  const handleJoin =
-    onJoinKoperasi ||
-    onExploreToko ||
-    (() => alert('Pendaftaran anggota Koperasi Sinar Pagi Sejahtera sedang dibuka.'));
 
   return (
     <section id="hero-section" className="relative pt-12 pb-6 lg:pt-16 lg:pb-8 overflow-hidden">
@@ -63,15 +67,14 @@ export default function HeroSection({
 
           {/* Action Button CTA */}
           <div className="flex items-center justify-center pt-2">
-            <button
+            <Link
               id="btn-join-koperasi"
-              onClick={handleJoin}
+              href="/login"
               className="inline-flex items-center justify-center gap-2.5 px-8 py-3.5 rounded-xl bg-forest-accent text-white font-semibold text-base hover:bg-forest-800 transition-all duration-200 shadow-md shadow-forest-900/15 hover:shadow-lg hover:shadow-forest-900/25 active:scale-[0.98] cursor-pointer"
-              type="button"
             >
               <span>Bergabung Bersama Koperasi</span>
               <ArrowRight className="w-5 h-5" />
-            </button>
+            </Link>
           </div>
 
           {/* Supported By Section */}
@@ -80,42 +83,21 @@ export default function HeroSection({
               Didukung oleh
             </p>
 
-            <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-10">
-              {logos.length > 0 ? (
-                logos.map((logo) => (
-                  <div
-                    key={logo.key}
-                    className="flex items-center justify-center px-4 py-2 bg-white/90 rounded-xl border border-slate-200/70 shadow-2xs hover:shadow-xs hover:border-slate-300 transition-all duration-200"
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={logo.url}
-                      alt={logo.name}
-                      className="h-6 sm:h-7 w-auto object-contain max-w-[105px] transition-all duration-200"
-                      title={logo.name}
-                    />
-                  </div>
-                ))
-              ) : (
-                <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 text-xs font-semibold text-slate-600">
-                  <div className="px-4 py-2 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-forest-accent" />
-                    Kementerian Pertanian RI
-                  </div>
-                  <div className="px-4 py-2 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-forest-accent" />
-                    Dinas Pertanian Minut
-                  </div>
-                  <div className="px-4 py-2 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-forest-accent" />
-                    Bank Mitra KUR Tani
-                  </div>
-                  <div className="px-4 py-2 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-forest-accent" />
-                    Gabungan Kelompok Tani (Gapoktan)
-                  </div>
+            <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-10 min-h-[44px]">
+              {logos.map((logo) => (
+                <div
+                  key={logo.key}
+                  className="flex items-center justify-center px-4 py-2 bg-white/90 rounded-xl border border-slate-200/70 shadow-2xs hover:shadow-xs hover:border-slate-300 transition-all duration-200"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={logo.url}
+                    alt={logo.name}
+                    className="h-6 sm:h-7 w-auto object-contain max-w-[105px] transition-all duration-200"
+                    title={logo.name}
+                  />
                 </div>
-              )}
+              ))}
             </div>
           </div>
         </div>
