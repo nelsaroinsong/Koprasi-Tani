@@ -146,17 +146,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         name: customData.name || 'Pengguna Baru',
         email: customData.email || 'user@gmail.com',
         avatarUrl: customData.avatarUrl || '',
-        role: null,
-        isVerified: false,
+        role: customData.role || 'PEMBELI',
+        isVerified: true,
         ...customData,
       };
       saveUser(userData);
-      router.push('/onboarding');
+      router.push('/toko');
       return;
     }
 
-    // Google OAuth resmi NextAuth
-    await nextAuthSignIn('google', { callbackUrl: '/onboarding' });
+    // Google OAuth resmi NextAuth - langsung masuk ke Toko Online
+    await nextAuthSignIn('google', { callbackUrl: '/toko' });
   };
 
   // Onboarding Role Selection Handler

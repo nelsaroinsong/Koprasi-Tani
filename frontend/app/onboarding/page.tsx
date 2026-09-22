@@ -13,8 +13,13 @@ export default function OnboardingPage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading && !user) {
-      router.replace('/login?callbackUrl=/onboarding');
+    if (!isLoading) {
+      if (!user) {
+        router.replace('/login?callbackUrl=/onboarding');
+      } else if (user.role) {
+        // Jika akun sudah pernah terdaftar dan memiliki peran, langsung arahkan ke Toko Online
+        router.replace('/toko');
+      }
     }
   }, [user, isLoading, router]);
 
