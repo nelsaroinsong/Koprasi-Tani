@@ -34,7 +34,6 @@ export default function MainFooter({ onNavClick }: MainFooterProps) {
             </div>
             <p className="text-slate-500 leading-relaxed">
               Ekosistem digital agribisnis berkelanjutan,
-              <br/>
               mensejahterakan petani Indonesia.
             </p>
           </div>

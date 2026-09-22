@@ -57,8 +57,8 @@ export default function HeroSection({
           </h1>
 
           {/* Subheadline */}
-          <p className="text-base sm:text-lg lg:text-xl text-slate-600 leading-relaxed max-w-3xl mx-auto font-normal">
-            Satu ekosistem terpadu yang menaungi berbagai kelompok tani di Minahasa Utara. Memfasilitasi jual beli komoditas unggulan panen kelapa &amp; jagung langsung, serta penyediaan sewa alsintan modern berbiaya subsidi langsung dari kebun ke pembeli.
+          <p className="text-base sm:text-md lg:text-md text-slate-600 leading-relaxed max-w-3xl mx-auto font-normal">
+            Satu ekosistem terpadu yang menaungi berbagai kelompok tani. Memfasilitasi jual beli komoditas unggulan panen kelapa &amp; jagung langsung, serta penyediaan sewa alat.
           </p>
 
           {/* Action Button CTA */}
@@ -77,7 +77,7 @@ export default function HeroSection({
           {/* Supported By Section */}
           <div className="pt-8 border-t border-slate-200/80 max-w-4xl mx-auto">
             <p className="text-xs uppercase tracking-widest font-bold text-slate-400 mb-3">
-              Supported by
+              Didukung oleh
             </p>
 
             <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-10">
