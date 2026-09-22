@@ -10,6 +10,7 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
+  icons: [],
   title: 'Tani Naik Kelas | Koperasi Sinar Pagi Sejahtera - Minahasa Utara',
   description: 'Ekosistem digital agribisnis kelapa & jagung terpadu Minahasa Utara - Tani Naik Kelas. Jual beli komoditas, sewa alsintan bersubsidi, edukasi AI & permodalan KUR.',
   openGraph: {
