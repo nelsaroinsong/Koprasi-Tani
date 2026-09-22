@@ -5,15 +5,12 @@ import Navbar from '@/components/Navbar';
 import HeroSection from '@/components/HeroSection';
 import MainFooter from '@/components/MainFooter';
 import CartDrawer from '@/components/CartDrawer';
-import TokoModal from '@/components/TokoModal';
-import AlsintanModal from '@/components/AlsintanModal';
-import { initialProducts, initialAlsintan } from '@/lib/data';
-import { Product, AlsintanItem, CartItem } from '@/lib/types';
+import { initialProducts } from '@/lib/data';
+import { Product, CartItem } from '@/lib/types';
 import { CheckCircle2 } from 'lucide-react';
 
 export default function Home() {
   const [products] = useState<Product[]>(initialProducts);
-  const [alsintanList] = useState<AlsintanItem[]>(initialAlsintan);
 
   // Cart starts with 1 item matching the screenshot badge '1'
   const [cartItems, setCartItems] = useState<CartItem[]>([
@@ -27,9 +24,6 @@ export default function Home() {
 
   // Modals & Drawers state
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
-  const [tokoModalOpen, setTokoModalOpen] = useState(false);
-  const [alsintanModalOpen, setAlsintanModalOpen] = useState(false);
-  const [selectedAlsintan, setSelectedAlsintan] = useState<AlsintanItem | null>(null);
 
   // Toast notification
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -82,24 +76,11 @@ export default function Home() {
     setCartDrawerOpen(false);
   };
 
-  const handleConfirmBooking = (bookingDetails: {
-    item: AlsintanItem;
-    date: string;
-    duration: number;
-    pool: string;
-    withOperator: boolean;
-    totalCost: number;
-  }) => {
-    setAlsintanModalOpen(false);
-    showToast(`✓ Berhasil booking ${bookingDetails.item.name} untuk tanggal ${bookingDetails.date} di ${bookingDetails.pool}!`);
-  };
-
   const handleOpenModal = (type: 'toko' | 'alsintan') => {
     if (type === 'toko') {
-      setTokoModalOpen(true);
+      alert('Layanan Toko Online Komoditas sedang dalam penyesuaian.');
     } else if (type === 'alsintan') {
-      setSelectedAlsintan(alsintanList[0]);
-      setAlsintanModalOpen(true);
+      alert('Layanan Sewa Alsintan & Traktor sedang dalam penyesuaian.');
     }
   };
 
@@ -126,28 +107,15 @@ export default function Home() {
       <main className="flex-1">
         {/* Hero Section */}
         <HeroSection
-          onExploreToko={() => setTokoModalOpen(true)}
-          onSewaAlsintan={() => {
-            setSelectedAlsintan(alsintanList[0]);
-            setAlsintanModalOpen(true);
-          }}
-          onBookingBanner={() => {
-            setSelectedAlsintan(alsintanList[0]);
-            setAlsintanModalOpen(true);
-          }}
+          onExploreToko={() => handleOpenModal('toko')}
+          onSewaAlsintan={() => handleOpenModal('alsintan')}
+          onBookingBanner={() => handleOpenModal('alsintan')}
         />
       </main>
 
       {/* Footer */}
       <MainFooter
-        onNavClick={(target) => {
-          if (target === 'alsintan') {
-            setSelectedAlsintan(alsintanList[0]);
-            setAlsintanModalOpen(true);
-          } else if (target === 'toko') {
-            setTokoModalOpen(true);
-          }
-        }}
+        onNavClick={(target) => handleOpenModal(target)}
       />
 
       {/* Cart Drawer */}
@@ -158,23 +126,6 @@ export default function Home() {
         onUpdateQuantity={handleUpdateQuantity}
         onRemoveItem={handleRemoveFromCart}
         onCheckout={handleCheckout}
-      />
-
-      {/* Toko Online Modal */}
-      <TokoModal
-        isOpen={tokoModalOpen}
-        onClose={() => setTokoModalOpen(false)}
-        products={products}
-        onAddToCart={handleAddToCart}
-      />
-
-      {/* Alsintan Booking Modal */}
-      <AlsintanModal
-        isOpen={alsintanModalOpen}
-        onClose={() => setAlsintanModalOpen(false)}
-        selectedItem={selectedAlsintan}
-        allItems={alsintanList}
-        onConfirmBooking={handleConfirmBooking}
       />
     </div>
   );

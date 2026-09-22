@@ -20,15 +20,6 @@ export default function HeroSection({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           {/* Left Content */}
           <div className="lg:col-span-7 space-y-6">
-            {/* Tagline Pill */}
-            <div
-              id="hero-tagline-pill"
-              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200/80 text-forest-700 text-xs font-semibold badge-pill"
-            >
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-              <span>🌱 Platform Digital Koperasi Agribisnis Terpadu Minahasa Utara</span>
-            </div>
-
             {/* Headline */}
             <h2 className="text-4xl sm:text-5xl lg:text-[52px] font-extrabold text-slate-900 leading-[1.15] tracking-tight">
               Petani Berdaya, Hasil Panen{' '}
@@ -40,8 +31,8 @@ export default function HeroSection({
 
             {/* Subheadline */}
             <p className="text-base sm:text-lg text-slate-600 leading-relaxed max-w-2xl">
-              Satu ekosistem terpadu untuk jual beli komoditas kelapa &amp; jagung, sewa alat mesin pertanian modern
-              berbiaya subsidi, hingga permodalan terverifikasi Koperasi Sinar Pagi Sejahtera.
+              Satu ekosistem terpadu yang menaungi berbagai kelompok tani Minahasa Utara untuk jual beli komoditas kelapa &amp; jagung,
+              serta sewa alat mesin pertanian modern berbiaya subsidi langsung dari kebun ke pembeli.
             </p>
 
             {/* Action Buttons CTA */}
@@ -69,9 +60,13 @@ export default function HeroSection({
 
             {/* Highlight Metric Mini-Ribbon */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6 border-t border-slate-200">
+              <div id="stat-kelompok">
+                <p className="text-2xl font-black text-forest-accent">18+</p>
+                <p className="text-xs text-slate-500 font-medium mt-0.5">Kelompok Tani</p>
+              </div>
               <div id="stat-petani">
                 <p className="text-2xl font-black text-forest-accent">1.240+</p>
-                <p className="text-xs text-slate-500 font-medium mt-0.5">Petani Anggota</p>
+                <p className="text-xs text-slate-500 font-medium mt-0.5">Petani Tergabung</p>
               </div>
               <div id="stat-alsintan">
                 <p className="text-2xl font-black text-forest-accent">35+ Unit</p>
@@ -80,10 +75,6 @@ export default function HeroSection({
               <div id="stat-transaksi">
                 <p className="text-2xl font-black text-forest-accent">Rp 4.2 M</p>
                 <p className="text-xs text-slate-500 font-medium mt-0.5">Transaksi Panen</p>
-              </div>
-              <div id="stat-ontime">
-                <p className="text-2xl font-black text-forest-accent">98%</p>
-                <p className="text-xs text-slate-500 font-medium mt-0.5">Tepat Waktu Pasca</p>
               </div>
             </div>
           </div>
@@ -97,11 +88,11 @@ export default function HeroSection({
                 <div className="flex items-center gap-2.5">
                   <span className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse" />
                   <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                    Update Harga Koperasi Hari Ini
+                    Update Harga Kelompok Tani Hari Ini
                   </p>
                 </div>
                 <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60">
-                  Airmadidi Pool
+                  Lintas Kelompok Tani
                 </span>
               </div>
 
@@ -158,7 +149,7 @@ export default function HeroSection({
                   </div>
                   <h5 className="text-sm font-bold">Traktor Quick G1000 &amp; Drone Pilot</h5>
                   <p className="text-xs text-emerald-100/90 mt-1">
-                    Disubsidi untuk anggota resmi Koperasi Sinar Pagi Sejahtera.
+                    Disubsidi untuk seluruh anggota kelompok tani di Minahasa Utara.
                   </p>
                   <div className="mt-3 flex items-center justify-between">
                     <span className="text-xs font-bold text-white">Mulai Rp 120.000/hari</span>
@@ -180,7 +171,7 @@ export default function HeroSection({
                   <Star className="w-5 h-5 fill-amber-400 text-amber-400" />
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-slate-800">4.9 / 5.0 Rating Petani</p>
+                  <p className="text-xs font-bold text-slate-800">4.9 / 5.0 Kepuasan Kelompok Tani</p>
                   <p className="text-[11px] text-slate-500">Transparansi timbangan &amp; bayar kontan</p>
                 </div>
               </div>

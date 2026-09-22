@@ -10,9 +10,9 @@ export default function MainFooter({ onNavClick }: MainFooterProps) {
   return (
     <footer id="main-footer" className="bg-white border-t border-slate-200 text-slate-600 text-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Kolom Profil */}
-          <div className="md:col-span-1 space-y-3">
+          <div className="space-y-3">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-forest-accent flex items-center justify-center text-white shadow-sm">
                 <svg
@@ -33,7 +33,7 @@ export default function MainFooter({ onNavClick }: MainFooterProps) {
               </div>
             </div>
             <p className="text-slate-500 leading-relaxed">
-              Ekosistem digital agribisnis kelapa &amp; jagung berkelanjutan. Membawa kesejahteraan bagi petani bumi Tonsea.
+              Ekosistem digital agribisnis kelapa &amp; jagung berkelanjutan. Membawa kesejahteraan bagi kelompok tani bumi Tonsea.
             </p>
           </div>
 
@@ -62,27 +62,6 @@ export default function MainFooter({ onNavClick }: MainFooterProps) {
             </ul>
           </div>
 
-          {/* Kolom Alamat Pool Alsintan */}
-          <div>
-            <p className="font-bold text-slate-900 mb-3 uppercase tracking-wider text-[11px]">
-              Pool &amp; Gudang Alat
-            </p>
-            <ul className="space-y-2 text-slate-500">
-              <li>
-                <strong className="text-slate-700">Pool Airmadidi:</strong> Jl. Raya Manado-Bitung Km 16, Airmadidi Atas
-              </li>
-              <li>
-                <strong className="text-slate-700">Pool Kauditan:</strong> Kompleks Sentra Jagung Kauditan I
-              </li>
-              <li>
-                <strong className="text-slate-700">Solar Dryer Dome:</strong> Sentral Likupang Timur
-              </li>
-              <li>
-                <span className="text-slate-700 font-semibold">Telepon:</span> (0431) 892-0144 / 0812-4422-9011
-              </li>
-            </ul>
-          </div>
-
           {/* Kolom Jam Operasional & Layanan Bantuan */}
           <div>
             <p className="font-bold text-slate-900 mb-3 uppercase tracking-wider text-[11px]">
@@ -106,14 +85,11 @@ export default function MainFooter({ onNavClick }: MainFooterProps) {
             © 2026 Koperasi Sinar Pagi Sejahtera — Ekosistem Digital Kelapa &amp; Jagung Berkelanjutan Minahasa Utara.
           </p>
           <div className="flex items-center gap-6 text-[11px]">
-            <a href="#pusat-bantuan" onClick={(e) => { e.preventDefault(); alert('Hotline Call Center: 0812-4422-9011 (Posko Airmadidi)'); }} className="hover:text-forest-accent transition">
+            <a href="#pusat-bantuan" onClick={(e) => { e.preventDefault(); alert('Hotline Call Center: 0812-4422-9011'); }} className="hover:text-forest-accent transition">
               Pusat Bantuan
             </a>
             <a href="#kebijakan" onClick={(e) => { e.preventDefault(); alert('Data petani Minahasa Utara dilindungi sesuai standar UU PDP Koperasi Indonesia.'); }} className="hover:text-forest-accent transition">
               Kebijakan Privasi
-            </a>
-            <a href="#kontak" onClick={(e) => { e.preventDefault(); alert('Alamat Pool Alat: Jl. Raya Manado-Bitung Km 16, Airmadidi Atas'); }} className="hover:text-forest-accent transition">
-              Kontak Pool Alat
             </a>
           </div>
         </div>
