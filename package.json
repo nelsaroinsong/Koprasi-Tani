@@ -4,8 +4,10 @@
   "private": true,
   "description": "Sistem Ekosistem Digital Koperasi Sinar Pagi Sejahtera",
   "scripts": {
+    "dev": "npm --prefix frontend run dev",
     "dev:frontend": "npm --prefix frontend run dev",
     "dev:backend": "npm --prefix backend run start:dev",
+    "build:frontend": "npm --prefix frontend run build",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down"
   }
