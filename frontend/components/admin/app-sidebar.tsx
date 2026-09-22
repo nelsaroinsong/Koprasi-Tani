@@ -9,7 +9,6 @@ import {
   Settings2,
   ShoppingCart,
   Tractor,
-  BookOpen,
 } from "lucide-react"
 
 import { NavMain } from "@/components/admin/nav-main"
@@ -126,14 +125,9 @@ const data = {
       icon: ShoppingCart,
     },
     {
-      name: "Sewa Alsintan",
+      name: "Sewa Alat",
       url: "/admin",
       icon: Tractor,
-    },
-    {
-      name: "Edukasi Tani",
-      url: "/admin",
-      icon: BookOpen,
     },
   ],
 }

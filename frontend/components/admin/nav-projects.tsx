@@ -24,6 +24,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
+import { useAdmin } from "@/components/admin/admin-context"
 
 export function NavProjects({
   projects,
@@ -35,19 +36,32 @@ export function NavProjects({
   }[]
 }) {
   const { isMobile } = useSidebar()
+  const { activeTab, setActiveTab } = useAdmin()
 
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
       <SidebarGroupLabel>Layanan</SidebarGroupLabel>
       <SidebarMenu>
-        {projects.map((item) => (
-          <SidebarMenuItem key={item.name}>
-            <SidebarMenuButton asChild>
-              <a href={item.url}>
-                <item.icon />
-                <span>{item.name}</span>
-              </a>
-            </SidebarMenuButton>
+        {projects.map((item) => {
+          const isCurrentActive =
+            activeTab.group === "Layanan" && activeTab.item === item.name
+
+          return (
+            <SidebarMenuItem key={item.name}>
+              <SidebarMenuButton asChild isActive={isCurrentActive}>
+                <a
+                  href={item.url}
+                  onClick={(e) => {
+                    if (item.url === "/admin" || item.url === "#") {
+                      e.preventDefault()
+                    }
+                    setActiveTab("Layanan", item.name)
+                  }}
+                >
+                  <item.icon />
+                  <span>{item.name}</span>
+                </a>
+              </SidebarMenuButton>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <SidebarMenuAction showOnHover>
@@ -76,7 +90,8 @@ export function NavProjects({
               </DropdownMenuContent>
             </DropdownMenu>
           </SidebarMenuItem>
-        ))}
+          )
+        })}
         <SidebarMenuItem>
           <SidebarMenuButton className="text-sidebar-foreground/70">
             <MoreHorizontal className="text-sidebar-foreground/70" />

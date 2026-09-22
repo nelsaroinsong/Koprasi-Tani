@@ -1,0 +1,39 @@
+"use client"
+
+import * as React from "react"
+
+export type AdminTab = {
+  group: string
+  item: string
+}
+
+type AdminContextType = {
+  activeTab: AdminTab
+  setActiveTab: (group: string, item: string) => void
+}
+
+const AdminContext = React.createContext<AdminContextType>({
+  activeTab: { group: "Dashboard", item: "Ringkasan" },
+  setActiveTab: () => {},
+})
+
+export function AdminProvider({ children }: { children: React.ReactNode }) {
+  const [activeTab, setActiveTabState] = React.useState<AdminTab>({
+    group: "Dashboard",
+    item: "Ringkasan",
+  })
+
+  const setActiveTab = React.useCallback((group: string, item: string) => {
+    setActiveTabState({ group, item })
+  }, [])
+
+  return (
+    <AdminContext.Provider value={{ activeTab, setActiveTab }}>
+      {children}
+    </AdminContext.Provider>
+  )
+}
+
+export function useAdmin() {
+  return React.useContext(AdminContext)
+}

@@ -17,6 +17,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar"
+import { useAdmin } from "@/components/admin/admin-context"
 
 export function NavMain({
   items,
@@ -32,6 +33,8 @@ export function NavMain({
     }[]
   }[]
 }) {
+  const { activeTab, setActiveTab } = useAdmin()
+
   return (
     <SidebarGroup>
       <SidebarGroupLabel>Menu Utama</SidebarGroupLabel>
@@ -40,7 +43,7 @@ export function NavMain({
           <Collapsible
             key={item.title}
             asChild
-            defaultOpen={item.isActive}
+            defaultOpen={item.isActive || activeTab.group === item.title}
             className="group/collapsible"
           >
             <SidebarMenuItem>
@@ -53,15 +56,32 @@ export function NavMain({
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <SidebarMenuSub>
-                  {item.items?.map((subItem) => (
-                    <SidebarMenuSubItem key={subItem.title}>
-                      <SidebarMenuSubButton asChild>
-                        <a href={subItem.url}>
-                          <span>{subItem.title}</span>
-                        </a>
-                      </SidebarMenuSubButton>
-                    </SidebarMenuSubItem>
-                  ))}
+                  {item.items?.map((subItem) => {
+                    const isCurrentActive =
+                      activeTab.group === item.title &&
+                      activeTab.item === subItem.title
+
+                    return (
+                      <SidebarMenuSubItem key={subItem.title}>
+                        <SidebarMenuSubButton
+                          asChild
+                          isActive={isCurrentActive}
+                        >
+                          <a
+                            href={subItem.url}
+                            onClick={(e) => {
+                              if (subItem.url === "/admin" || subItem.url === "#") {
+                                e.preventDefault()
+                              }
+                              setActiveTab(item.title, subItem.title)
+                            }}
+                          >
+                            <span>{subItem.title}</span>
+                          </a>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    )
+                  })}
                 </SidebarMenuSub>
               </CollapsibleContent>
             </SidebarMenuItem>
