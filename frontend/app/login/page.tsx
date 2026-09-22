@@ -1,12 +1,15 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, ShieldCheck, Sprout } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import { ArrowLeft, Clock, ShieldCheck, Sprout } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 
-export default function LoginPage() {
+function LoginContent() {
   const { loginWithGoogle, isLoading } = useAuth();
+  const searchParams = useSearchParams();
+  const isTimeout = searchParams.get('reason') === 'timeout';
   const [testEmail, setTestEmail] = useState('');
   const [testName, setTestName] = useState('');
   const [showManualDemo, setShowManualDemo] = useState(false);
@@ -50,6 +53,19 @@ export default function LoginPage() {
             Minahasa Utara • Platform Agribisnis Terpadu
           </p>
         </div>
+
+        {/* Inactivity Timeout Alert Notice */}
+        {isTimeout && (
+          <div className="mb-6 p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-950 flex items-start gap-3 text-xs animate-in fade-in slide-in-from-top-1 duration-200">
+            <Clock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <div className="font-bold text-amber-950 text-xs">Sesi Login Anda Telah Berakhir</div>
+              <p className="mt-0.5 text-amber-800 leading-relaxed text-[11px]">
+                Demi keamanan akun, sistem otomatis keluar karena tidak ada aktivitas selama 1 jam. Silakan masuk kembali dengan Google.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Login Instruction */}
         <div className="text-center mb-6">
@@ -135,5 +151,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-50 flex items-center justify-center" />}>
+      <LoginContent />
+    </Suspense>
   );
 }

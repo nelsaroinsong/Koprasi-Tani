@@ -109,6 +109,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   session: {
     strategy: 'jwt',
+    maxAge: 60 * 60, // 1 jam (3600 detik) - Sesi kedaluwarsa jika tidak ada aktivitas
+    updateAge: 15 * 60, // 15 menit - Token diperbarui berkala saat pengguna aktif
   },
   trustHost: true,
 });

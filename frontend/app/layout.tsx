@@ -27,6 +27,8 @@ export const metadata: Metadata = {
 
 import { AuthProvider } from '@/context/auth-context';
 import { SessionProvider } from '@/components/providers/session-provider';
+import { ToastProvider } from '@/context/toast-context';
+import SessionTimeoutManager from '@/components/SessionTimeoutManager';
 
 export default function RootLayout({children}: {children: React.ReactNode}) {
   return (
@@ -34,7 +36,10 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
       <body className="font-sans antialiased bg-dot-pattern text-slate-800 selection:bg-emerald-100 selection:text-emerald-900" suppressHydrationWarning>
         <SessionProvider>
           <AuthProvider>
-            {children}
+            <ToastProvider>
+              <SessionTimeoutManager />
+              {children}
+            </ToastProvider>
           </AuthProvider>
         </SessionProvider>
       </body>

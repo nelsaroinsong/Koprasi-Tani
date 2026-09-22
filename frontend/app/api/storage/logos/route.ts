@@ -4,24 +4,30 @@ import { r2Client, R2_BUCKET } from '@/src/storage/storage.module';
 
 export async function GET() {
   try {
+    // Hanya ambil objek dari folder 'logo/' di bucket R2
     const command = new ListObjectsV2Command({
       Bucket: R2_BUCKET,
+      Prefix: 'logo/',
     });
 
     const response = await r2Client.send(command);
     const files = response.Contents || [];
 
-    // Filter images/logos
+    // Filter hanya file gambar yang berada di dalam folder logo/
     const logos = files
       .filter((item) => {
-        const key = item.Key?.toLowerCase() || '';
-        return (
-          key.endsWith('.png') ||
-          key.endsWith('.jpg') ||
-          key.endsWith('.jpeg') ||
-          key.endsWith('.svg') ||
-          key.endsWith('.webp')
+        const key = item.Key || '';
+        const lower = key.toLowerCase();
+        const isUnderLogo = lower.startsWith('logo/');
+        const isNotFolderItself = lower !== 'logo/' && !lower.endsWith('/');
+        const isImage = (
+          lower.endsWith('.png') ||
+          lower.endsWith('.jpg') ||
+          lower.endsWith('.jpeg') ||
+          lower.endsWith('.svg') ||
+          lower.endsWith('.webp')
         );
+        return isUnderLogo && isNotFolderItself && isImage;
       })
       .map((item) => {
         const key = item.Key || '';
