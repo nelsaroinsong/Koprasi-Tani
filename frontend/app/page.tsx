@@ -42,6 +42,18 @@ export default function Home() {
     }
   };
 
+  // Jika user sudah login atau sedang memvalidasi sesi, jangan render beranda agar tidak ada flash
+  if (isLoading || user) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-7 h-7 border-3 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+          <span className="text-xs font-medium text-slate-500">Memuat Toko Online...</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-dot-pattern text-slate-800 flex flex-col justify-between">
       {/* Toast Notification */}
