@@ -1,0 +1,6 @@
+{
+  "name": "Koperasi Sinar Pagi Sejahtera",
+  "description": "Platform Digital Koperasi Agribisnis Terpadu Kelapa & Jagung Minahasa Utara - Tani Naik Kelas",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
