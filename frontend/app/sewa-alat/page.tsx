@@ -4,9 +4,10 @@ import React from 'react';
 import Link from 'next/link';
 import { Tractor, ArrowLeft, Search, Filter } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
+import UserProfileDropdown from '@/components/UserProfileDropdown';
 
 export default function SewaAlatPage() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -42,20 +43,7 @@ export default function SewaAlatPage() {
 
           <div className="flex items-center gap-3">
             {user ? (
-              <div className="flex items-center gap-3">
-                <div className="text-right hidden sm:block">
-                  <div className="text-xs font-semibold text-slate-900">{user.name}</div>
-                  <div className="text-[10px] font-medium text-emerald-700 uppercase tracking-wide">
-                    {user.role === 'PETANI' ? (user.isVerified ? 'Petani Terverifikasi' : 'Petani (Pending Verifikasi)') : 'Pembeli'}
-                  </div>
-                </div>
-                <button
-                  onClick={logout}
-                  className="text-xs text-slate-500 hover:text-red-600 px-2.5 py-1 rounded-md border border-slate-200 hover:border-red-200 transition cursor-pointer"
-                >
-                  Keluar
-                </button>
-              </div>
+              <UserProfileDropdown />
             ) : (
               <Link
                 href="/login"

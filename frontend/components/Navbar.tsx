@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { LogIn, Menu, X, Home, ShoppingBag, Tractor, LogOut, User as UserIcon } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
+import UserProfileDropdown from '@/components/UserProfileDropdown';
 
 interface NavbarProps {
   onOpenModal: (type: 'toko' | 'alsintan') => void;
@@ -112,23 +113,7 @@ export default function Navbar({
         {/* Right Utility (Tombol Masuk & Menu Mobile) */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           {user ? (
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="hidden sm:block text-right">
-                <div className="text-xs font-bold text-slate-800 leading-tight">{user.name}</div>
-                <div className="text-[10px] font-semibold text-emerald-700">
-                  {user.role === 'PETANI' ? (user.isVerified ? 'Petani' : 'Petani (Pending)') : 'Pembeli'}
-                </div>
-              </div>
-              <button
-                onClick={logout}
-                title="Keluar"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-slate-200 text-slate-600 hover:text-red-600 hover:border-red-200 font-semibold text-xs transition cursor-pointer"
-                type="button"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Keluar</span>
-              </button>
-            </div>
+            <UserProfileDropdown />
           ) : (
             <Link
               id="login-btn"

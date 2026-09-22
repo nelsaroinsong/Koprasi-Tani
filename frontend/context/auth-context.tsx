@@ -13,6 +13,7 @@ export interface User {
   role: UserRole | null;
   isVerified: boolean;
   avatarUrl?: string;
+  phone?: string;
   kelompokTaniId?: string;
 }
 
