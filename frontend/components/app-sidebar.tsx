@@ -2,20 +2,16 @@
 
 import * as React from "react"
 import {
-  AudioWaveform,
-  BookOpen,
-  Bot,
-  Command,
-  Frame,
-  GalleryVerticalEnd,
-  Map,
-  PieChart,
+  LayoutDashboard,
+  Sprout,
+  Users,
   Settings2,
-  SquareTerminal,
+  Home,
+  ShieldCheck,
+  Building2,
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
-import { NavProjects } from "@/components/nav-projects"
 import { NavUser } from "@/components/nav-user"
 import { TeamSwitcher } from "@/components/team-switcher"
 import {
@@ -26,132 +22,94 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 
-// This is sample data.
+// Data Sidebar Koperasi Sinar Pagi Sejahtera
 const data = {
   user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
+    name: "Lionel Roinsong",
+    email: "admin@sinarpagisejahtera.co.id",
+    avatar: "",
   },
   teams: [
     {
-      name: "Acme Inc",
-      logo: GalleryVerticalEnd,
-      plan: "Enterprise",
+      name: "Sinar Pagi Sejahtera",
+      logo: Sprout,
+      plan: "Koperasi Minahasa Utara",
     },
     {
-      name: "Acme Corp.",
-      logo: AudioWaveform,
-      plan: "Startup",
-    },
-    {
-      name: "Evil Corp.",
-      logo: Command,
-      plan: "Free",
+      name: "Dinas Pertanian Minut",
+      logo: Building2,
+      plan: "Mitra Pembina",
     },
   ],
   navMain: [
     {
-      title: "Playground",
-      url: "#",
-      icon: SquareTerminal,
+      title: "Dashboard",
+      url: "/admin",
+      icon: LayoutDashboard,
       isActive: true,
       items: [
         {
-          title: "History",
-          url: "#",
+          title: "Ringkasan Statistik",
+          url: "/admin",
         },
         {
-          title: "Starred",
-          url: "#",
-        },
-        {
-          title: "Settings",
-          url: "#",
+          title: "Aktivitas Panen",
+          url: "/admin",
         },
       ],
     },
     {
-      title: "Models",
-      url: "#",
-      icon: Bot,
+      title: "Kelompok Tani",
+      url: "/admin?tab=kelompok-tani",
+      icon: Sprout,
       items: [
         {
-          title: "Genesis",
-          url: "#",
+          title: "Daftar Kelompok Tani",
+          url: "/admin?tab=kelompok-tani",
         },
         {
-          title: "Explorer",
-          url: "#",
-        },
-        {
-          title: "Quantum",
-          url: "#",
+          title: "Binaan Likupang & Kauditan",
+          url: "/admin?tab=kelompok-tani",
         },
       ],
     },
     {
-      title: "Documentation",
-      url: "#",
-      icon: BookOpen,
+      title: "Users",
+      url: "/admin?tab=users",
+      icon: Users,
       items: [
         {
-          title: "Introduction",
-          url: "#",
+          title: "Petani Anggota",
+          url: "/admin?tab=users",
         },
         {
-          title: "Get Started",
-          url: "#",
+          title: "Pembeli Industri",
+          url: "/admin?tab=users",
         },
         {
-          title: "Tutorials",
-          url: "#",
-        },
-        {
-          title: "Changelog",
-          url: "#",
+          title: "Pengurus Koperasi",
+          url: "/admin?tab=users",
         },
       ],
     },
     {
       title: "Settings",
-      url: "#",
+      url: "/admin?tab=settings",
       icon: Settings2,
       items: [
         {
-          title: "General",
-          url: "#",
+          title: "Konfigurasi Koperasi",
+          url: "/admin?tab=settings",
         },
         {
-          title: "Team",
-          url: "#",
+          title: "Koneksi Cloudflare R2",
+          url: "/admin?tab=settings",
         },
         {
-          title: "Billing",
-          url: "#",
-        },
-        {
-          title: "Limits",
-          url: "#",
+          title: "Keamanan & Hak Akses",
+          url: "/admin?tab=settings",
         },
       ],
-    },
-  ],
-  projects: [
-    {
-      name: "Design Engineering",
-      url: "#",
-      icon: Frame,
-    },
-    {
-      name: "Sales & Marketing",
-      url: "#",
-      icon: PieChart,
-    },
-    {
-      name: "Travel",
-      url: "#",
-      icon: Map,
     },
   ],
 }
@@ -164,7 +122,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavProjects projects={data.projects} />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={data.user} />
