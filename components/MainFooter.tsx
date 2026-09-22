@@ -37,31 +37,6 @@ export default function MainFooter({ onNavClick }: MainFooterProps) {
             </p>
           </div>
 
-          {/* Kolom Navigasi Layanan */}
-          <div>
-            <p className="font-bold text-slate-900 mb-3 uppercase tracking-wider text-[11px]">
-              Layanan Platform
-            </p>
-            <ul className="space-y-2">
-              <li>
-                <button
-                  onClick={() => onNavClick('toko')}
-                  className="hover:text-forest-accent transition cursor-pointer text-left"
-                >
-                  Toko Online Komoditas
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => onNavClick('alsintan')}
-                  className="hover:text-forest-accent transition cursor-pointer text-left"
-                >
-                  Sewa Alsintan &amp; Drone
-                </button>
-              </li>
-            </ul>
-          </div>
-
           {/* Kolom Jam Operasional & Layanan Bantuan */}
           <div>
             <p className="font-bold text-slate-900 mb-3 uppercase tracking-wider text-[11px]">
@@ -70,12 +45,6 @@ export default function MainFooter({ onNavClick }: MainFooterProps) {
             <p className="text-slate-500 leading-relaxed mb-3">
               Layanan penimbangan panen dan sewa alat buka setiap Senin - Sabtu pukul 07.00 - 17.00 WITA.
             </p>
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-forest-accent font-semibold text-[11px] border border-emerald-200">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Hotline Petani Aktif
-              </span>
-            </div>
           </div>
         </div>
 

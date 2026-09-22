@@ -1,18 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ShoppingCart, LogOut, Menu, X } from 'lucide-react';
+import { LogIn, Menu, X } from 'lucide-react';
 
 interface NavbarProps {
-  cartCount: number;
-  onOpenCart: () => void;
   onOpenModal: (type: 'toko' | 'alsintan') => void;
   activeSection: string;
 }
 
 export default function Navbar({
-  cartCount,
-  onOpenCart,
   onOpenModal,
   activeSection,
 }: NavbarProps) {
@@ -62,7 +58,7 @@ export default function Navbar({
             <h1 className="text-sm font-bold tracking-tight text-slate-900 leading-none">
               SINAR PAGI SEJAHTERA
             </h1>
-            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mt-0.5">
+            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mt-0.5">
               Minahasa Utara • Tani Naik Kelas
             </p>
           </div>
@@ -108,56 +104,18 @@ export default function Navbar({
           </button>
         </nav>
 
-        {/* Right Utility (Keranjang, Profil Lio Petani, Logout) */}
+        {/* Right Utility (Tombol Masuk & Menu Mobile) */}
         <div className="flex items-center gap-3">
-          {/* Cart Button */}
+          {/* Tombol Masuk / Login */}
           <button
-            id="cart-button"
-            aria-label="Keranjang Belanja"
-            onClick={onOpenCart}
-            className="relative p-2.5 rounded-full text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+            id="login-btn"
+            onClick={() => alert('Fitur Masuk / Login Anggota Koperasi & Petani sedang disiapkan.')}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-forest-accent text-forest-accent hover:bg-forest-accent hover:text-white font-semibold text-xs transition cursor-pointer"
             type="button"
           >
-            <ShoppingCart className="w-5 h-5" />
-            {cartCount > 0 && (
-              <span
-                id="cart-badge-count"
-                className="absolute top-1.5 right-1.5 bg-amber-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center animate-in zoom-in"
-              >
-                {cartCount}
-              </span>
-            )}
+            <LogIn className="w-3.5 h-3.5" />
+            <span>Masuk</span>
           </button>
-
-          {/* User Chip (Lio - Petani) */}
-          <div
-            id="user-profile-chip"
-            className="flex items-center gap-2 pl-2 border-l border-slate-200 cursor-pointer"
-            onClick={() => {
-              alert('Profil Anggota Petani Resmi:\nNama: Lio Runtuwene\nID Anggota: SPS-MU-2024-0891\nWilayah: Kec. Airmadidi, Minahasa Utara\nStatus: Aktif');
-            }}
-            title="Lihat Profil Petani"
-          >
-            <div className="w-8 h-8 rounded-full bg-forest-accent text-white font-bold text-xs flex items-center justify-center shadow-inner">
-              L
-            </div>
-            <span className="text-sm font-semibold text-slate-800">Lio</span>
-            <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded border border-slate-200 bg-slate-50 text-slate-600">
-              PETANI
-            </span>
-            <button
-              id="logout-btn"
-              aria-label="Keluar Akun"
-              onClick={(e) => {
-                e.stopPropagation();
-                alert('Anda masuk sebagai Anggota Petani Resmi: Lio Runtuwene (Koperasi Sinar Pagi Sejahtera)');
-              }}
-              className="p-1.5 text-slate-400 hover:text-rose-600 transition"
-              type="button"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
 
           {/* Mobile Menu Hamburger */}
           <button
@@ -196,6 +154,19 @@ export default function Navbar({
           >
             <span>Sewa Alsintan &amp; Traktor</span>
           </button>
+          <div className="pt-2 border-t border-slate-100">
+            <button
+              onClick={() => {
+                setMobileMenuOpen(false);
+                alert('Fitur Masuk / Login Anggota Koperasi & Petani sedang disiapkan.');
+              }}
+              className="w-full text-left px-4 py-2.5 rounded-xl font-semibold text-forest-accent bg-emerald-50 hover:bg-emerald-100 text-sm flex items-center justify-between cursor-pointer"
+              type="button"
+            >
+              <span>Masuk / Login</span>
+              <LogIn className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       )}
     </header>
