@@ -10,20 +10,10 @@ function LoginContent() {
   const { loginWithGoogle, isLoading } = useAuth();
   const searchParams = useSearchParams();
   const isTimeout = searchParams.get('reason') === 'timeout';
-  const [testEmail, setTestEmail] = useState('');
-  const [testName, setTestName] = useState('');
-  const [showManualDemo, setShowManualDemo] = useState(false);
 
   const handleGoogleLogin = async () => {
-    if (testName.trim() || testEmail.trim()) {
-      await loginWithGoogle({
-        name: testName.trim(),
-        email: testEmail.trim(),
-      });
-    } else {
-      // Menjalankan Google OAuth resmi via NextAuth
-      await loginWithGoogle();
-    }
+    // Menjalankan Google OAuth resmi via NextAuth
+    await loginWithGoogle();
   };
 
   return (
@@ -109,45 +99,6 @@ function LoginContent() {
         <div className="flex items-center justify-center gap-1.5 mt-6 text-[11px] text-slate-400">
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
           <span>Keamanan terenkripsi standar Google OAuth</span>
-        </div>
-
-        {/* Dev / Test mode toggle */}
-        <div className="mt-8 pt-6 border-t border-slate-100 text-center">
-          <button
-            type="button"
-            onClick={() => setShowManualDemo(!showManualDemo)}
-            className="text-[11px] text-slate-400 hover:text-slate-600 underline"
-          >
-            {showManualDemo ? 'Sembunyikan Opsi Coba Akun Khusus' : '⚙️ Coba Login dengan Nama/Email Tertentu'}
-          </button>
-
-          {showManualDemo && (
-            <div className="mt-4 p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-left space-y-2.5">
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-600 mb-0.5">Nama Akun:</label>
-                <input
-                  type="text"
-                  value={testName}
-                  onChange={(e) => setTestName(e.target.value)}
-                  placeholder="Contoh: Bpk. Johan Sumampouw"
-                  className="w-full text-xs px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-600 mb-0.5">Email:</label>
-                <input
-                  type="email"
-                  value={testEmail}
-                  onChange={(e) => setTestEmail(e.target.value)}
-                  placeholder="Contoh: johan@gmail.com"
-                  className="w-full text-xs px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg focus:outline-none"
-                />
-              </div>
-              <p className="text-[10px] text-slate-400">
-                Opsi ini memudahkan pengujian alur sebelum memasang Google Cloud Client Secret resmi.
-              </p>
-            </div>
-          )}
         </div>
       </div>
     </div>
