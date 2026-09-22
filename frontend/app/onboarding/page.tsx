@@ -1,16 +1,22 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ShoppingBag, Sprout, CheckCircle2, ArrowRight, ShieldCheck, Clock } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 
 export default function OnboardingPage() {
-  const { user, selectRole } = useAuth();
+  const { user, selectRole, isLoading } = useAuth();
   const [selected, setSelected] = useState<'PEMBELI' | 'PETANI'>('PEMBELI');
   const [kelompokTani, setKelompokTani] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.replace('/login?callbackUrl=/onboarding');
+    }
+  }, [user, isLoading, router]);
 
   const handleConfirm = async () => {
     setIsSubmitting(true);
@@ -20,6 +26,14 @@ export default function OnboardingPage() {
       setIsSubmitting(false);
     }
   };
+
+  if (isLoading || !user) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="w-8 h-8 border-3 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center px-4 py-12">

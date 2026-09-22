@@ -44,6 +44,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Load local user on mount and sync with database
   useEffect(() => {
+    // Tangani browser BFCache saat pengguna menekan tombol 'Back' setelah logout
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        window.location.reload();
+      }
+    };
+    window.addEventListener('pageshow', handlePageShow);
+
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
@@ -53,23 +61,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('Failed to load user from localStorage', e);
     }
 
-    // Fetch fresh profile from database via API
-    fetch('/api/user/profile')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data?.user) {
-          setLocalUser((prev) => {
-            const merged = { ...prev, ...data.user };
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
-            return merged;
-          });
-        }
-      })
-      .catch((err) => console.log('Offline or unauthenticated user'));
-  }, [session]);
+    // Fetch fresh profile from database via API jika session aktif
+    if (status === 'authenticated') {
+      fetch('/api/user/profile')
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data?.user) {
+            setLocalUser((prev) => {
+              const merged = { ...prev, ...data.user };
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+              return merged;
+            });
+          }
+        })
+        .catch((err) => console.log('Offline or unauthenticated user'));
+    }
+
+    return () => {
+      window.removeEventListener('pageshow', handlePageShow);
+    };
+  }, [session, status]);
+
+  // Bersihkan data lokal ketika status sesi menjadi unauthenticated
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      setLocalUser(null);
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem('koperasi_last_activity_time');
+    }
+  }, [status]);
+
+  // Sesi pengguna hanya aktif jika NextAuth berstatus authenticated atau ada sesi valid
+  const isSessionActive = status === 'authenticated' && Boolean(session?.user);
 
   // Sync with NextAuth session and local storage
-  const currentUser: User | null = session?.user || localUser
+  const currentUser: User | null = isSessionActive
     ? {
         id: session?.user?.id || localUser?.id || 'usr-google',
         name: localUser?.name || session?.user?.name || 'Pengguna',
@@ -199,11 +225,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Logout Handler
   const logout = async () => {
     saveUser(null);
-    if (session) {
-      await nextAuthSignOut({ callbackUrl: '/' });
-    } else {
-      router.push('/');
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem('koperasi_last_activity_time');
+    sessionStorage.clear();
+
+    try {
+      if (session) {
+        await nextAuthSignOut({ redirect: false });
+      }
+    } catch (err) {
+      console.error('Error saat sign out:', err);
     }
+
+    // Mengganti entry riwayat peramban secara absolut ke /login agar tombol 'Back' tidak membuka sesi lama
+    window.location.replace('/login');
   };
 
   const isLoading = status === 'loading';
