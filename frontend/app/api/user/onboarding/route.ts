@@ -39,9 +39,11 @@ export async function POST(request: Request) {
     // - PETANI: Menunggu verifikasi admin (false)
     const isVerified = role === 'PEMBELI';
 
-    const updatedUser = await prisma.user.update({
-      where: { email: session.user.email },
-      data: {
+    const userEmail = session.user.email.trim().toLowerCase();
+
+    const updatedUser = await prisma.user.upsert({
+      where: { email: userEmail },
+      update: {
         name: cleanName,
         phone: cleanPhone,
         address: cleanAddress,
@@ -49,6 +51,17 @@ export async function POST(request: Request) {
         role,
         isVerified,
         isOnboarded: true,
+      },
+      create: {
+        email: userEmail,
+        name: cleanName,
+        phone: cleanPhone,
+        address: cleanAddress,
+        avatarUrl: avatarUrl || session.user.image || null,
+        role,
+        isVerified,
+        isOnboarded: true,
+        isActive: true,
       },
     });
 

@@ -19,6 +19,13 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 
 export default function UserProfileDropdown() {
   const { user, logout, updateProfile } = useAuth();
@@ -317,198 +324,224 @@ export default function UserProfileDropdown() {
         )}
       </div>
 
-      {/* Interactive Modal for Selected Menu Item */}
-      {activeModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-150 relative">
-            <button
-              onClick={() => setActiveModal(null)}
-              className="absolute top-5 right-5 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center cursor-pointer transition"
-            >
-              <X className="w-4 h-4" />
-            </button>
-
-            {activeModal === 'cart' && (
-              <div>
-                <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-4">
-                  <ShoppingCart className="w-6 h-6" />
-                </div>
-                <h3 className="text-lg font-bold text-slate-900">Keranjang Belanja</h3>
-                <p className="text-xs text-slate-500 mt-1 mb-4">
-                  Daftar komoditas yang siap Anda checkout dari Koperasi Sinar Pagi Sejahtera.
-                </p>
-                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl mb-4 text-xs">
-                  <div className="font-semibold text-slate-800">Kelapa Butir Grade A (Minahasa Utara)</div>
-                  <div className="text-slate-500 text-[11px] mt-0.5">50 butir • Rp 250.000</div>
-                </div>
-                <button
-                  onClick={() => setActiveModal(null)}
-                  className="w-full py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl font-semibold text-xs transition"
-                >
-                  Tutup Keranjang
-                </button>
-              </div>
-            )}
-
-            {activeModal === 'edit-profile' && (
-              <div>
-                <h3 className="text-lg font-bold text-slate-900 mb-1">Edit Profil Akun</h3>
-                <p className="text-xs text-slate-500 mb-5">
-                  Perbarui foto profil, nama lengkap, dan nomor kontak Anda.
-                </p>
-
-                {/* Photo Profile Editor */}
-                <div className="flex flex-col items-center justify-center mb-6">
-                  <div className="relative group">
-                    <div className="w-20 h-20 rounded-full bg-emerald-800 text-white flex items-center justify-center font-bold text-2xl shadow-md border-2 border-emerald-500 overflow-hidden">
-                      {editAvatar ? (
-                        <img src={editAvatar} alt="Foto Profil" className="w-full h-full object-cover" />
-                      ) : (
-                        <span>{userInitial}</span>
-                      )}
-                    </div>
-
-                    {/* Camera Button */}
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center shadow-md ring-2 ring-white cursor-pointer transition"
-                      title="Ganti Foto Profil"
-                    >
-                      <Camera className="w-3.5 h-3.5" />
-                    </button>
+      {/* Interactive Modal for Selected Menu Item Menggunakan Shadcn Dialog (Portal ke document.body) */}
+      <Dialog open={Boolean(activeModal)} onOpenChange={(open) => !open && setActiveModal(null)}>
+        <DialogContent className="sm:max-w-md rounded-3xl p-6 bg-white border border-slate-200 shadow-2xl">
+          {activeModal === 'cart' && (
+            <div>
+              <DialogHeader className="text-left mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100 shrink-0">
+                    <ShoppingCart className="w-5 h-5" />
                   </div>
+                  <div>
+                    <DialogTitle className="text-base font-bold text-slate-900 leading-snug">
+                      Keranjang Belanja
+                    </DialogTitle>
+                    <DialogDescription className="text-xs text-slate-500 mt-0.5">
+                      Daftar komoditas siap checkout dari Koperasi Sinar Pagi Sejahtera.
+                    </DialogDescription>
+                  </div>
+                </div>
+              </DialogHeader>
 
-                  {/* Hidden File Input */}
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    accept="image/*"
-                    onChange={handleAvatarFile}
-                    className="hidden"
-                  />
+              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl my-3 text-xs">
+                <div className="font-semibold text-slate-800">Kelapa Butir Grade A (Minahasa Utara)</div>
+                <div className="text-slate-500 text-[11px] mt-0.5">50 butir • Rp 250.000</div>
+              </div>
 
-                  {/* Photo Action Buttons */}
-                  <div className="flex items-center gap-3 mt-2.5">
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="text-[11px] font-semibold text-emerald-700 hover:text-emerald-800 hover:underline cursor-pointer"
-                    >
-                      Unggah Foto Baru
-                    </button>
-                    {editAvatar && (
-                      <button
-                        type="button"
-                        onClick={() => setEditAvatar('')}
-                        className="text-[11px] text-red-500 hover:text-red-700 flex items-center gap-1 cursor-pointer"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                        <span>Hapus</span>
-                      </button>
+              <button
+                type="button"
+                onClick={() => setActiveModal(null)}
+                className="w-full py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl font-semibold text-xs transition cursor-pointer shadow-xs mt-2"
+              >
+                Tutup Keranjang
+              </button>
+            </div>
+          )}
+
+          {activeModal === 'edit-profile' && (
+            <div>
+              <DialogHeader className="text-left mb-3">
+                <DialogTitle className="text-base font-bold text-slate-900 leading-snug">
+                  Edit Profil Akun
+                </DialogTitle>
+                <DialogDescription className="text-xs text-slate-500 mt-0.5">
+                  Perbarui foto profil, nama lengkap, dan nomor kontak Anda.
+                </DialogDescription>
+              </DialogHeader>
+
+              {/* Photo Profile Editor */}
+              <div className="flex flex-col items-center justify-center mb-5">
+                <div className="relative group">
+                  <div className="w-20 h-20 rounded-full bg-emerald-800 text-white flex items-center justify-center font-bold text-2xl shadow-md border-2 border-emerald-500 overflow-hidden">
+                    {editAvatar ? (
+                      <img src={editAvatar} alt="Foto Profil" className="w-full h-full object-cover" />
+                    ) : (
+                      <span>{userInitial}</span>
                     )}
                   </div>
+
+                  {/* Camera Button */}
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center shadow-md ring-2 ring-white cursor-pointer transition"
+                    title="Ganti Foto Profil"
+                  >
+                    <Camera className="w-3.5 h-3.5" />
+                  </button>
                 </div>
 
-                <div className="space-y-3 mb-5">
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">Nama Lengkap</label>
-                    <input
-                      type="text"
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">Email</label>
-                    <input
-                      type="email"
-                      disabled
-                      defaultValue={user.email}
-                      className="w-full text-xs px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-slate-500 cursor-not-allowed"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">Nomor WhatsApp / Telepon</label>
-                    <input
-                      type="tel"
-                      value={editPhone}
-                      onChange={(e) => setEditPhone(e.target.value)}
-                      placeholder="+62 812-xxxx-xxxx"
-                      className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600"
-                    />
-                  </div>
+                {/* Hidden File Input */}
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept="image/*"
+                  onChange={handleAvatarFile}
+                  className="hidden"
+                />
+
+                {/* Photo Action Buttons */}
+                <div className="flex items-center gap-3 mt-2.5">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="text-[11px] font-semibold text-emerald-700 hover:text-emerald-800 hover:underline cursor-pointer"
+                  >
+                    Unggah Foto Baru
+                  </button>
+                  {editAvatar && (
+                    <button
+                      type="button"
+                      onClick={() => setEditAvatar('')}
+                      className="text-[11px] text-red-500 hover:text-red-700 flex items-center gap-1 cursor-pointer"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      <span>Hapus</span>
+                    </button>
+                  )}
                 </div>
-
-                {uploadError && (
-                  <div className="mb-4 p-2.5 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs">
-                    {uploadError}
-                  </div>
-                )}
-
-                <button
-                  type="button"
-                  disabled={isUploading}
-                  onClick={handleSaveProfile}
-                  className="w-full py-2.5 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white rounded-xl font-semibold text-xs transition cursor-pointer shadow-xs"
-                >
-                  {isUploading ? 'Mengunggah Foto ke Cloudflare R2...' : 'Simpan Perubahan'}
-                </button>
               </div>
-            )}
 
-            {activeModal === 'riwayat' && (
-              <div>
-                <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center mb-4">
-                  <Receipt className="w-6 h-6" />
+              <div className="space-y-3 mb-5">
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-700 mb-1">Nama Lengkap</label>
+                  <input
+                    type="text"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                  />
                 </div>
-                <h3 className="text-lg font-bold text-slate-900">Riwayat Pembelian</h3>
-                <p className="text-xs text-slate-500 mt-1 mb-4">
-                  Daftar transaksi pembelian hasil tani dan pemesanan yang pernah Anda lakukan.
-                </p>
-                <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl mb-4 text-center text-xs text-slate-500">
-                  Belum ada transaksi sebelumnya. Pesanan Anda akan muncul di sini.
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-700 mb-1">Email</label>
+                  <input
+                    type="email"
+                    disabled
+                    defaultValue={user.email}
+                    className="w-full text-xs px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-slate-500 cursor-not-allowed"
+                  />
                 </div>
-                <button
-                  onClick={() => setActiveModal(null)}
-                  className="w-full py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-semibold text-xs transition"
-                >
-                  Tutup
-                </button>
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-700 mb-1">Nomor WhatsApp / Telepon</label>
+                  <input
+                    type="tel"
+                    value={editPhone}
+                    onChange={(e) => setEditPhone(e.target.value)}
+                    placeholder="+62 812-xxxx-xxxx"
+                    className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                  />
+                </div>
               </div>
-            )}
 
-            {activeModal === 'pembayaran' && (
-              <div>
-                <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center mb-4">
-                  <CreditCard className="w-6 h-6" />
+              {uploadError && (
+                <div className="mb-4 p-2.5 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs">
+                  {uploadError}
                 </div>
-                <h3 className="text-lg font-bold text-slate-900">Metode Pembayaran</h3>
-                <p className="text-xs text-slate-500 mt-1 mb-4">
-                  Pilihan metode pembayaran untuk pembelian komoditas Koperasi Sinar Pagi Sejahtera.
-                </p>
-                <div className="space-y-2 mb-5 text-xs">
-                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
-                    <span className="font-semibold text-slate-800">QRIS Koperasi (Instan)</span>
-                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">Aktif</span>
+              )}
+
+              <button
+                type="button"
+                disabled={isUploading}
+                onClick={handleSaveProfile}
+                className="w-full py-2.5 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white rounded-xl font-semibold text-xs transition cursor-pointer shadow-xs"
+              >
+                {isUploading ? 'Mengunggah Foto ke Cloudflare R2...' : 'Simpan Perubahan'}
+              </button>
+            </div>
+          )}
+
+          {activeModal === 'riwayat' && (
+            <div>
+              <DialogHeader className="text-left mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center border border-blue-100 shrink-0">
+                    <Receipt className="w-5 h-5" />
                   </div>
-                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
-                    <span className="font-semibold text-slate-800">Transfer Bank (BRI / BNI / Mandiri)</span>
-                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">Aktif</span>
+                  <div>
+                    <DialogTitle className="text-base font-bold text-slate-900 leading-snug">
+                      Riwayat Pembelian
+                    </DialogTitle>
+                    <DialogDescription className="text-xs text-slate-500 mt-0.5">
+                      Daftar transaksi pembelian hasil tani yang pernah Anda lakukan.
+                    </DialogDescription>
                   </div>
                 </div>
-                <button
-                  onClick={() => setActiveModal(null)}
-                  className="w-full py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-semibold text-xs transition"
-                >
-                  Tutup
-                </button>
+              </DialogHeader>
+
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl my-3 text-center text-xs text-slate-500">
+                Belum ada transaksi sebelumnya. Pesanan Anda akan muncul di sini.
               </div>
-            )}
-          </div>
-        </div>
-      )}
+              <button
+                type="button"
+                onClick={() => setActiveModal(null)}
+                className="w-full py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-semibold text-xs transition cursor-pointer mt-2"
+              >
+                Tutup
+              </button>
+            </div>
+          )}
+
+          {activeModal === 'pembayaran' && (
+            <div>
+              <DialogHeader className="text-left mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center border border-amber-100 shrink-0">
+                    <CreditCard className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <DialogTitle className="text-base font-bold text-slate-900 leading-snug">
+                      Metode Pembayaran
+                    </DialogTitle>
+                    <DialogDescription className="text-xs text-slate-500 mt-0.5">
+                      Pilihan metode pembayaran pembelian komoditas koperasi.
+                    </DialogDescription>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              <div className="space-y-2 my-3 text-xs">
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
+                  <span className="font-semibold text-slate-800">QRIS Koperasi (Instan)</span>
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">Aktif</span>
+                </div>
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
+                  <span className="font-semibold text-slate-800">Transfer Bank (BRI / BNI / Mandiri)</span>
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">Aktif</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveModal(null)}
+                className="w-full py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-semibold text-xs transition cursor-pointer mt-2"
+              >
+                Tutup
+              </button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

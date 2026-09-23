@@ -76,14 +76,20 @@ export function UserDeleteDialog({
             </div>
           </div>
 
-          <DialogDescription className="text-xs text-slate-600 leading-relaxed bg-slate-50 p-3.5 rounded-2xl border border-slate-200 mt-2">
-            Apakah Anda yakin ingin menghapus akun berikut dari database koperasi?
-            <div className="mt-2 pt-2 border-t border-slate-200 text-slate-900 font-semibold flex flex-col gap-0.5">
-              <span>{user.name}</span>
-              <span className="text-slate-500 font-normal text-[11px]">{user.email}</span>
-            </div>
+          <DialogDescription className="text-xs text-slate-500 mt-0.5">
+            Tindakan ini permanen dan akan menghapus akun dari sistem koperasi.
           </DialogDescription>
         </DialogHeader>
+
+        <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 text-xs text-slate-600 leading-relaxed space-y-2 mt-2">
+          <p>
+            Apakah Anda yakin ingin menghapus akun berikut dari database koperasi?
+          </p>
+          <div className="pt-2 border-t border-slate-200 text-slate-900 font-semibold flex flex-col gap-0.5">
+            <span>{user.name}</span>
+            <span className="text-slate-500 font-normal text-[11px]">{user.email}</span>
+          </div>
+        </div>
 
         {errorMessage && (
           <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs">

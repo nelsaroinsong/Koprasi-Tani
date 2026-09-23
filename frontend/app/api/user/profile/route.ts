@@ -18,6 +18,13 @@ export async function GET() {
       return NextResponse.json({ error: 'Pengguna tidak ditemukan' }, { status: 404 });
     }
 
+    // Ambil nomor HP kontak pengurus/admin aktif dari database
+    const adminUser = await prisma.user.findFirst({
+      where: { role: 'ADMIN', isActive: true },
+      select: { phone: true },
+      orderBy: { createdAt: 'asc' },
+    });
+
     return NextResponse.json({
       success: true,
       user: {
@@ -31,6 +38,9 @@ export async function GET() {
         isOnboarded: dbUser.isOnboarded,
         avatarUrl: dbUser.avatarUrl,
         createdAt: dbUser.createdAt,
+      },
+      adminContact: {
+        phone: adminUser?.phone || null,
       },
     });
   } catch (error) {

@@ -87,7 +87,15 @@ export function UserVerifyDialog({
             </div>
           </div>
 
-          <DialogDescription className="text-xs text-slate-600 leading-relaxed bg-slate-50 p-3.5 rounded-2xl border border-slate-200 mt-2">
+          <DialogDescription className="text-xs text-slate-500 mt-0.5">
+            {targetVerifiedStatus
+              ? 'Konfirmasi persetujuan pendaftaran mitra petani koperasi.'
+              : 'Konfirmasi penonaktifan status kemitraan petani.'}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 text-xs text-slate-600 leading-relaxed space-y-2 mt-2">
+          <p>
             {targetVerifiedStatus ? (
               <>
                 Apakah Anda yakin ingin <strong>memverifikasi keanggotaan resmi</strong> petani ini?
@@ -98,12 +106,12 @@ export function UserVerifyDialog({
                 Apakah Anda yakin ingin <strong>mencabut status verifikasi</strong> petani ini?
               </>
             )}
-            <div className="mt-2 pt-2 border-t border-slate-200 text-slate-900 font-semibold flex flex-col gap-0.5">
-              <span>{user.name}</span>
-              <span className="text-slate-500 font-normal text-[11px]">{user.email}</span>
-            </div>
-          </DialogDescription>
-        </DialogHeader>
+          </p>
+          <div className="pt-2 border-t border-slate-200 text-slate-900 font-semibold flex flex-col gap-0.5">
+            <span>{user.name}</span>
+            <span className="text-slate-500 font-normal text-[11px]">{user.email}</span>
+          </div>
+        </div>
 
         {errorMessage && (
           <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs">

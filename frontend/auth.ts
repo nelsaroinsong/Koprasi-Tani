@@ -73,15 +73,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
       if (!user.email) return false;
 
+      const userEmail = user.email.trim().toLowerCase();
+
       try {
         // Cek apakah user sudah terdaftar di database koperasi
         const existingUser = await prisma.user.findUnique({
-          where: { email: user.email },
+          where: { email: userEmail },
         });
 
         // Administrator tidak bisa login sebagai pembeli atau petani via login publik
         if (existingUser && existingUser.role === 'ADMIN') {
-          console.warn(`[Auth Guard] Akun admin ${user.email} dilarang login sebagai pembeli/petani.`);
+          console.warn(`[Auth Guard] Akun admin ${userEmail} dilarang login sebagai pembeli/petani.`);
           return '/login?error=AdminBlocked';
         }
 
@@ -89,7 +91,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           // Buat akun baru dari Google Login
           await prisma.user.create({
             data: {
-              email: user.email,
+              email: userEmail,
               name: user.name || 'Pengguna Google',
               avatarUrl: user.image,
               googleId: account?.providerAccountId || user.id,
@@ -102,7 +104,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         } else if (!existingUser.googleId && account?.providerAccountId) {
           // Hubungkan googleId jika user sebelumnya belum ada googleId
           await prisma.user.update({
-            where: { email: user.email },
+            where: { email: userEmail },
             data: {
               googleId: account.providerAccountId,
               avatarUrl: user.image || existingUser.avatarUrl,
@@ -137,7 +139,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (token.email) {
         try {
           const dbUser = await prisma.user.findUnique({
-            where: { email: token.email },
+            where: { email: token.email.trim().toLowerCase() },
           });
 
           if (dbUser) {

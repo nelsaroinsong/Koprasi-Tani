@@ -21,6 +21,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 export default function VerifikasiPetaniPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const [adminPhone, setAdminPhone] = useState<string | null>(null);
   const [isChecking, setIsChecking] = useState(false);
   const [profileData, setProfileData] = useState<{
     name: string;
@@ -41,6 +42,9 @@ export default function VerifikasiPetaniPage() {
       if (res.ok) {
         const data = await res.json();
           setProfileData(data.user);
+          if (data?.adminContact?.phone) {
+            setAdminPhone(data.adminContact.phone);
+          }
           // Jika belum onboarding, harus lengkapi identitas dulu
           if (!data.user.isOnboarded) {
             router.replace('/onboarding');
@@ -222,17 +226,23 @@ export default function VerifikasiPetaniPage() {
             <span>{isChecking ? 'Memeriksa ke Server...' : 'Periksa Status Verifikasi Sekarang'}</span>
           </button>
 
-          <a
-            href={`https://wa.me/6281244000000?text=${encodeURIComponent(
-              `Halo Pengurus Koperasi Sinar Pagi Sejahtera, saya ${profileData.name} (${profileData.email}) ingin mengonfirmasi status verifikasi pendaftaran akun Petani saya.`
-            )}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full py-2.5 px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs flex items-center justify-center gap-2 transition cursor-pointer"
-          >
-            <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Konfirmasi Cepat via WhatsApp Pengurus</span>
-          </a>
+          {(() => {
+            const rawPhone = adminPhone || '081944078924';
+            const cleanPhone = rawPhone.replace(/\D/g, '').replace(/^0/, '62');
+            return (
+              <a
+                href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(
+                  `Halo Pengurus Koperasi Sinar Pagi Sejahtera, saya ${profileData.name} (${profileData.email}) ingin mengonfirmasi status verifikasi pendaftaran akun Petani saya.`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-2.5 px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-2xs hover:border-emerald-500/40"
+              >
+                <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Konfirmasi Cepat via WhatsApp Pengurus</span>
+              </a>
+            );
+          })()}
 
           <button
             onClick={async () => {
