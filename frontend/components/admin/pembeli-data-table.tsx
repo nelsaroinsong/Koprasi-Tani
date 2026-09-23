@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   Table,
   TableHeader,
@@ -192,7 +192,7 @@ export function PembeliDataTable() {
           />
         </div>
 
-        <div className="text-xs text-slate-500 hidden sm:block">
+        <div className="text-xs text-slate-500 hidden sm:block shrink-0">
           Total Terdata: <strong className="text-emerald-700 font-semibold">{pagination.totalCount}</strong>
         </div>
       </div>
@@ -436,6 +436,7 @@ export function PembeliDataTable() {
                 name: selectedPembeli.name,
                 email: selectedPembeli.email,
                 phone: selectedPembeli.phone,
+                avatarUrl: selectedPembeli.avatarUrl,
                 isVerified: selectedPembeli.isVerified,
               }
             : null

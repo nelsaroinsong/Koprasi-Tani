@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   Table,
   TableHeader,
@@ -36,6 +36,7 @@ import { UserFormModal } from '@/components/admin/user-form-modal';
 import { UserDeleteDialog } from '@/components/admin/user-delete-dialog';
 import { UserVerifyDialog } from '@/components/admin/user-verify-dialog';
 import { useDebounce } from '@/hooks/use-debounce';
+import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 
 interface PetaniUser {
   id: string;
@@ -92,6 +93,25 @@ export function PetaniDataTable() {
 
   const [verifyDialogOpen, setVerifyDialogOpen] = useState(false);
   const [petaniToVerify, setPetaniToVerify] = useState<PetaniUser | null>(null);
+
+  // Opsi Status Filter (memoized)
+  const statusOptions: ComboboxOption[] = useMemo(() => [
+    {
+      value: 'ALL',
+      label: 'Semua Status',
+      icon: <span className="w-2 h-2 rounded-full bg-slate-400" />,
+    },
+    {
+      value: 'VERIFIED',
+      label: 'Terverifikasi',
+      icon: <span className="w-2 h-2 rounded-full bg-emerald-500" />,
+    },
+    {
+      value: 'PENDING',
+      label: 'Menunggu',
+      icon: <span className="w-2 h-2 rounded-full bg-amber-500" />,
+    },
+  ], []);
 
   // Reset ke halaman 1 saat filter atau search berubah
   useEffect(() => {
@@ -195,54 +215,34 @@ export function PetaniDataTable() {
         </div>
       </div>
 
-      {/* Toolbar: Search & Filter Tabs */}
+      {/* Toolbar: Search & Combobox Filtering */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-        {/* Search input */}
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute inset-y-0 left-3 my-auto w-4 h-4 text-slate-400" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Cari nama petani, kelompok tani, atau desa..."
-            className="w-full pl-9 pr-4 py-2 text-xs bg-white border border-slate-200 rounded-xl placeholder-slate-400 text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 shadow-2xs transition"
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1 max-w-2xl">
+          {/* Search input */}
+          <div className="relative flex-1">
+            <Search className="absolute inset-y-0 left-3 my-auto w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Cari nama petani, kontak, atau desa..."
+              className="w-full pl-9 pr-4 py-2 text-xs bg-white border border-slate-200 rounded-xl placeholder-slate-400 text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 shadow-2xs transition"
+            />
+          </div>
+
+          {/* Combobox Filter Status */}
+          <Combobox
+            options={statusOptions}
+            value={filterStatus}
+            onValueChange={(val) => setFilterStatus(val as any)}
+            placeholder="Status Verifikasi..."
+            searchPlaceholder="Cari status..."
+            className="w-full sm:w-44"
           />
         </div>
 
-        {/* Filter Pills */}
-        <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl text-xs">
-          <button
-            onClick={() => setFilterStatus('ALL')}
-            className={`px-3 py-1.5 rounded-lg font-semibold transition cursor-pointer ${
-              filterStatus === 'ALL'
-                ? 'bg-white text-emerald-800 shadow-2xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            Semua
-          </button>
-          <button
-            onClick={() => setFilterStatus('VERIFIED')}
-            className={`px-3 py-1.5 rounded-lg font-semibold transition cursor-pointer flex items-center gap-1.5 ${
-              filterStatus === 'VERIFIED'
-                ? 'bg-white text-emerald-800 shadow-2xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span>Terverifikasi</span>
-          </button>
-          <button
-            onClick={() => setFilterStatus('PENDING')}
-            className={`px-3 py-1.5 rounded-lg font-semibold transition cursor-pointer flex items-center gap-1.5 ${
-              filterStatus === 'PENDING'
-                ? 'bg-white text-amber-800 shadow-2xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <span className="w-2 h-2 rounded-full bg-amber-500" />
-            <span>Menunggu</span>
-          </button>
+        <div className="text-xs text-slate-500 hidden md:block shrink-0">
+          Total Terdata: <strong className="text-emerald-700 font-semibold">{pagination.totalCount}</strong>
         </div>
       </div>
 
@@ -515,6 +515,7 @@ export function PetaniDataTable() {
                 name: selectedPetani.name,
                 email: selectedPetani.email,
                 phone: selectedPetani.phone,
+                avatarUrl: selectedPetani.avatarUrl,
                 kelompokTaniId: selectedPetani.kelompokTani?.id || null,
                 isVerified: selectedPetani.isVerified,
               }

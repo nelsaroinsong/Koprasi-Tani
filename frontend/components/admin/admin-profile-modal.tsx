@@ -2,10 +2,15 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  X,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import {
   Camera,
   Trash2,
-  Lock,
   User,
   Phone,
   Mail,
@@ -89,15 +94,13 @@ export function AdminProfileModal({
     }
   }, [isOpen, currentUser]);
 
-  if (!isOpen) return null;
-
   // Handle Photo Upload
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      setErrorMessage('Format file tidak didukung. Harap pilih gambar.');
+      setErrorMessage('Format file tidak didukung. Harap pilih gambar (JPG, PNG, atau WebP).');
       return;
     }
 
@@ -131,6 +134,9 @@ export function AdminProfileModal({
       setErrorMessage(err.message || 'Gagal mengunggah foto profil.');
     } finally {
       setIsUploadingPhoto(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -193,7 +199,7 @@ export function AdminProfileModal({
 
       setTimeout(() => {
         onClose();
-      }, 1200);
+      }, 1000);
     } catch (err: any) {
       console.error('Error saat menyimpan profil:', err);
       setErrorMessage(err.message || 'Terjadi kesalahan sistem.');
@@ -206,42 +212,34 @@ export function AdminProfileModal({
   const userInitial = (name || currentUser.name || 'A').charAt(0).toUpperCase();
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-100 relative animate-in zoom-in-95 duration-150 my-8">
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          type="button"
-          className="absolute top-5 right-5 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center cursor-pointer transition"
-        >
-          <X className="w-4 h-4" />
-        </button>
-
-        {/* Modal Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-100">
-            <ShieldCheck className="w-6 h-6 text-emerald-600" />
+    <Dialog open={isOpen} onOpenChange={(open) => !open && !isSubmitting && onClose()}>
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto rounded-3xl p-6 sm:p-7 bg-white border border-slate-200 shadow-2xl">
+        <DialogHeader className="text-left mb-2">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-100">
+              <ShieldCheck className="w-5 h-5 text-emerald-600" />
+            </div>
+            <div>
+              <DialogTitle className="text-base font-bold text-slate-900 leading-snug">
+                Edit Profil Administrator
+              </DialogTitle>
+              <DialogDescription className="text-xs text-slate-500 mt-0.5">
+                Kelola identitas akun, foto profil, dan kata sandi pengurus.
+              </DialogDescription>
+            </div>
           </div>
-          <div>
-            <h2 className="text-base font-bold text-slate-900 leading-snug">
-              Edit Profil Administrator
-            </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Kelola identitas akun, foto profil, dan kata sandi pengurus.
-            </p>
-          </div>
-        </div>
+        </DialogHeader>
 
         {/* Alerts */}
         {errorMessage && (
-          <div className="mb-4 p-3 rounded-2xl bg-red-50 border border-red-200 text-red-700 flex items-start gap-2.5 text-xs animate-in fade-in duration-150">
+          <div className="mb-2 p-3 rounded-2xl bg-red-50 border border-red-200 text-red-700 flex items-start gap-2.5 text-xs animate-in fade-in duration-150">
             <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
             <span className="leading-snug">{errorMessage}</span>
           </div>
         )}
 
         {successMessage && (
-          <div className="mb-4 p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-start gap-2.5 text-xs animate-in fade-in duration-150">
+          <div className="mb-2 p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-start gap-2.5 text-xs animate-in fade-in duration-150">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
             <span className="leading-snug font-medium">{successMessage}</span>
           </div>
@@ -253,6 +251,7 @@ export function AdminProfileModal({
             <div className="relative group">
               <div className="w-20 h-20 rounded-full bg-emerald-700 text-white flex items-center justify-center font-bold text-2xl shadow-md border-3 border-emerald-100 overflow-hidden">
                 {avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={avatarUrl}
                     alt="Foto Profil"
@@ -493,7 +492,7 @@ export function AdminProfileModal({
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

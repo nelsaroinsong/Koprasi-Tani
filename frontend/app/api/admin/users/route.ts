@@ -19,6 +19,7 @@ export async function GET(request: Request) {
     const roleParam = searchParams.get('role');
     const search = searchParams.get('q')?.trim().toLowerCase();
     const statusParam = searchParams.get('status');
+    const poktanParam = searchParams.get('poktan');
 
     // Pagination params
     const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
@@ -35,6 +36,14 @@ export async function GET(request: Request) {
       whereCondition.isVerified = true;
     } else if (statusParam === 'PENDING') {
       whereCondition.isVerified = false;
+    }
+
+    if (poktanParam && poktanParam !== 'ALL') {
+      if (poktanParam === 'MANDIRI') {
+        whereCondition.kelompokTaniId = null;
+      } else {
+        whereCondition.kelompokTaniId = poktanParam;
+      }
     }
 
     if (search) {
@@ -114,15 +123,15 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { name, email, phone, role, kelompokTaniId, isVerified } = body;
+    const { name, email, phone, role, kelompokTaniId, isVerified, avatarUrl } = body;
 
     // Validasi input wajib
     if (!name || typeof name !== 'string' || !name.trim()) {
-      return NextResponse.json({ error: 'Nama lengkap wajib diisi' }, { status: 400 });
+      return NextResponse.json({ error: 'Nama pengguna wajib diisi' }, { status: 400 });
     }
 
-    if (!email || typeof email !== 'string' || !email.trim()) {
-      return NextResponse.json({ error: 'Email wajib diisi' }, { status: 400 });
+    if (!email || typeof email !== 'string') {
+      return NextResponse.json({ error: 'Email pengguna wajib diisi' }, { status: 400 });
     }
 
     const cleanEmail = email.trim().toLowerCase();
@@ -152,6 +161,7 @@ export async function POST(request: Request) {
         role,
         isVerified: typeof isVerified === 'boolean' ? isVerified : (role === 'PEMBELI'),
         isActive: true,
+        avatarUrl: avatarUrl ? String(avatarUrl).trim() : null,
         kelompokTaniId: role === 'PETANI' && kelompokTaniId ? kelompokTaniId : null,
       },
       include: {
@@ -184,7 +194,7 @@ export async function PUT(request: Request) {
     }
 
     const body = await request.json();
-    const { id, name, email, phone, kelompokTaniId, isVerified, isActive } = body;
+    const { id, name, email, phone, kelompokTaniId, isVerified, isActive, avatarUrl } = body;
 
     if (!id) {
       return NextResponse.json({ error: 'ID pengguna wajib disertakan' }, { status: 400 });
@@ -211,6 +221,10 @@ export async function PUT(request: Request) {
 
     if (typeof isActive === 'boolean') {
       updateData.isActive = isActive;
+    }
+
+    if (avatarUrl !== undefined) {
+      updateData.avatarUrl = avatarUrl ? String(avatarUrl).trim() : null;
     }
 
     if (targetUser.role === 'PETANI') {
