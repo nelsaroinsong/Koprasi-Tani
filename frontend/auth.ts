@@ -95,6 +95,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               googleId: account?.providerAccountId || user.id,
               role: 'PEMBELI', // default role awal sebelum onboarding
               isVerified: false,
+              isOnboarded: false,
               isActive: true,
             },
           });
@@ -123,11 +124,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.role = user.role;
         // @ts-ignore
         token.isVerified = user.isVerified;
+        // @ts-ignore
+        token.isOnboarded = user.isOnboarded;
         token.name = user.name;
         // @ts-ignore
         token.avatarUrl = user.avatarUrl;
         // @ts-ignore
         token.phone = user.phone;
+        // @ts-ignore
+        token.address = user.address;
       }
       if (token.email) {
         try {
@@ -139,11 +144,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             token.id = dbUser.id;
             token.role = dbUser.role;
             token.isVerified = dbUser.isVerified;
+            token.isOnboarded = dbUser.isOnboarded;
             token.name = dbUser.name;
             token.avatarUrl = dbUser.avatarUrl;
             token.picture = dbUser.avatarUrl || token.picture;
             token.phone = dbUser.phone;
-            token.kelompokTaniId = dbUser.kelompokTaniId;
+            token.address = dbUser.address;
           }
         } catch (e) {
           console.error('Error fetching user for JWT token:', e);
@@ -153,11 +159,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (trigger === 'update' && session?.user) {
         if (session.user.role) token.role = session.user.role;
         if (session.user.isVerified !== undefined) token.isVerified = session.user.isVerified;
+        if (session.user.isOnboarded !== undefined) token.isOnboarded = session.user.isOnboarded;
         if (session.user.avatarUrl) {
           token.avatarUrl = session.user.avatarUrl;
           token.picture = session.user.avatarUrl;
         }
         if (session.user.phone) token.phone = session.user.phone;
+        if (session.user.address) token.address = session.user.address;
         if (session.user.name) token.name = session.user.name;
       }
 
@@ -173,11 +181,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         // @ts-ignore - custom property
         session.user.phone = token.phone as string;
         // @ts-ignore - custom property
+        session.user.address = token.address as string;
+        // @ts-ignore - custom property
         session.user.role = token.role;
         // @ts-ignore - custom property
         session.user.isVerified = token.isVerified;
         // @ts-ignore - custom property
-        session.user.kelompokTaniId = token.kelompokTaniId;
+        session.user.isOnboarded = token.isOnboarded;
       }
       return session;
     },

@@ -58,21 +58,7 @@ const data = {
         },
       ],
     },
-    {
-      title: "Kelompok Tani",
-      url: "/admin?tab=kelompok-tani",
-      icon: Sprout,
-      items: [
-        {
-          title: "Daftar Kelompok Tani",
-          url: "/admin?tab=kelompok-tani",
-        },
-        {
-          title: "Binaan Likupang & Kauditan",
-          url: "/admin?tab=kelompok-tani",
-        },
-      ],
-    },
+
     {
       title: "Users",
       url: "/admin?tab=users",

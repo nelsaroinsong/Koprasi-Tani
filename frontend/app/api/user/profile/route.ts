@@ -25,8 +25,10 @@ export async function GET() {
         name: dbUser.name,
         email: dbUser.email,
         phone: dbUser.phone,
+        address: dbUser.address,
         role: dbUser.role,
         isVerified: dbUser.isVerified,
+        isOnboarded: dbUser.isOnboarded,
         avatarUrl: dbUser.avatarUrl,
         createdAt: dbUser.createdAt,
       },
@@ -42,7 +44,7 @@ export async function POST(request: Request) {
     const session = await auth();
 
     const body = await request.json();
-    const { name, phone, avatarUrl, email: bodyEmail } = body;
+    const { name, phone, address, avatarUrl, email: bodyEmail } = body;
     const targetEmail = session?.user?.email || bodyEmail;
 
     if (!targetEmail) {
@@ -54,6 +56,7 @@ export async function POST(request: Request) {
       data: {
         ...(name && { name }),
         ...(phone !== undefined && { phone }),
+        ...(address !== undefined && { address }),
         ...(avatarUrl !== undefined && { avatarUrl }),
       },
     });
@@ -65,8 +68,10 @@ export async function POST(request: Request) {
         name: updated.name,
         email: updated.email,
         phone: updated.phone,
+        address: updated.address,
         role: updated.role,
         isVerified: updated.isVerified,
+        isOnboarded: updated.isOnboarded,
         avatarUrl: updated.avatarUrl,
       },
     });

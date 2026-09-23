@@ -12,16 +12,17 @@ export interface User {
   email: string;
   role: UserRole | null;
   isVerified: boolean;
+  isOnboarded?: boolean;
   avatarUrl?: string;
   phone?: string;
-  kelompokTaniId?: string;
+  address?: string;
 }
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   loginWithGoogle: (customData?: Partial<User>) => Promise<void>;
-  selectRole: (role: 'PETANI' | 'PEMBELI', kelompokTaniId?: string) => Promise<void>;
+  selectRole: (role: 'PETANI' | 'PEMBELI') => Promise<void>;
   updateProfile: (data: Partial<User>) => void;
   logout: () => void;
 }
@@ -121,10 +122,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // @ts-ignore
           session?.user?.isVerified ??
           false,
-        kelompokTaniId:
-          localUser?.kelompokTaniId ||
+        isOnboarded:
+          localUser?.isOnboarded ??
           // @ts-ignore
-          session?.user?.kelompokTaniId,
+          session?.user?.isOnboarded ??
+          false,
+        address:
+          localUser?.address ||
+          // @ts-ignore
+          session?.user?.address ||
+          '',
       }
     : null;
 
@@ -148,6 +155,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         avatarUrl: customData.avatarUrl || '',
         role: customData.role || 'PEMBELI',
         isVerified: true,
+        isOnboarded: true,
         ...customData,
       };
       saveUser(userData);
@@ -155,12 +163,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // Google OAuth resmi NextAuth - langsung masuk ke Toko Online
-    await nextAuthSignIn('google', { callbackUrl: '/toko' });
+    // Google OAuth resmi NextAuth
+    await nextAuthSignIn('google', { callbackUrl: '/onboarding' });
   };
 
   // Onboarding Role Selection Handler
-  const selectRole = async (role: 'PETANI' | 'PEMBELI', kelompokTaniId?: string) => {
+  const selectRole = async (role: 'PETANI' | 'PEMBELI') => {
     // Admin tidak diperkenankan mengubah perannya menjadi pembeli atau petani
     if (currentUser?.role === 'ADMIN') {
       console.warn('Akun administrator tidak dapat diubah menjadi pembeli atau petani.');
@@ -173,7 +181,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await fetch('/api/user/role', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role, kelompokTaniId }),
+        body: JSON.stringify({ role }),
       });
     } catch (e) {
       console.warn('Gagal sinkronisasi peran ke backend API:', e);
@@ -188,7 +196,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }),
       role,
       isVerified,
-      kelompokTaniId,
     };
 
     saveUser(updatedUser);
@@ -196,7 +203,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await updateSession({ user: { role, isVerified } });
     }
 
-    router.push('/toko');
+    if (role === 'PETANI') {
+      router.push('/verifikasi-petani');
+    } else {
+      router.push('/toko');
+    }
   };
 
   // Update Profile (Name, Phone, Avatar) ke database dan session

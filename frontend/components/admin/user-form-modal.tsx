@@ -20,19 +20,9 @@ import {
   MapPin,
   Camera,
   Trash2,
-  HelpCircle,
-  ArrowRight,
   ShieldCheck,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-
-interface KelompokTaniOption {
-  id: string;
-  nama: string;
-  desa: string;
-  kecamatan: string;
-  komoditasUtama: string;
-}
 
 interface UserFormModalProps {
   isOpen: boolean;
@@ -45,8 +35,8 @@ interface UserFormModalProps {
     name: string;
     email: string;
     phone: string | null;
+    address?: string | null;
     avatarUrl?: string | null;
-    kelompokTaniId?: string | null;
     isVerified?: boolean;
   } | null;
 }
@@ -62,12 +52,10 @@ export function UserFormModal({
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
-  const [kelompokTaniId, setKelompokTaniId] = useState('');
   const [isVerified, setIsVerified] = useState(role === 'PEMBELI');
-  const [kelompokTaniList, setKelompokTaniList] = useState<KelompokTaniOption[]>([]);
 
-  const [isLoadingPoktan, setIsLoadingPoktan] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -76,22 +64,6 @@ export function UserFormModal({
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Fetch kelompok tani list if role is PETANI
-  useEffect(() => {
-    if (role === 'PETANI') {
-      setIsLoadingPoktan(true);
-      fetch('/api/admin/kelompok-tani')
-        .then((res) => (res.ok ? res.json() : null))
-        .then((data) => {
-          if (data?.success && Array.isArray(data.kelompokTani)) {
-            setKelompokTaniList(data.kelompokTani);
-          }
-        })
-        .catch((err) => console.error('Error fetching poktan:', err))
-        .finally(() => setIsLoadingPoktan(false));
-    }
-  }, [role]);
 
   // Sync initialData when modal opens
   useEffect(() => {
@@ -102,15 +74,15 @@ export function UserFormModal({
         setName(initialData.name || '');
         setEmail(initialData.email || '');
         setPhone(initialData.phone || '');
+        setAddress(initialData.address || '');
         setAvatarUrl(initialData.avatarUrl || '');
-        setKelompokTaniId(initialData.kelompokTaniId || '');
         setIsVerified(initialData.isVerified ?? (role === 'PEMBELI'));
       } else {
         setName('');
         setEmail('');
         setPhone('');
+        setAddress('');
         setAvatarUrl('');
-        setKelompokTaniId('');
         setIsVerified(role === 'PEMBELI');
       }
     }
@@ -221,6 +193,7 @@ export function UserFormModal({
     const cleanName = name.trim();
     const cleanEmail = email.trim().toLowerCase();
     const cleanPhone = phone.trim();
+    const cleanAddress = address.trim();
 
     try {
       setIsSubmitting(true);
@@ -233,12 +206,10 @@ export function UserFormModal({
         name: cleanName,
         email: cleanEmail,
         phone: cleanPhone || null,
+        address: cleanAddress || null,
         avatarUrl: avatarUrl || null,
         role,
         isVerified,
-        ...(role === 'PETANI' && {
-          kelompokTaniId: kelompokTaniId || null,
-        }),
       };
 
       const res = await fetch(endpoint, {
@@ -265,9 +236,6 @@ export function UserFormModal({
   };
 
   const roleTitle = role === 'PETANI' ? 'Petani' : 'Pembeli';
-
-  // Cari nama Poktan terpilih untuk preview konfirmasi
-  const selectedPoktanName = kelompokTaniList.find((p) => p.id === kelompokTaniId)?.nama;
 
   return (
     <>
@@ -436,29 +404,22 @@ export function UserFormModal({
               </div>
             </div>
 
-            {/* Pilihan Kelompok Tani khusus Petani */}
-            {role === 'PETANI' && (
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Kelompok Tani Binaan (Minahasa Utara)
-                </label>
-                <div className="relative">
-                  <MapPin className="absolute inset-y-0 left-3 my-auto w-4 h-4 text-slate-400 pointer-events-none" />
-                  <select
-                    value={kelompokTaniId}
-                    onChange={(e) => setKelompokTaniId(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-600 focus:bg-white transition cursor-pointer"
-                  >
-                    <option value="">-- Petani Mandiri (Belum Ada Poktan) --</option>
-                    {kelompokTaniList.map((poktan) => (
-                      <option key={poktan.id} value={poktan.id}>
-                        {poktan.nama} (Desa {poktan.desa}, Kec. {poktan.kecamatan})
-                      </option>
-                    ))}
-                  </select>
-                </div>
+            {/* Alamat Domisili */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Alamat Lengkap / Domisili
+              </label>
+              <div className="relative">
+                <MapPin className="absolute inset-y-0 left-3 my-auto w-4 h-4 text-slate-400" />
+                <input
+                  type="text"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  placeholder="Contoh: Jln. Raya Kalawat, Desa Watutumou, Minahasa Utara"
+                  className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-600 focus:bg-white transition"
+                />
               </div>
-            )}
+            </div>
 
             {/* Status Verifikasi */}
             <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
@@ -566,14 +527,12 @@ export function UserFormModal({
               <span className="font-semibold text-slate-800">{phone || 'Belum diisi'}</span>
             </div>
 
-            {role === 'PETANI' && (
-              <div className="flex items-center justify-between">
-                <span className="text-slate-500 font-medium">Kelompok Tani:</span>
-                <span className="font-semibold text-emerald-800">
-                  {selectedPoktanName || 'Petani Mandiri'}
-                </span>
-              </div>
-            )}
+            <div className="flex items-center justify-between">
+              <span className="text-slate-500 font-medium">Alamat Domisili:</span>
+              <span className="font-semibold text-slate-800 truncate max-w-[200px]">
+                {address || 'Belum diisi'}
+              </span>
+            </div>
 
             <div className="flex items-center justify-between pt-1 border-t border-slate-200/80">
               <span className="text-slate-500 font-medium">Status Akun:</span>

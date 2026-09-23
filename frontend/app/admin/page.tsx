@@ -50,7 +50,7 @@ export default function AdminPage() {
             Selamat Datang di Panel Pengurus
           </h1>
           <p className="text-xs text-emerald-100/90 mt-1.5 leading-relaxed">
-            Kelola data petani, verifikasi keanggotaan kelompok tani, dan pantau aktivitas pembeli hasil panen di Minahasa Utara.
+            Kelola data petani, verifikasi kemitraan petani, dan pantau aktivitas pembeli hasil panen di Minahasa Utara.
           </p>
         </div>
       </div>

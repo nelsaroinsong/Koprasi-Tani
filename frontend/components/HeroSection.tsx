@@ -78,7 +78,7 @@ export default function HeroSection({
 
           {/* Subheadline */}
           <p className="text-base sm:text-md lg:text-md text-slate-600 leading-relaxed max-w-3xl mx-auto font-normal">
-            Satu ekosistem terpadu yang menaungi berbagai kelompok tani. Memfasilitasi jual beli komoditas unggulan panen kelapa &amp; jagung langsung, serta penyediaan sewa alat.
+            Satu ekosistem terpadu yang memberdayakan para petani lokal. Memfasilitasi jual beli komoditas unggulan panen kelapa &amp; jagung langsung, serta penyediaan sewa alat.
           </p>
 
           {/* Action Button CTA */}

@@ -19,7 +19,6 @@ export async function GET(request: Request) {
     const roleParam = searchParams.get('role');
     const search = searchParams.get('q')?.trim().toLowerCase();
     const statusParam = searchParams.get('status');
-    const poktanParam = searchParams.get('poktan');
 
     // Pagination params
     const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
@@ -38,21 +37,12 @@ export async function GET(request: Request) {
       whereCondition.isVerified = false;
     }
 
-    if (poktanParam && poktanParam !== 'ALL') {
-      if (poktanParam === 'MANDIRI') {
-        whereCondition.kelompokTaniId = null;
-      } else {
-        whereCondition.kelompokTaniId = poktanParam;
-      }
-    }
-
     if (search) {
       whereCondition.OR = [
         { name: { contains: search, mode: 'insensitive' } },
         { email: { contains: search, mode: 'insensitive' } },
         { phone: { contains: search, mode: 'insensitive' } },
-        { kelompokTani: { nama: { contains: search, mode: 'insensitive' } } },
-        { kelompokTani: { desa: { contains: search, mode: 'insensitive' } } },
+        { address: { contains: search, mode: 'insensitive' } },
       ];
     }
 
@@ -61,9 +51,6 @@ export async function GET(request: Request) {
       prisma.user.count({ where: whereCondition }),
       prisma.user.findMany({
         where: whereCondition,
-        include: {
-          kelompokTani: true,
-        },
         orderBy: {
           createdAt: 'desc',
         },
@@ -81,20 +68,13 @@ export async function GET(request: Request) {
         name: u.name,
         email: u.email,
         phone: u.phone,
+        address: u.address,
         role: u.role,
         avatarUrl: u.avatarUrl,
         isVerified: u.isVerified,
+        isOnboarded: u.isOnboarded,
         isActive: u.isActive,
         createdAt: u.createdAt,
-        kelompokTani: u.kelompokTani
-          ? {
-              id: u.kelompokTani.id,
-              nama: u.kelompokTani.nama,
-              desa: u.kelompokTani.desa,
-              kecamatan: u.kelompokTani.kecamatan,
-              komoditasUtama: u.kelompokTani.komoditasUtama,
-            }
-          : null,
       })),
       pagination: {
         totalCount,
@@ -109,7 +89,7 @@ export async function GET(request: Request) {
   }
 }
 
-// 2. CREATE: Tambah pengguna baru (Petani / Pembeli)
+// 2. CREATE: Tambah pengguna baru (Petani / Pembeli) secara manual oleh Admin
 export async function POST(request: Request) {
   try {
     const session = await auth();
@@ -123,7 +103,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { name, email, phone, role, kelompokTaniId, isVerified, avatarUrl } = body;
+    const { name, email, phone, address, role, isVerified, avatarUrl } = body;
 
     // Validasi input wajib
     if (!name || typeof name !== 'string' || !name.trim()) {
@@ -158,14 +138,12 @@ export async function POST(request: Request) {
         name: name.trim(),
         email: cleanEmail,
         phone: phone ? String(phone).trim() : null,
+        address: address ? String(address).trim() : null,
         role,
         isVerified: typeof isVerified === 'boolean' ? isVerified : (role === 'PEMBELI'),
+        isOnboarded: true,
         isActive: true,
         avatarUrl: avatarUrl ? String(avatarUrl).trim() : null,
-        kelompokTaniId: role === 'PETANI' && kelompokTaniId ? kelompokTaniId : null,
-      },
-      include: {
-        kelompokTani: true,
       },
     });
 
@@ -194,7 +172,7 @@ export async function PUT(request: Request) {
     }
 
     const body = await request.json();
-    const { id, name, email, phone, kelompokTaniId, isVerified, isActive, avatarUrl } = body;
+    const { id, name, email, phone, address, isVerified, isActive, avatarUrl } = body;
 
     if (!id) {
       return NextResponse.json({ error: 'ID pengguna wajib disertakan' }, { status: 400 });
@@ -215,6 +193,10 @@ export async function PUT(request: Request) {
       updateData.phone = phone.trim() || null;
     }
 
+    if (typeof address === 'string') {
+      updateData.address = address.trim() || null;
+    }
+
     if (typeof isVerified === 'boolean') {
       updateData.isVerified = isVerified;
     }
@@ -225,10 +207,6 @@ export async function PUT(request: Request) {
 
     if (avatarUrl !== undefined) {
       updateData.avatarUrl = avatarUrl ? String(avatarUrl).trim() : null;
-    }
-
-    if (targetUser.role === 'PETANI') {
-      updateData.kelompokTaniId = kelompokTaniId || null;
     }
 
     if (email && typeof email === 'string') {
@@ -245,7 +223,6 @@ export async function PUT(request: Request) {
     const updatedUser = await prisma.user.update({
       where: { id },
       data: updateData,
-      include: { kelompokTani: true },
     });
 
     return NextResponse.json({
@@ -259,7 +236,7 @@ export async function PUT(request: Request) {
   }
 }
 
-// 4. PATCH: Cepat toggle status verifikasi / status aktif
+// 4. VERIFY TOGGLE: Verifikasi langsung akun petani
 export async function PATCH(request: Request) {
   try {
     const session = await auth();
@@ -273,34 +250,31 @@ export async function PATCH(request: Request) {
     }
 
     const body = await request.json();
-    const { id, isVerified, isActive } = body;
+    const { id, isVerified } = body;
 
-    if (!id) {
-      return NextResponse.json({ error: 'ID pengguna harus disertakan' }, { status: 400 });
+    if (!id || typeof isVerified !== 'boolean') {
+      return NextResponse.json({ error: 'ID dan status verifikasi wajib disertakan' }, { status: 400 });
     }
-
-    const updateData: Record<string, any> = {};
-    if (typeof isVerified === 'boolean') updateData.isVerified = isVerified;
-    if (typeof isActive === 'boolean') updateData.isActive = isActive;
 
     const updatedUser = await prisma.user.update({
       where: { id },
-      data: updateData,
-      include: { kelompokTani: true },
+      data: { isVerified },
     });
 
     return NextResponse.json({
       success: true,
-      message: 'Status pengguna berhasil diperbarui.',
+      message: isVerified
+        ? 'Akun Petani berhasil diverifikasi resmi.'
+        : 'Status verifikasi akun Petani telah dibatalkan.',
       user: updatedUser,
     });
-  } catch (error) {
-    console.error('Error saat memperbarui status pengguna:', error);
-    return NextResponse.json({ error: 'Gagal memperbarui status pengguna' }, { status: 500 });
+  } catch (error: any) {
+    console.error('Error saat mengubah status verifikasi:', error);
+    return NextResponse.json({ error: error.message || 'Gagal mengubah status verifikasi' }, { status: 500 });
   }
 }
 
-// 5. DELETE: Hapus pengguna
+// 5. DELETE: Hapus data pengguna
 export async function DELETE(request: Request) {
   try {
     const session = await auth();
@@ -317,7 +291,7 @@ export async function DELETE(request: Request) {
     const id = searchParams.get('id');
 
     if (!id) {
-      return NextResponse.json({ error: 'ID pengguna harus disertakan' }, { status: 400 });
+      return NextResponse.json({ error: 'ID pengguna wajib disertakan' }, { status: 400 });
     }
 
     const targetUser = await prisma.user.findUnique({ where: { id } });
@@ -325,20 +299,17 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Pengguna tidak ditemukan' }, { status: 404 });
     }
 
-    // Jangan izinkan admin menghapus akunnya sendiri
-    if (targetUser.email === session.user.email || targetUser.role === 'ADMIN') {
-      return NextResponse.json({ error: 'Akun administrator tidak dapat dihapus.' }, { status: 403 });
+    if (targetUser.role === 'ADMIN') {
+      return NextResponse.json({ error: 'Akun administrator tidak dapat dihapus' }, { status: 403 });
     }
 
-    // Hapus relasi produk jika petani memiliki produk
-    await prisma.product.deleteMany({ where: { petaniId: id } });
-
-    // Hapus pengguna
-    await prisma.user.delete({ where: { id } });
+    await prisma.user.delete({
+      where: { id },
+    });
 
     return NextResponse.json({
       success: true,
-      message: `Pengguna ${targetUser.name} (${targetUser.email}) berhasil dihapus.`,
+      message: `Akun ${targetUser.name} berhasil dihapus permanen.`,
     });
   } catch (error: any) {
     console.error('Error saat menghapus pengguna:', error);

@@ -12,12 +12,18 @@ export default function TokoOnlinePage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading && !user) {
-      router.replace('/login?callbackUrl=/toko');
+    if (!isLoading) {
+      if (!user) {
+        router.replace('/login?callbackUrl=/toko');
+      } else if (!user.isOnboarded) {
+        router.replace('/onboarding');
+      } else if (user.role === 'PETANI' && !user.isVerified) {
+        router.replace('/verifikasi-petani');
+      }
     }
   }, [user, isLoading, router]);
 
-  if (isLoading || !user) {
+  if (isLoading || !user || !user.isOnboarded || (user.role === 'PETANI' && !user.isVerified)) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="w-8 h-8 border-3 border-emerald-600 border-t-transparent rounded-full animate-spin" />

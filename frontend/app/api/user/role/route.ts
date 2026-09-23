@@ -11,7 +11,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { role, kelompokTaniId } = body;
+    const { role } = body;
 
     if (!role || (role !== 'PETANI' && role !== 'PEMBELI')) {
       return NextResponse.json({ error: 'Peran tidak valid' }, { status: 400 });
@@ -37,7 +37,6 @@ export async function POST(request: Request) {
       data: {
         role,
         isVerified,
-        kelompokTaniId: role === 'PETANI' ? kelompokTaniId || null : null,
       },
     });
 

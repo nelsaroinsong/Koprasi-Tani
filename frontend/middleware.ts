@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 // Rute umum terproteksi untuk pengguna umum (anggota/pembeli/petani)
-const USER_PROTECTED_ROUTES = ['/toko', '/sewa-alat', '/onboarding'];
+const USER_PROTECTED_ROUTES = ['/toko', '/sewa-alat', '/onboarding', '/verifikasi-petani'];
 
 // Sub-URL khusus portal login admin
 const ADMIN_PORTAL_ROUTE = '/admin-koperasi-sinar-pagi-sejahtera';
@@ -29,7 +29,7 @@ export function middleware(request: NextRequest) {
     return response;
   }
 
-  // 2. Proteksi Akses Pengguna Biasa: Jika belum login dan membuka /toko, /sewa-alat, /onboarding
+  // 2. Proteksi Akses Pengguna Biasa: Jika belum login dan membuka rute terproteksi
   const isAccessingUserProtected = USER_PROTECTED_ROUTES.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`)
   );
@@ -70,6 +70,7 @@ export const config = {
     '/sewa-alat/:path*',
     '/admin/:path*',
     '/onboarding/:path*',
+    '/verifikasi-petani/:path*',
   ],
 };
 
