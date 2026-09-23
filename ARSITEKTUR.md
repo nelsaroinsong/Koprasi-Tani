@@ -196,18 +196,17 @@ Hak akses:
 
 ---
 
-# Performance Optimization
+# Performance Optimization & High Scalability
 
-* Redis Caching
-* Lazy Loading
-* Code Splitting
-* Next.js Image Optimization
-* Database Indexing
-* CDN Cloudflare
-* Pagination
-* Query Optimization
-* Brotli Compression
-* Gzip Compression
+* **Load Balancing**: Nginx Load Balancer (`least_conn` & `round-robin`) untuk cluster multi-container Next.js & NestJS.
+* **Database Query & Indexing**: B-Tree & compound indexing pada kolom filter utama (`role`, `isVerified`, `createdAt`) dan server-side pagination (`skip`/`take`).
+* **Redis Caching**: Cache-Aside pattern untuk data katalog produk, kelompok tani, profil, dan session store (TTL 15-60 menit).
+* **Connection Pooling**: PgBouncer / Prisma Connection Pool untuk efisiensi koneksi konkuren tinggi tanpa kehabisan thread memori.
+* **Database Partitioning & Sharding**: Range partitioning pada tabel transaksi (`transactions_2026_q1`, dll.) dan sharding berbasis wilayah.
+* **Read Replicas (1 Primary + 2 Replicas)**: Pemisahan Write (Master) dan Read (Replica 1 & Replica 2) untuk menangani beban tinggi secara horizontal.
+* **Network & Aset**: Cloudflare CDN & WAF, Next.js Image Optimization, Code Splitting, Lazy Loading, serta kompresi Brotli & Gzip.
+
+> Detail implementasi teknis, konfigurasi Nginx upstream, dan setup Docker Compose dapat dibaca di file [DEPLOYMENT_DAN_SKALABILITAS.md](file:///d:/Koperasi_Tani/DEPLOYMENT_DAN_SKALABILITAS.md).
 
 ---
 
