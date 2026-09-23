@@ -36,14 +36,6 @@ export default async function AdminLayout({
               />
               <AdminBreadcrumb />
             </div>
-
-            {/* Right Header Status */}
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-semibold">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span>Panel Koperasi Aktif</span>
-              </div>
-            </div>
           </header>
           <div className="flex flex-1 flex-col gap-4 p-4 sm:p-6">
             {children}

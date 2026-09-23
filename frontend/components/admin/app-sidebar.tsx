@@ -53,10 +53,6 @@ const data = {
           title: "Pembeli",
           url: "/admin",
         },
-        {
-          title: "Pengurus",
-          url: "/admin",
-        },
       ],
     },
     {
