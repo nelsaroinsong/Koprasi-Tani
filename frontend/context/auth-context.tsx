@@ -161,6 +161,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Onboarding Role Selection Handler
   const selectRole = async (role: 'PETANI' | 'PEMBELI', kelompokTaniId?: string) => {
+    // Admin tidak diperkenankan mengubah perannya menjadi pembeli atau petani
+    if (currentUser?.role === 'ADMIN') {
+      console.warn('Akun administrator tidak dapat diubah menjadi pembeli atau petani.');
+      router.push('/admin');
+      return;
+    }
+
     try {
       // Simpan ke PostgreSQL database via API
       await fetch('/api/user/role', {

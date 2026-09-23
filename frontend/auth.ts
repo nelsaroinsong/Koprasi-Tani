@@ -79,6 +79,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           where: { email: user.email },
         });
 
+        // Administrator tidak bisa login sebagai pembeli atau petani via login publik
+        if (existingUser && existingUser.role === 'ADMIN') {
+          console.warn(`[Auth Guard] Akun admin ${user.email} dilarang login sebagai pembeli/petani.`);
+          return '/login?error=AdminBlocked';
+        }
+
         if (!existingUser) {
           // Buat akun baru dari Google Login
           await prisma.user.create({

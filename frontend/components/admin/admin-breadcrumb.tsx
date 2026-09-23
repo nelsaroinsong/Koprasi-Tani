@@ -17,14 +17,23 @@ export function AdminBreadcrumb() {
     <Breadcrumb>
       <BreadcrumbList>
         <BreadcrumbItem className="hidden md:block">
-          <BreadcrumbLink href="/admin">
+          <BreadcrumbLink
+            href="/admin"
+            className="text-slate-500 hover:text-emerald-700 font-medium text-xs transition"
+          >
             {activeTab.group}
           </BreadcrumbLink>
         </BreadcrumbItem>
-        <BreadcrumbSeparator className="hidden md:block" />
-        <BreadcrumbItem>
-          <BreadcrumbPage>{activeTab.item}</BreadcrumbPage>
-        </BreadcrumbItem>
+        {activeTab.item ? (
+          <>
+            <BreadcrumbSeparator className="hidden md:block text-slate-300" />
+            <BreadcrumbItem>
+              <BreadcrumbPage className="text-emerald-800 font-semibold text-xs bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
+                {activeTab.item}
+              </BreadcrumbPage>
+            </BreadcrumbItem>
+          </>
+        ) : null}
       </BreadcrumbList>
     </Breadcrumb>
   )

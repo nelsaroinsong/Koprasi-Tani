@@ -17,6 +17,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Peran tidak valid' }, { status: 400 });
     }
 
+    // Pastikan akun admin tidak bisa beralih menjadi pembeli atau petani
+    const existing = await prisma.user.findUnique({
+      where: { email: session.user.email },
+    });
+
+    if (existing?.role === 'ADMIN') {
+      return NextResponse.json(
+        { error: 'Akun Administrator tidak dapat diubah menjadi Pembeli atau Petani.' },
+        { status: 403 }
+      );
+    }
+
     // Pembeli langsung aktif, Petani menunggu verifikasi admin
     const isVerified = role === 'PEMBELI';
 

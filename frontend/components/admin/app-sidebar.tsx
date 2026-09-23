@@ -86,6 +86,8 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
     name?: string | null;
     email?: string | null;
     image?: string | null;
+    avatarUrl?: string | null;
+    phone?: string | null;
   } | null;
 }
 
@@ -93,7 +95,8 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
   const currentUser = {
     name: user?.name || data.user.name,
     email: user?.email || data.user.email,
-    avatar: user?.image || data.user.avatar,
+    avatar: user?.avatarUrl || user?.image || data.user.avatar,
+    phone: user?.phone || '',
   };
 
   return (

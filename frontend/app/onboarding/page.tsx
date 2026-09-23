@@ -16,6 +16,9 @@ export default function OnboardingPage() {
     if (!isLoading) {
       if (!user) {
         router.replace('/login?callbackUrl=/onboarding');
+      } else if (user.role === 'ADMIN') {
+        // Admin tidak boleh berada di halaman onboarding pembeli/petani
+        router.replace('/admin');
       } else if (user.role) {
         // Jika akun sudah pernah terdaftar dan memiliki peran, langsung arahkan ke Toko Online
         router.replace('/toko');

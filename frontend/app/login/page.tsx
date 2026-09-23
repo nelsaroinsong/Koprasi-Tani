@@ -3,13 +3,14 @@
 import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { ArrowLeft, Clock, ShieldCheck, Sprout } from 'lucide-react';
+import { ArrowLeft, Clock, ShieldCheck, Sprout, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 
 function LoginContent() {
   const { loginWithGoogle, isLoading } = useAuth();
   const searchParams = useSearchParams();
   const isTimeout = searchParams.get('reason') === 'timeout';
+  const isBlockedAdmin = searchParams.get('error') === 'AdminBlocked';
 
   const handleGoogleLogin = async () => {
     // Menjalankan Google OAuth resmi via NextAuth
@@ -52,6 +53,19 @@ function LoginContent() {
               <div className="font-bold text-amber-950 text-xs">Sesi Login Anda Telah Berakhir</div>
               <p className="mt-0.5 text-amber-800 leading-relaxed text-[11px]">
                 Demi keamanan akun, sistem otomatis keluar karena tidak ada aktivitas selama 1 jam. Silakan masuk kembali dengan Google.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Admin Login Attempt Alert Notice */}
+        {isBlockedAdmin && (
+          <div className="mb-6 p-4 rounded-2xl bg-red-50 border border-red-200 text-red-950 flex items-start gap-3 text-xs animate-in fade-in slide-in-from-top-1 duration-200">
+            <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+            <div>
+              <div className="font-bold text-red-950 text-xs">Akses Khusus Administrator</div>
+              <p className="mt-0.5 text-red-800 leading-relaxed text-[11px]">
+                Akun administrator tidak dapat masuk sebagai pembeli atau petani di halaman ini. Silakan gunakan portal khusus pengurus/administrator.
               </p>
             </div>
           </div>

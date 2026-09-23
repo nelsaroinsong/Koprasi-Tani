@@ -1,10 +1,12 @@
 "use client"
 
+import * as React from "react"
 import {
   BadgeCheck,
-  Bell,
   ChevronsUpDown,
   LogOut,
+  ShieldCheck,
+  UserCog,
 } from "lucide-react"
 import { signOut } from "next-auth/react"
 
@@ -28,81 +30,116 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
+import { AdminProfileModal } from "@/components/admin/admin-profile-modal"
 
 export function NavUser({
-  user,
+  user: initialUser,
 }: {
   user: {
     name: string
     email: string
     avatar: string
+    phone?: string
   }
 }) {
   const { isMobile } = useSidebar()
+  const [user, setUser] = React.useState(initialUser)
+  const [isEditProfileOpen, setIsEditProfileOpen] = React.useState(false)
+
+  // Sync if initialUser changes
+  React.useEffect(() => {
+    setUser(initialUser)
+  }, [initialUser])
+
+  const userInitial = (user.name || 'A').charAt(0).toUpperCase()
 
   return (
-    <SidebarMenu>
-      <SidebarMenuItem>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <SidebarMenuButton
-              size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-            >
-              <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarImage src={user.avatar} alt={user.name} />
-                <AvatarFallback className="rounded-lg">LR</AvatarFallback>
-              </Avatar>
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{user.name}</span>
-                <span className="truncate text-xs">{user.email}</span>
-              </div>
-              <ChevronsUpDown className="ml-auto size-4" />
-            </SidebarMenuButton>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
-            side={isMobile ? "bottom" : "right"}
-            align="end"
-            sideOffset={4}
-          >
-            <DropdownMenuLabel className="p-0 font-normal">
-              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src={user.avatar} alt={user.name} />
-                  <AvatarFallback className="rounded-lg">LR</AvatarFallback>
+    <>
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <SidebarMenuButton
+                size="lg"
+                className="data-[state=open]:bg-emerald-50 data-[state=open]:text-emerald-900 hover:bg-emerald-50/70 hover:text-emerald-800 transition rounded-xl cursor-pointer"
+              >
+                <Avatar className="h-9 w-9 rounded-xl border border-emerald-200 shadow-2xs">
+                  <AvatarImage src={user.avatar} alt={user.name} className="object-cover" />
+                  <AvatarFallback className="rounded-xl bg-emerald-100 text-emerald-800 font-bold text-xs">
+                    {userInitial}
+                  </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">{user.name}</span>
-                  <span className="truncate text-xs">{user.email}</span>
+                  <span className="truncate font-semibold text-slate-800 text-xs">
+                    {user.name}
+                  </span>
+                  <span className="truncate text-[11px] text-emerald-700 font-medium">
+                    {user.email}
+                  </span>
                 </div>
-              </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <BadgeCheck />
-                Account
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Bell />
-                Notifications
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={async () => {
-                await signOut({ redirect: false });
-                window.location.replace('/admin-koperasi-sinar-pagi-sejahtera');
-              }}
-              className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/20"
+                <ChevronsUpDown className="ml-auto size-4 text-slate-400" />
+              </SidebarMenuButton>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              className="w-(--radix-dropdown-menu-trigger-width) min-w-60 rounded-2xl p-1.5 shadow-xl border-slate-200"
+              side={isMobile ? "bottom" : "right"}
+              align="end"
+              sideOffset={6}
             >
-              <LogOut className="text-red-600" />
-              Keluar dari Admin
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </SidebarMenuItem>
-    </SidebarMenu>
+              <DropdownMenuLabel className="p-0 font-normal">
+                <div className="flex items-center gap-2.5 px-2 py-2 text-left bg-emerald-50/60 rounded-xl mb-1 border border-emerald-100/60">
+                  <Avatar className="h-9 w-9 rounded-xl border border-emerald-300 shadow-2xs">
+                    <AvatarImage src={user.avatar} alt={user.name} className="object-cover" />
+                    <AvatarFallback className="rounded-xl bg-emerald-200 text-emerald-900 font-bold text-xs">
+                      {userInitial}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="grid flex-1 text-left text-sm leading-tight">
+                    <div className="flex items-center gap-1.5">
+                      <span className="truncate font-bold text-slate-900 text-xs">{user.name}</span>
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    </div>
+                    <span className="truncate text-[11px] text-slate-500">{user.email}</span>
+                  </div>
+                </div>
+              </DropdownMenuLabel>
+
+              <DropdownMenuGroup>
+                <DropdownMenuItem
+                  onClick={() => setIsEditProfileOpen(true)}
+                  className="cursor-pointer gap-2.5 py-2 px-2.5 rounded-lg text-xs font-semibold text-slate-700 hover:text-emerald-800 hover:bg-emerald-50 transition"
+                >
+                  <UserCog className="w-4 h-4 text-emerald-700" />
+                  <span>Edit Profil & Keamanan</span>
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+
+              <DropdownMenuSeparator className="my-1" />
+
+              <DropdownMenuItem
+                onClick={async () => {
+                  await signOut({ redirect: false });
+                  window.location.replace('/admin-koperasi-sinar-pagi-sejahtera');
+                }}
+                className="cursor-pointer gap-2.5 py-2 px-2.5 rounded-lg text-xs font-semibold text-red-600 focus:text-red-700 focus:bg-red-50 hover:bg-red-50 transition"
+              >
+                <LogOut className="w-4 h-4 text-red-600" />
+                <span>Keluar dari Admin</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </SidebarMenuItem>
+      </SidebarMenu>
+
+      {/* Edit Profile Modal */}
+      <AdminProfileModal
+        isOpen={isEditProfileOpen}
+        onClose={() => setIsEditProfileOpen(false)}
+        currentUser={user}
+        onUserUpdated={(updated) => {
+          setUser((prev) => ({ ...prev, ...updated }));
+        }}
+      />
+    </>
   )
 }
