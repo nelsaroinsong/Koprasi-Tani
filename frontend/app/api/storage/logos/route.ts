@@ -39,6 +39,15 @@ export async function GET() {
         };
       });
 
+    // Urutkan agar logo iCare selalu berada di sebelah kiri (pertama)
+    logos.sort((a, b) => {
+      const aIsIcare = a.key.toLowerCase().includes('icare');
+      const bIsIcare = b.key.toLowerCase().includes('icare');
+      if (aIsIcare && !bIsIcare) return -1;
+      if (!aIsIcare && bIsIcare) return 1;
+      return a.name.localeCompare(b.name);
+    });
+
     return NextResponse.json({
       success: true,
       bucket: R2_BUCKET,

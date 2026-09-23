@@ -145,3 +145,25 @@
   transform: translateY(-4px);
   box-shadow: 0 14px 28px -6px rgba(18, 62, 45, 0.1), 0 8px 12px -6px rgba(18, 62, 45, 0.05);
 }
+
+/* GPU-Accelerated Infinite Auto-Scrolling Marquee */
+@keyframes marquee-infinite {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.animate-marquee-infinite {
+  display: flex;
+  width: max-content;
+  animation: marquee-infinite 16s linear infinite;
+  will-change: transform;
+}
+
+.animate-marquee-infinite:hover {
+  animation-play-state: paused;
+}
+

@@ -16,6 +16,11 @@ const DEFAULT_LOGOS: LogoItem[] = [
     name: 'ICARE',
     url: '/api/storage/logo/logo-icare.webp',
   },
+  {
+    key: 'logo/logo polimdo.png',
+    name: 'POLIMDO',
+    url: '/api/storage/logo/logo polimdo.png',
+  },
 ];
 
 interface HeroSectionProps {
@@ -37,12 +42,23 @@ export default function HeroSection({
       .then((res) => res.json())
       .then((data) => {
         if (data.success && data.logos && data.logos.length > 0) {
-          setLogos(data.logos);
+          // Pastikan logo iCare selalu berada di sebelah kiri (indeks pertama)
+          const sorted = [...data.logos].sort((a: LogoItem, b: LogoItem) => {
+            const aIsIcare = a.key.toLowerCase().includes('icare');
+            const bIsIcare = b.key.toLowerCase().includes('icare');
+            if (aIsIcare && !bIsIcare) return -1;
+            if (!aIsIcare && bIsIcare) return 1;
+            return a.name.localeCompare(b.name);
+          });
+          setLogos(sorted);
         }
       })
       .catch(() => {})
       .finally(() => setIsLoadingLogos(false));
   }, []);
+
+  // Gandakan daftar logo agar animasi looping infinite scroll berjalan mulus tanpa jeda
+  const repeatedLogos = logos.length > 0 ? [...logos, ...logos, ...logos, ...logos] : [];
 
   return (
     <section id="hero-section" className="relative pt-12 pb-6 lg:pt-16 lg:pb-8 overflow-hidden">
@@ -79,25 +95,33 @@ export default function HeroSection({
 
           {/* Supported By Section */}
           <div className="pt-8 border-t border-slate-200/80 max-w-4xl mx-auto">
-            <p className="text-xs uppercase tracking-widest font-bold text-slate-400 mb-3">
+            <p className="text-xs uppercase tracking-widest font-bold text-slate-400 mb-4">
               Didukung oleh
             </p>
 
-            <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-10 min-h-[44px]">
-              {logos.map((logo) => (
-                <div
-                  key={logo.key}
-                  className="flex items-center justify-center px-4 py-2 bg-white/90 rounded-xl border border-slate-200/70 shadow-2xs hover:shadow-xs hover:border-slate-300 transition-all duration-200"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={logo.url}
-                    alt={logo.name}
-                    className="h-6 sm:h-7 w-auto object-contain max-w-[105px] transition-all duration-200"
-                    title={logo.name}
-                  />
-                </div>
-              ))}
+            {/* Infinite Auto-Scrolling Logo Carousel with Edge Fade */}
+            <div className="relative w-full max-w-xl mx-auto overflow-hidden py-3 select-none [mask-image:linear-gradient(to_right,transparent,black_18%,black_82%,transparent)] [-webkit-mask-image:linear-gradient(to_right,transparent,black_18%,black_82%,transparent)]">
+              {/* Fade Overlay kiri & kanan untuk kompatibilitas browser */}
+              <div className="absolute left-0 top-0 bottom-0 w-12 sm:w-16 bg-gradient-to-r from-[#fafbf9] to-transparent z-10 pointer-events-none" />
+              <div className="absolute right-0 top-0 bottom-0 w-12 sm:w-16 bg-gradient-to-l from-[#fafbf9] to-transparent z-10 pointer-events-none" />
+
+              <div className="animate-marquee-infinite items-center gap-12 sm:gap-16">
+                {repeatedLogos.map((logo, idx) => (
+                  <div
+                    key={`${logo.key}-${idx}`}
+                    className="flex items-center justify-center shrink-0"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={logo.url}
+                      alt={logo.name}
+                      className="h-10 sm:h-12 w-auto object-contain max-w-[145px] sm:max-w-[175px] opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300"
+                      title={logo.name}
+                      loading="eager"
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
