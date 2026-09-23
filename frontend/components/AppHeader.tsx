@@ -38,17 +38,19 @@ export default function AppHeader({ activePage = 'beranda' }: AppHeaderProps) {
 
           {/* Desktop Navigation Links */}
           <nav className="hidden md:flex items-center gap-1.5 text-xs font-semibold">
-            <Link
-              href="/"
-              className={`px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5 ${
-                activePage === 'beranda'
-                  ? 'bg-emerald-50 text-emerald-800 shadow-2xs font-bold ring-1 ring-emerald-600/20'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-              }`}
-            >
-              <Home className="w-3.5 h-3.5" />
-              <span>Beranda</span>
-            </Link>
+            {!user && (
+              <Link
+                href="/"
+                className={`px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5 ${
+                  activePage === 'beranda'
+                    ? 'bg-emerald-50 text-emerald-800 shadow-2xs font-bold ring-1 ring-emerald-600/20'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                }`}
+              >
+                <Home className="w-3.5 h-3.5" />
+                <span>Beranda</span>
+              </Link>
+            )}
             <Link
               href="/toko"
               className={`px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5 ${
@@ -112,25 +114,27 @@ export default function AppHeader({ activePage = 'beranda' }: AppHeaderProps) {
             Pilih Layanan & Fitur
           </div>
 
-          <Link
-            href="/"
-            onClick={() => setMobileMenuOpen(false)}
-            className={`w-full px-3.5 py-2.5 rounded-xl font-semibold text-xs flex items-center justify-between transition ${
-              activePage === 'beranda'
-                ? 'bg-emerald-700 text-white shadow-xs'
-                : 'text-slate-700 hover:bg-slate-50 border border-slate-100'
-            }`}
-          >
-            <div className="flex items-center gap-2.5">
-              <Home className="w-4 h-4" />
-              <span>Beranda</span>
-            </div>
-            {activePage === 'beranda' ? (
-              <span className="text-[10px] font-bold bg-white/20 px-2 py-0.5 rounded-md">Aktif</span>
-            ) : (
-              <ChevronRight className="w-3.5 h-3.5 opacity-60" />
-            )}
-          </Link>
+          {!user && (
+            <Link
+              href="/"
+              onClick={() => setMobileMenuOpen(false)}
+              className={`w-full px-3.5 py-2.5 rounded-xl font-semibold text-xs flex items-center justify-between transition ${
+                activePage === 'beranda'
+                  ? 'bg-emerald-700 text-white shadow-xs'
+                  : 'text-slate-700 hover:bg-slate-50 border border-slate-100'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <Home className="w-4 h-4" />
+                <span>Beranda</span>
+              </div>
+              {activePage === 'beranda' ? (
+                <span className="text-[10px] font-bold bg-white/20 px-2 py-0.5 rounded-md">Aktif</span>
+              ) : (
+                <ChevronRight className="w-3.5 h-3.5 opacity-60" />
+              )}
+            </Link>
+          )}
 
           <Link
             href="/toko"
