@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 
-// 1. READ: Ambil daftar pengguna berdasarkan role
+// 1. READ: Ambil daftar pengguna dengan server-side pagination, search, dan filter
 export async function GET(request: Request) {
   try {
     const session = await auth();
@@ -18,6 +18,12 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const roleParam = searchParams.get('role');
     const search = searchParams.get('q')?.trim().toLowerCase();
+    const statusParam = searchParams.get('status');
+
+    // Pagination params
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
+    const limit = Math.max(1, Math.min(50, parseInt(searchParams.get('limit') || '8', 10)));
+    const skip = (page - 1) * limit;
 
     const whereCondition: Record<string, any> = {};
 
@@ -25,23 +31,39 @@ export async function GET(request: Request) {
       whereCondition.role = roleParam;
     }
 
+    if (statusParam === 'VERIFIED') {
+      whereCondition.isVerified = true;
+    } else if (statusParam === 'PENDING') {
+      whereCondition.isVerified = false;
+    }
+
     if (search) {
       whereCondition.OR = [
         { name: { contains: search, mode: 'insensitive' } },
         { email: { contains: search, mode: 'insensitive' } },
         { phone: { contains: search, mode: 'insensitive' } },
+        { kelompokTani: { nama: { contains: search, mode: 'insensitive' } } },
+        { kelompokTani: { desa: { contains: search, mode: 'insensitive' } } },
       ];
     }
 
-    const users = await prisma.user.findMany({
-      where: whereCondition,
-      include: {
-        kelompokTani: true,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    // Query data dan total count secara paralel
+    const [totalCount, users] = await Promise.all([
+      prisma.user.count({ where: whereCondition }),
+      prisma.user.findMany({
+        where: whereCondition,
+        include: {
+          kelompokTani: true,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        skip,
+        take: limit,
+      }),
+    ]);
+
+    const totalPages = Math.ceil(totalCount / limit) || 1;
 
     return NextResponse.json({
       success: true,
@@ -65,6 +87,12 @@ export async function GET(request: Request) {
             }
           : null,
       })),
+      pagination: {
+        totalCount,
+        totalPages,
+        currentPage: page,
+        limit,
+      },
     });
   } catch (error) {
     console.error('Error saat mengambil data pengguna:', error);

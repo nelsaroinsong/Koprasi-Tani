@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Table,
   TableHeader,
@@ -9,6 +9,14 @@ import {
   TableRow,
   TableCell,
 } from '@/components/ui/table';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationPrevious,
+  PaginationNext,
+} from '@/components/ui/pagination';
 import {
   Search,
   CheckCircle2,
@@ -25,6 +33,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { UserFormModal } from '@/components/admin/user-form-modal';
 import { UserDeleteDialog } from '@/components/admin/user-delete-dialog';
+import { useDebounce } from '@/hooks/use-debounce';
 
 interface PembeliUser {
   id: string;
@@ -38,10 +47,30 @@ interface PembeliUser {
   createdAt: string;
 }
 
+interface PaginationMeta {
+  totalCount: number;
+  totalPages: number;
+  currentPage: number;
+  limit: number;
+}
+
 export function PembeliDataTable() {
   const [pembeliList, setPembeliList] = useState<PembeliUser[]>([]);
+  const [pagination, setPagination] = useState<PaginationMeta>({
+    totalCount: 0,
+    totalPages: 1,
+    currentPage: 1,
+    limit: 8,
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Optimasi 1: Debounce 300ms pada pencarian teks agar tidak membebani server
+  const debouncedSearch = useDebounce(searchQuery, 300);
+
+  // Optimasi 2: AbortController untuk membatalkan request sebelumnya jika user mengetik cepat
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Modal States
   const [formModalOpen, setFormModalOpen] = useState(false);
@@ -51,34 +80,59 @@ export function PembeliDataTable() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [pembeliToDelete, setPembeliToDelete] = useState<PembeliUser | null>(null);
 
-  const fetchPembeli = async () => {
+  // Reset page saat pencarian berubah
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch]);
+
+  const fetchPembeli = useCallback(async () => {
+    // Batalkan request yang sedang berjalan jika ada
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
       setIsLoading(true);
-      const res = await fetch('/api/admin/users?role=PEMBELI');
+      const params = new URLSearchParams({
+        role: 'PEMBELI',
+        page: String(currentPage),
+        limit: '8',
+      });
+
+      if (debouncedSearch) {
+        params.set('q', debouncedSearch);
+      }
+
+      const res = await fetch(`/api/admin/users?${params.toString()}`, {
+        signal: controller.signal,
+      });
       const data = await res.json();
+
       if (data.success && Array.isArray(data.users)) {
         setPembeliList(data.users);
+        if (data.pagination) {
+          setPagination(data.pagination);
+        }
       }
-    } catch (err) {
-      console.error('Error fetching pembeli:', err);
+    } catch (err: any) {
+      if (err.name !== 'AbortError') {
+        console.error('Error fetching pembeli:', err);
+      }
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [currentPage, debouncedSearch]);
 
   useEffect(() => {
     fetchPembeli();
-  }, []);
-
-  // Filter & Search
-  const filteredPembeli = pembeliList.filter((p) => {
-    const query = searchQuery.toLowerCase();
-    return (
-      p.name.toLowerCase().includes(query) ||
-      p.email.toLowerCase().includes(query) ||
-      (p.phone && p.phone.includes(query))
-    );
-  });
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [fetchPembeli]);
 
   return (
     <div className="space-y-4">
@@ -90,7 +144,7 @@ export function PembeliDataTable() {
               Data Pembeli & Pelanggan
             </h1>
             <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-100 text-blue-800 border border-blue-200">
-              {pembeliList.length} Pembeli Terdaftar
+              {pagination.totalCount} Pembeli Terdaftar
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-1">
@@ -139,11 +193,11 @@ export function PembeliDataTable() {
         </div>
 
         <div className="text-xs text-slate-500 hidden sm:block">
-          Total Aktif: <strong className="text-emerald-700">{filteredPembeli.length}</strong>
+          Total Terdata: <strong className="text-emerald-700 font-semibold">{pagination.totalCount}</strong>
         </div>
       </div>
 
-      {/* Shadcn Data Table */}
+      {/* Shadcn Data Table (Kolom Peran Akun Dihapus Sesuai Permintaan) */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
         <Table>
           <TableHeader className="bg-emerald-50/70 border-b border-emerald-100">
@@ -161,9 +215,6 @@ export function PembeliDataTable() {
                 Nomor Telepon / WhatsApp
               </TableHead>
               <TableHead className="text-emerald-950 font-bold text-xs">
-                Peran Akun
-              </TableHead>
-              <TableHead className="text-emerald-950 font-bold text-xs">
                 Status Akun
               </TableHead>
               <TableHead className="text-emerald-950 font-bold text-xs">
@@ -178,16 +229,16 @@ export function PembeliDataTable() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={8} className="h-40 text-center text-slate-500">
+                <TableCell colSpan={7} className="h-40 text-center text-slate-500">
                   <div className="flex flex-col items-center justify-center gap-2">
                     <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
-                    <span className="text-xs">Memuat data pembeli dari backend...</span>
+                    <span className="text-xs">Memuat data pembeli...</span>
                   </div>
                 </TableCell>
               </TableRow>
-            ) : filteredPembeli.length === 0 ? (
+            ) : pembeliList.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="h-44 text-center text-slate-500">
+                <TableCell colSpan={7} className="h-44 text-center text-slate-500">
                   <div className="flex flex-col items-center justify-center gap-2">
                     <ShoppingBag className="w-6 h-6 text-slate-300" />
                     <span className="text-xs font-bold text-slate-800">
@@ -197,8 +248,8 @@ export function PembeliDataTable() {
                     </span>
                     <p className="text-[11px] text-slate-400 max-w-sm">
                       {searchQuery
-                        ? 'Coba gunakan kata kunci pencarian lain.'
-                        : 'Mulai daftarkan akun pembeli dengan menekan tombol di bawah.'}
+                        ? 'Coba sesuaikan kata kunci pencarian.'
+                        : 'Daftarkan pembeli pertama dengan menekan tombol Tambah Pembeli.'}
                     </p>
                     {!searchQuery && (
                       <button
@@ -217,8 +268,9 @@ export function PembeliDataTable() {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredPembeli.map((pembeli, index) => {
+              pembeliList.map((pembeli, index) => {
                 const initial = pembeli.name.charAt(0).toUpperCase();
+                const rowNumber = (pagination.currentPage - 1) * pagination.limit + (index + 1);
                 const joinedDate = new Date(pembeli.createdAt).toLocaleDateString('id-ID', {
                   day: 'numeric',
                   month: 'short',
@@ -232,7 +284,7 @@ export function PembeliDataTable() {
                   >
                     {/* No */}
                     <TableCell className="text-center font-medium text-xs text-slate-400">
-                      {index + 1}
+                      {rowNumber}
                     </TableCell>
 
                     {/* Pembeli Info */}
@@ -272,13 +324,6 @@ export function PembeliDataTable() {
                       </div>
                     </TableCell>
 
-                    {/* Peran */}
-                    <TableCell>
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 text-xs font-semibold border border-emerald-100">
-                        <span>Pembeli Koperasi</span>
-                      </span>
-                    </TableCell>
-
                     {/* Status Akun */}
                     <TableCell>
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-semibold">
@@ -295,10 +340,9 @@ export function PembeliDataTable() {
                       </div>
                     </TableCell>
 
-                    {/* Action Buttons (Edit & Delete with pop-up modal dialogs) */}
+                    {/* Action Buttons */}
                     <TableCell className="text-right pr-4">
                       <div className="flex items-center justify-end gap-1.5">
-                        {/* Edit Button */}
                         <button
                           onClick={() => {
                             setSelectedPembeli(pembeli);
@@ -311,7 +355,6 @@ export function PembeliDataTable() {
                           <Pencil className="w-3.5 h-3.5" />
                         </button>
 
-                        {/* Delete Button */}
                         <button
                           onClick={() => {
                             setPembeliToDelete(pembeli);
@@ -331,13 +374,51 @@ export function PembeliDataTable() {
           </TableBody>
         </Table>
 
-        {/* Footer info */}
-        <div className="px-4 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-          <span>Menampilkan {filteredPembeli.length} dari {pembeliList.length} pembeli</span>
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-blue-500" />
-            <span>Koperasi Sinar Pagi Sejahtera • Minahasa Utara</span>
+        {/* Footer with shadcn Pagination Component */}
+        <div className="px-4 py-3 bg-slate-50 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+          <div>
+            Menampilkan{' '}
+            <strong className="text-slate-800">
+              {pembeliList.length > 0 ? (pagination.currentPage - 1) * pagination.limit + 1 : 0}
+            </strong>
+            -
+            <strong className="text-slate-800">
+              {Math.min(pagination.currentPage * pagination.limit, pagination.totalCount)}
+            </strong>{' '}
+            dari <strong className="text-slate-800">{pagination.totalCount}</strong> pembeli
           </div>
+
+          {pagination.totalPages > 1 && (
+            <Pagination className="mx-0 w-auto justify-end">
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage <= 1 || isLoading}
+                  />
+                </PaginationItem>
+
+                {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((pageNum) => (
+                  <PaginationItem key={pageNum}>
+                    <PaginationLink
+                      isActive={pageNum === currentPage}
+                      onClick={() => setCurrentPage(pageNum)}
+                      disabled={isLoading}
+                    >
+                      {pageNum}
+                    </PaginationLink>
+                  </PaginationItem>
+                ))}
+
+                <PaginationItem>
+                  <PaginationNext
+                    onClick={() => setCurrentPage((p) => Math.min(pagination.totalPages, p + 1))}
+                    disabled={currentPage >= pagination.totalPages || isLoading}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          )}
         </div>
       </div>
 

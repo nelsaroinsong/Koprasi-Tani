@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Table,
   TableHeader,
@@ -10,6 +10,14 @@ import {
   TableCell,
 } from '@/components/ui/table';
 import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationPrevious,
+  PaginationNext,
+} from '@/components/ui/pagination';
+import {
   Search,
   CheckCircle2,
   Clock,
@@ -17,7 +25,6 @@ import {
   Phone,
   RefreshCw,
   MapPin,
-  ShieldCheck,
   Plus,
   Pencil,
   Trash2,
@@ -28,12 +35,14 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { UserFormModal } from '@/components/admin/user-form-modal';
 import { UserDeleteDialog } from '@/components/admin/user-delete-dialog';
 import { UserVerifyDialog } from '@/components/admin/user-verify-dialog';
+import { useDebounce } from '@/hooks/use-debounce';
 
 interface PetaniUser {
   id: string;
   name: string;
   email: string;
   phone: string | null;
+  role: string;
   avatarUrl: string | null;
   isVerified: boolean;
   isActive: boolean;
@@ -47,11 +56,31 @@ interface PetaniUser {
   } | null;
 }
 
+interface PaginationMeta {
+  totalCount: number;
+  totalPages: number;
+  currentPage: number;
+  limit: number;
+}
+
 export function PetaniDataTable() {
   const [petaniList, setPetaniList] = useState<PetaniUser[]>([]);
+  const [pagination, setPagination] = useState<PaginationMeta>({
+    totalCount: 0,
+    totalPages: 1,
+    currentPage: 1,
+    limit: 8,
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'ALL' | 'VERIFIED' | 'PENDING'>('ALL');
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Optimasi 1: Debounce 300ms untuk input pencarian
+  const debouncedSearch = useDebounce(searchQuery, 300);
+
+  // Optimasi 2: AbortController untuk membatalkan request lama
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Modal States
   const [formModalOpen, setFormModalOpen] = useState(false);
@@ -64,43 +93,62 @@ export function PetaniDataTable() {
   const [verifyDialogOpen, setVerifyDialogOpen] = useState(false);
   const [petaniToVerify, setPetaniToVerify] = useState<PetaniUser | null>(null);
 
-  const fetchPetani = async () => {
+  // Reset ke halaman 1 saat filter atau search berubah
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, filterStatus]);
+
+  const fetchPetani = useCallback(async () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
       setIsLoading(true);
-      const res = await fetch('/api/admin/users?role=PETANI');
+      const params = new URLSearchParams({
+        role: 'PETANI',
+        page: String(currentPage),
+        limit: '8',
+      });
+
+      if (debouncedSearch) {
+        params.set('q', debouncedSearch);
+      }
+
+      if (filterStatus !== 'ALL') {
+        params.set('status', filterStatus);
+      }
+
+      const res = await fetch(`/api/admin/users?${params.toString()}`, {
+        signal: controller.signal,
+      });
       const data = await res.json();
+
       if (data.success && Array.isArray(data.users)) {
         setPetaniList(data.users);
+        if (data.pagination) {
+          setPagination(data.pagination);
+        }
       }
-    } catch (err) {
-      console.error('Error fetching petani:', err);
+    } catch (err: any) {
+      if (err.name !== 'AbortError') {
+        console.error('Error fetching petani:', err);
+      }
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [currentPage, debouncedSearch, filterStatus]);
 
   useEffect(() => {
     fetchPetani();
-  }, []);
-
-  // Filter & Search
-  const filteredPetani = petaniList.filter((p) => {
-    const matchesSearch =
-      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (p.phone && p.phone.includes(searchQuery)) ||
-      (p.kelompokTani?.nama.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
-      (p.kelompokTani?.desa.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
-
-    if (!matchesSearch) return false;
-
-    if (filterStatus === 'VERIFIED') return p.isVerified;
-    if (filterStatus === 'PENDING') return !p.isVerified;
-    return true;
-  });
-
-  const totalVerified = petaniList.filter((p) => p.isVerified).length;
-  const totalPending = petaniList.filter((p) => !p.isVerified).length;
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [fetchPetani]);
 
   return (
     <div className="space-y-4">
@@ -112,7 +160,7 @@ export function PetaniDataTable() {
               Data Petani Koperasi
             </h1>
             <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-              {petaniList.length} Petani Terdaftar
+              {pagination.totalCount} Petani Terdaftar
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-1">
@@ -171,7 +219,7 @@ export function PetaniDataTable() {
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            Semua ({petaniList.length})
+            Semua
           </button>
           <button
             onClick={() => setFilterStatus('VERIFIED')}
@@ -182,7 +230,7 @@ export function PetaniDataTable() {
             }`}
           >
             <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span>Terverifikasi ({totalVerified})</span>
+            <span>Terverifikasi</span>
           </button>
           <button
             onClick={() => setFilterStatus('PENDING')}
@@ -193,7 +241,7 @@ export function PetaniDataTable() {
             }`}
           >
             <span className="w-2 h-2 rounded-full bg-amber-500" />
-            <span>Menunggu ({totalPending})</span>
+            <span>Menunggu</span>
           </button>
         </div>
       </div>
@@ -237,7 +285,7 @@ export function PetaniDataTable() {
                   </div>
                 </TableCell>
               </TableRow>
-            ) : filteredPetani.length === 0 ? (
+            ) : petaniList.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="h-44 text-center text-slate-500">
                   <div className="flex flex-col items-center justify-center gap-2">
@@ -271,8 +319,9 @@ export function PetaniDataTable() {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredPetani.map((petani, index) => {
+              petaniList.map((petani, index) => {
                 const initial = petani.name.charAt(0).toUpperCase();
+                const rowNumber = (pagination.currentPage - 1) * pagination.limit + (index + 1);
 
                 return (
                   <TableRow
@@ -281,7 +330,7 @@ export function PetaniDataTable() {
                   >
                     {/* No */}
                     <TableCell className="text-center font-medium text-xs text-slate-400">
-                      {index + 1}
+                      {rowNumber}
                     </TableCell>
 
                     {/* Petani Info */}
@@ -373,7 +422,6 @@ export function PetaniDataTable() {
                     {/* Action Buttons (Edit & Delete with pop-up modal dialogs) */}
                     <TableCell className="text-right pr-4">
                       <div className="flex items-center justify-end gap-1.5">
-                        {/* Edit Button */}
                         <button
                           onClick={() => {
                             setSelectedPetani(petani);
@@ -386,7 +434,6 @@ export function PetaniDataTable() {
                           <Pencil className="w-3.5 h-3.5" />
                         </button>
 
-                        {/* Delete Button */}
                         <button
                           onClick={() => {
                             setPetaniToDelete(petani);
@@ -406,13 +453,51 @@ export function PetaniDataTable() {
           </TableBody>
         </Table>
 
-        {/* Footer info */}
-        <div className="px-4 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-          <span>Menampilkan {filteredPetani.length} dari {petaniList.length} petani</span>
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span>Koperasi Sinar Pagi Sejahtera • Minahasa Utara</span>
+        {/* Footer with shadcn Pagination Component */}
+        <div className="px-4 py-3 bg-slate-50 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+          <div>
+            Menampilkan{' '}
+            <strong className="text-slate-800">
+              {petaniList.length > 0 ? (pagination.currentPage - 1) * pagination.limit + 1 : 0}
+            </strong>
+            -
+            <strong className="text-slate-800">
+              {Math.min(pagination.currentPage * pagination.limit, pagination.totalCount)}
+            </strong>{' '}
+            dari <strong className="text-slate-800">{pagination.totalCount}</strong> petani
           </div>
+
+          {pagination.totalPages > 1 && (
+            <Pagination className="mx-0 w-auto justify-end">
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage <= 1 || isLoading}
+                  />
+                </PaginationItem>
+
+                {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((pageNum) => (
+                  <PaginationItem key={pageNum}>
+                    <PaginationLink
+                      isActive={pageNum === currentPage}
+                      onClick={() => setCurrentPage(pageNum)}
+                      disabled={isLoading}
+                    >
+                      {pageNum}
+                    </PaginationLink>
+                  </PaginationItem>
+                ))}
+
+                <PaginationItem>
+                  <PaginationNext
+                    onClick={() => setCurrentPage((p) => Math.min(pagination.totalPages, p + 1))}
+                    disabled={currentPage >= pagination.totalPages || isLoading}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          )}
         </div>
       </div>
 
