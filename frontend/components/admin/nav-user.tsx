@@ -6,6 +6,7 @@ import {
   ChevronsUpDown,
   LogOut,
 } from "lucide-react"
+import { signOut } from "next-auth/react"
 
 import {
   Avatar,
@@ -89,9 +90,15 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <LogOut />
-              Log out
+            <DropdownMenuItem
+              onClick={async () => {
+                await signOut({ redirect: false });
+                window.location.replace('/admin-koperasi-sinar-pagi-sejahtera');
+              }}
+              className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/20"
+            >
+              <LogOut className="text-red-600" />
+              Keluar dari Admin
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

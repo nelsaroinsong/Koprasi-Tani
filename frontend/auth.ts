@@ -1,6 +1,8 @@
 import NextAuth from 'next-auth';
 import Google from 'next-auth/providers/google';
+import Credentials from 'next-auth/providers/credentials';
 import { prisma } from '@/lib/prisma';
+import { verifyPassword } from '@/lib/auth-passwords';
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
@@ -8,12 +10,67 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     }),
+    Credentials({
+      id: 'admin-credentials',
+      name: 'Portal Administrator',
+      credentials: {
+        email: { label: 'Email Admin', type: 'email' },
+        password: { label: 'Kata Sandi', type: 'password' },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          return null;
+        }
+
+        const email = String(credentials.email).trim().toLowerCase();
+        const password = String(credentials.password);
+
+        try {
+          const user = await prisma.user.findUnique({
+            where: { email },
+          });
+
+          if (!user || user.role !== 'ADMIN' || !user.isActive) {
+            console.warn(`[Admin Auth] Akses ditolak untuk email: ${email} (Bukan admin aktif)`);
+            return null;
+          }
+
+          if (!user.password) {
+            console.warn(`[Admin Auth] Akun admin ${email} belum memiliki password`);
+            return null;
+          }
+
+          const isValid = verifyPassword(password, user.password);
+          if (!isValid) {
+            console.warn(`[Admin Auth] Password salah untuk admin: ${email}`);
+            return null;
+          }
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            isVerified: user.isVerified,
+            avatarUrl: user.avatarUrl,
+            phone: user.phone,
+          };
+        } catch (error) {
+          console.error('[Admin Auth] Error authorize:', error);
+          return null;
+        }
+      },
+    }),
   ],
   pages: {
     signIn: '/login',
   },
   callbacks: {
     async signIn({ user, account }) {
+      if (account?.provider === 'admin-credentials') {
+        return true;
+      }
+
       if (!user.email) return false;
 
       try {
@@ -54,6 +111,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
 
     async jwt({ token, user, trigger, session }) {
+      if (user) {
+        token.id = user.id;
+        // @ts-ignore
+        token.role = user.role;
+        // @ts-ignore
+        token.isVerified = user.isVerified;
+        token.name = user.name;
+        // @ts-ignore
+        token.avatarUrl = user.avatarUrl;
+        // @ts-ignore
+        token.phone = user.phone;
+      }
       if (token.email) {
         try {
           const dbUser = await prisma.user.findUnique({

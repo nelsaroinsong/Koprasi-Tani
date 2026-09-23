@@ -6,13 +6,9 @@ import {
   Sprout,
   Users,
   Package,
-  Settings2,
-  ShoppingCart,
-  Tractor,
 } from "lucide-react"
 
 import { NavMain } from "@/components/admin/nav-main"
-import { NavProjects } from "@/components/admin/nav-projects"
 import { NavUser } from "@/components/admin/nav-user"
 import { TeamSwitcher } from "@/components/admin/team-switcher"
 import {
@@ -42,31 +38,7 @@ const data = {
       url: "/admin",
       icon: LayoutDashboard,
       isActive: true,
-      items: [
-        {
-          title: "Ringkasan",
-          url: "/admin",
-        },
-        {
-          title: "Aktivitas Terbaru",
-          url: "/admin",
-        },
-      ],
-    },
-    {
-      title: "Kelompok Tani",
-      url: "/admin",
-      icon: Sprout,
-      items: [
-        {
-          title: "Semua Kelompok",
-          url: "/admin",
-        },
-        {
-          title: "Tambah Kelompok",
-          url: "/admin",
-        },
-      ],
+      // Tanpa dropdown sesuai permintaan pengguna
     },
     {
       title: "Pengguna",
@@ -88,7 +60,7 @@ const data = {
       ],
     },
     {
-      title: "Produk",
+      title: "Produk dan Layanan",
       url: "/admin",
       icon: Package,
       items: [
@@ -97,42 +69,33 @@ const data = {
           url: "/admin",
         },
         {
-          title: "Tambah Produk",
-          url: "/admin",
-        },
-      ],
-    },
-    {
-      title: "Pengaturan",
-      url: "/admin",
-      icon: Settings2,
-      items: [
-        {
-          title: "Umum",
+          title: "Toko Online",
           url: "/admin",
         },
         {
-          title: "Keamanan",
+          title: "Sewa Alat",
           url: "/admin",
         },
       ],
-    },
-  ],
-  projects: [
-    {
-      name: "Toko Online",
-      url: "/admin",
-      icon: ShoppingCart,
-    },
-    {
-      name: "Sewa Alat",
-      url: "/admin",
-      icon: Tractor,
     },
   ],
 }
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
+  user?: {
+    name?: string | null;
+    email?: string | null;
+    image?: string | null;
+  } | null;
+}
+
+export function AppSidebar({ user, ...props }: AppSidebarProps) {
+  const currentUser = {
+    name: user?.name || data.user.name,
+    email: user?.email || data.user.email,
+    avatar: user?.image || data.user.avatar,
+  };
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
@@ -140,10 +103,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavProjects projects={data.projects} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={currentUser} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
