@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Navbar from '@/components/Navbar';
+import AppHeader from '@/components/AppHeader';
 import HeroSection from '@/components/HeroSection';
 import MainFooter from '@/components/MainFooter';
 import { CheckCircle2 } from 'lucide-react';
@@ -64,11 +64,8 @@ export default function Home() {
         </div>
       )}
 
-      {/* Top Navbar */}
-      <Navbar
-        onOpenModal={handleOpenModal}
-        activeSection={activeSection}
-      />
+      {/* Unified App Header (Style sama persis dengan halaman setelah login) */}
+      <AppHeader activePage="beranda" />
 
       <main className="flex-1">
         {/* Hero Section */}

@@ -2,25 +2,25 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { ShoppingBag, Tractor, Menu, X, ChevronRight, ShieldCheck } from 'lucide-react';
+import { ShoppingBag, Tractor, Menu, X, ChevronRight, ShieldCheck, Home, LogIn } from 'lucide-react';
 import UserProfileDropdown from '@/components/UserProfileDropdown';
 import { useAuth } from '@/context/auth-context';
 
 interface AppHeaderProps {
-  activePage: 'toko' | 'sewa-alat';
+  activePage?: 'beranda' | 'toko' | 'sewa-alat';
 }
 
-export default function AppHeader({ activePage }: AppHeaderProps) {
+export default function AppHeader({ activePage = 'beranda' }: AppHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user } = useAuth();
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2 sm:gap-3">
-        {/* Brand Logo - Mengarah selalu ke /toko saat sudah login */}
+        {/* Brand Logo - Mengarah ke /toko saat login, atau ke / saat belum login */}
         <div className="flex items-center gap-4 sm:gap-6 min-w-0">
           <Link
-            href="/toko"
+            href={user ? '/toko' : '/'}
             className="flex items-center gap-2 sm:gap-2.5 group focus:outline-none shrink-0"
           >
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-700 flex items-center justify-center text-white shadow-xs group-hover:scale-105 transition-transform">
@@ -38,6 +38,17 @@ export default function AppHeader({ activePage }: AppHeaderProps) {
 
           {/* Desktop Navigation Links */}
           <nav className="hidden md:flex items-center gap-1.5 text-xs font-semibold">
+            <Link
+              href="/"
+              className={`px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5 ${
+                activePage === 'beranda'
+                  ? 'bg-emerald-50 text-emerald-800 shadow-2xs font-bold ring-1 ring-emerald-600/20'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              }`}
+            >
+              <Home className="w-3.5 h-3.5" />
+              <span>Beranda</span>
+            </Link>
             <Link
               href="/toko"
               className={`px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5 ${
@@ -70,9 +81,10 @@ export default function AppHeader({ activePage }: AppHeaderProps) {
           ) : (
             <Link
               href="/login"
-              className="text-xs font-semibold bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-1.5 rounded-full transition"
+              className="text-xs font-semibold bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-1.5 rounded-full transition shadow-xs flex items-center gap-1.5"
             >
-              Masuk
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Masuk</span>
             </Link>
           )}
 
@@ -99,6 +111,26 @@ export default function AppHeader({ activePage }: AppHeaderProps) {
           <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-1">
             Pilih Layanan & Fitur
           </div>
+
+          <Link
+            href="/"
+            onClick={() => setMobileMenuOpen(false)}
+            className={`w-full px-3.5 py-2.5 rounded-xl font-semibold text-xs flex items-center justify-between transition ${
+              activePage === 'beranda'
+                ? 'bg-emerald-700 text-white shadow-xs'
+                : 'text-slate-700 hover:bg-slate-50 border border-slate-100'
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <Home className="w-4 h-4" />
+              <span>Beranda</span>
+            </div>
+            {activePage === 'beranda' ? (
+              <span className="text-[10px] font-bold bg-white/20 px-2 py-0.5 rounded-md">Aktif</span>
+            ) : (
+              <ChevronRight className="w-3.5 h-3.5 opacity-60" />
+            )}
+          </Link>
 
           <Link
             href="/toko"
@@ -151,6 +183,17 @@ export default function AppHeader({ activePage }: AppHeaderProps) {
                 <span>Panel Verifikasi Admin</span>
               </div>
               <ChevronRight className="w-3.5 h-3.5 opacity-60" />
+            </Link>
+          )}
+
+          {!user && (
+            <Link
+              href="/login"
+              onClick={() => setMobileMenuOpen(false)}
+              className="w-full px-3.5 py-2.5 rounded-xl font-semibold text-xs flex items-center justify-center gap-2 bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs transition mt-2"
+            >
+              <LogIn className="w-4 h-4" />
+              <span>Masuk ke Akun</span>
             </Link>
           )}
         </div>
