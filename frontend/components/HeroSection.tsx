@@ -106,21 +106,28 @@ export default function HeroSection({
               <div className="absolute right-0 top-0 bottom-0 w-12 sm:w-16 bg-gradient-to-l from-[#fafbf9] to-transparent z-10 pointer-events-none" />
 
               <div className="animate-marquee-infinite items-center gap-12 sm:gap-16">
-                {repeatedLogos.map((logo, idx) => (
-                  <div
-                    key={`${logo.key}-${idx}`}
-                    className="flex items-center justify-center shrink-0"
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={logo.url}
-                      alt={logo.name}
-                      className="h-10 sm:h-12 w-auto object-contain max-w-[145px] sm:max-w-[175px] opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300"
-                      title={logo.name}
-                      loading="eager"
-                    />
-                  </div>
-                ))}
+                {repeatedLogos.map((logo, idx) => {
+                  const isPolimdo = logo.key.toLowerCase().includes('polimdo');
+                  return (
+                    <div
+                      key={`${logo.key}-${idx}`}
+                      className="flex items-center justify-center shrink-0"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={logo.url}
+                        alt={logo.name}
+                        className={`${
+                          isPolimdo
+                            ? 'h-14 sm:h-16 max-w-[155px] sm:max-w-[185px]'
+                            : 'h-10 sm:h-12 max-w-[145px] sm:max-w-[175px]'
+                        } w-auto object-contain opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300`}
+                        title={logo.name}
+                        loading="eager"
+                      />
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
