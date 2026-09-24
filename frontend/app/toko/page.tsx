@@ -166,9 +166,11 @@ export default function TokoOnlinePage() {
   }, [user?.role]);
 
   // Fetch Products (Halaman 1 / Reset - 30 item pertama)
-  const fetchProducts = useCallback(async () => {
+  const fetchProducts = useCallback(async (silent = false) => {
     try {
-      setIsLoadingProducts(true);
+      if (!silent) {
+        setIsLoadingProducts(true);
+      }
       setCurrentPage(1);
       const params = new URLSearchParams({
         page: '1',
@@ -258,10 +260,10 @@ export default function TokoOnlinePage() {
   };
 
   useEffect(() => {
-    if (user && user.isOnboarded) {
+    if (user?.id && user?.isOnboarded) {
       fetchProducts();
     }
-  }, [user, fetchProducts]);
+  }, [user?.id, user?.isOnboarded, fetchProducts]);
 
   // Handlers
   const handleOpenCreate = () => {
@@ -552,7 +554,7 @@ export default function TokoOnlinePage() {
             </div>
 
             <button
-              onClick={fetchProducts}
+              onClick={() => fetchProducts(false)}
               className="p-1.5 sm:p-2 bg-white border border-slate-200 text-slate-600 hover:text-emerald-700 hover:bg-slate-50 rounded-lg sm:rounded-xl transition cursor-pointer shadow-2xs shrink-0"
               title="Segarkan Produk"
             >
