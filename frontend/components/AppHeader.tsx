@@ -16,21 +16,21 @@ export default function AppHeader({ activePage = 'beranda' }: AppHeaderProps) {
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2 sm:gap-3">
+      <div className="max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8 h-13 sm:h-16 flex items-center justify-between gap-2 sm:gap-3">
         {/* Brand Logo - Mengarah ke /toko saat login, atau ke / saat belum login */}
-        <div className="flex items-center gap-4 sm:gap-6 min-w-0">
+        <div className="flex items-center gap-3 sm:gap-6 min-w-0">
           <Link
             href={user ? '/toko' : '/'}
-            className="flex items-center gap-2 sm:gap-2.5 group focus:outline-none shrink-0"
+            className="flex items-center gap-1.5 sm:gap-2.5 group focus:outline-none shrink-0"
           >
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-700 flex items-center justify-center text-white shadow-xs group-hover:scale-105 transition-transform">
-              <ShoppingBag className="w-4 h-4 text-emerald-200" />
+            <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-emerald-700 flex items-center justify-center text-white shadow-xs group-hover:scale-105 transition-transform">
+              <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-200" />
             </div>
             <div className="min-w-0">
-              <div className="text-xs sm:text-sm font-bold text-slate-900 leading-tight truncate">
+              <div className="text-[11px] sm:text-sm font-bold text-slate-900 leading-tight truncate">
                 Sinar Pagi Sejahtera
               </div>
-              <div className="text-[9px] sm:text-[10px] text-slate-400 font-semibold tracking-wider uppercase">
+              <div className="text-[8px] sm:text-[10px] text-slate-400 font-semibold tracking-wider uppercase">
                 Minahasa Utara
               </div>
             </div>
@@ -95,14 +95,14 @@ export default function AppHeader({ activePage = 'beranda' }: AppHeaderProps) {
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label="Pilih Layanan Koperasi"
             title="Menu Layanan"
-            className={`md:hidden w-9 h-9 rounded-full flex items-center justify-center transition border cursor-pointer shadow-2xs ${
+            className={`md:hidden w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition border cursor-pointer shadow-2xs ${
               mobileMenuOpen
                 ? 'bg-emerald-700 text-white border-emerald-700'
                 : 'bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border-slate-200'
             }`}
             type="button"
           >
-            {mobileMenuOpen ? <X className="w-4.5 h-4.5" /> : <Menu className="w-4.5 h-4.5" />}
+            {mobileMenuOpen ? <X className="w-4 h-4 sm:w-4.5 sm:h-4.5" /> : <Menu className="w-4 h-4 sm:w-4.5 sm:h-4.5" />}
           </button>
         </div>
       </div>
