@@ -4,7 +4,8 @@ import React from 'react';
 import { useAdmin } from '@/components/admin/admin-context';
 import { PetaniDataTable } from '@/components/admin/petani-data-table';
 import { PembeliDataTable } from '@/components/admin/pembeli-data-table';
-import { Sprout, Users, ShoppingBag, ArrowRight } from 'lucide-react';
+import { TokoOnlineDataTable } from '@/components/admin/toko-data-table';
+import { Sprout, Users, ShoppingBag, ArrowRight, Package } from 'lucide-react';
 
 export default function AdminPage() {
   const { activeTab, setActiveTab } = useAdmin();
@@ -19,21 +20,26 @@ export default function AdminPage() {
     return <PembeliDataTable />;
   }
 
-  // 3. Tampilan Halaman Produk dan Layanan
+  // 3. Tampilan Halaman Produk dan Layanan: Toko Online / Sewa Alat
   if (activeTab.group === 'Produk dan Layanan') {
-    return (
-      <div className="flex-1 w-full min-h-[calc(100vh-8rem)] rounded-3xl border border-dashed border-emerald-200 bg-white/60 backdrop-blur-xs p-8 flex flex-col items-center justify-center text-center">
-        <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center mb-4 border border-emerald-100 shadow-xs">
-          <ShoppingBag className="w-7 h-7 text-emerald-600" />
+    if (activeTab.item === 'Sewa Alat') {
+      return (
+        <div className="flex-1 w-full min-h-[calc(100vh-8rem)] rounded-3xl border border-dashed border-emerald-200 bg-white/60 backdrop-blur-xs p-8 flex flex-col items-center justify-center text-center">
+          <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center mb-4 border border-emerald-100 shadow-xs">
+            <Package className="w-7 h-7 text-emerald-600" />
+          </div>
+          <h2 className="text-base font-bold text-slate-800">
+            Layanan Sewa Alat & Mesin Pertanian (Alsintan)
+          </h2>
+          <p className="text-xs text-slate-500 max-w-md mt-1.5 leading-relaxed">
+            Manajemen inventaris alsintan, ketersediaan traktor dan mesin panen Koperasi Sinar Pagi Sejahtera.
+          </p>
         </div>
-        <h2 className="text-base font-bold text-slate-800">
-          Katalog Produk & Layanan Koperasi
-        </h2>
-        <p className="text-xs text-slate-500 max-w-md mt-1.5 leading-relaxed">
-          Bagian produk komoditas dan sewa alsintan Koperasi Sinar Pagi Sejahtera.
-        </p>
-      </div>
-    );
+      );
+    }
+
+    // Default untuk 'Toko Online'
+    return <TokoOnlineDataTable />;
   }
 
   // 4. Default: Halaman Dashboard
@@ -56,7 +62,7 @@ export default function AdminPage() {
       </div>
 
       {/* Quick Access Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* Card Petani */}
         <div
           onClick={() => setActiveTab('Pengguna', 'Petani')}
@@ -99,6 +105,29 @@ export default function AdminPage() {
 
           <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-blue-700">
             <span>Buka Data Pembeli</span>
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition" />
+          </div>
+        </div>
+
+        {/* Card Toko Online */}
+        <div
+          onClick={() => setActiveTab('Produk dan Layanan', 'Toko Online')}
+          className="p-6 rounded-2xl bg-white border border-slate-200 hover:border-amber-300 hover:shadow-md transition cursor-pointer group flex flex-col justify-between"
+        >
+          <div>
+            <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center mb-4 group-hover:scale-105 transition">
+              <ShoppingBag className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-bold text-slate-900 group-hover:text-amber-800 transition">
+              Katalog Toko Online
+            </h3>
+            <p className="text-xs text-slate-500 mt-1">
+              Kelola stok hasil panen, harga komoditas, dan produk turunan.
+            </p>
+          </div>
+
+          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-amber-700">
+            <span>Buka Data Produk</span>
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition" />
           </div>
         </div>

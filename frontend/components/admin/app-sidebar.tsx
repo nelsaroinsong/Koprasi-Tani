@@ -61,10 +61,6 @@ const data = {
       icon: Package,
       items: [
         {
-          title: "Katalog Komoditas",
-          url: "/admin",
-        },
-        {
           title: "Toko Online",
           url: "/admin",
         },
