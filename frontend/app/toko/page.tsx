@@ -21,13 +21,52 @@ import {
   Coins,
   CheckCircle2,
   Building2,
+  LayoutGrid,
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
 import { ProductFormModal, ProductData } from '@/components/toko/product-form-modal';
 import { ProductDeleteDialog } from '@/components/toko/product-delete-dialog';
 
-const KATEGORI_TABS = ['SEMUA', 'Kelapa', 'Jagung', 'Turunan', 'Olahan'];
+const KATEGORI_CONFIG = [
+  {
+    key: 'SEMUA',
+    label: 'Semua',
+    pillLabel: 'Kategori',
+    emoji: '🌾',
+    mobileBg: 'bg-gradient-to-br from-emerald-600 to-[#183d2e] text-white',
+  },
+  {
+    key: 'Kelapa',
+    label: 'Kelapa',
+    pillLabel: 'Kelapa',
+    emoji: '🥥',
+    mobileBg: 'bg-gradient-to-br from-amber-100 to-amber-200 text-amber-900 border border-amber-300/60',
+  },
+  {
+    key: 'Jagung',
+    label: 'Jagung',
+    pillLabel: 'Jagung',
+    emoji: '🌽',
+    mobileBg: 'bg-gradient-to-br from-yellow-100 to-amber-200 text-amber-900 border border-yellow-300/60',
+  },
+  {
+    key: 'Turunan',
+    label: 'Turunan',
+    pillLabel: 'Turunan',
+    emoji: '📦',
+    mobileBg: 'bg-gradient-to-br from-sky-100 to-blue-200 text-blue-900 border border-sky-300/60',
+  },
+  {
+    key: 'Olahan',
+    label: 'Olahan',
+    pillLabel: 'Olahan',
+    emoji: '🥫',
+    mobileBg: 'bg-gradient-to-br from-purple-100 to-fuchsia-200 text-purple-900 border border-purple-300/60',
+  },
+];
+
+const KATEGORI_TABS = KATEGORI_CONFIG.map((c) => c.key);
 
 export default function TokoOnlinePage() {
   const { user, isLoading: authLoading } = useAuth();
@@ -345,8 +384,8 @@ export default function TokoOnlinePage() {
         {/* Ringkasan Agribisnis & Bagi Hasil Cash Petani (Khusus Petani di Tab Produk Saya) */}
         {isPetani && activeTab === 'PRODUK_SAYA' && (
           <div className="mb-2.5 sm:mb-6 space-y-2 sm:space-y-4">
-            {/* Informational Banner */}
-            <div className="p-2 sm:p-4 rounded-xl sm:rounded-2xl bg-gradient-to-r from-emerald-900 to-emerald-800 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 shadow-sm border border-emerald-700/50">
+            {/* Informational Banner (Dihapus/disembunyikan pada mobile sesuai Gambar 4) */}
+            <div className="hidden sm:flex p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-gradient-to-r from-emerald-900 to-emerald-800 text-white flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 shadow-sm border border-emerald-700/50">
               <div className="flex items-start sm:items-center gap-2 sm:gap-3">
                 <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-white/10 flex items-center justify-center shrink-0">
                   <Building2 className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-emerald-300" />
@@ -522,25 +561,72 @@ export default function TokoOnlinePage() {
           </div>
         </div>
 
-        {/* Kategori Filter Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 sm:pb-3 mb-2.5 sm:mb-5 no-scrollbar">
-          <div className="flex items-center gap-1 text-[11px] sm:text-xs text-slate-500 font-medium mr-0.5 shrink-0">
-            <Filter className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-            <span>Kategori:</span>
+        {/* 1. Category Navigation - Mobile Mode (Gambar 2: Tokopedia Circular Icons & Label) */}
+        <div className="block sm:hidden mb-3">
+          <div className="flex items-center gap-3 overflow-x-auto pb-1 px-1 no-scrollbar">
+            {KATEGORI_CONFIG.map((cat) => {
+              const isSelected = selectedKategori === cat.key;
+              return (
+                <button
+                  key={cat.key}
+                  type="button"
+                  onClick={() => setSelectedKategori(cat.key)}
+                  className="flex flex-col items-center gap-1 shrink-0 group cursor-pointer focus:outline-none transition active:scale-95"
+                >
+                  <div
+                    className={`w-11 h-11 rounded-full flex items-center justify-center shadow-2xs transition-all ${
+                      cat.mobileBg
+                    } ${
+                      isSelected
+                        ? 'ring-2 ring-emerald-600 ring-offset-2 scale-105 shadow-md'
+                        : 'opacity-90 hover:opacity-100'
+                    }`}
+                  >
+                    {cat.key === 'SEMUA' ? (
+                      <LayoutGrid className="w-5 h-5 text-white" />
+                    ) : (
+                      <span className="text-lg leading-none">{cat.emoji}</span>
+                    )}
+                  </div>
+                  <span
+                    className={`text-[10px] text-center leading-tight max-w-[54px] truncate transition-colors ${
+                      isSelected
+                        ? 'font-bold text-emerald-800'
+                        : 'font-medium text-slate-700 group-hover:text-slate-900'
+                    }`}
+                  >
+                    {cat.label}
+                  </span>
+                </button>
+              );
+            })}
           </div>
-          {KATEGORI_TABS.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setSelectedKategori(cat)}
-              className={`px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-semibold whitespace-nowrap transition cursor-pointer shadow-2xs ${
-                selectedKategori === cat
-                  ? 'bg-emerald-700 text-white'
-                  : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-              }`}
-            >
-              {cat === 'SEMUA' ? 'Semua' : cat}
-            </button>
-          ))}
+        </div>
+
+        {/* 2. Category Navigation - Tablet & Desktop Mode (Gambar 3: Tokopedia Pill Badges with Icons) */}
+        <div className="hidden sm:flex items-center gap-2 overflow-x-auto pb-2 mb-5 no-scrollbar">
+          {KATEGORI_CONFIG.map((cat) => {
+            const isSelected = selectedKategori === cat.key;
+            return (
+              <button
+                key={cat.key}
+                type="button"
+                onClick={() => setSelectedKategori(cat.key)}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-2 border shadow-2xs ${
+                  isSelected
+                    ? 'bg-emerald-700 text-white border-emerald-700 font-bold shadow-xs'
+                    : 'bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-900 border-slate-200'
+                }`}
+              >
+                {cat.key === 'SEMUA' ? (
+                  <LayoutGrid className={`w-3.5 h-3.5 ${isSelected ? 'text-white' : 'text-emerald-700'}`} />
+                ) : (
+                  <span className="text-sm leading-none">{cat.emoji}</span>
+                )}
+                <span>{cat.pillLabel}</span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Loading State */}
