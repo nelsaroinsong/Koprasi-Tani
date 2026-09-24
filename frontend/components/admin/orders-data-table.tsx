@@ -34,7 +34,6 @@ import {
   AlertTriangle,
   RefreshCw,
   Loader2,
-  DollarSign,
   User,
   Phone,
   MapPin,

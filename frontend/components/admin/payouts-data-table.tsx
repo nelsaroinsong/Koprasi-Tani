@@ -17,7 +17,6 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import {
-  DollarSign,
   HandCoins,
   CheckCircle2,
   Clock,
