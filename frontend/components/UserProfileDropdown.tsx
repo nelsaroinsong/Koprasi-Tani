@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   ShoppingBag,
   User as UserIcon,
@@ -31,8 +31,37 @@ export default function UserProfileDropdown() {
   const { user, logout, updateProfile } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [activeModal, setActiveModal] = useState<string | null>(null);
-  const [cartCount, setCartCount] = useState(1);
+  const [cartItems, setCartItems] = useState<any[]>([]);
+  const [cartCount, setCartCount] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Sync cart from localStorage
+  const syncCart = useCallback(() => {
+    try {
+      const saved = localStorage.getItem('koperasi_cart');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setCartItems(parsed);
+          const totalQty = parsed.reduce((sum: number, item: any) => sum + (Number(item.quantity) || 1), 0);
+          setCartCount(totalQty);
+          return;
+        }
+      }
+      setCartItems([]);
+      setCartCount(0);
+    } catch {
+      setCartItems([]);
+      setCartCount(0);
+    }
+  }, []);
+
+  useEffect(() => {
+    syncCart();
+    const handleCartEvent = () => syncCart();
+    window.addEventListener('cart-updated', handleCartEvent);
+    return () => window.removeEventListener('cart-updated', handleCartEvent);
+  }, [syncCart]);
 
   // Edit Profile Form State
   const [editName, setEditName] = useState('');
@@ -339,24 +368,103 @@ export default function UserProfileDropdown() {
                       Keranjang Belanja
                     </DialogTitle>
                     <DialogDescription className="text-xs text-slate-500 mt-0.5">
-                      Daftar komoditas siap checkout dari Koperasi Sinar Pagi Sejahtera.
+                      {cartItems.length > 0
+                        ? `${cartCount} komoditas siap dipesan dari Koperasi Sinar Pagi Sejahtera.`
+                        : 'Keranjang belanja Anda saat ini masih kosong.'}
                     </DialogDescription>
                   </div>
                 </div>
               </DialogHeader>
 
-              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl my-3 text-xs">
-                <div className="font-semibold text-slate-800">Kelapa Butir Grade A (Minahasa Utara)</div>
-                <div className="text-slate-500 text-[11px] mt-0.5">50 butir • Rp 250.000</div>
-              </div>
+              {cartItems.length === 0 ? (
+                <div className="py-8 text-center text-slate-400 text-xs">
+                  <ShoppingCart className="w-8 h-8 mx-auto mb-2 text-slate-300 stroke-1" />
+                  <p className="font-semibold text-slate-600">Belum ada komoditas di keranjang</p>
+                  <p className="text-[11px] mt-0.5">Pilih produk komoditas pada katalog toko online untuk mulai berbelanja.</p>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-60 overflow-y-auto pr-1 my-3">
+                  {cartItems.map((item, idx) => {
+                    const itemTotal = Number(item.hargaPerSatuan) * Number(item.quantity);
+                    return (
+                      <div
+                        key={item.id || idx}
+                        className="p-3 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between gap-3 text-xs"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-10 h-10 rounded-xl bg-slate-200 overflow-hidden shrink-0">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={
+                                item.imageUrl ||
+                                'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=200&q=80'
+                              }
+                              alt={item.nama}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="font-bold text-slate-900 truncate">{item.nama}</div>
+                            <div className="text-slate-500 text-[11px]">
+                              {item.quantity} {item.satuan} • Rp {itemTotal.toLocaleString('id-ID')}
+                            </div>
+                          </div>
+                        </div>
 
-              <button
-                type="button"
-                onClick={() => setActiveModal(null)}
-                className="w-full py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl font-semibold text-xs transition cursor-pointer shadow-xs mt-2"
-              >
-                Tutup Keranjang
-              </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = cartItems.filter((_, i) => i !== idx);
+                            localStorage.setItem('koperasi_cart', JSON.stringify(updated));
+                            syncCart();
+                          }}
+                          className="text-red-500 hover:text-red-700 p-1 rounded-lg hover:bg-red-50 text-[11px] font-semibold transition cursor-pointer shrink-0"
+                          title="Hapus dari keranjang"
+                        >
+                          Hapus
+                        </button>
+                      </div>
+                    );
+                  })}
+
+                  <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-xs font-bold text-slate-900 px-1">
+                    <span>Total Pembayaran:</span>
+                    <span className="text-sm font-extrabold text-emerald-800">
+                      Rp{' '}
+                      {cartItems
+                        .reduce(
+                          (sum, item) =>
+                            sum + Number(item.hargaPerSatuan) * Number(item.quantity),
+                          0
+                        )
+                        .toLocaleString('id-ID')}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2 mt-4">
+                {cartItems.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      localStorage.removeItem('koperasi_cart');
+                      syncCart();
+                    }}
+                    className="py-2.5 px-3 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl font-semibold text-xs transition cursor-pointer"
+                  >
+                    Kosongkan
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setActiveModal(null)}
+                  className="flex-1 py-2.5 bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white rounded-xl font-semibold text-xs transition cursor-pointer shadow-xs"
+                >
+                  Tutup Keranjang
+                </button>
+              </div>
             </div>
           )}
 
