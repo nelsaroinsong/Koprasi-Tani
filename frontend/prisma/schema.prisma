@@ -56,6 +56,11 @@ model User {
   // Relasi item penjualan komoditas milik petani untuk pencairan uang cash
   soldItems       OrderItem[]  @relation("PetaniOrderItems")
 
+  // Relasi ulasan dan follow petani
+  reviews         Review[]
+  following       Follow[]     @relation("UserFollows")
+  followers       Follow[]     @relation("PetaniFollowers")
+
   @@map("users")
 }
 
@@ -76,6 +81,7 @@ model Product {
   petaniId       String
 
   orderItems     OrderItem[]
+  reviews        Review[]
 
   @@map("products")
 }
@@ -128,3 +134,36 @@ model OrderItem {
 
   @@map("order_items")
 }
+
+model Review {
+  id          String   @id @default(uuid())
+  rating      Int      @default(5) // Rating 1-5
+  komentar    String?
+  fotoUrl     String?
+  
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("reviews")
+}
+
+model Follow {
+  id          String   @id @default(uuid())
+  followerId  String
+  follower    User     @relation("UserFollows", fields: [followerId], references: [id], onDelete: Cascade)
+  
+  petaniId    String
+  petani      User     @relation("PetaniFollowers", fields: [petaniId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now())
+
+  @@unique([followerId, petaniId])
+  @@map("follows")
+}
+

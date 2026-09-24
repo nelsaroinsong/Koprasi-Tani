@@ -26,7 +26,6 @@ import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
 import { ProductFormModal, ProductData } from '@/components/toko/product-form-modal';
 import { ProductDeleteDialog } from '@/components/toko/product-delete-dialog';
-import { ProductDetailModal } from '@/components/toko/product-detail-modal';
 
 const KATEGORI_TABS = ['SEMUA', 'Kelapa', 'Jagung', 'Turunan', 'Olahan'];
 
@@ -46,9 +45,13 @@ export default function TokoOnlinePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
-  // Products State
+  // Products & Pagination State (Optimasi muat per 30 komoditas seperti Tokopedia)
   const [products, setProducts] = useState<any[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [totalProductsCount, setTotalProductsCount] = useState(0);
 
   // Modals State
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
@@ -56,10 +59,6 @@ export default function TokoOnlinePage() {
   const [selectedProduct, setSelectedProduct] = useState<ProductData | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<ProductData | null>(null);
-
-  // Product Detail & Add to Cart Modal State
-  const [detailProduct, setDetailProduct] = useState<any | null>(null);
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
   // Farmer Cooperative Stats (Stok Gudang & Pencairan Cash)
   const [petaniStats, setPetaniStats] = useState<{
@@ -127,11 +126,15 @@ export default function TokoOnlinePage() {
     }
   }, [user?.role]);
 
-  // Fetch Products
+  // Fetch Products (Halaman 1 / Reset - 30 item pertama)
   const fetchProducts = useCallback(async () => {
     try {
       setIsLoadingProducts(true);
-      const params = new URLSearchParams();
+      setCurrentPage(1);
+      const params = new URLSearchParams({
+        page: '1',
+        limit: '30',
+      });
 
       if (isPetani && activeTab === 'PRODUK_SAYA') {
         params.set('mine', 'true');
@@ -150,16 +153,70 @@ export default function TokoOnlinePage() {
 
       if (res.ok && data.products) {
         setProducts(data.products);
+        setHasMore(Boolean(data.pagination?.hasMore));
+        setTotalProductsCount(data.pagination?.totalCount || data.products.length);
       } else {
         setProducts([]);
+        setHasMore(false);
+        setTotalProductsCount(0);
       }
     } catch (err) {
       console.error('Error fetch products:', err);
       setProducts([]);
+      setHasMore(false);
+      setTotalProductsCount(0);
     } finally {
       setIsLoadingProducts(false);
     }
   }, [isPetani, activeTab, selectedKategori, debouncedSearch]);
+
+  // Handler Muat Lebih Banyak (Load Next 30 Products)
+  const handleLoadMore = async () => {
+    if (isLoadingMore || !hasMore) return;
+    try {
+      setIsLoadingMore(true);
+      const nextPage = currentPage + 1;
+      const params = new URLSearchParams({
+        page: String(nextPage),
+        limit: '30',
+      });
+
+      if (isPetani && activeTab === 'PRODUK_SAYA') {
+        params.set('mine', 'true');
+      }
+
+      if (selectedKategori !== 'SEMUA') {
+        params.set('kategori', selectedKategori);
+      }
+
+      if (debouncedSearch.trim()) {
+        params.set('search', debouncedSearch.trim());
+      }
+
+      const res = await fetch(`/api/products?${params.toString()}`);
+      const data = await res.json();
+
+      if (res.ok && Array.isArray(data.products)) {
+        setProducts((prev) => [...prev, ...data.products]);
+        setCurrentPage(nextPage);
+        setHasMore(Boolean(data.pagination?.hasMore));
+        if (data.pagination?.totalCount) {
+          setTotalProductsCount(data.pagination.totalCount);
+        }
+      } else {
+        setHasMore(false);
+      }
+    } catch (err) {
+      console.error('Error load more products:', err);
+      showToast({
+        title: 'Gagal Memuat Komoditas',
+        message: 'Terjadi gangguan jaringan saat memuat lebih banyak komoditas.',
+        type: 'error',
+      });
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
 
   useEffect(() => {
     if (user && user.isOnboarded) {
@@ -510,126 +567,144 @@ export default function TokoOnlinePage() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4.5">
-            {products.map((prod) => (
-              <div
-                key={prod.id}
-                onClick={() => {
-                  setDetailProduct(prod);
-                  setIsDetailModalOpen(true);
-                }}
-                className="bg-white border border-slate-200/90 rounded-xl sm:rounded-2xl overflow-hidden shadow-2xs hover:shadow-md transition-all duration-200 flex flex-col justify-between group cursor-pointer"
-              >
-                <div>
-                  {/* Top Image Section with Badges */}
-                  <div className="relative aspect-[4/3] sm:aspect-[16/11] w-full bg-slate-100 overflow-hidden">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={
-                        prod.imageUrl ||
-                        'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=500&q=80'
-                      }
-                      alt={prod.nama}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
+          <>
+            {/* Tokopedia-Style Compact Product Grid (2 cols mobile, up to 6 cols desktop) */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-2.5 md:gap-3">
+              {products.map((prod) => (
+                <div
+                  key={prod.id}
+                  onClick={() => {
+                    router.push(`/toko/${prod.id}`);
+                  }}
+                  className="bg-white border border-slate-200/90 rounded-xl overflow-hidden shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between group cursor-pointer h-full"
+                >
+                  <div>
+                    {/* Top Image Section with Badges (Square Aspect Ratio like Tokopedia) */}
+                    <div className="relative aspect-square w-full bg-slate-100 overflow-hidden">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={
+                          prod.imageUrl ||
+                          'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=400&q=80'
+                        }
+                        alt={prod.nama}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src =
+                            'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=400&q=80';
+                        }}
+                      />
 
-                    {/* Kategori Badge di Kiri Atas */}
-                    <div className="absolute top-1.5 left-1.5 sm:top-2.5 sm:left-2.5 bg-white/95 backdrop-blur-xs text-slate-800 text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 sm:px-2 rounded sm:rounded-md shadow-2xs">
-                      {prod.kategori}
-                    </div>
-
-                    {/* Status Aktif Dijual Badge di Kanan Atas */}
-                    <div className="absolute top-1.5 right-1.5 sm:top-2.5 sm:right-2.5 bg-white/95 backdrop-blur-xs text-emerald-700 text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 sm:px-2 rounded sm:rounded-md shadow-2xs flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      <span className="hidden sm:inline">{prod.isTersedia ? 'Aktif Dijual' : 'Nonaktif'}</span>
-                      <span className="sm:hidden">{prod.isTersedia ? 'Aktif' : 'Off'}</span>
-                    </div>
-                  </div>
-
-                  {/* Body Content */}
-                  <div className="p-2 sm:p-3.5">
-                    {/* Judul Komoditas */}
-                    <h3 className="text-xs sm:text-sm font-bold text-slate-900 tracking-tight leading-snug line-clamp-1 group-hover:text-emerald-800 transition-colors">
-                      {prod.nama}
-                    </h3>
-
-                    {/* Sub-info Petani / Status */}
-                    {activeTab === 'PRODUK_SAYA' ? (
-                      <div className="flex items-center gap-1 text-[10px] sm:text-[11px] text-emerald-700 font-semibold mt-0.5 mb-1 sm:mb-1.5 truncate">
-                        <Check className="w-3 h-3 text-emerald-600 shrink-0" />
-                        <span className="truncate">Produk aktif Anda</span>
+                      {/* Kategori Badge di Kiri Atas */}
+                      <div className="absolute top-1.5 left-1.5 bg-emerald-700/95 backdrop-blur-xs text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-2xs">
+                        {prod.kategori}
                       </div>
-                    ) : (
-                      <div className="flex items-center gap-1 text-[10px] sm:text-[11px] text-slate-500 mt-0.5 mb-1 sm:mb-1.5 truncate">
-                        <span>Oleh: </span>
-                        <span className="font-semibold text-slate-800 truncate">
+
+                      {/* Status Badge di Kanan Atas */}
+                      <div className="absolute top-1.5 right-1.5 bg-white/95 backdrop-blur-xs text-emerald-800 text-[9px] font-bold px-1.5 py-0.5 rounded shadow-2xs flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        <span>{prod.isTersedia ? 'Aktif' : 'Off'}</span>
+                      </div>
+
+                      {/* Tokopedia-Style Bottom Badge: Panen Koperasi */}
+                      <div className="absolute bottom-1 left-1 bg-[#183d2e]/90 text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded shadow-xs flex items-center gap-1 backdrop-blur-xs">
+                        <span>Panen Koperasi</span>
+                      </div>
+                    </div>
+
+                    {/* Body Content - Ultra Compact */}
+                    <div className="p-2 flex flex-col justify-between gap-0.5">
+                      {/* Judul Komoditas */}
+                      <h3 className="text-xs font-semibold text-slate-800 tracking-tight leading-snug line-clamp-1 group-hover:text-emerald-700 transition-colors" title={prod.nama}>
+                        {prod.nama}
+                      </h3>
+
+                      {/* Harga Satuan */}
+                      <div className="flex items-baseline gap-1 mt-0.5">
+                        <span className="text-xs sm:text-sm font-extrabold text-slate-900 tracking-tight">
+                          Rp {Number(prod.hargaPerSatuan).toLocaleString('id-ID')}
+                        </span>
+                        <span className="text-[9px] text-slate-400 font-normal">/{prod.satuan}</span>
+                      </div>
+
+                      {/* Stok & Nama Petani (Klik nama petani mengarah ke etalase toko petani) */}
+                      <div className="flex items-center gap-1 text-[10px] text-slate-500 mt-0.5 truncate">
+                        <span className="truncate font-medium text-slate-700">Stok {Number(prod.stok).toLocaleString('id-ID')}</span>
+                        <span className="text-slate-300">•</span>
+                        <span
+                          onClick={(e) => {
+                            if (prod.petani?.id || prod.petaniId) {
+                              e.stopPropagation();
+                              router.push(`/toko/petani/${prod.petani?.id || prod.petaniId}`);
+                            }
+                          }}
+                          className="truncate text-slate-500 hover:text-emerald-700 hover:underline transition-colors"
+                          title="Kunjungi Toko Petani"
+                        >
                           {prod.petani?.name || 'Petani Binaan'}
                         </span>
                       </div>
-                    )}
-
-                    {/* Deskripsi (Disembunyikan di mobile agar compact) */}
-                    <p className="hidden sm:block text-[11px] text-slate-500 line-clamp-2 leading-relaxed mb-3">
-                      {prod.deskripsi ||
-                        'Komoditas agribisnis bermutu tinggi dari hasil panen petani binaan Minahasa Utara.'}
-                    </p>
-
-                    {/* Harga Satuan & Stok */}
-                    <div className="flex items-baseline justify-between pt-1.5 sm:pt-2.5 border-t border-slate-100">
-                      <div>
-                        <span className="text-xs sm:text-base font-extrabold text-slate-900">
-                          Rp {Number(prod.hargaPerSatuan).toLocaleString('id-ID')}
-                        </span>
-                        <span className="text-[8px] sm:text-[10px] text-slate-500 font-normal"> /{prod.satuan}</span>
-                      </div>
-
-                      <div className="text-[9px] sm:text-[11px] text-slate-500">
-                        <span className="hidden sm:inline">Stok: </span>
-                        <span className="font-semibold text-slate-800">
-                          {Number(prod.stok).toLocaleString('id-ID')} {prod.satuan}
-                        </span>
-                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Footer Action Buttons */}
-                <div className="px-2 pb-2 sm:px-3.5 sm:pb-3.5 pt-0">
-                  {isPetani && activeTab === 'PRODUK_SAYA' ? (
-                    <div className="flex items-center justify-between gap-1.5 p-2 rounded-xl bg-slate-50 border border-slate-200/80 text-[10px] text-slate-700 font-medium">
-                      <span className="flex items-center gap-1.5 text-emerald-800 font-semibold truncate">
-                        <Warehouse className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                        <span className="truncate">Gudang Koperasi</span>
-                      </span>
-                      <span
-                        className={`px-2 py-0.5 rounded-md font-bold text-[9px] shrink-0 border ${
-                          prod.isTersedia
-                            ? 'bg-emerald-100/70 text-emerald-800 border-emerald-300'
-                            : 'bg-slate-200 text-slate-600 border-slate-300'
-                        }`}
+                  {/* Footer Action - Compact */}
+                  <div className="p-2 pt-0">
+                    {isPetani && activeTab === 'PRODUK_SAYA' ? (
+                      <div className="flex items-center justify-between py-1 px-1.5 rounded-md bg-slate-50 border border-slate-200/70 text-[9px] text-slate-600 font-medium">
+                        <span className="text-emerald-800 font-semibold truncate flex items-center gap-1">
+                          <Warehouse className="w-3 h-3 text-emerald-600 shrink-0" />
+                          <span className="truncate">Gudang</span>
+                        </span>
+                        <span
+                          className={`px-1 py-0.2 rounded font-bold text-[8px] shrink-0 border ${
+                            prod.isTersedia
+                              ? 'bg-emerald-100/70 text-emerald-800 border-emerald-300'
+                              : 'bg-slate-200 text-slate-600 border-slate-300'
+                          }`}
+                        >
+                          {prod.isTersedia ? 'Aktif' : 'Off'}
+                        </span>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAddToCart(prod, 1);
+                        }}
+                        className="w-full py-1 px-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white text-[10px] font-bold flex items-center justify-center gap-1 transition cursor-pointer shadow-2xs"
                       >
-                        {prod.isTersedia ? 'Aktif Dijual' : 'Habis / Nonaktif'}
-                      </span>
-                    </div>
-                  ) : (
-                    /* Tombol Tambah ke Keranjang Belanja Koperasi (Klik membuka detail & counter qty) */
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDetailProduct(prod);
-                        setIsDetailModalOpen(true);
-                      }}
-                      className="w-full py-1.5 sm:py-2 px-1.5 sm:px-2.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white text-[10px] sm:text-[11px] font-semibold flex items-center justify-center gap-1 sm:gap-1.5 transition cursor-pointer shadow-2xs"
-                    >
-                      <ShoppingCart className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                      <span className="sm:hidden">+ Beli / Qty</span>
-                      <span className="hidden sm:inline">+ Masuk Keranjang</span>
-                    </button>
-                  )}
+                        <ShoppingCart className="w-3 h-3" />
+                        <span>+ Keranjang</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
+              ))}
+            </div>
+
+            {/* Tokopedia-Style "Muat Lebih Banyak" Button (Hanya tampil jika ada komoditas lanjutan / > 30) */}
+            {hasMore && (
+              <div className="mt-8 mb-4 flex flex-col items-center justify-center gap-2">
+                <button
+                  onClick={handleLoadMore}
+                  disabled={isLoadingMore}
+                  className="w-full max-w-xs sm:max-w-sm py-2.5 px-6 rounded-2xl border-2 border-emerald-600 bg-white hover:bg-emerald-50 active:bg-emerald-100 text-emerald-600 font-bold text-xs sm:text-sm tracking-wide transition-all shadow-xs hover:shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                >
+                  {isLoadingMore ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+                      <span>Memuat Komoditas...</span>
+                    </>
+                  ) : (
+                    <span>Muat Lebih Banyak</span>
+                  )}
+                </button>
+                <span className="text-[11px] text-slate-400">
+                  Menampilkan {products.length} dari {totalProductsCount} komoditas
+                </span>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
       </main>
 
@@ -648,14 +723,6 @@ export default function TokoOnlinePage() {
         product={productToDelete}
         onClose={() => setIsDeleteDialogOpen(false)}
         onSuccess={handleDeleteSuccess}
-      />
-
-      {/* Modal Detail & Beli Produk (Full Info + Counter Quantity) */}
-      <ProductDetailModal
-        isOpen={isDetailModalOpen}
-        product={detailProduct}
-        onClose={() => setIsDetailModalOpen(false)}
-        onAddToCart={handleAddToCart}
       />
     </div>
   );

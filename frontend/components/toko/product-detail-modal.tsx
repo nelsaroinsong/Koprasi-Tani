@@ -22,6 +22,7 @@ import {
   Package,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Separator } from '@/components/ui/separator';
 
 export interface ProductDetailData {
   id: string;
@@ -103,9 +104,9 @@ export function ProductDetailModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-lg w-[95vw] p-0 bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-2xl max-h-[92vh] flex flex-col">
+      <DialogContent showCloseButton={false} className="max-w-lg w-[95vw] p-0 bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-2xl max-h-[92vh] flex flex-col">
         {/* Scrollable Content */}
-        <div className="overflow-y-auto flex-1 p-0">
+        <div className="overflow-y-auto flex-1 p-0 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-300 hover:[&::-webkit-scrollbar-thumb]:bg-slate-400 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-button]:hidden">
           {/* Header Image Section */}
           <div className="relative aspect-[16/10] sm:aspect-[16/9] w-full bg-slate-100 overflow-hidden">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -118,19 +119,26 @@ export function ProductDetailModal({
               className="w-full h-full object-cover"
             />
 
-            {/* Badges on Top */}
-            <div className="absolute top-3 left-3 flex items-center gap-1.5">
-              <span className="bg-white/95 backdrop-blur-xs text-slate-800 text-xs font-bold px-2.5 py-1 rounded-lg shadow-2xs">
+            {/* Badges on Top Left */}
+            <div className="absolute top-3 left-3 flex items-center gap-1.5 z-10">
+              <span className="bg-white/95 backdrop-blur-xs text-slate-800 text-xs font-bold px-2.5 py-1 rounded-xl shadow-2xs">
                 {product.kategori}
               </span>
-            </div>
-
-            <div className="absolute top-3 right-3">
-              <span className="bg-white/95 backdrop-blur-xs text-emerald-700 text-xs font-bold px-2.5 py-1 rounded-lg shadow-2xs flex items-center gap-1.5">
+              <span className="bg-white/95 backdrop-blur-xs text-emerald-700 text-xs font-bold px-2.5 py-1 rounded-xl shadow-2xs flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                 <span>{product.isTersedia ? 'Aktif Dijual' : 'Nonaktif'}</span>
               </span>
             </div>
+
+            {/* Dedicated Floating Close Button on Top Right (Bebas tabrakan) */}
+            <button
+              type="button"
+              onClick={onClose}
+              className="absolute top-3 right-3 z-20 w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 text-white backdrop-blur-md shadow-md flex items-center justify-center transition cursor-pointer"
+              title="Tutup Modal"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
 
           {/* Details Body */}
@@ -181,15 +189,21 @@ export function ProductDetailModal({
               </div>
             </div>
 
-            {/* Description */}
-            <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-                Deskripsi & Kualitas Komoditas
-              </h4>
-              <p className="text-xs text-slate-600 leading-relaxed bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/80 whitespace-pre-line">
+            {/* Description Section with shadcn Separator */}
+            <div className="space-y-1">
+              <div className="space-y-0.5">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                  Deskripsi & Kualitas Komoditas
+                </h4>
+                <p className="text-[11px] text-slate-400">
+                  Informasi mutu panen, karakteristik, dan spesifikasi fisik
+                </p>
+              </div>
+              <Separator className="my-2 bg-slate-200" />
+              <div className="text-xs text-slate-700 leading-relaxed whitespace-pre-line py-1">
                 {product.deskripsi ||
                   'Komoditas hasil panen segar berkualitas terbaik langsung dari kebun petani binaan Minahasa Utara, dirawat dan dipanen sesuai standar mutu agribisnis koperasi.'}
-              </p>
+              </div>
             </div>
 
             {/* Quantity Selector Section */}

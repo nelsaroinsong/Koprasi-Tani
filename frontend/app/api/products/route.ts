@@ -8,6 +8,12 @@ export async function GET(request: Request) {
     const mineOnly = searchParams.get('mine') === 'true';
     const kategori = searchParams.get('kategori');
     const search = searchParams.get('search');
+    const pageParam = searchParams.get('page');
+    const limitParam = searchParams.get('limit');
+
+    const page = pageParam ? Math.max(1, parseInt(pageParam, 10)) : 1;
+    const limit = limitParam ? Math.max(1, parseInt(limitParam, 10)) : 30;
+    const skip = (page - 1) * limit;
 
     const session = await auth();
 
@@ -26,49 +32,87 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: 'Pengguna tidak ditemukan' }, { status: 404 });
       }
 
-      const products = await prisma.product.findMany({
-        where: {
-          petaniId: dbUser.id,
-          ...(kategori && kategori !== 'SEMUA' && { kategori }),
-          ...(search && {
-            OR: [
-              { nama: { contains: search, mode: 'insensitive' } },
-              { deskripsi: { contains: search, mode: 'insensitive' } },
-            ],
-          }),
-        },
-        orderBy: { createdAt: 'desc' },
-      });
-
-      return NextResponse.json({ success: true, products });
-    }
-
-    // Mengambil seluruh produk yang aktif di Koperasi
-    const products = await prisma.product.findMany({
-      where: {
-        isTersedia: true,
+      const whereCondition = {
+        petaniId: dbUser.id,
         ...(kategori && kategori !== 'SEMUA' && { kategori }),
         ...(search && {
           OR: [
-            { nama: { contains: search, mode: 'insensitive' } },
-            { deskripsi: { contains: search, mode: 'insensitive' } },
+            { nama: { contains: search, mode: 'insensitive' as const } },
+            { deskripsi: { contains: search, mode: 'insensitive' as const } },
           ],
         }),
-      },
-      include: {
-        petani: {
-          select: {
-            id: true,
-            name: true,
-            phone: true,
-            avatarUrl: true,
+      };
+
+      const [totalCount, products] = await Promise.all([
+        prisma.product.count({ where: whereCondition }),
+        prisma.product.findMany({
+          where: whereCondition,
+          orderBy: { createdAt: 'desc' },
+          skip,
+          take: limit,
+        }),
+      ]);
+
+      const hasMore = skip + products.length < totalCount;
+
+      return NextResponse.json({
+        success: true,
+        products,
+        pagination: {
+          totalCount,
+          page,
+          limit,
+          hasMore,
+          totalPages: Math.ceil(totalCount / limit),
+        },
+      });
+    }
+
+    // Mengambil seluruh produk yang aktif di Koperasi
+    const whereCondition = {
+      isTersedia: true,
+      ...(kategori && kategori !== 'SEMUA' && { kategori }),
+      ...(search && {
+        OR: [
+          { nama: { contains: search, mode: 'insensitive' as const } },
+          { deskripsi: { contains: search, mode: 'insensitive' as const } },
+        ],
+      }),
+    };
+
+    const [totalCount, products] = await Promise.all([
+      prisma.product.count({ where: whereCondition }),
+      prisma.product.findMany({
+        where: whereCondition,
+        include: {
+          petani: {
+            select: {
+              id: true,
+              name: true,
+              phone: true,
+              avatarUrl: true,
+            },
           },
         },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+    ]);
 
-    return NextResponse.json({ success: true, products });
+    const hasMore = skip + products.length < totalCount;
+
+    return NextResponse.json({
+      success: true,
+      products,
+      pagination: {
+        totalCount,
+        page,
+        limit,
+        hasMore,
+        totalPages: Math.ceil(totalCount / limit),
+      },
+    });
   } catch (error: any) {
     console.error('Error saat mengambil produk:', error);
     return NextResponse.json({ error: error.message || 'Gagal memuat produk' }, { status: 500 });
