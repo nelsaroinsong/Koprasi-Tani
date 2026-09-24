@@ -116,21 +116,27 @@ export function ProductFormModal({
     };
   }, [isPetaniOpen]);
 
-  // High-performance search & memoized filtering for 1,000+ farmers
+  const selectedPetani = React.useMemo(() => {
+    return petaniOptions.find((p) => p.id === petaniId);
+  }, [petaniOptions, petaniId]);
+
+  const isPetaniSearching = petaniSearch.trim().length > 0;
+
+  // Optimized search:
+  // 1. Jika belum mengetik kata kunci pencarian, hanya tampilkan petani yang saat ini dipilih (terutama pada mode edit)
+  // 2. Jika mengetik kata kunci, cari dan tampilkan petani yang sesuai
   const filteredPetani = React.useMemo(() => {
-    if (!petaniSearch.trim()) return petaniOptions;
     const q = petaniSearch.toLowerCase().trim();
+    if (!q) {
+      return selectedPetani ? [selectedPetani] : [];
+    }
     return petaniOptions.filter(
       (p) =>
         p.name.toLowerCase().includes(q) ||
         p.email.toLowerCase().includes(q) ||
         (p.role && p.role.toLowerCase().includes(q))
     );
-  }, [petaniOptions, petaniSearch]);
-
-  const selectedPetani = React.useMemo(() => {
-    return petaniOptions.find((p) => p.id === petaniId);
-  }, [petaniOptions, petaniId]);
+  }, [petaniOptions, petaniSearch, selectedPetani]);
 
   // Upload handler langsung ke /api/upload/product (Cloudflare R2)
   const handlePhotoUpload = async (
@@ -325,11 +331,11 @@ export function ProductFormModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="w-[95vw] sm:max-w-2xl md:max-w-3xl max-h-[90vh] overflow-y-auto p-0 border border-slate-200 bg-white rounded-3xl shadow-2xl">
+      <DialogContent className="w-[95vw] sm:max-w-2xl md:max-w-3xl max-h-[90vh] flex flex-col p-0 border border-slate-200 bg-white rounded-3xl shadow-2xl overflow-hidden">
         {/* Header Modal */}
-        <div className="bg-gradient-to-r from-emerald-800 to-teal-800 p-6 text-white rounded-t-3xl">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20">
+        <div className="shrink-0 bg-gradient-to-r from-emerald-800 to-teal-800 p-6 text-white relative">
+          <div className="flex items-center gap-3 pr-8">
+            <div className="w-10 h-10 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 shrink-0">
               <Package className="w-5 h-5 text-emerald-200" />
             </div>
             <div>
@@ -345,13 +351,15 @@ export function ProductFormModal({
           </div>
         </div>
 
-        {/* Body Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {/* 1. Nama Komoditas */}
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1.5">
-              Nama Komoditas / Produk <span className="text-red-500">*</span>
-            </label>
+        {/* Body Form with Internal Scrollbar */}
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          {/* Scrollable Form Content */}
+          <div className="flex-1 overflow-y-auto p-6 space-y-4 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-200 hover:[&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:rounded-full">
+            {/* 1. Nama Komoditas */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                Nama Komoditas / Produk <span className="text-red-500">*</span>
+              </label>
             <div className="relative">
               <Package className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
@@ -408,7 +416,10 @@ export function ProductFormModal({
               <div className="relative">
                 <button
                   type="button"
-                  onClick={() => setIsPetaniOpen(!isPetaniOpen)}
+                  onClick={() => {
+                    setIsPetaniOpen(!isPetaniOpen);
+                    setPetaniSearch('');
+                  }}
                   className="w-full pl-9 pr-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 shadow-2xs flex items-center justify-between text-left cursor-pointer transition hover:bg-slate-50/50"
                 >
                   <User className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -438,7 +449,7 @@ export function ProductFormModal({
                           type="text"
                           value={petaniSearch}
                           onChange={(e) => setPetaniSearch(e.target.value)}
-                          placeholder="Cari nama atau email petani..."
+                          placeholder="Ketik nama atau email petani..."
                           autoFocus
                           className="w-full pl-8 pr-7 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600"
                         />
@@ -454,10 +465,15 @@ export function ProductFormModal({
                       </div>
                     </div>
 
-                    {/* List of Farmers - Optimized Windowing max 40 items in DOM */}
+                    {/* List of Farmers - Optimized */}
                     <div className="max-h-56 overflow-y-auto divide-y divide-slate-50 p-1">
-                      {filteredPetani.length === 0 ? (
-                        <div className="p-3 text-center text-xs text-slate-400">
+                      {!isPetaniSearching && !selectedPetani ? (
+                        <div className="p-4 text-center text-xs text-slate-400 flex flex-col items-center justify-center gap-1.5">
+                          <Search className="w-4 h-4 text-slate-300" />
+                          <span>Ketik nama atau email untuk mencari petani mitra</span>
+                        </div>
+                      ) : isPetaniSearching && filteredPetani.length === 0 ? (
+                        <div className="p-4 text-center text-xs text-slate-400">
                           Tidak ditemukan petani dengan kata kunci &quot;{petaniSearch}&quot;
                         </div>
                       ) : (
@@ -470,6 +486,7 @@ export function ProductFormModal({
                               onClick={() => {
                                 setPetaniId(p.id);
                                 setIsPetaniOpen(false);
+                                setPetaniSearch('');
                               }}
                               className={`w-full px-2.5 py-2 text-left text-xs rounded-lg flex items-center justify-between transition cursor-pointer ${
                                 isSelected
@@ -492,10 +509,16 @@ export function ProductFormModal({
                       )}
                     </div>
 
-                    {/* Windowing info indicator if items > 40 */}
-                    {filteredPetani.length > 40 && (
+                    {/* Subtle info footer */}
+                    {!isPetaniSearching && selectedPetani && (
+                      <div className="p-2 bg-slate-50/80 border-t border-slate-100 text-[10px] text-slate-400 text-center font-medium">
+                        Ketik pada kotak pencarian di atas untuk mengganti petani lain
+                      </div>
+                    )}
+
+                    {isPetaniSearching && filteredPetani.length > 40 && (
                       <div className="p-2 bg-slate-50 border-t border-slate-100 text-[10px] text-slate-500 text-center font-medium">
-                        Menampilkan 40 dari {filteredPetani.length} petani. Ketik nama untuk mencari spesifik.
+                        Menampilkan 40 dari {filteredPetani.length} petani. Ketik lebih spesifik jika belum terlihat.
                       </div>
                     )}
                   </div>
@@ -742,8 +765,10 @@ export function ProductFormModal({
             </label>
           </div>
 
-          {/* Footer Actions */}
-          <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+          </div>
+
+          {/* Sticky Footer Actions */}
+          <div className="shrink-0 px-6 py-3.5 border-t border-slate-100 bg-slate-50/80 flex items-center justify-end gap-2.5">
             <button
               type="button"
               onClick={onClose}
@@ -755,7 +780,7 @@ export function ProductFormModal({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 rounded-xl shadow-xs transition cursor-pointer disabled:opacity-60"
+              className="inline-flex items-center gap-2 px-5 py-2 text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 rounded-xl shadow-xs transition cursor-pointer disabled:opacity-60"
             >
               {isSubmitting ? (
                 <>
