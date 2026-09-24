@@ -5,7 +5,9 @@ import { useAdmin } from '@/components/admin/admin-context';
 import { PetaniDataTable } from '@/components/admin/petani-data-table';
 import { PembeliDataTable } from '@/components/admin/pembeli-data-table';
 import { TokoOnlineDataTable } from '@/components/admin/toko-data-table';
-import { Sprout, Users, ShoppingBag, ArrowRight, Package } from 'lucide-react';
+import { OrdersDataTable } from '@/components/admin/orders-data-table';
+import { PayoutsDataTable } from '@/components/admin/payouts-data-table';
+import { Sprout, Users, ShoppingBag, ArrowRight, Package, ShoppingCart, HandCoins } from 'lucide-react';
 
 export default function AdminPage() {
   const { activeTab, setActiveTab } = useAdmin();
@@ -42,6 +44,15 @@ export default function AdminPage() {
     return <TokoOnlineDataTable />;
   }
 
+  // 4. Tampilan Halaman Transaksi Koperasi: Pesanan Masuk & Bagi Hasil Petani
+  if (activeTab.group === 'Transaksi Koperasi') {
+    if (activeTab.item === 'Bagi Hasil Petani') {
+      return <PayoutsDataTable />;
+    }
+    // Default untuk 'Pesanan Masuk'
+    return <OrdersDataTable />;
+  }
+
   // 4. Default: Halaman Dashboard
   return (
     <div className="space-y-6">
@@ -62,8 +73,77 @@ export default function AdminPage() {
       </div>
 
       {/* Quick Access Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {/* Card Petani */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Card 1: Pesanan Masuk */}
+        <div
+          onClick={() => setActiveTab('Transaksi Koperasi', 'Pesanan Masuk')}
+          className="p-6 rounded-2xl bg-white border border-slate-200 hover:border-emerald-500 hover:shadow-md transition cursor-pointer group flex flex-col justify-between"
+        >
+          <div>
+            <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center mb-4 group-hover:scale-105 transition">
+              <ShoppingCart className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-bold text-slate-900 group-hover:text-emerald-800 transition">
+              Pesanan Masuk Koperasi
+            </h3>
+            <p className="text-xs text-slate-500 mt-1">
+              Verifikasi pembayaran pembeli, siapkan barang di gudang, dan serahkan komoditas.
+            </p>
+          </div>
+
+          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-emerald-700">
+            <span>Kelola Pesanan</span>
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition" />
+          </div>
+        </div>
+
+        {/* Card 2: Bagi Hasil Petani */}
+        <div
+          onClick={() => setActiveTab('Transaksi Koperasi', 'Bagi Hasil Petani')}
+          className="p-6 rounded-2xl bg-white border border-slate-200 hover:border-teal-500 hover:shadow-md transition cursor-pointer group flex flex-col justify-between"
+        >
+          <div>
+            <div className="w-12 h-12 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center mb-4 group-hover:scale-105 transition">
+              <HandCoins className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-bold text-slate-900 group-hover:text-teal-800 transition">
+              Bagi Hasil & Cash Petani
+            </h3>
+            <p className="text-xs text-slate-500 mt-1">
+              Rekap uang tunai hasil panen terjual dan serahkan uang cash ke petani mitra.
+            </p>
+          </div>
+
+          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-teal-700">
+            <span>Serahkan Uang Cash</span>
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition" />
+          </div>
+        </div>
+
+        {/* Card 3: Toko Online */}
+        <div
+          onClick={() => setActiveTab('Produk dan Layanan', 'Toko Online')}
+          className="p-6 rounded-2xl bg-white border border-slate-200 hover:border-amber-300 hover:shadow-md transition cursor-pointer group flex flex-col justify-between"
+        >
+          <div>
+            <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center mb-4 group-hover:scale-105 transition">
+              <ShoppingBag className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-bold text-slate-900 group-hover:text-amber-800 transition">
+              Katalog Toko Online
+            </h3>
+            <p className="text-xs text-slate-500 mt-1">
+              Kelola stok hasil panen, harga komoditas, dan produk turunan di gudang.
+            </p>
+          </div>
+
+          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-amber-700">
+            <span>Buka Data Produk</span>
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition" />
+          </div>
+        </div>
+
+        {/* Card 4: Petani */}
         <div
           onClick={() => setActiveTab('Pengguna', 'Petani')}
           className="p-6 rounded-2xl bg-white border border-slate-200 hover:border-emerald-300 hover:shadow-md transition cursor-pointer group flex flex-col justify-between"
@@ -86,7 +166,7 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* Card Pembeli */}
+        {/* Card 5: Pembeli */}
         <div
           onClick={() => setActiveTab('Pengguna', 'Pembeli')}
           className="p-6 rounded-2xl bg-white border border-slate-200 hover:border-blue-300 hover:shadow-md transition cursor-pointer group flex flex-col justify-between"
@@ -105,29 +185,6 @@ export default function AdminPage() {
 
           <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-blue-700">
             <span>Buka Data Pembeli</span>
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition" />
-          </div>
-        </div>
-
-        {/* Card Toko Online */}
-        <div
-          onClick={() => setActiveTab('Produk dan Layanan', 'Toko Online')}
-          className="p-6 rounded-2xl bg-white border border-slate-200 hover:border-amber-300 hover:shadow-md transition cursor-pointer group flex flex-col justify-between"
-        >
-          <div>
-            <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center mb-4 group-hover:scale-105 transition">
-              <ShoppingBag className="w-6 h-6" />
-            </div>
-            <h3 className="text-base font-bold text-slate-900 group-hover:text-amber-800 transition">
-              Katalog Toko Online
-            </h3>
-            <p className="text-xs text-slate-500 mt-1">
-              Kelola stok hasil panen, harga komoditas, dan produk turunan.
-            </p>
-          </div>
-
-          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-amber-700">
-            <span>Buka Data Produk</span>
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition" />
           </div>
         </div>

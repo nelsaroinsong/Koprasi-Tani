@@ -17,6 +17,10 @@ import {
   ArrowRight,
   Loader2,
   RefreshCw,
+  Warehouse,
+  Coins,
+  CheckCircle2,
+  Building2,
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
@@ -56,6 +60,42 @@ export default function TokoOnlinePage() {
   // Product Detail & Add to Cart Modal State
   const [detailProduct, setDetailProduct] = useState<any | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
+  // Farmer Cooperative Stats (Stok Gudang & Pencairan Cash)
+  const [petaniStats, setPetaniStats] = useState<{
+    totalStokGudang: number;
+    totalKuantitasTerjual: number;
+    cashSiapDiambil: number;
+    cashSudahDiterima: number;
+  } | null>(null);
+  const [isLoadingStats, setIsLoadingStats] = useState(false);
+
+  const fetchPetaniStats = useCallback(async () => {
+    if (!isPetani) return;
+    try {
+      setIsLoadingStats(true);
+      const res = await fetch('/api/petani/dashboard');
+      const data = await res.json();
+      if (res.ok) {
+        setPetaniStats({
+          totalStokGudang: data.totalStokGudang || 0,
+          totalKuantitasTerjual: data.totalKuantitasTerjual || 0,
+          cashSiapDiambil: data.cashSiapDiambil || 0,
+          cashSudahDiterima: data.cashSudahDiterima || 0,
+        });
+      }
+    } catch (err) {
+      console.error('Error fetch petani stats:', err);
+    } finally {
+      setIsLoadingStats(false);
+    }
+  }, [isPetani]);
+
+  useEffect(() => {
+    if (isPetani && activeTab === 'PRODUK_SAYA') {
+      fetchPetaniStats();
+    }
+  }, [isPetani, activeTab, fetchPetaniStats]);
 
   // Debounce search query
   useEffect(() => {
@@ -247,6 +287,125 @@ export default function TokoOnlinePage() {
             </button>
           )}
         </div>
+
+        {/* Ringkasan Agribisnis & Bagi Hasil Cash Petani (Khusus Petani di Tab Produk Saya) */}
+        {isPetani && activeTab === 'PRODUK_SAYA' && (
+          <div className="mb-6 space-y-4">
+            {/* Informational Banner */}
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-emerald-900 to-emerald-800 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm border border-emerald-700/50">
+              <div className="flex items-start sm:items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+                  <Building2 className="w-5 h-5 text-emerald-300" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold tracking-tight text-white flex items-center gap-1.5">
+                    <span>Sistem Penyetoran & Bagi Hasil Koperasi Satu Pintu</span>
+                    <span className="text-[10px] bg-emerald-700 text-emerald-100 px-2 py-0.2 rounded-full border border-emerald-500/30">
+                      Gudang Fisik Aktif
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-emerald-100/90 mt-0.5 leading-relaxed">
+                    Komoditas fisik Anda disetorkan dan disimpan di gudang koperasi. Pembeli bertransaksi melalui koperasi, dan uang hasil penjualan komoditas dapat Anda ambil secara tunai (cash) langsung di kantor koperasi.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* 4 KPI Summary Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              {/* Card 1: Stok Fisik di Gudang Koperasi */}
+              <div className="p-4 bg-white border border-slate-200/90 rounded-2xl shadow-2xs">
+                <div className="flex items-center justify-between text-slate-500 mb-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                    Stok di Gudang
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                    <Warehouse className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="text-xl sm:text-2xl font-black text-slate-900">
+                  {isLoadingStats ? (
+                    <span className="text-slate-300 animate-pulse">...</span>
+                  ) : (
+                    petaniStats?.totalStokGudang.toLocaleString('id-ID') || 0
+                  )}
+                  <span className="text-xs font-semibold text-slate-400 ml-1">unit / kg</span>
+                </div>
+                <div className="text-[10px] text-slate-400 mt-1">
+                  Hasil panen fisik di gudang koperasi
+                </div>
+              </div>
+
+              {/* Card 2: Total Komoditas Terjual */}
+              <div className="p-4 bg-white border border-slate-200/90 rounded-2xl shadow-2xs">
+                <div className="flex items-center justify-between text-slate-500 mb-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                    Komoditas Terjual
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                    <ShoppingBag className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="text-xl sm:text-2xl font-black text-slate-900">
+                  {isLoadingStats ? (
+                    <span className="text-slate-300 animate-pulse">...</span>
+                  ) : (
+                    petaniStats?.totalKuantitasTerjual.toLocaleString('id-ID') || 0
+                  )}
+                  <span className="text-xs font-semibold text-slate-400 ml-1">terjual</span>
+                </div>
+                <div className="text-[10px] text-slate-400 mt-1">
+                  Telah laku dibeli pelanggan
+                </div>
+              </div>
+
+              {/* Card 3: Uang Tunai Siap Diambil di Koperasi (HIGHLIGHT GREEN) */}
+              <div className="p-4 bg-gradient-to-br from-emerald-50 to-emerald-100/50 border-2 border-emerald-500/80 rounded-2xl shadow-xs relative overflow-hidden">
+                <div className="flex items-center justify-between text-emerald-800 mb-2">
+                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-800">
+                    Cash Siap Diambil
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs">
+                    <Coins className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="text-xl sm:text-2xl font-black text-emerald-900">
+                  {isLoadingStats ? (
+                    <span className="text-slate-300 animate-pulse">...</span>
+                  ) : (
+                    `Rp ${(petaniStats?.cashSiapDiambil || 0).toLocaleString('id-ID')}`
+                  )}
+                </div>
+                <div className="text-[10px] font-bold text-emerald-700 mt-1 flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                  <span>Ambil di kasir kantor koperasi</span>
+                </div>
+              </div>
+
+              {/* Card 4: Riwayat Cash Sudah Diterima */}
+              <div className="p-4 bg-white border border-slate-200/90 rounded-2xl shadow-2xs">
+                <div className="flex items-center justify-between text-slate-500 mb-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                    Riwayat Cash Diterima
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center">
+                    <Check className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="text-xl sm:text-2xl font-black text-slate-900">
+                  {isLoadingStats ? (
+                    <span className="text-slate-300 animate-pulse">...</span>
+                  ) : (
+                    `Rp ${(petaniStats?.cashSudahDiterima || 0).toLocaleString('id-ID')}`
+                  )}
+                </div>
+                <div className="text-[10px] text-slate-400 mt-1">
+                  Total keuntungan yang sudah cair
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Action Bar: Toggle Button Pills (Khusus Petani) & Search Toolbar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-5 border-b border-slate-200">

@@ -28,10 +28,10 @@ export default function AppHeader({ activePage = 'beranda' }: AppHeaderProps) {
             </div>
             <div className="min-w-0">
               <div className="text-xs sm:text-sm font-bold text-slate-900 leading-tight truncate">
-                Toko Online Koperasi
+                Sinar Pagi Sejahtera
               </div>
               <div className="text-[9px] sm:text-[10px] text-slate-400 font-semibold tracking-wider uppercase">
-                Sinar Pagi Sejahtera
+                Minahasa Utara
               </div>
             </div>
           </Link>

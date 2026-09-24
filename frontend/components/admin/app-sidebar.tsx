@@ -6,6 +6,7 @@ import {
   Sprout,
   Users,
   Package,
+  ShoppingCart,
 } from "lucide-react"
 
 import { NavMain } from "@/components/admin/nav-main"
@@ -66,6 +67,21 @@ const data = {
         },
         {
           title: "Sewa Alat",
+          url: "/admin",
+        },
+      ],
+    },
+    {
+      title: "Transaksi Koperasi",
+      url: "/admin",
+      icon: ShoppingCart,
+      items: [
+        {
+          title: "Pesanan Masuk",
+          url: "/admin",
+        },
+        {
+          title: "Bagi Hasil Petani",
           url: "/admin",
         },
       ],

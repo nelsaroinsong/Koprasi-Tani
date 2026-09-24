@@ -1,0 +1,143 @@
+import { NextResponse } from 'next/server';
+import { auth } from '@/auth';
+import { prisma } from '@/lib/prisma';
+
+// 1. GET: Ambil seluruh daftar pesanan masuk untuk Admin Koperasi
+export async function GET(request: Request) {
+  try {
+    const session = await auth();
+
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Tidak terotentikasi' }, { status: 401 });
+    }
+
+    if ((session.user as any).role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Akses khusus administrator' }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const search = searchParams.get('q')?.trim();
+    const statusParam = searchParams.get('status');
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
+    const limit = Math.max(1, Math.min(50, parseInt(searchParams.get('limit') || '8', 10)));
+    const skip = (page - 1) * limit;
+
+    const whereCondition: Record<string, any> = {};
+
+    if (
+      statusParam &&
+      statusParam !== 'ALL' &&
+      ['MENUNGGU_PEMBAYARAN', 'DIPROSES', 'SIAP_DIAMBIL', 'SELESAI', 'DIBATALKAN'].includes(
+        statusParam
+      )
+    ) {
+      whereCondition.status = statusParam;
+    }
+
+    if (search) {
+      whereCondition.OR = [
+        { orderNumber: { contains: search, mode: 'insensitive' } },
+        { catatan: { contains: search, mode: 'insensitive' } },
+        { alamatKirim: { contains: search, mode: 'insensitive' } },
+        {
+          pembeli: {
+            OR: [
+              { name: { contains: search, mode: 'insensitive' } },
+              { email: { contains: search, mode: 'insensitive' } },
+              { phone: { contains: search, mode: 'insensitive' } },
+            ],
+          },
+        },
+        {
+          items: {
+            some: {
+              namaProduk: { contains: search, mode: 'insensitive' },
+            },
+          },
+        },
+      ];
+    }
+
+    // Ambil data pesanan, total count, dan ringkasan metrik statistik secara paralel
+    const [totalCount, orders, allOrdersStats] = await Promise.all([
+      prisma.order.count({ where: whereCondition }),
+      prisma.order.findMany({
+        where: whereCondition,
+        include: {
+          pembeli: {
+            select: { id: true, name: true, email: true, phone: true, avatarUrl: true, address: true },
+          },
+          items: {
+            include: {
+              product: {
+                select: { id: true, nama: true, imageUrl: true, satuan: true },
+              },
+              petani: {
+                select: { id: true, name: true, phone: true },
+              },
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      prisma.order.findMany({
+        select: {
+          status: true,
+          totalAmount: true,
+          isPaid: true,
+        },
+      }),
+    ]);
+
+    // Hitung ringkasan statistik
+    let totalOmset = 0;
+    let pendingCount = 0;
+    let diprosesCount = 0;
+    let selesaiCount = 0;
+
+    for (const ord of allOrdersStats) {
+      if (ord.status !== 'DIBATALKAN') {
+        totalOmset += Number(ord.totalAmount);
+      }
+      if (ord.status === 'MENUNGGU_PEMBAYARAN') pendingCount++;
+      if (ord.status === 'DIPROSES' || ord.status === 'SIAP_DIAMBIL') diprosesCount++;
+      if (ord.status === 'SELESAI') selesaiCount++;
+    }
+
+    const totalPages = Math.ceil(totalCount / limit) || 1;
+
+    return NextResponse.json({
+      success: true,
+      orders: orders.map((o) => ({
+        ...o,
+        totalAmount: Number(o.totalAmount),
+        createdAt: o.createdAt.toISOString(),
+        updatedAt: o.updatedAt.toISOString(),
+        paidAt: o.paidAt?.toISOString() || null,
+        items: o.items.map((i) => ({
+          ...i,
+          hargaPerSatuan: Number(i.hargaPerSatuan),
+          subtotal: Number(i.subtotal),
+        })),
+      })),
+      stats: {
+        totalOrders: allOrdersStats.length,
+        totalOmset,
+        pendingCount,
+        diprosesCount,
+        selesaiCount,
+      },
+      pagination: {
+        totalCount,
+        totalPages,
+        currentPage: page,
+        limit,
+      },
+    });
+  } catch (error) {
+    console.error('Error saat mengambil pesanan admin:', error);
+    return NextResponse.json({ error: 'Gagal mengambil data pesanan' }, { status: 500 });
+  }
+}

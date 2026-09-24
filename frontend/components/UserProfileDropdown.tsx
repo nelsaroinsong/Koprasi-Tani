@@ -2,7 +2,6 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
-  ShoppingBag,
   User as UserIcon,
   ChevronDown,
   ChevronUp,
@@ -13,13 +12,18 @@ import {
   LogOut,
   ChevronRight,
   ShoppingCart,
-  X,
   Phone,
   Camera,
   Trash2,
   MessageCircle,
   Minus,
   Plus,
+  ArrowLeft,
+  AlertCircle,
+  Building2,
+  PackageCheck,
+  Check,
+  Loader2,
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import {
@@ -37,6 +41,19 @@ export default function UserProfileDropdown() {
   const [cartItems, setCartItems] = useState<any[]>([]);
   const [cartCount, setCartCount] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Multi-step Checkout States
+  const [cartStep, setCartStep] = useState<'CART' | 'CHECKOUT' | 'SUCCESS'>('CART');
+  const [paymentMethod, setPaymentMethod] = useState<'CASH_KOPERASI' | 'TRANSFER_KOPERASI'>('CASH_KOPERASI');
+  const [orderAddress, setOrderAddress] = useState('');
+  const [orderNotes, setOrderNotes] = useState('');
+  const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
+  const [orderError, setOrderError] = useState<string | null>(null);
+  const [createdOrderResult, setCreatedOrderResult] = useState<any | null>(null);
+
+  // Riwayat Orders State
+  const [userOrders, setUserOrders] = useState<any[]>([]);
+  const [isLoadingOrders, setIsLoadingOrders] = useState(false);
 
   // Sync cart from localStorage
   const syncCart = useCallback(() => {
@@ -80,6 +97,41 @@ export default function UserProfileDropdown() {
     return () => window.removeEventListener('cart-updated', handleCartEvent);
   }, [syncCart]);
 
+  // Inisialisasi alamat pengiriman saat user terdeteksi
+  useEffect(() => {
+    if (user?.address) {
+      setOrderAddress(user.address);
+    } else {
+      setOrderAddress('Ambil Langsung di Gudang Koperasi Sinar Pagi Sejahtera');
+    }
+  }, [user]);
+
+  // Fetch riwayat pesanan ketika modal riwayat dibuka
+  const fetchUserOrders = useCallback(async () => {
+    try {
+      setIsLoadingOrders(true);
+      const res = await fetch('/api/orders');
+      const data = await res.json();
+      if (res.ok && data.orders) {
+        setUserOrders(data.orders);
+      }
+    } catch (err) {
+      console.error('Error fetch user orders:', err);
+    } finally {
+      setIsLoadingOrders(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeModal === 'riwayat') {
+      fetchUserOrders();
+    }
+    if (activeModal === 'cart') {
+      setCartStep('CART');
+      setOrderError(null);
+    }
+  }, [activeModal, fetchUserOrders]);
+
   // Update kuantitas produk di dalam keranjang
   const updateCartItemQty = (idx: number, delta: number) => {
     const updated = [...cartItems];
@@ -94,42 +146,86 @@ export default function UserProfileDropdown() {
     syncCart();
   };
 
-  // Checkout Pesanan ke WhatsApp Admin Koperasi
-  const handleCheckoutWhatsApp = () => {
+  // Submit pesanan resmi ke API Koperasi
+  const handleConfirmOrder = async () => {
     if (cartItems.length === 0) return;
+    setIsSubmittingOrder(true);
+    setOrderError(null);
 
+    try {
+      const itemsPayload = cartItems.map((item) => ({
+        productId: item.id,
+        quantity: Number(item.quantity) || 1,
+      }));
+
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paymentMethod,
+          alamatKirim: orderAddress,
+          catatan: orderNotes,
+          items: itemsPayload,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Gagal memproses pesanan ke sistem koperasi');
+      }
+
+      setCreatedOrderResult(data.order);
+      setCartStep('SUCCESS');
+
+      // Bersihkan keranjang
+      localStorage.removeItem('koperasi_cart');
+      syncCart();
+      window.dispatchEvent(new CustomEvent('cart-updated'));
+    } catch (err: any) {
+      console.error(err);
+      setOrderError(err.message || 'Terjadi gangguan saat memproses pesanan.');
+    } finally {
+      setIsSubmittingOrder(false);
+    }
+  };
+
+  // Kirim Konfirmasi WhatsApp Pesanan Resmi ke Admin Koperasi
+  const handleSendWhatsAppConfirmation = (orderData: any) => {
     const rawPhone = adminPhone || '081944078924';
     const cleanPhone = rawPhone.replace(/\D/g, '').replace(/^0/, '62');
 
-    const totalBayar = cartItems.reduce(
-      (sum, item) => sum + Number(item.hargaPerSatuan) * Number(item.quantity),
-      0
-    );
-
-    const itemsText = cartItems
+    const itemsText = (orderData.items || [])
       .map(
-        (item, idx) =>
-          `${idx + 1}. *${item.nama}*\n   • Jumlah: ${item.quantity} ${item.satuan}\n   • Subtotal: Rp ${(
-            Number(item.hargaPerSatuan) * Number(item.quantity)
+        (item: any, idx: number) =>
+          `${idx + 1}. *${item.product?.nama || item.nama}*\n   • Jumlah: ${item.quantity} ${item.product?.satuan || item.satuan || 'unit'}\n   • Subtotal: Rp ${(
+            Number(item.hargaPerSatuan || item.subtotal || 0) * (item.quantity ? 1 : 1)
           ).toLocaleString('id-ID')}`
       )
       .join('\n\n');
 
+    const paymentText =
+      orderData.paymentMethod === 'CASH_KOPERASI'
+        ? '💵 Bayar Tunai (Cash) di Kantor Koperasi'
+        : '💳 Transfer Bank Koperasi (BRI: 0012-01-002891-53-0)';
+
     const message = `Halo Pengurus Koperasi Sinar Pagi Sejahtera,
-Saya ingin memesan komoditas hasil panen melalui Toko Online Koperasi:
+Saya telah membuat *Pesanan Resmi* melalui Toko Online Koperasi:
+
+*No. Pesanan:* #${orderData.orderNumber}
+*Metode Pembayaran:* ${paymentText}
+*Total Tagihan:* Rp ${Number(orderData.totalAmount).toLocaleString('id-ID')}
+*Alamat / Pengambilan:* ${orderData.alamatKirim || '-'}
+*Catatan:* ${orderData.catatan || '-'}
 
 *Data Pemesan:*
-• Nama: ${user?.name || 'Pelanggan Koperasi'}
-• No. Kontak: ${user?.phone || '-'}
+• Nama: ${user?.name || '-'}
+• No. HP: ${user?.phone || '-'}
 • Email: ${user?.email || '-'}
-• Alamat Pengiriman: ${user?.address || '-'}
 
-*Daftar Komoditas Pesanan:*
+*Daftar Komoditas:*
 ${itemsText}
 
-*Total Pembayaran: Rp ${totalBayar.toLocaleString('id-ID')}*
-
-Mohon konfirmasi ketersediaan stok, ongkos kirim/pengiriman, dan instruksi pembayarannya. Terima kasih!`;
+Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima kasih!`;
 
     const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
     window.open(waUrl, '_blank');
@@ -180,7 +276,6 @@ Mohon konfirmasi ketersediaan stok, ongkos kirim/pengiriman, dan instruksi pemba
 
     try {
       if (selectedFile) {
-        // Upload langsung ke Cloudflare R2 bucket koperasi-images/profiles/
         const formData = new FormData();
         formData.append('file', selectedFile);
         if (user?.email) {
@@ -200,7 +295,6 @@ Mohon konfirmasi ketersediaan stok, ongkos kirim/pengiriman, dan instruksi pemba
         finalAvatarUrl = data.url;
       }
 
-      // Simpan perubahan ke auth context & session
       updateProfile({
         name: editName,
         phone: editPhone,
@@ -232,18 +326,17 @@ Mohon konfirmasi ketersediaan stok, ongkos kirim/pengiriman, dan instruksi pemba
 
   const userInitial = user.name ? user.name.charAt(0).toUpperCase() : 'U';
   const displayRole = user.role === 'PETANI' ? 'PETANI' : 'PEMBELI';
-  const roleSubtitle =
-    user.role === 'PETANI'
-      ? 'Petani Kelapa & Jagung'
-      : 'Pembeli Komoditas & Hasil Tani';
-
   const registeredDate = '22 September 2026';
-  const userIdDisplay = user.id ? `KK-${user.id.slice(-5).toUpperCase()}` : 'KK-03721';
+
+  const cartTotalAmount = cartItems.reduce(
+    (sum, item) => sum + Number(item.hargaPerSatuan) * Number(item.quantity),
+    0
+  );
 
   return (
     <>
       <div className="flex items-center gap-2 sm:gap-3" ref={dropdownRef}>
-        {/* Tombol Keranjang Belanja di sebelah kiri foto profil */}
+        {/* Tombol Keranjang Belanja */}
         <button
           onClick={() => setActiveModal('cart')}
           className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 flex items-center justify-center transition border border-slate-200 cursor-pointer shadow-2xs"
@@ -264,7 +357,6 @@ Mohon konfirmasi ketersediaan stok, ongkos kirim/pengiriman, dan instruksi pemba
           className="flex items-center gap-2 sm:gap-2.5 p-1 sm:pr-3 rounded-full border border-slate-200 hover:border-emerald-500/50 bg-white hover:bg-slate-50 transition cursor-pointer shadow-2xs group"
           type="button"
         >
-          {/* Avatar circle */}
           <div className="w-8 h-8 rounded-full bg-emerald-800 text-white font-bold text-xs flex items-center justify-center shadow-xs overflow-hidden shrink-0">
             {user.avatarUrl ? (
               <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" />
@@ -273,7 +365,6 @@ Mohon konfirmasi ketersediaan stok, ongkos kirim/pengiriman, dan instruksi pemba
             )}
           </div>
 
-          {/* User info */}
           <div className="text-left hidden sm:block">
             <div className="text-xs font-bold text-slate-800 leading-tight group-hover:text-emerald-800 transition">
               {user.name}
@@ -283,7 +374,6 @@ Mohon konfirmasi ketersediaan stok, ongkos kirim/pengiriman, dan instruksi pemba
             </div>
           </div>
 
-          {/* Chevron */}
           <div className="text-slate-400 group-hover:text-slate-700 transition pr-1">
             {isOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
           </div>
@@ -294,12 +384,9 @@ Mohon konfirmasi ketersediaan stok, ongkos kirim/pengiriman, dan instruksi pemba
           <div className="absolute right-3 sm:right-6 top-16 sm:top-20 z-50 w-[320px] sm:w-[350px] bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in-50 zoom-in-95 duration-200">
             {/* Dark Forest Green Header */}
             <div className="bg-[#1b4332] text-white p-5 relative overflow-hidden">
-              {/* Subtle decorative glow */}
               <div className="absolute -top-12 -right-12 w-32 h-32 rounded-full bg-emerald-500/20 blur-2xl" />
 
-              {/* Role badge top right */}
               <div className="flex justify-between items-start mb-4 relative z-10">
-                {/* Avatar with verified check */}
                 <div className="relative">
                   <div className="w-14 h-14 rounded-2xl bg-white text-slate-900 flex items-center justify-center font-extrabold text-xl shadow-md overflow-hidden">
                     {user.avatarUrl ? (
@@ -319,7 +406,6 @@ Mohon konfirmasi ketersediaan stok, ongkos kirim/pengiriman, dan instruksi pemba
                 </div>
               </div>
 
-              {/* Name & Phone Number */}
               <div className="relative z-10 mb-4">
                 <h3 className="text-base font-bold tracking-tight text-white leading-tight">
                   {user.name}
@@ -334,7 +420,6 @@ Mohon konfirmasi ketersediaan stok, ongkos kirim/pengiriman, dan instruksi pemba
                 </div>
               </div>
 
-              {/* Registered Meta (ID User dihapus) */}
               <div className="pt-2.5 border-t border-emerald-700/60 flex items-center justify-between text-xs text-emerald-100/90 relative z-10">
                 <span className="text-[11px] text-emerald-300/80 font-medium">Terdaftar</span>
                 <span className="font-bold text-xs text-emerald-100">{registeredDate}</span>
@@ -343,7 +428,6 @@ Mohon konfirmasi ketersediaan stok, ongkos kirim/pengiriman, dan instruksi pemba
 
             {/* Menu List */}
             <div className="p-3.5 space-y-1">
-              {/* 1. Edit Profil */}
               <button
                 onClick={() => {
                   setIsOpen(false);
@@ -358,13 +442,12 @@ Mohon konfirmasi ketersediaan stok, ongkos kirim/pengiriman, dan instruksi pemba
                   </div>
                   <div>
                     <div className="text-xs font-bold text-slate-800">Edit Profil</div>
-                    <div className="text-[11px] text-slate-400">Ubah info pribadi & alamat</div>
+                    <div className="text-[11px] text-slate-400">Ubah info pribadi & kontak</div>
                   </div>
                 </div>
                 <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-600 transition" />
               </button>
 
-              {/* 2. Riwayat Pembelian */}
               <button
                 onClick={() => {
                   setIsOpen(false);
@@ -379,13 +462,12 @@ Mohon konfirmasi ketersediaan stok, ongkos kirim/pengiriman, dan instruksi pemba
                   </div>
                   <div>
                     <div className="text-xs font-bold text-slate-800">Riwayat Pembelian</div>
-                    <div className="text-[11px] text-slate-400">Daftar transaksi & status pesanan</div>
+                    <div className="text-[11px] text-slate-400">Status pesanan & nota koperasi</div>
                   </div>
                 </div>
                 <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-600 transition" />
               </button>
 
-              {/* 3. Metode Pembayaran */}
               <button
                 onClick={() => {
                   setIsOpen(false);
@@ -400,13 +482,12 @@ Mohon konfirmasi ketersediaan stok, ongkos kirim/pengiriman, dan instruksi pemba
                   </div>
                   <div>
                     <div className="text-xs font-bold text-slate-800">Metode Pembayaran</div>
-                    <div className="text-[11px] text-slate-400">QRIS, Transfer Bank & e-Wallet</div>
+                    <div className="text-[11px] text-slate-400">Kas Koperasi & Rekening Resmi</div>
                   </div>
                 </div>
                 <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-600 transition" />
               </button>
 
-              {/* Divider & Logout */}
               <div className="pt-2 border-t border-slate-100">
                 <button
                   onClick={() => {
@@ -425,164 +506,635 @@ Mohon konfirmasi ketersediaan stok, ongkos kirim/pengiriman, dan instruksi pemba
         )}
       </div>
 
-      {/* Interactive Modal for Selected Menu Item Menggunakan Shadcn Dialog (Portal ke document.body) */}
+      {/* Interactive Modal for Selected Menu Item */}
       <Dialog open={Boolean(activeModal)} onOpenChange={(open) => !open && setActiveModal(null)}>
-        <DialogContent className="sm:max-w-md rounded-3xl p-6 bg-white border border-slate-200 shadow-2xl">
+        <DialogContent className="sm:max-w-lg rounded-3xl p-6 bg-white border border-slate-200 shadow-2xl max-h-[90vh] overflow-y-auto">
+          {/* ======================================================== */}
+          {/* MODAL 1: KERANJANG BELANJA & MULTI-STEP CHECKOUT        */}
+          {/* ======================================================== */}
           {activeModal === 'cart' && (
+            <div>
+              {/* STEP 1: CART VIEW */}
+              {cartStep === 'CART' && (
+                <div>
+                  <DialogHeader className="text-left mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100 shrink-0">
+                        <ShoppingCart className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <DialogTitle className="text-base font-bold text-slate-900 leading-snug">
+                          Keranjang Belanja Koperasi
+                        </DialogTitle>
+                        <DialogDescription className="text-xs text-slate-500 mt-0.5">
+                          {cartItems.length > 0
+                            ? `${cartCount} komoditas siap dipesan dari gudang Koperasi.`
+                            : 'Keranjang belanja Anda saat ini masih kosong.'}
+                        </DialogDescription>
+                      </div>
+                    </div>
+                  </DialogHeader>
+
+                  {cartItems.length === 0 ? (
+                    <div className="py-10 text-center text-slate-400 text-xs">
+                      <ShoppingCart className="w-10 h-10 mx-auto mb-2 text-slate-300 stroke-1" />
+                      <p className="font-semibold text-slate-600">Belum ada komoditas di keranjang</p>
+                      <p className="text-[11px] mt-0.5">Pilih produk komoditas pada katalog toko online untuk mulai berbelanja.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-64 overflow-y-auto pr-1 my-3">
+                      {cartItems.map((item, idx) => {
+                        const itemTotal = Number(item.hargaPerSatuan) * Number(item.quantity);
+                        return (
+                          <div
+                            key={item.id || idx}
+                            className="p-3 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs"
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                              <div className="w-11 h-11 rounded-xl bg-slate-200 overflow-hidden shrink-0">
+                                <img
+                                  src={
+                                    item.imageUrl ||
+                                    'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=200&q=80'
+                                  }
+                                  alt={item.nama}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="font-bold text-slate-900 truncate">{item.nama}</div>
+                                <div className="text-slate-500 text-[11px] mt-0.5">
+                                  Rp {Number(item.hargaPerSatuan).toLocaleString('id-ID')} /{item.satuan}
+                                </div>
+                                <div className="font-extrabold text-emerald-800 text-xs mt-0.5">
+                                  Subtotal: Rp {itemTotal.toLocaleString('id-ID')}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 pt-1 sm:pt-0 border-t sm:border-t-0 border-slate-200/60">
+                              <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg p-0.5 shadow-2xs">
+                                <button
+                                  type="button"
+                                  onClick={() => updateCartItemQty(idx, -1)}
+                                  className="w-6 h-6 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition cursor-pointer"
+                                  title="Kurangi kuantitas"
+                                >
+                                  <Minus className="w-3 h-3" />
+                                </button>
+                                <span className="w-8 text-center text-xs font-bold text-slate-800">
+                                  {item.quantity}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => updateCartItemQty(idx, 1)}
+                                  className="w-6 h-6 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-800 flex items-center justify-center transition cursor-pointer"
+                                  title="Tambah kuantitas"
+                                >
+                                  <Plus className="w-3 h-3" />
+                                </button>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = cartItems.filter((_, i) => i !== idx);
+                                  localStorage.setItem('koperasi_cart', JSON.stringify(updated));
+                                  syncCart();
+                                }}
+                                className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition cursor-pointer shrink-0"
+                                title="Hapus item"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      <div className="pt-2.5 border-t border-slate-200 flex items-center justify-between text-xs px-1">
+                        <span className="text-slate-600 font-medium">Total Pembayaran ({cartCount} item):</span>
+                        <span className="text-base font-black text-emerald-800">
+                          Rp {cartTotalAmount.toLocaleString('id-ID')}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Buttons Cart */}
+                  <div className="space-y-2 mt-4 pt-3 border-t border-slate-100">
+                    {cartItems.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setCartStep('CHECKOUT')}
+                        className="w-full py-2.5 px-4 bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition cursor-pointer"
+                      >
+                        <span>Lanjut ke Checkout Pesanan Koperasi</span>
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    )}
+
+                    <div className="flex items-center gap-2">
+                      {cartItems.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            localStorage.removeItem('koperasi_cart');
+                            syncCart();
+                          }}
+                          className="py-2 px-3 border border-slate-200 hover:bg-slate-50 text-slate-500 hover:text-red-600 rounded-xl font-semibold text-xs transition cursor-pointer"
+                        >
+                          Kosongkan
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => setActiveModal(null)}
+                        className="flex-1 py-2 border border-slate-200 hover:bg-slate-100 text-slate-700 rounded-xl font-semibold text-xs transition cursor-pointer"
+                      >
+                        Tutup Keranjang
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 2: CHECKOUT FORM & PAYMENT SELECTION */}
+              {cartStep === 'CHECKOUT' && (
+                <div>
+                  <DialogHeader className="text-left mb-3">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setCartStep('CART')}
+                        className="p-1.5 -ml-1 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition cursor-pointer"
+                      >
+                        <ArrowLeft className="w-4 h-4" />
+                      </button>
+                      <div>
+                        <DialogTitle className="text-base font-bold text-slate-900 leading-snug">
+                          Checkout Pesanan Koperasi
+                        </DialogTitle>
+                        <DialogDescription className="text-xs text-slate-500 mt-0.5">
+                          Semua pesanan masuk dan diproses langsung oleh Admin Koperasi.
+                        </DialogDescription>
+                      </div>
+                    </div>
+                  </DialogHeader>
+
+                  {/* Informational banner koperasi satu pintu */}
+                  <div className="p-3 rounded-xl bg-emerald-50/80 border border-emerald-200/80 flex items-start gap-2.5 mb-3 text-xs">
+                    <Building2 className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
+                    <div className="text-slate-700 leading-relaxed text-[11px]">
+                      <strong className="text-emerald-900">Sistem Satu Pintu Koperasi:</strong> Stok fisik di gudang akan otomatis dipotong. Pembeli membayar ke Admin Koperasi, dan keuntungan akan diserahkan tunai ke petani.
+                    </div>
+                  </div>
+
+                  <div className="space-y-3.5 my-3 text-xs">
+                    {/* Metode Pembayaran */}
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-800 mb-1.5">
+                        Pilih Metode Pembayaran ke Koperasi *
+                      </label>
+                      <div className="space-y-2">
+                        {/* Option 1: Cash Tunai */}
+                        <label
+                          className={`flex items-start gap-3 p-3 rounded-xl border transition cursor-pointer ${
+                            paymentMethod === 'CASH_KOPERASI'
+                              ? 'bg-emerald-50/70 border-emerald-500 ring-1 ring-emerald-500'
+                              : 'bg-white border-slate-200 hover:bg-slate-50'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="paymentMethod"
+                            checked={paymentMethod === 'CASH_KOPERASI'}
+                            onChange={() => setPaymentMethod('CASH_KOPERASI')}
+                            className="mt-0.5 text-emerald-600 focus:ring-emerald-500"
+                          />
+                          <div className="flex-1">
+                            <div className="font-bold text-slate-900 flex items-center justify-between">
+                              <span>💵 Bayar Tunai (Cash) di Koperasi</span>
+                              <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded">
+                                Langsung di Tempat
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-500 mt-0.5">
+                              Bayar langsung secara tunai kepada kasir/admin di kantor koperasi saat serah terima barang.
+                            </p>
+                          </div>
+                        </label>
+
+                        {/* Option 2: Transfer Bank */}
+                        <label
+                          className={`flex items-start gap-3 p-3 rounded-xl border transition cursor-pointer ${
+                            paymentMethod === 'TRANSFER_KOPERASI'
+                              ? 'bg-emerald-50/70 border-emerald-500 ring-1 ring-emerald-500'
+                              : 'bg-white border-slate-200 hover:bg-slate-50'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="paymentMethod"
+                            checked={paymentMethod === 'TRANSFER_KOPERASI'}
+                            onChange={() => setPaymentMethod('TRANSFER_KOPERASI')}
+                            className="mt-0.5 text-emerald-600 focus:ring-emerald-500"
+                          />
+                          <div className="flex-1">
+                            <div className="font-bold text-slate-900 flex items-center justify-between">
+                              <span>💳 Transfer Bank Koperasi</span>
+                              <span className="text-[10px] bg-blue-100 text-blue-800 font-bold px-1.5 py-0.5 rounded">
+                                Rekening Resmi
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-500 mt-0.5">
+                              Transfer ke rekening <strong>BRI: 0012-01-002891-53-0</strong> a/n Koperasi Sinar Pagi Sejahtera.
+                            </p>
+                          </div>
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* Alamat Pengiriman / Pengambilan */}
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-800 mb-1">
+                        Alamat Pengiriman / Lokasi Pengambilan *
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={orderAddress}
+                        onChange={(e) => setOrderAddress(e.target.value)}
+                        placeholder="Contoh: Ambil langsung di Gudang Koperasi atau cantumkan alamat rumah..."
+                        className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                      />
+                    </div>
+
+                    {/* Catatan Tambahan */}
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-800 mb-1">
+                        Catatan Khusus untuk Admin Koperasi (Opsional)
+                      </label>
+                      <input
+                        type="text"
+                        value={orderNotes}
+                        onChange={(e) => setOrderNotes(e.target.value)}
+                        placeholder="Contoh: Mohon dikemas karung goni, rencana ambil besok pagi"
+                        className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                      />
+                    </div>
+
+                    {/* Ringkasan Biaya */}
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                      <div className="flex justify-between items-center text-xs text-slate-600 mb-1">
+                        <span>Total Komoditas:</span>
+                        <span className="font-semibold text-slate-800">{cartCount} barang</span>
+                      </div>
+                      <div className="flex justify-between items-center text-xs font-bold text-slate-900 pt-1.5 border-t border-slate-200">
+                        <span>Total Pembayaran:</span>
+                        <span className="text-base text-emerald-800 font-black">
+                          Rp {cartTotalAmount.toLocaleString('id-ID')}
+                        </span>
+                      </div>
+                    </div>
+
+                    {orderError && (
+                      <div className="p-2.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
+                        <span>{orderError}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Submit Button */}
+                  <div className="flex items-center gap-2 mt-4 pt-3 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => setCartStep('CART')}
+                      disabled={isSubmittingOrder}
+                      className="py-2.5 px-3 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-semibold text-xs transition cursor-pointer"
+                    >
+                      Kembali
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleConfirmOrder}
+                      disabled={isSubmittingOrder}
+                      className="flex-1 py-2.5 bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 disabled:opacity-50 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition cursor-pointer"
+                    >
+                      {isSubmittingOrder ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Memproses ke Koperasi...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Check className="w-4 h-4" />
+                          <span>Konfirmasi & Buat Pesanan Resmi</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 3: SUCCESS STATE */}
+              {cartStep === 'SUCCESS' && createdOrderResult && (
+                <div className="text-center py-4">
+                  <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto mb-3">
+                    <PackageCheck className="w-7 h-7" />
+                  </div>
+                  <h3 className="text-lg font-extrabold text-slate-900">
+                    Pesanan Resmi Berhasil Dibuat!
+                  </h3>
+                  <div className="inline-block mt-1 px-3 py-1 bg-amber-50 border border-amber-200 rounded-full text-xs font-bold text-amber-800">
+                    No. Pesanan: #{createdOrderResult.orderNumber}
+                  </div>
+                  <p className="text-xs text-slate-500 max-w-sm mx-auto mt-2 leading-relaxed">
+                    Pesanan Anda telah tercatat di sistem koperasi dan stok di gudang telah otomatis dialokasikan.
+                  </p>
+
+                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl my-4 text-left text-xs space-y-1.5">
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Status Pesanan:</span>
+                      <span className="font-bold text-amber-700">Menunggu Pembayaran</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Metode Bayar:</span>
+                      <span className="font-semibold text-slate-800">
+                        {createdOrderResult.paymentMethod === 'CASH_KOPERASI'
+                          ? 'Tunai di Kantor Koperasi'
+                          : 'Transfer Bank BRI'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between border-t border-slate-200 pt-1.5">
+                      <span className="font-semibold text-slate-700">Total Tagihan:</span>
+                      <span className="font-black text-emerald-800 text-sm">
+                        Rp {Number(createdOrderResult.totalAmount).toLocaleString('id-ID')}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 mt-4">
+                    <button
+                      type="button"
+                      onClick={() => handleSendWhatsAppConfirmation(createdOrderResult)}
+                      className="w-full py-2.5 px-4 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition cursor-pointer"
+                    >
+                      <MessageCircle className="w-4 h-4 text-emerald-200" />
+                      <span>Kirim Konfirmasi ke WhatsApp Admin Koperasi</span>
+                    </button>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveModal('riwayat');
+                        }}
+                        className="flex-1 py-2 border border-slate-200 hover:bg-slate-100 text-slate-700 rounded-xl font-semibold text-xs transition cursor-pointer"
+                      >
+                        Lihat Riwayat Pesanan
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveModal(null)}
+                        className="py-2 px-4 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-semibold text-xs transition cursor-pointer"
+                      >
+                        Selesai
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ======================================================== */}
+          {/* MODAL 2: RIWAYAT PEMBELIAN (INTEGRASI DATABASE ORDERS)  */}
+          {/* ======================================================== */}
+          {activeModal === 'riwayat' && (
             <div>
               <DialogHeader className="text-left mb-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100 shrink-0">
-                    <ShoppingCart className="w-5 h-5" />
+                  <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center border border-blue-100 shrink-0">
+                    <Receipt className="w-5 h-5" />
                   </div>
                   <div>
                     <DialogTitle className="text-base font-bold text-slate-900 leading-snug">
-                      Keranjang Belanja
+                      Riwayat Pembelian Resmi
                     </DialogTitle>
                     <DialogDescription className="text-xs text-slate-500 mt-0.5">
-                      {cartItems.length > 0
-                        ? `${cartCount} komoditas siap dipesan dari Koperasi Sinar Pagi Sejahtera.`
-                        : 'Keranjang belanja Anda saat ini masih kosong.'}
+                      Daftar pesanan komoditas hasil tani Anda di Koperasi Sinar Pagi Sejahtera.
                     </DialogDescription>
                   </div>
                 </div>
               </DialogHeader>
 
-              {cartItems.length === 0 ? (
+              {isLoadingOrders ? (
+                <div className="py-12 flex flex-col items-center justify-center gap-2 text-xs text-slate-500">
+                  <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
+                  <span>Memuat daftar pesanan Anda...</span>
+                </div>
+              ) : userOrders.length === 0 ? (
                 <div className="py-8 text-center text-slate-400 text-xs">
-                  <ShoppingCart className="w-8 h-8 mx-auto mb-2 text-slate-300 stroke-1" />
-                  <p className="font-semibold text-slate-600">Belum ada komoditas di keranjang</p>
-                  <p className="text-[11px] mt-0.5">Pilih produk komoditas pada katalog toko online untuk mulai berbelanja.</p>
+                  <Receipt className="w-8 h-8 mx-auto mb-2 text-slate-300 stroke-1" />
+                  <p className="font-semibold text-slate-600">Belum ada transaksi pembelian</p>
+                  <p className="text-[11px] mt-0.5">Pesanan resmi Anda akan tercatat dan dapat dipantau di sini.</p>
                 </div>
               ) : (
-                <div className="space-y-2 max-h-64 overflow-y-auto pr-1 my-3">
-                  {cartItems.map((item, idx) => {
-                    const itemTotal = Number(item.hargaPerSatuan) * Number(item.quantity);
+                <div className="space-y-3 max-h-80 overflow-y-auto pr-1 my-3">
+                  {userOrders.map((order) => {
+                    const statusConfig: Record<string, { label: string; badge: string }> = {
+                      MENUNGGU_PEMBAYARAN: {
+                        label: 'Menunggu Bayar',
+                        badge: 'bg-amber-100 text-amber-800 border-amber-200',
+                      },
+                      DIPROSES: {
+                        label: 'Lunas & Disiapkan',
+                        badge: 'bg-blue-100 text-blue-800 border-blue-200',
+                      },
+                      SIAP_DIAMBIL: {
+                        label: 'Siap Diambil di Koperasi',
+                        badge: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+                      },
+                      SELESAI: {
+                        label: 'Selesai',
+                        badge: 'bg-slate-100 text-slate-800 border-slate-200',
+                      },
+                      DIBATALKAN: {
+                        label: 'Dibatalkan',
+                        badge: 'bg-red-100 text-red-800 border-red-200',
+                      },
+                    };
+                    const currentStatus = statusConfig[order.status] || {
+                      label: order.status,
+                      badge: 'bg-slate-100 text-slate-800 border-slate-200',
+                    };
+
                     return (
                       <div
-                        key={item.id || idx}
-                        className="p-3 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs"
+                        key={order.id}
+                        className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs space-y-2"
                       >
-                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                          <div className="w-11 h-11 rounded-xl bg-slate-200 overflow-hidden shrink-0">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={
-                                item.imageUrl ||
-                                'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=200&q=80'
-                              }
-                              alt={item.nama}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="font-bold text-slate-900 truncate">{item.nama}</div>
-                            <div className="text-slate-500 text-[11px] mt-0.5">
-                              Rp {Number(item.hargaPerSatuan).toLocaleString('id-ID')} /{item.satuan}
-                            </div>
-                            <div className="font-extrabold text-emerald-800 text-xs mt-0.5">
-                              Subtotal: Rp {itemTotal.toLocaleString('id-ID')}
+                        <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
+                          <div>
+                            <span className="font-extrabold text-slate-900">
+                              #{order.orderNumber}
+                            </span>
+                            <div className="text-[10px] text-slate-400 mt-0.5">
+                              {new Date(order.createdAt).toLocaleDateString('id-ID', {
+                                day: 'numeric',
+                                month: 'short',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
                             </div>
                           </div>
+                          <span
+                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${currentStatus.badge}`}
+                          >
+                            {currentStatus.label}
+                          </span>
                         </div>
 
-                        {/* Stepper Jumlah & Tombol Hapus */}
-                        <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 pt-1 sm:pt-0 border-t sm:border-t-0 border-slate-200/60">
-                          <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg p-0.5 shadow-2xs">
-                            <button
-                              type="button"
-                              onClick={() => updateCartItemQty(idx, -1)}
-                              className="w-6 h-6 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition cursor-pointer"
-                              title="Kurangi kuantitas"
-                            >
-                              <Minus className="w-3 h-3" />
-                            </button>
-                            <span className="w-8 text-center text-xs font-bold text-slate-800">
-                              {item.quantity}
+                        {/* List Items */}
+                        <div className="space-y-1.5 py-1">
+                          {order.items?.map((item: any) => (
+                            <div key={item.id} className="flex items-center justify-between text-[11px]">
+                              <span className="text-slate-700">
+                                {item.product?.nama || 'Komoditas'} ({item.quantity} {item.product?.satuan || 'unit'})
+                              </span>
+                              <span className="font-semibold text-slate-900">
+                                Rp {Number(item.subtotal).toLocaleString('id-ID')}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Total & Action */}
+                        <div className="flex items-center justify-between pt-2 border-t border-slate-200/80">
+                          <div>
+                            <span className="text-[10px] text-slate-500 block">Metode: {order.paymentMethod === 'CASH_KOPERASI' ? 'Cash di Koperasi' : 'Transfer BRI'}</span>
+                            <span className="text-xs font-black text-emerald-800">
+                              Rp {Number(order.totalAmount).toLocaleString('id-ID')}
                             </span>
-                            <button
-                              type="button"
-                              onClick={() => updateCartItemQty(idx, 1)}
-                              className="w-6 h-6 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-800 flex items-center justify-center transition cursor-pointer"
-                              title="Tambah kuantitas"
-                            >
-                              <Plus className="w-3 h-3" />
-                            </button>
                           </div>
 
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const updated = cartItems.filter((_, i) => i !== idx);
-                              localStorage.setItem('koperasi_cart', JSON.stringify(updated));
-                              syncCart();
-                            }}
-                            className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition cursor-pointer shrink-0"
-                            title="Hapus item"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          {order.status === 'MENUNGGU_PEMBAYARAN' && (
+                            <button
+                              type="button"
+                              onClick={() => handleSendWhatsAppConfirmation(order)}
+                              className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] flex items-center gap-1.5 transition cursor-pointer"
+                            >
+                              <MessageCircle className="w-3 h-3" />
+                              <span>Konfirmasi WA</span>
+                            </button>
+                          )}
                         </div>
                       </div>
                     );
                   })}
-
-                  {/* Summary Total */}
-                  <div className="pt-2.5 border-t border-slate-200 flex items-center justify-between text-xs px-1">
-                    <span className="text-slate-600 font-medium">Total Pembayaran ({cartCount} komoditas):</span>
-                    <span className="text-base font-black text-emerald-800">
-                      Rp{' '}
-                      {cartItems
-                        .reduce(
-                          (sum, item) =>
-                            sum + Number(item.hargaPerSatuan) * Number(item.quantity),
-                          0
-                        )
-                        .toLocaleString('id-ID')}
-                    </span>
-                  </div>
                 </div>
               )}
 
-              {/* Action Buttons */}
-              <div className="space-y-2 mt-4 pt-3 border-t border-slate-100">
-                {cartItems.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={handleCheckoutWhatsApp}
-                    className="w-full py-2.5 px-4 bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition cursor-pointer"
-                  >
-                    <MessageCircle className="w-4 h-4 text-emerald-200" />
-                    <span>Checkout Pesanan via WhatsApp Koperasi</span>
-                  </button>
-                )}
-
-                <div className="flex items-center gap-2">
-                  {cartItems.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        localStorage.removeItem('koperasi_cart');
-                        syncCart();
-                      }}
-                      className="py-2 px-3 border border-slate-200 hover:bg-slate-50 text-slate-500 hover:text-red-600 rounded-xl font-semibold text-xs transition cursor-pointer"
-                    >
-                      Kosongkan
-                    </button>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={() => setActiveModal(null)}
-                    className="flex-1 py-2 border border-slate-200 hover:bg-slate-100 text-slate-700 rounded-xl font-semibold text-xs transition cursor-pointer"
-                  >
-                    Tutup Keranjang
-                  </button>
-                </div>
-              </div>
+              <button
+                type="button"
+                onClick={() => setActiveModal(null)}
+                className="w-full py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-semibold text-xs transition cursor-pointer mt-2"
+              >
+                Tutup
+              </button>
             </div>
           )}
 
+          {/* ======================================================== */}
+          {/* MODAL 3: METODE PEMBAYARAN KOPERASI                     */}
+          {/* ======================================================== */}
+          {activeModal === 'pembayaran' && (
+            <div>
+              <DialogHeader className="text-left mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center border border-amber-100 shrink-0">
+                    <CreditCard className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <DialogTitle className="text-base font-bold text-slate-900 leading-snug">
+                      Metode Pembayaran Koperasi
+                    </DialogTitle>
+                    <DialogDescription className="text-xs text-slate-500 mt-0.5">
+                      Pilihan kanal pembayaran resmi Koperasi Sinar Pagi Sejahtera.
+                    </DialogDescription>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              <div className="space-y-3 my-3 text-xs">
+                {/* 1. Kas Tunai */}
+                <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-900 flex items-center gap-1.5">
+                      <span>💵 Pembayaran Tunai (Cash di Koperasi)</span>
+                    </span>
+                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                      Aktif
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                    Pembeli menyerahkan uang tunai langsung ke kasir/admin di kantor koperasi pada saat serah terima barang.
+                  </p>
+                </div>
+
+                {/* 2. Transfer Bank BRI */}
+                <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-900">
+                      💳 Transfer Bank BRI (Rekening Resmi)
+                    </span>
+                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                      Aktif
+                    </span>
+                  </div>
+                  <div className="p-2.5 bg-white border border-slate-200 rounded-xl space-y-1">
+                    <div className="text-[11px] text-slate-500">Bank Rakyat Indonesia (BRI)</div>
+                    <div className="font-mono text-sm font-bold text-slate-900">
+                      0012-01-002891-53-0
+                    </div>
+                    <div className="text-[11px] font-medium text-slate-700">
+                      a/n Koperasi Sinar Pagi Sejahtera
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. QRIS Koperasi */}
+                <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-900">
+                      📱 QRIS Koperasi Sinar Pagi Sejahtera
+                    </span>
+                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                      Aktif
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                    Dapat dipindai menggunakan seluruh aplikasi mobile banking (BCA, Mandiri, BRI, BNI) dan dompet digital (GoPay, OVO, Dana).
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setActiveModal(null)}
+                className="w-full py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-semibold text-xs transition cursor-pointer mt-2"
+              >
+                Tutup
+              </button>
+            </div>
+          )}
+
+          {/* ======================================================== */}
+          {/* MODAL 4: EDIT PROFIL                                    */}
+          {/* ======================================================== */}
           {activeModal === 'edit-profile' && (
             <div>
               <DialogHeader className="text-left mb-3">
@@ -594,7 +1146,6 @@ Mohon konfirmasi ketersediaan stok, ongkos kirim/pengiriman, dan instruksi pemba
                 </DialogDescription>
               </DialogHeader>
 
-              {/* Photo Profile Editor */}
               <div className="flex flex-col items-center justify-center mb-5">
                 <div className="relative group">
                   <div className="w-20 h-20 rounded-full bg-emerald-800 text-white flex items-center justify-center font-bold text-2xl shadow-md border-2 border-emerald-500 overflow-hidden">
@@ -605,7 +1156,6 @@ Mohon konfirmasi ketersediaan stok, ongkos kirim/pengiriman, dan instruksi pemba
                     )}
                   </div>
 
-                  {/* Camera Button */}
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
@@ -616,7 +1166,6 @@ Mohon konfirmasi ketersediaan stok, ongkos kirim/pengiriman, dan instruksi pemba
                   </button>
                 </div>
 
-                {/* Hidden File Input */}
                 <input
                   type="file"
                   ref={fileInputRef}
@@ -625,7 +1174,6 @@ Mohon konfirmasi ketersediaan stok, ongkos kirim/pengiriman, dan instruksi pemba
                   className="hidden"
                 />
 
-                {/* Photo Action Buttons */}
                 <div className="flex items-center gap-3 mt-2.5">
                   <button
                     type="button"
@@ -691,75 +1239,6 @@ Mohon konfirmasi ketersediaan stok, ongkos kirim/pengiriman, dan instruksi pemba
                 className="w-full py-2.5 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white rounded-xl font-semibold text-xs transition cursor-pointer shadow-xs"
               >
                 {isUploading ? 'Mengunggah Foto ke Cloudflare R2...' : 'Simpan Perubahan'}
-              </button>
-            </div>
-          )}
-
-          {activeModal === 'riwayat' && (
-            <div>
-              <DialogHeader className="text-left mb-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center border border-blue-100 shrink-0">
-                    <Receipt className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <DialogTitle className="text-base font-bold text-slate-900 leading-snug">
-                      Riwayat Pembelian
-                    </DialogTitle>
-                    <DialogDescription className="text-xs text-slate-500 mt-0.5">
-                      Daftar transaksi pembelian hasil tani yang pernah Anda lakukan.
-                    </DialogDescription>
-                  </div>
-                </div>
-              </DialogHeader>
-
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl my-3 text-center text-xs text-slate-500">
-                Belum ada transaksi sebelumnya. Pesanan Anda akan muncul di sini.
-              </div>
-              <button
-                type="button"
-                onClick={() => setActiveModal(null)}
-                className="w-full py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-semibold text-xs transition cursor-pointer mt-2"
-              >
-                Tutup
-              </button>
-            </div>
-          )}
-
-          {activeModal === 'pembayaran' && (
-            <div>
-              <DialogHeader className="text-left mb-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center border border-amber-100 shrink-0">
-                    <CreditCard className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <DialogTitle className="text-base font-bold text-slate-900 leading-snug">
-                      Metode Pembayaran
-                    </DialogTitle>
-                    <DialogDescription className="text-xs text-slate-500 mt-0.5">
-                      Pilihan metode pembayaran pembelian komoditas koperasi.
-                    </DialogDescription>
-                  </div>
-                </div>
-              </DialogHeader>
-
-              <div className="space-y-2 my-3 text-xs">
-                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
-                  <span className="font-semibold text-slate-800">QRIS Koperasi (Instan)</span>
-                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">Aktif</span>
-                </div>
-                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
-                  <span className="font-semibold text-slate-800">Transfer Bank (BRI / BNI / Mandiri)</span>
-                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">Aktif</span>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setActiveModal(null)}
-                className="w-full py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-semibold text-xs transition cursor-pointer mt-2"
-              >
-                Tutup
               </button>
             </div>
           )}
