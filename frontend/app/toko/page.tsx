@@ -266,25 +266,22 @@ export default function TokoOnlinePage() {
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
               {isPetani && activeTab === 'PRODUK_SAYA'
-                ? 'Kelola Komoditas & Hasil Tani Saya'
+                ? 'Hasil Panen Saya di Gudang Koperasi'
                 : 'Katalog Komoditas & Hasil Tani Koperasi'}
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-2xl">
               {isPetani && activeTab === 'PRODUK_SAYA'
-                ? 'Kelola hasil panen kelapa, jagung, dan produk turunan yang Anda setorkan ke Koperasi Sinar Pagi Sejahtera.'
+                ? 'Pantau stok komoditas yang Anda setorkan ke gudang koperasi serta saldo uang tunai (cash) yang siap diambil di kasir koperasi.'
                 : 'Beli komoditas agribisnis segar langsung dari petani binaan Koperasi Sinar Pagi Sejahtera, Minahasa Utara.'}
             </p>
           </div>
 
-          {/* Tombol Tambah Komoditas (khusus Petani di tab Produk Saya) */}
+          {/* Info Penyetoran Fisik ke Gudang (Khusus Petani di tab Produk Saya) */}
           {isPetani && activeTab === 'PRODUK_SAYA' && (
-            <button
-              onClick={handleOpenCreate}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white text-xs font-semibold shadow-xs hover:shadow transition cursor-pointer self-start md:self-auto"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Tambah Komoditas</span>
-            </button>
+            <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold self-start md:self-auto shadow-2xs">
+              <Warehouse className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>Penyetoran Fisik di Gudang Koperasi</span>
+            </div>
           )}
         </div>
 
@@ -412,7 +409,7 @@ export default function TokoOnlinePage() {
           {/* 1. Toggle Button Pill: "Produk Saya" vs "Belanja Koperasi" */}
           {isPetani ? (
             <div className="inline-flex items-center gap-2 p-1 bg-slate-100/80 rounded-full border border-slate-200/80 w-fit">
-              {/* Button 1: Produk Saya */}
+              {/* Button 1: Panen Saya di Gudang */}
               <button
                 onClick={() => setActiveTab('PRODUK_SAYA')}
                 className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer ${
@@ -421,8 +418,8 @@ export default function TokoOnlinePage() {
                     : 'bg-transparent text-slate-600 hover:text-slate-900'
                 }`}
               >
-                <ShoppingBag className="w-4 h-4" />
-                <span>Produk Saya</span>
+                <Warehouse className="w-4 h-4" />
+                <span>Panen Saya di Gudang</span>
               </button>
 
               {/* Button 2: Belanja Koperasi */}
@@ -499,27 +496,18 @@ export default function TokoOnlinePage() {
           /* Empty State */
           <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center flex flex-col items-center justify-center min-h-[360px] shadow-2xs">
             <div className="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center mb-4 border border-emerald-100">
-              <ShoppingBag className="w-8 h-8" />
+              <Warehouse className="w-8 h-8 text-emerald-600" />
             </div>
             <h3 className="text-base font-bold text-slate-800">
               {isPetani && activeTab === 'PRODUK_SAYA'
-                ? 'Belum Ada Komoditas yang Anda Daftarkan'
+                ? 'Belum Ada Komoditas di Gudang Koperasi'
                 : 'Tidak Ada Komoditas Ditemukan'}
             </h3>
-            <p className="text-xs text-slate-500 max-w-sm mt-1 mb-6">
+            <p className="text-xs text-slate-500 max-w-sm mt-1 mb-2">
               {isPetani && activeTab === 'PRODUK_SAYA'
-                ? 'Mulai jual hasil panen kelapa, jagung, atau produk turunan Anda langsung ke ekosistem koperasi.'
+                ? 'Bawa fisik hasil panen Anda (kelapa, jagung, kopra, dll.) ke gudang koperasi. Petugas admin koperasi yang akan menimbang dan mendata komoditas Anda ke etalase online.'
                 : 'Coba ubah kata kunci pencarian atau pilih filter kategori lainnya.'}
             </p>
-            {isPetani && activeTab === 'PRODUK_SAYA' && (
-              <button
-                onClick={handleOpenCreate}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold transition cursor-pointer shadow-xs"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Tambah Komoditas Pertama</span>
-              </button>
-            )}
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4.5">
@@ -608,30 +596,20 @@ export default function TokoOnlinePage() {
                 {/* Footer Action Buttons */}
                 <div className="px-2 pb-2 sm:px-3.5 sm:pb-3.5 pt-0">
                   {isPetani && activeTab === 'PRODUK_SAYA' ? (
-                    <div className="flex items-center gap-1 sm:gap-1.5">
-                      {/* Tombol Edit Produk Hijau Tua */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleOpenEdit(prod);
-                        }}
-                        className="flex-1 py-1 sm:py-1.5 px-1.5 sm:px-2.5 rounded-lg bg-[#183d2e] hover:bg-[#122e23] active:bg-[#0e241c] text-white text-[10px] sm:text-[11px] font-semibold flex items-center justify-center gap-1 transition cursor-pointer shadow-2xs"
+                    <div className="flex items-center justify-between gap-1.5 p-2 rounded-xl bg-slate-50 border border-slate-200/80 text-[10px] text-slate-700 font-medium">
+                      <span className="flex items-center gap-1.5 text-emerald-800 font-semibold truncate">
+                        <Warehouse className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        <span className="truncate">Gudang Koperasi</span>
+                      </span>
+                      <span
+                        className={`px-2 py-0.5 rounded-md font-bold text-[9px] shrink-0 border ${
+                          prod.isTersedia
+                            ? 'bg-emerald-100/70 text-emerald-800 border-emerald-300'
+                            : 'bg-slate-200 text-slate-600 border-slate-300'
+                        }`}
                       >
-                        <Pencil className="w-3 h-3" />
-                        <span>Edit</span>
-                      </button>
-
-                      {/* Tombol Hapus Produk Merah */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleOpenDelete(prod);
-                        }}
-                        className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-red-50 hover:bg-red-100 active:bg-red-200 text-red-500 border border-red-100 flex items-center justify-center transition cursor-pointer shrink-0"
-                        title="Hapus Produk"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                        {prod.isTersedia ? 'Aktif Dijual' : 'Habis / Nonaktif'}
+                      </span>
                     </div>
                   ) : (
                     /* Tombol Tambah ke Keranjang Belanja Koperasi (Klik membuka detail & counter qty) */

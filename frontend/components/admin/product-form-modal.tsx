@@ -224,12 +224,12 @@ export function ProductFormModal({
             </div>
             <div>
               <DialogTitle className="text-lg font-bold text-white">
-                {mode === 'CREATE' ? 'Tambah Komoditas Baru' : 'Edit Data Komoditas'}
+                {mode === 'CREATE' ? 'Input Komoditas Masuk Gudang' : 'Edit Data Komoditas Gudang'}
               </DialogTitle>
               <p className="text-xs text-emerald-100/90 mt-0.5">
                 {mode === 'CREATE'
-                  ? 'Daftarkan hasil panen kelapa, jagung, atau turunan ke katalog toko online.'
-                  : `Perbarui informasi katalog untuk komoditas ${initialData?.nama || ''}.`}
+                  ? 'Catat fisik hasil panen yang disetor petani ke gudang koperasi. Komoditas otomatis tayang di toko online.'
+                  : `Perbarui informasi stok dan komoditas gudang untuk ${initialData?.nama || ''}.`}
               </p>
             </div>
           </div>

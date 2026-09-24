@@ -225,14 +225,14 @@ export function TokoOnlineDataTable() {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-lg font-bold text-slate-900">
-              Katalog & Toko Online Komoditas
+              Katalog & Stok Fisik Gudang Komoditas
             </h1>
             <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-              {pagination.totalCount} Komoditas Terdaftar
+              {pagination.totalCount} Komoditas di Gudang
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            Kelola stok komoditas kelapa, jagung, kopra, dan produk hasil panen petani Koperasi Sinar Pagi Sejahtera.
+            Pencatatan fisik hasil panen yang dibawa petani ke gudang koperasi. Produk yang didata admin otomatis tayang di Toko Online Koperasi.
           </p>
         </div>
 
@@ -248,7 +248,7 @@ export function TokoOnlineDataTable() {
             <span className="hidden sm:inline">Segarkan Data</span>
           </button>
 
-          {/* Button Tambah Komoditas */}
+          {/* Button Input Komoditas Masuk Gudang */}
           <button
             onClick={() => {
               setSelectedProduct(null);
@@ -258,8 +258,16 @@ export function TokoOnlineDataTable() {
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold shadow-xs transition cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            <span>Tambah Komoditas</span>
+            <span>+ Input Komoditas Masuk Gudang</span>
           </button>
+        </div>
+      </div>
+
+      {/* Info Banner Alur B Satu Pintu */}
+      <div className="p-3.5 rounded-xl bg-emerald-50/80 border border-emerald-200/80 flex items-start gap-2.5 text-xs">
+        <Package className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
+        <div className="text-slate-700 leading-relaxed text-[11px]">
+          <strong className="text-emerald-900">Alur Masuk Fisik Barang:</strong> Petani membawa hasil panen ke gudang koperasi. Admin menimbang dan menginput data komoditas dengan memilih nama petani pemilik. Uang tunai hasil penjualan komoditas akan otomatis dialokasikan ke petani tersebut.
         </div>
       </div>
 
