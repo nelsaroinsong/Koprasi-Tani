@@ -482,28 +482,47 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
                 </div>
               </div>
 
-              <div className="pt-2.5 border-t border-emerald-700/60 flex items-center justify-between text-xs text-emerald-100/90 relative z-10">
+              <div className="mt-4 pt-2.5 border-t border-emerald-700/60 flex items-center justify-between text-xs text-emerald-100/90 relative z-10">
                 <span className="text-[11px] text-emerald-300/80 font-medium">Terdaftar</span>
                 <span className="font-bold text-xs text-emerald-100">{registeredDate}</span>
               </div>
 
-              {/* Status Mengikuti & Diikuti (Tampil di Bawah Terdaftar) */}
+              {/* Status Mengikuti & Pengikut (Tampil di Bawah Terdaftar dengan navigasi ke /toko/mengikuti) */}
               {user.role === 'PETANI' ? (
-                <div className="pt-2 border-t border-emerald-700/40 flex items-center justify-between text-xs text-emerald-100/90 relative z-10">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[11px] text-emerald-300/80 font-medium">Mengikuti:</span>
-                    <span className="font-bold text-xs text-emerald-100">{followStats.followingCount}</span>
-                  </div>
+                <div className="mt-2 pt-2 border-t border-emerald-700/40 flex items-center justify-between text-xs text-emerald-100/90 relative z-10">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsOpen(false);
+                      router.push('/toko/mengikuti');
+                    }}
+                    className="flex items-center gap-1.5 hover:text-white transition group cursor-pointer"
+                    title="Lihat daftar petani yang diikuti"
+                  >
+                    <span className="text-[11px] text-emerald-300/80 group-hover:text-emerald-200 font-medium">Mengikuti:</span>
+                    <span className="font-bold text-xs text-emerald-100 group-hover:underline">{followStats.followingCount}</span>
+                  </button>
                   <span className="text-emerald-500/60">•</span>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[11px] text-emerald-300/80 font-medium">Diikuti:</span>
-                    <span className="font-bold text-xs text-emerald-100">{followStats.followersCount} Pengikut</span>
+                    <span className="text-[11px] text-emerald-300/80 font-medium">Pengikut:</span>
+                    <span className="font-bold text-xs text-emerald-100">{followStats.followersCount}</span>
                   </div>
                 </div>
               ) : (
-                <div className="pt-2 border-t border-emerald-700/40 flex items-center justify-between text-xs text-emerald-100/90 relative z-10">
+                <div className="mt-2 pt-2 border-t border-emerald-700/40 flex items-center justify-between text-xs text-emerald-100/90 relative z-10">
                   <span className="text-[11px] text-emerald-300/80 font-medium">Mengikuti:</span>
-                  <span className="font-bold text-xs text-emerald-100">{followStats.followingCount} Petani</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsOpen(false);
+                      router.push('/toko/mengikuti');
+                    }}
+                    className="font-bold text-xs text-emerald-100 hover:text-white hover:underline transition cursor-pointer flex items-center gap-1 group"
+                    title="Lihat daftar petani yang Anda ikuti"
+                  >
+                    <span>{followStats.followingCount} Petani</span>
+                    <ChevronRight className="w-3 h-3 text-emerald-400 group-hover:translate-x-0.5 transition-transform" />
+                  </button>
                 </div>
               )}
             </div>
