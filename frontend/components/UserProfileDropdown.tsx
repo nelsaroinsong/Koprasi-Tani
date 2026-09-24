@@ -17,6 +17,9 @@ import {
   Phone,
   Camera,
   Trash2,
+  MessageCircle,
+  Minus,
+  Plus,
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import {
@@ -56,12 +59,81 @@ export default function UserProfileDropdown() {
     }
   }, []);
 
+  const [adminPhone, setAdminPhone] = useState<string>('081944078924');
+
+  // Fetch nomor kontak pengurus/admin koperasi aktif
+  useEffect(() => {
+    fetch('/api/user/profile')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.adminContact?.phone) {
+          setAdminPhone(data.adminContact.phone);
+        }
+      })
+      .catch((err) => console.error('Error fetching admin phone:', err));
+  }, []);
+
   useEffect(() => {
     syncCart();
     const handleCartEvent = () => syncCart();
     window.addEventListener('cart-updated', handleCartEvent);
     return () => window.removeEventListener('cart-updated', handleCartEvent);
   }, [syncCart]);
+
+  // Update kuantitas produk di dalam keranjang
+  const updateCartItemQty = (idx: number, delta: number) => {
+    const updated = [...cartItems];
+    const currentQty = Number(updated[idx].quantity) || 1;
+    const newQty = currentQty + delta;
+    if (newQty <= 0) {
+      updated.splice(idx, 1);
+    } else {
+      updated[idx].quantity = newQty;
+    }
+    localStorage.setItem('koperasi_cart', JSON.stringify(updated));
+    syncCart();
+  };
+
+  // Checkout Pesanan ke WhatsApp Admin Koperasi
+  const handleCheckoutWhatsApp = () => {
+    if (cartItems.length === 0) return;
+
+    const rawPhone = adminPhone || '081944078924';
+    const cleanPhone = rawPhone.replace(/\D/g, '').replace(/^0/, '62');
+
+    const totalBayar = cartItems.reduce(
+      (sum, item) => sum + Number(item.hargaPerSatuan) * Number(item.quantity),
+      0
+    );
+
+    const itemsText = cartItems
+      .map(
+        (item, idx) =>
+          `${idx + 1}. *${item.nama}*\n   • Jumlah: ${item.quantity} ${item.satuan}\n   • Subtotal: Rp ${(
+            Number(item.hargaPerSatuan) * Number(item.quantity)
+          ).toLocaleString('id-ID')}`
+      )
+      .join('\n\n');
+
+    const message = `Halo Pengurus Koperasi Sinar Pagi Sejahtera,
+Saya ingin memesan komoditas hasil panen melalui Toko Online Koperasi:
+
+*Data Pemesan:*
+• Nama: ${user?.name || 'Pelanggan Koperasi'}
+• No. Kontak: ${user?.phone || '-'}
+• Email: ${user?.email || '-'}
+• Alamat Pengiriman: ${user?.address || '-'}
+
+*Daftar Komoditas Pesanan:*
+${itemsText}
+
+*Total Pembayaran: Rp ${totalBayar.toLocaleString('id-ID')}*
+
+Mohon konfirmasi ketersediaan stok, ongkos kirim/pengiriman, dan instruksi pembayarannya. Terima kasih!`;
+
+    const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+    window.open(waUrl, '_blank');
+  };
 
   // Edit Profile Form State
   const [editName, setEditName] = useState('');
@@ -383,16 +455,16 @@ export default function UserProfileDropdown() {
                   <p className="text-[11px] mt-0.5">Pilih produk komoditas pada katalog toko online untuk mulai berbelanja.</p>
                 </div>
               ) : (
-                <div className="space-y-2 max-h-60 overflow-y-auto pr-1 my-3">
+                <div className="space-y-2 max-h-64 overflow-y-auto pr-1 my-3">
                   {cartItems.map((item, idx) => {
                     const itemTotal = Number(item.hargaPerSatuan) * Number(item.quantity);
                     return (
                       <div
                         key={item.id || idx}
-                        className="p-3 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between gap-3 text-xs"
+                        className="p-3 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs"
                       >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="w-10 h-10 rounded-xl bg-slate-200 overflow-hidden shrink-0">
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                          <div className="w-11 h-11 rounded-xl bg-slate-200 overflow-hidden shrink-0">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                               src={
@@ -403,33 +475,62 @@ export default function UserProfileDropdown() {
                               className="w-full h-full object-cover"
                             />
                           </div>
-                          <div className="min-w-0">
+                          <div className="min-w-0 flex-1">
                             <div className="font-bold text-slate-900 truncate">{item.nama}</div>
-                            <div className="text-slate-500 text-[11px]">
-                              {item.quantity} {item.satuan} • Rp {itemTotal.toLocaleString('id-ID')}
+                            <div className="text-slate-500 text-[11px] mt-0.5">
+                              Rp {Number(item.hargaPerSatuan).toLocaleString('id-ID')} /{item.satuan}
+                            </div>
+                            <div className="font-extrabold text-emerald-800 text-xs mt-0.5">
+                              Subtotal: Rp {itemTotal.toLocaleString('id-ID')}
                             </div>
                           </div>
                         </div>
 
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const updated = cartItems.filter((_, i) => i !== idx);
-                            localStorage.setItem('koperasi_cart', JSON.stringify(updated));
-                            syncCart();
-                          }}
-                          className="text-red-500 hover:text-red-700 p-1 rounded-lg hover:bg-red-50 text-[11px] font-semibold transition cursor-pointer shrink-0"
-                          title="Hapus dari keranjang"
-                        >
-                          Hapus
-                        </button>
+                        {/* Stepper Jumlah & Tombol Hapus */}
+                        <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 pt-1 sm:pt-0 border-t sm:border-t-0 border-slate-200/60">
+                          <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg p-0.5 shadow-2xs">
+                            <button
+                              type="button"
+                              onClick={() => updateCartItemQty(idx, -1)}
+                              className="w-6 h-6 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition cursor-pointer"
+                              title="Kurangi kuantitas"
+                            >
+                              <Minus className="w-3 h-3" />
+                            </button>
+                            <span className="w-8 text-center text-xs font-bold text-slate-800">
+                              {item.quantity}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => updateCartItemQty(idx, 1)}
+                              className="w-6 h-6 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-800 flex items-center justify-center transition cursor-pointer"
+                              title="Tambah kuantitas"
+                            >
+                              <Plus className="w-3 h-3" />
+                            </button>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = cartItems.filter((_, i) => i !== idx);
+                              localStorage.setItem('koperasi_cart', JSON.stringify(updated));
+                              syncCart();
+                            }}
+                            className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition cursor-pointer shrink-0"
+                            title="Hapus item"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
                     );
                   })}
 
-                  <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-xs font-bold text-slate-900 px-1">
-                    <span>Total Pembayaran:</span>
-                    <span className="text-sm font-extrabold text-emerald-800">
+                  {/* Summary Total */}
+                  <div className="pt-2.5 border-t border-slate-200 flex items-center justify-between text-xs px-1">
+                    <span className="text-slate-600 font-medium">Total Pembayaran ({cartCount} komoditas):</span>
+                    <span className="text-base font-black text-emerald-800">
                       Rp{' '}
                       {cartItems
                         .reduce(
@@ -443,27 +544,41 @@ export default function UserProfileDropdown() {
                 </div>
               )}
 
-              <div className="flex items-center gap-2 mt-4">
+              {/* Action Buttons */}
+              <div className="space-y-2 mt-4 pt-3 border-t border-slate-100">
                 {cartItems.length > 0 && (
                   <button
                     type="button"
-                    onClick={() => {
-                      localStorage.removeItem('koperasi_cart');
-                      syncCart();
-                    }}
-                    className="py-2.5 px-3 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl font-semibold text-xs transition cursor-pointer"
+                    onClick={handleCheckoutWhatsApp}
+                    className="w-full py-2.5 px-4 bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition cursor-pointer"
                   >
-                    Kosongkan
+                    <MessageCircle className="w-4 h-4 text-emerald-200" />
+                    <span>Checkout Pesanan via WhatsApp Koperasi</span>
                   </button>
                 )}
 
-                <button
-                  type="button"
-                  onClick={() => setActiveModal(null)}
-                  className="flex-1 py-2.5 bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white rounded-xl font-semibold text-xs transition cursor-pointer shadow-xs"
-                >
-                  Tutup Keranjang
-                </button>
+                <div className="flex items-center gap-2">
+                  {cartItems.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        localStorage.removeItem('koperasi_cart');
+                        syncCart();
+                      }}
+                      className="py-2 px-3 border border-slate-200 hover:bg-slate-50 text-slate-500 hover:text-red-600 rounded-xl font-semibold text-xs transition cursor-pointer"
+                    >
+                      Kosongkan
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setActiveModal(null)}
+                    className="flex-1 py-2 border border-slate-200 hover:bg-slate-100 text-slate-700 rounded-xl font-semibold text-xs transition cursor-pointer"
+                  >
+                    Tutup Keranjang
+                  </button>
+                </div>
               </div>
             </div>
           )}
