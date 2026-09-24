@@ -32,6 +32,8 @@ import {
   User,
   Calendar,
   MapPin,
+  Camera,
+  Upload,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useDebounce } from '@/hooks/use-debounce';
@@ -88,6 +90,13 @@ export function TokoOnlineDataTable() {
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<AdminProductData | null>(null);
+
+  // Quick Photo Upload States
+  const [quickPhotoProduct, setQuickPhotoProduct] = useState<AdminProductData | null>(null);
+  const [isQuickPhotoOpen, setIsQuickPhotoOpen] = useState(false);
+  const [quickUploadingSource, setQuickUploadingSource] = useState<'CAMERA' | 'GALLERY' | null>(null);
+  const quickCameraInputRef = useRef<HTMLInputElement>(null);
+  const quickGalleryInputRef = useRef<HTMLInputElement>(null);
 
   // Warehouse Address States
   const [warehouseAddress, setWarehouseAddress] = useState(
@@ -239,6 +248,91 @@ export function TokoOnlineDataTable() {
       }
     };
   }, [fetchProducts]);
+
+  // Handler Upload Foto Cepat Tanpa Buka Modal Edit Penuh
+  const handleQuickPhotoUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    source: 'CAMERA' | 'GALLERY'
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file || !quickPhotoProduct) return;
+
+    if (!file.type.startsWith('image/')) {
+      showToast({
+        title: 'Format Salah',
+        message: 'Berkas harus berupa gambar (JPG, PNG, atau WebP).',
+        type: 'error',
+      });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      showToast({
+        title: 'Ukuran Terlalu Besar',
+        message: 'Ukuran gambar maksimal 5 MB.',
+        type: 'error',
+      });
+      return;
+    }
+
+    try {
+      setQuickUploadingSource(source);
+      const formData = new FormData();
+      formData.append('file', file);
+
+      // 1. Upload ke Cloudflare R2
+      const res = await fetch('/api/upload/product', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        throw new Error(data.error || 'Gagal mengunggah foto produk.');
+      }
+
+      const newImageUrl = data.url;
+
+      // 2. Langsung update kolom imageUrl di database tanpa perlu isi form lainnya
+      const updateRes = await fetch(`/api/admin/products/${quickPhotoProduct.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageUrl: newImageUrl,
+        }),
+      });
+
+      const updateData = await updateRes.json();
+      if (!updateRes.ok) {
+        throw new Error(updateData.error || 'Gagal memperbarui foto komoditas di database.');
+      }
+
+      showToast({
+        title: 'Foto Komoditas Berhasil Diperbarui',
+        message: `Foto fisik untuk "${quickPhotoProduct.nama}" berhasil disimpan & tayang.`,
+        type: 'success',
+      });
+
+      // Update state lokal langsung
+      setProductList((prev) =>
+        prev.map((p) => (p.id === quickPhotoProduct.id ? { ...p, imageUrl: newImageUrl } : p))
+      );
+
+      setIsQuickPhotoOpen(false);
+      setQuickPhotoProduct(null);
+    } catch (err: any) {
+      console.error(err);
+      showToast({
+        title: 'Gagal Memperbarui Foto',
+        message: err.message || 'Terjadi gangguan saat mengunggah foto.',
+        type: 'error',
+      });
+    } finally {
+      setQuickUploadingSource(null);
+      if (quickCameraInputRef.current) quickCameraInputRef.current.value = '';
+      if (quickGalleryInputRef.current) quickGalleryInputRef.current.value = '';
+    }
+  };
 
   // Toggle Status Cepat
   const handleToggleStatus = async (product: AdminProductData) => {
@@ -572,9 +666,20 @@ export function TokoOnlineDataTable() {
                       </button>
                     </TableCell>
 
-                    {/* Action Buttons: Edit & Hapus */}
+                    {/* Action Buttons: Quick Photo, Edit & Hapus */}
                     <TableCell className="text-right pr-4">
                       <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => {
+                            setQuickPhotoProduct(prod);
+                            setIsQuickPhotoOpen(true);
+                          }}
+                          className="p-1.5 rounded-lg border border-emerald-200 bg-emerald-50/80 hover:bg-emerald-100 hover:border-emerald-300 text-emerald-800 transition cursor-pointer shadow-2xs group"
+                          title="Ganti Foto Cepat (Kamera HP / Galeri)"
+                        >
+                          <Camera className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
+                        </button>
+
                         <button
                           onClick={() => {
                             setSelectedProduct(prod);
@@ -582,7 +687,7 @@ export function TokoOnlineDataTable() {
                             setFormModalOpen(true);
                           }}
                           className="p-1.5 rounded-lg border border-slate-200 hover:bg-emerald-50 hover:border-emerald-300 text-slate-600 hover:text-emerald-800 transition cursor-pointer"
-                          title="Edit Data Komoditas"
+                          title="Edit Data Komoditas Lengkap"
                         >
                           <Pencil className="w-3.5 h-3.5" />
                         </button>
@@ -725,6 +830,151 @@ export function TokoOnlineDataTable() {
               </button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal 4: Quick Photo Upload Dialog (Mobile & Quick Action) */}
+      <Dialog
+        open={isQuickPhotoOpen}
+        onOpenChange={(open) => {
+          if (!quickUploadingSource) {
+            setIsQuickPhotoOpen(open);
+            if (!open) setQuickPhotoProduct(null);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md rounded-3xl p-6 bg-white border border-slate-200 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                <Camera className="w-4 h-4" />
+              </div>
+              <div>
+                <div>Foto Fisik Komoditas</div>
+                <p className="text-xs font-normal text-slate-500 mt-0.5">
+                  Perbarui foto cepat tanpa membuka form edit
+                </p>
+              </div>
+            </DialogTitle>
+          </DialogHeader>
+
+          {quickPhotoProduct && (
+            <div className="space-y-4 my-2">
+              {/* Product Info & Current Preview */}
+              <div className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl flex items-center gap-3">
+                <div className="w-14 h-14 rounded-xl overflow-hidden bg-slate-200 border border-slate-200 shrink-0 relative">
+                  <img
+                    src={quickPhotoProduct.imageUrl || 'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=300&q=80'}
+                    alt={quickPhotoProduct.nama}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src =
+                        'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=300&q=80';
+                    }}
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-xs font-bold text-slate-800 truncate">
+                    {quickPhotoProduct.nama}
+                  </div>
+                  <div className="text-[11px] text-slate-500 flex items-center gap-1.5 mt-0.5">
+                    <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200/60 font-semibold text-[10px]">
+                      {quickPhotoProduct.kategori}
+                    </span>
+                    <span>•</span>
+                    <span className="truncate">{quickPhotoProduct.petani?.name || 'Petani Koperasi'}</span>
+                  </div>
+                  <div className="text-[10px] text-slate-400 mt-1">
+                    Foto saat ini ditampilkan di katalog toko
+                  </div>
+                </div>
+              </div>
+
+              {/* Hidden file inputs for Camera & Gallery */}
+              <input
+                ref={quickCameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                disabled={quickUploadingSource !== null}
+                onChange={(e) => handleQuickPhotoUpload(e, 'CAMERA')}
+              />
+              <input
+                ref={quickGalleryInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                disabled={quickUploadingSource !== null}
+                onChange={(e) => handleQuickPhotoUpload(e, 'GALLERY')}
+              />
+
+              {/* Upload Action Buttons */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                {/* 1. Tombol Kamera HP */}
+                <button
+                  type="button"
+                  onClick={() => quickCameraInputRef.current?.click()}
+                  disabled={quickUploadingSource !== null}
+                  className="w-full flex flex-col items-center justify-center p-4 rounded-2xl border-2 border-dashed border-emerald-500/50 bg-emerald-50/50 hover:bg-emerald-100/70 hover:border-emerald-600 transition cursor-pointer text-center group disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  <div className="w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center mb-2 group-hover:scale-110 transition-transform shadow-xs">
+                    {quickUploadingSource === 'CAMERA' ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <Camera className="w-5 h-5" />
+                    )}
+                  </div>
+                  <span className="text-xs font-bold text-slate-800">
+                    {quickUploadingSource === 'CAMERA' ? 'Mengunggah Foto...' : 'Jepret Kamera HP'}
+                  </span>
+                  <span className="text-[10px] text-slate-500 mt-0.5">
+                    Kamera belakang ponsel
+                  </span>
+                </button>
+
+                {/* 2. Tombol Galeri Foto */}
+                <button
+                  type="button"
+                  onClick={() => quickGalleryInputRef.current?.click()}
+                  disabled={quickUploadingSource !== null}
+                  className="w-full flex flex-col items-center justify-center p-4 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 transition cursor-pointer text-center group disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                    {quickUploadingSource === 'GALLERY' ? (
+                      <Loader2 className="w-5 h-5 animate-spin text-emerald-600" />
+                    ) : (
+                      <Upload className="w-5 h-5" />
+                    )}
+                  </div>
+                  <span className="text-xs font-bold text-slate-800">
+                    {quickUploadingSource === 'GALLERY' ? 'Mengunggah Foto...' : 'Pilih dari Galeri'}
+                  </span>
+                  <span className="text-[10px] text-slate-500 mt-0.5">
+                    JPG, PNG, atau WebP
+                  </span>
+                </button>
+              </div>
+
+              <p className="text-[11px] text-slate-400 text-center leading-relaxed">
+                Foto akan otomatis dioptimasi, disimpan aman, dan langsung diperbarui di toko.
+              </p>
+            </div>
+          )}
+
+          <DialogFooter className="pt-2 border-t border-slate-100">
+            <button
+              type="button"
+              disabled={quickUploadingSource !== null}
+              onClick={() => {
+                setIsQuickPhotoOpen(false);
+                setQuickPhotoProduct(null);
+              }}
+              className="w-full sm:w-auto px-4 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl text-xs font-semibold cursor-pointer disabled:opacity-60"
+            >
+              Tutup
+            </button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
