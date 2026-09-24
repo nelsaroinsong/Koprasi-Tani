@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
+import { getCache, setCache, delCache, delCachePattern } from '@/lib/redis';
 
 export async function GET() {
   try {
@@ -8,6 +9,12 @@ export async function GET() {
 
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Tidak terotentikasi' }, { status: 401 });
+    }
+
+    const cacheKey = `user:profile:${session.user.email}`;
+    const cachedProfile = await getCache<any>(cacheKey);
+    if (cachedProfile) {
+      return NextResponse.json(cachedProfile);
     }
 
     const dbUser = await prisma.user.findUnique({
@@ -47,7 +54,7 @@ export async function GET() {
       console.warn('Error reading follow stats for user:', e);
     }
 
-    return NextResponse.json({
+    const responseData = {
       success: true,
       user: {
         id: dbUser.id,
@@ -66,7 +73,12 @@ export async function GET() {
       adminContact: {
         phone: adminUser?.phone || null,
       },
-    });
+    };
+
+    // Cache user profile for 120 seconds
+    await setCache(cacheKey, responseData, 120);
+
+    return NextResponse.json(responseData);
   } catch (error) {
     console.error('Error saat mengambil profil pengguna:', error);
     return NextResponse.json({ error: 'Gagal mengambil profil' }, { status: 500 });
@@ -94,6 +106,10 @@ export async function POST(request: Request) {
         ...(avatarUrl !== undefined && { avatarUrl }),
       },
     });
+
+    // Invalidate user cache and any farmer public cache
+    await delCache(`user:profile:${targetEmail}`);
+    await delCachePattern('petani:*');
 
     return NextResponse.json({
       success: true,

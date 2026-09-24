@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
+import { delCache } from '@/lib/redis';
 
 export async function POST(request: Request) {
   try {
@@ -39,6 +40,9 @@ export async function POST(request: Request) {
         isVerified,
       },
     });
+
+    // Invalidate user profile cache
+    await delCache(`user:profile:${session.user.email}`).catch(() => {});
 
     return NextResponse.json({ success: true, user: updated });
   } catch (error) {

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
+import { delCache, delCachePattern } from '@/lib/redis';
 
 // POST: Toggle follow/unfollow petani
 export async function POST(
@@ -107,6 +108,13 @@ export async function POST(
       );
       followersCount = countRows[0]?.count || 0;
     }
+
+    // Invalidate Redis caches
+    await Promise.all([
+      delCache(`petani:public:${petaniId}`),
+      delCache(`user:profile:${session.user.email}`),
+      delCache(`user:following:${currentUser.id}`),
+    ]).catch(() => {});
 
     return NextResponse.json({
       success: true,

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
+import { getCache, setCache } from '@/lib/redis';
 
 // GET: Ambil daftar petani yang diikuti oleh pengguna saat ini
 export async function GET() {
@@ -17,6 +18,12 @@ export async function GET() {
 
     if (!currentUser) {
       return NextResponse.json({ error: 'Pengguna tidak ditemukan' }, { status: 404 });
+    }
+
+    const cacheKey = `user:following:${currentUser.id}`;
+    const cachedFollowing = await getCache<any>(cacheKey);
+    if (cachedFollowing) {
+      return NextResponse.json(cachedFollowing);
     }
 
     let followedPetaniList: any[] = [];
@@ -93,11 +100,16 @@ export async function GET() {
       followedPetaniList = results;
     }
 
-    return NextResponse.json({
+    const responseData = {
       success: true,
       following: followedPetaniList,
       totalCount: followedPetaniList.length,
-    });
+    };
+
+    // Cache for 2 minutes (120 seconds)
+    await setCache(cacheKey, responseData, 120);
+
+    return NextResponse.json(responseData);
   } catch (error: any) {
     console.error('Error fetching following list:', error);
     return NextResponse.json({ error: error.message || 'Gagal memuat daftar petani yang diikuti' }, { status: 500 });

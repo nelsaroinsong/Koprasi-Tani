@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
+import { delCachePattern } from '@/lib/redis';
 
 // 1. READ: Ambil daftar seluruh produk untuk admin dengan pagination, search, dan filter
 export async function GET(request: Request) {
@@ -195,6 +196,12 @@ export async function POST(request: Request) {
         },
       },
     });
+
+    // Invalidate product catalog and farmer caches
+    await Promise.all([
+      delCachePattern('products:*'),
+      delCachePattern('petani:*'),
+    ]).catch(() => {});
 
     return NextResponse.json({
       success: true,

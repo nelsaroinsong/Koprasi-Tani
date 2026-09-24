@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
+import { getCache, setCache, delCache, delCachePattern } from '@/lib/redis';
 
 // 1. GET: Ambil Rekap Dana Cash & Penyerahan Keuntungan Petani
 export async function GET() {
@@ -13,6 +14,12 @@ export async function GET() {
 
     if ((session.user as any).role !== 'ADMIN') {
       return NextResponse.json({ error: 'Akses khusus administrator' }, { status: 403 });
+    }
+
+    const cacheKey = 'admin:payouts:summary';
+    const cachedData = await getCache<any>(cacheKey);
+    if (cachedData) {
+      return NextResponse.json(cachedData);
     }
 
     // Ambil semua order item yang tidak dibatalkan
@@ -108,7 +115,7 @@ export async function GET() {
       (a, b) => b.siapDicairkanCash - a.siapDicairkanCash
     );
 
-    return NextResponse.json({
+    const responseData = {
       success: true,
       petaniPayouts: petaniPayoutList,
       summary: {
@@ -116,7 +123,12 @@ export async function GET() {
         totalSudahDiserahkanCash: totalKeseluruhanSudahCash,
         totalPetaniAktif: petaniPayoutList.length,
       },
-    });
+    };
+
+    // Cache for 60 seconds
+    await setCache(cacheKey, responseData, 60);
+
+    return NextResponse.json(responseData);
   } catch (error) {
     console.error('Error saat mengambil data pencairan cash petani:', error);
     return NextResponse.json({ error: 'Gagal mengambil data pencairan cash petani' }, { status: 500 });
@@ -177,6 +189,12 @@ export async function POST(request: Request) {
         payoutAt: new Date(),
       },
     });
+
+    // Invalidate payout summary and petani dashboard caches
+    await Promise.all([
+      delCache('admin:payouts:summary'),
+      delCachePattern('petani:dashboard:*'),
+    ]).catch(() => {});
 
     return NextResponse.json({
       success: true,

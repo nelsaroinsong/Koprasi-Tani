@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { hashPassword, verifyPassword } from '@/lib/auth-passwords';
+import { delCache } from '@/lib/redis';
 
 export async function GET() {
   try {
@@ -141,6 +142,12 @@ export async function POST(request: Request) {
       where: { email: session.user.email },
       data: updateData,
     });
+
+    // Invalidate koperasi info and user profile caches
+    await Promise.all([
+      delCache('koperasi:info'),
+      delCache(`user:profile:${session.user.email}`),
+    ]).catch(() => {});
 
     return NextResponse.json({
       success: true,

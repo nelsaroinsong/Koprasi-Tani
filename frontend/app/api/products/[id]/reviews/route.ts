@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
+import { getCache, setCache, delCache, delCachePattern } from '@/lib/redis';
 
 // GET: Ambil daftar ulasan untuk suatu produk
 export async function GET(
@@ -9,6 +10,13 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+
+    const cacheKey = `reviews:product:${id}`;
+    const cachedReviews = await getCache<any>(cacheKey);
+    if (cachedReviews) {
+      return NextResponse.json(cachedReviews);
+    }
+
     let reviews: any[] = [];
 
     if ((prisma as any).review) {
@@ -49,10 +57,15 @@ export async function GET(
       }));
     }
 
-    return NextResponse.json({
+    const responseData = {
       success: true,
       reviews,
-    });
+    };
+
+    // Cache for 3 minutes (180s)
+    await setCache(cacheKey, responseData, 180);
+
+    return NextResponse.json(responseData);
   } catch (error: any) {
     console.error('Error fetch reviews:', error);
     return NextResponse.json({ error: error.message || 'Gagal memuat ulasan' }, { status: 500 });
@@ -175,6 +188,13 @@ export async function POST(
         },
       };
     }
+
+    // Invalidate review cache, product cache, and farmer profile cache
+    await Promise.all([
+      delCache(`reviews:product:${productId}`),
+      delCache(`products:${productId}`),
+      delCachePattern(`petani:*`),
+    ]).catch(() => {});
 
     return NextResponse.json({
       success: true,

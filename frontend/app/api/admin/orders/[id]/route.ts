@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
+import { delCachePattern } from '@/lib/redis';
 
 export async function PATCH(
   request: Request,
@@ -83,6 +84,14 @@ export async function PATCH(
 
       return orderResult;
     });
+
+    // Invalidate Redis caches
+    await Promise.all([
+      delCachePattern('admin:orders:*'),
+      delCachePattern('user:orders:*'),
+      delCachePattern('products:*'),
+      delCachePattern('petani:*'),
+    ]).catch(() => {});
 
     return NextResponse.json({
       success: true,

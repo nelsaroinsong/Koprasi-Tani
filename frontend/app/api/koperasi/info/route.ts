@@ -1,13 +1,20 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/auth';
+import { getCache, setCache, delCache } from '@/lib/redis';
 
 const DEFAULT_ADDRESS =
   'Koperasi Sinar Pagi Sejahtera — Jl. Raya Kolongan, Kec. Kalawat, Kabupaten Minahasa Utara, Sulawesi Utara';
+const KOPERASI_CACHE_KEY = 'koperasi:info';
 
 // 1. GET: Ambil info resmi Koperasi (Alamat Gudang, No. WhatsApp) untuk checkout & katalog
 export async function GET() {
   try {
+    const cached = await getCache<any>(KOPERASI_CACHE_KEY);
+    if (cached) {
+      return NextResponse.json(cached);
+    }
+
     const admin = await prisma.user.findFirst({
       where: { role: 'ADMIN' },
       select: {
@@ -21,12 +28,17 @@ export async function GET() {
     const alamatGudang = admin?.address?.trim() || DEFAULT_ADDRESS;
     const phone = admin?.phone?.trim() || '081944078924';
 
-    return NextResponse.json({
+    const responseData = {
       success: true,
       namaKoperasi: 'Koperasi Sinar Pagi Sejahtera',
       alamat: alamatGudang,
       telepon: phone,
-    });
+    };
+
+    // Cache for 1 hour (3600 seconds)
+    await setCache(KOPERASI_CACHE_KEY, responseData, 3600);
+
+    return NextResponse.json(responseData);
   } catch (error) {
     console.error('Error fetching koperasi info:', error);
     return NextResponse.json({
@@ -84,6 +96,9 @@ export async function PATCH(request: Request) {
         address: true,
       },
     });
+
+    // Invalidate Redis cache
+    await delCache(KOPERASI_CACHE_KEY);
 
     return NextResponse.json({
       success: true,

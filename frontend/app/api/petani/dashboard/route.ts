@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
+import { getCache, setCache } from '@/lib/redis';
 
 export async function GET() {
   try {
@@ -16,6 +17,12 @@ export async function GET() {
 
     if (!currentUser) {
       return NextResponse.json({ error: 'Pengguna tidak ditemukan' }, { status: 404 });
+    }
+
+    const cacheKey = `petani:dashboard:${currentUser.id}`;
+    const cachedData = await getCache<any>(cacheKey);
+    if (cachedData) {
+      return NextResponse.json(cachedData);
     }
 
     // Ambil semua komoditas fisik milik petani di gudang koperasi
@@ -65,7 +72,7 @@ export async function GET() {
       }
     }
 
-    return NextResponse.json({
+    const responseData = {
       success: true,
       stats: {
         totalKomoditasDidaftarkan: products.length,
@@ -85,7 +92,12 @@ export async function GET() {
         payoutAt: i.payoutAt?.toISOString() || null,
         orderDate: i.order.createdAt.toISOString(),
       })),
-    });
+    };
+
+    // Cache for 3 minutes (180 seconds)
+    await setCache(cacheKey, responseData, 180);
+
+    return NextResponse.json(responseData);
   } catch (error) {
     console.error('Error saat mengambil dashboard petani:', error);
     return NextResponse.json({ error: 'Gagal mengambil data dashboard petani' }, { status: 500 });

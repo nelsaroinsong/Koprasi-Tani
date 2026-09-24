@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
+import { getCache, setCache, delCachePattern } from '@/lib/redis';
 
 export async function GET(request: Request) {
   try {
@@ -17,7 +18,7 @@ export async function GET(request: Request) {
 
     const session = await auth();
 
-    // Jika filter produk saya, pastikan user sudah login
+    // 1. Jika filter produk saya (petani login), gunakan query spesifik user
     if (mineOnly) {
       if (!session?.user?.id && !session?.user?.email) {
         return NextResponse.json({ error: 'Tidak terotentikasi' }, { status: 401 });
@@ -30,6 +31,12 @@ export async function GET(request: Request) {
 
       if (!dbUser) {
         return NextResponse.json({ error: 'Pengguna tidak ditemukan' }, { status: 404 });
+      }
+
+      const cacheKey = `products:mine:${dbUser.id}:p=${page}:l=${limit}:cat=${kategori || 'ALL'}:q=${search || ''}`;
+      const cached = await getCache<any>(cacheKey);
+      if (cached) {
+        return NextResponse.json(cached);
       }
 
       const whereCondition = {
@@ -54,8 +61,7 @@ export async function GET(request: Request) {
       ]);
 
       const hasMore = skip + products.length < totalCount;
-
-      return NextResponse.json({
+      const responseData = {
         success: true,
         products,
         pagination: {
@@ -65,10 +71,20 @@ export async function GET(request: Request) {
           hasMore,
           totalPages: Math.ceil(totalCount / limit),
         },
-      });
+      };
+
+      await setCache(cacheKey, responseData, 180); // 3 menit
+      return NextResponse.json(responseData);
     }
 
-    // Mengambil seluruh produk yang aktif di Koperasi
+    // 2. Katalog Publik Koperasi (Dengan Redis Cache-Aside)
+    const publicCacheKey = `products:public:p=${page}:l=${limit}:cat=${kategori || 'ALL'}:q=${search || ''}`;
+    const cachedCatalog = await getCache<any>(publicCacheKey);
+    if (cachedCatalog) {
+      return NextResponse.json(cachedCatalog);
+    }
+
+    // Mengambil seluruh produk yang aktif di Koperasi dari DB jika cache miss
     const whereCondition = {
       isTersedia: true,
       ...(kategori && kategori !== 'SEMUA' && { kategori }),
@@ -101,8 +117,7 @@ export async function GET(request: Request) {
     ]);
 
     const hasMore = skip + products.length < totalCount;
-
-    return NextResponse.json({
+    const responseData = {
       success: true,
       products,
       pagination: {
@@ -112,7 +127,12 @@ export async function GET(request: Request) {
         hasMore,
         totalPages: Math.ceil(totalCount / limit),
       },
-    });
+    };
+
+    // Simpan ke Redis selama 300 detik (5 menit)
+    await setCache(publicCacheKey, responseData, 300);
+
+    return NextResponse.json(responseData);
   } catch (error: any) {
     console.error('Error saat mengambil produk:', error);
     return NextResponse.json({ error: error.message || 'Gagal memuat produk' }, { status: 500 });
@@ -172,6 +192,12 @@ export async function POST(request: Request) {
         petaniId: dbUser.id,
       },
     });
+
+    // Invalidate Redis Cache untuk katalog dan dashboard petani
+    await Promise.all([
+      delCachePattern('products:*'),
+      delCachePattern('petani:dashboard:*'),
+    ]);
 
     return NextResponse.json({
       success: true,

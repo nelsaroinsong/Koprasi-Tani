@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
+import { delCachePattern } from '@/lib/redis';
 
 // 1. PUT: Update data komoditas secara komprehensif
 export async function PUT(
@@ -67,6 +68,12 @@ export async function PUT(
       },
     });
 
+    // Invalidate product and farmer caches
+    await Promise.all([
+      delCachePattern('products:*'),
+      delCachePattern('petani:*'),
+    ]).catch(() => {});
+
     return NextResponse.json({
       success: true,
       product: {
@@ -107,6 +114,12 @@ export async function PATCH(
       },
     });
 
+    // Invalidate product and farmer caches
+    await Promise.all([
+      delCachePattern('products:*'),
+      delCachePattern('petani:*'),
+    ]).catch(() => {});
+
     return NextResponse.json({
       success: true,
       product: {
@@ -141,6 +154,12 @@ export async function DELETE(
     await prisma.product.delete({
       where: { id },
     });
+
+    // Invalidate product and farmer caches
+    await Promise.all([
+      delCachePattern('products:*'),
+      delCachePattern('petani:*'),
+    ]).catch(() => {});
 
     return NextResponse.json({
       success: true,

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
+import { getCache, setCache, delCache, delCachePattern } from '@/lib/redis';
 
 // 1. POST: Buat Pesanan Baru oleh Pembeli (Otomatis potong stok di gudang koperasi)
 export async function POST(request: Request) {
@@ -120,6 +121,14 @@ export async function POST(request: Request) {
       return createdOrder;
     });
 
+    // Invalidate Redis caches: products stock changed, admin orders list, petani dashboard, and user orders
+    await Promise.all([
+      delCachePattern('products:*'),
+      delCachePattern('petani:*'),
+      delCachePattern('admin:orders:*'),
+      delCache(`user:orders:${currentUser.id}`),
+    ]).catch(() => {});
+
     return NextResponse.json({
       success: true,
       message: 'Pesanan berhasil dibuat di sistem koperasi.',
@@ -159,6 +168,12 @@ export async function GET() {
       return NextResponse.json({ error: 'Pengguna tidak ditemukan' }, { status: 404 });
     }
 
+    const cacheKey = `user:orders:${currentUser.id}`;
+    const cachedOrders = await getCache<any>(cacheKey);
+    if (cachedOrders) {
+      return NextResponse.json(cachedOrders);
+    }
+
     const orders = await prisma.order.findMany({
       where: { pembeliId: currentUser.id },
       include: {
@@ -179,7 +194,7 @@ export async function GET() {
       orderBy: { createdAt: 'desc' },
     });
 
-    return NextResponse.json({
+    const responseData = {
       success: true,
       orders: orders.map((o) => ({
         ...o,
@@ -190,7 +205,12 @@ export async function GET() {
           subtotal: Number(i.subtotal),
         })),
       })),
-    });
+    };
+
+    // Cache for 60 seconds
+    await setCache(cacheKey, responseData, 60);
+
+    return NextResponse.json(responseData);
   } catch (error) {
     console.error('Error saat mengambil riwayat pesanan:', error);
     return NextResponse.json({ error: 'Gagal mengambil riwayat pesanan' }, { status: 500 });

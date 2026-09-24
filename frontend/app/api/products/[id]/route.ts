@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
+import { delCachePattern } from '@/lib/redis';
 
 export async function GET(
   request: Request,
@@ -294,6 +295,12 @@ export async function PUT(
       },
     });
 
+    // Invalidate cache produk dan dashboard petani
+    await Promise.all([
+      delCachePattern('products:*'),
+      delCachePattern('petani:dashboard:*'),
+    ]);
+
     return NextResponse.json({
       success: true,
       message: 'Produk berhasil diperbarui!',
@@ -344,6 +351,12 @@ export async function DELETE(
     await prisma.product.delete({
       where: { id },
     });
+
+    // Invalidate cache produk dan dashboard petani
+    await Promise.all([
+      delCachePattern('products:*'),
+      delCachePattern('petani:dashboard:*'),
+    ]);
 
     return NextResponse.json({
       success: true,

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
+import { delCache } from '@/lib/redis';
 
 export async function POST(request: Request) {
   try {
@@ -64,6 +65,9 @@ export async function POST(request: Request) {
         isActive: true,
       },
     });
+
+    // Invalidate user profile cache
+    await delCache(`user:profile:${userEmail}`).catch(() => {});
 
     const redirectUrl = role === 'PETANI' ? '/verifikasi-petani' : '/toko';
 

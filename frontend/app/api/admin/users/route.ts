@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
+import { delCachePattern } from '@/lib/redis';
 
 // 1. READ: Ambil daftar pengguna dengan server-side pagination, search, dan filter
 export async function GET(request: Request) {
@@ -147,6 +148,12 @@ export async function POST(request: Request) {
       },
     });
 
+    // Invalidate user and farmer caches
+    await Promise.all([
+      delCachePattern('user:profile:*'),
+      delCachePattern('petani:*'),
+    ]).catch(() => {});
+
     return NextResponse.json({
       success: true,
       message: `Berhasil menambahkan data ${role === 'PETANI' ? 'Petani' : 'Pembeli'}.`,
@@ -225,6 +232,12 @@ export async function PUT(request: Request) {
       data: updateData,
     });
 
+    // Invalidate user and farmer caches
+    await Promise.all([
+      delCachePattern('user:profile:*'),
+      delCachePattern('petani:*'),
+    ]).catch(() => {});
+
     return NextResponse.json({
       success: true,
       message: 'Data pengguna berhasil diperbarui.',
@@ -260,6 +273,12 @@ export async function PATCH(request: Request) {
       where: { id },
       data: { isVerified },
     });
+
+    // Invalidate user and farmer caches
+    await Promise.all([
+      delCachePattern('user:profile:*'),
+      delCachePattern('petani:*'),
+    ]).catch(() => {});
 
     return NextResponse.json({
       success: true,
@@ -306,6 +325,12 @@ export async function DELETE(request: Request) {
     await prisma.user.delete({
       where: { id },
     });
+
+    // Invalidate user and farmer caches
+    await Promise.all([
+      delCachePattern('user:profile:*'),
+      delCachePattern('petani:*'),
+    ]).catch(() => {});
 
     return NextResponse.json({
       success: true,
