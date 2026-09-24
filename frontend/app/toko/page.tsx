@@ -561,9 +561,9 @@ export default function TokoOnlinePage() {
           </div>
         </div>
 
-        {/* 1. Category Navigation - Mobile Mode (Gambar 2: Tokopedia Circular Icons & Label) */}
-        <div className="block sm:hidden mb-3">
-          <div className="flex items-center gap-3 overflow-x-auto pb-1 px-1 no-scrollbar">
+        {/* 1. Category Navigation - Mobile Mode (Pas Layar dengan 5 Kolom Proporsional & Margin Top Lega) */}
+        <div className="block sm:hidden mt-5 mb-5 px-1">
+          <div className="grid grid-cols-5 gap-1 w-full items-start">
             {KATEGORI_CONFIG.map((cat) => {
               const isSelected = selectedKategori === cat.key;
               return (
@@ -571,7 +571,7 @@ export default function TokoOnlinePage() {
                   key={cat.key}
                   type="button"
                   onClick={() => setSelectedKategori(cat.key)}
-                  className="flex flex-col items-center gap-1 shrink-0 group cursor-pointer focus:outline-none transition active:scale-95"
+                  className="flex flex-col items-center gap-1.5 w-full group cursor-pointer focus:outline-none transition active:scale-95"
                 >
                   <div
                     className={`w-11 h-11 rounded-full flex items-center justify-center shadow-2xs transition-all ${
@@ -589,7 +589,7 @@ export default function TokoOnlinePage() {
                     )}
                   </div>
                   <span
-                    className={`text-[10px] text-center leading-tight max-w-[54px] truncate transition-colors ${
+                    className={`text-[10px] text-center leading-tight w-full truncate transition-colors ${
                       isSelected
                         ? 'font-bold text-emerald-800'
                         : 'font-medium text-slate-700 group-hover:text-slate-900'
@@ -603,7 +603,7 @@ export default function TokoOnlinePage() {
           </div>
         </div>
 
-        {/* 2. Category Navigation - Tablet & Desktop Mode (Gambar 3: Tokopedia Pill Badges with Icons) */}
+        {/* 2. Category Navigation - Tablet & Desktop Mode (Rounded-lg: Agak Kotak Bersudut Halus, Tidak Lancip) */}
         <div className="hidden sm:flex items-center gap-2 overflow-x-auto pb-2 mb-5 no-scrollbar">
           {KATEGORI_CONFIG.map((cat) => {
             const isSelected = selectedKategori === cat.key;
@@ -612,7 +612,7 @@ export default function TokoOnlinePage() {
                 key={cat.key}
                 type="button"
                 onClick={() => setSelectedKategori(cat.key)}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-2 border shadow-2xs ${
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-2 border shadow-2xs ${
                   isSelected
                     ? 'bg-emerald-700 text-white border-emerald-700 font-bold shadow-xs'
                     : 'bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-900 border-slate-200'
