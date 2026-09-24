@@ -172,6 +172,9 @@ export async function GET() {
             },
           },
         },
+        pembeli: {
+          select: { id: true, name: true, phone: true, address: true },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });

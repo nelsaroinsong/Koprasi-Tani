@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   User as UserIcon,
   ChevronDown,
@@ -25,6 +26,13 @@ import {
   Check,
   Loader2,
   Banknote,
+  ClipboardList,
+  RefreshCw,
+  Clock,
+  Truck,
+  Store,
+  Home,
+  Boxes,
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import {
@@ -36,6 +44,7 @@ import {
 } from '@/components/ui/dialog';
 
 export default function UserProfileDropdown() {
+  const router = useRouter();
   const { user, logout, updateProfile } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [activeModal, setActiveModal] = useState<string | null>(null);
@@ -69,6 +78,11 @@ export default function UserProfileDropdown() {
   // Riwayat Orders State
   const [userOrders, setUserOrders] = useState<any[]>([]);
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
+  const [orderFilter, setOrderFilter] = useState<'ALL' | 'ACTIVE' | 'DONE'>('ALL');
+
+  const activeOrdersCount = userOrders.filter(
+    (o) => o.status === 'MENUNGGU_PEMBAYARAN' || o.status === 'DIPROSES' || o.status === 'SIAP_DIAMBIL'
+  ).length;
 
   // Sync cart from localStorage
   const syncCart = useCallback(() => {
@@ -129,6 +143,10 @@ export default function UserProfileDropdown() {
   }, []);
 
   useEffect(() => {
+    fetchUserOrders();
+  }, [fetchUserOrders]);
+
+  useEffect(() => {
     if (activeModal === 'riwayat') {
       fetchUserOrders();
     }
@@ -187,6 +205,7 @@ export default function UserProfileDropdown() {
       localStorage.removeItem('koperasi_cart');
       syncCart();
       window.dispatchEvent(new CustomEvent('cart-updated'));
+      fetchUserOrders();
     } catch (err: any) {
       console.error(err);
       setOrderError(err.message || 'Terjadi gangguan saat memproses pesanan.');
@@ -237,6 +256,7 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
   // Edit Profile Form State
   const [editName, setEditName] = useState('');
   const [editPhone, setEditPhone] = useState('');
+  const [editAddress, setEditAddress] = useState('');
   const [editAvatar, setEditAvatar] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -248,6 +268,7 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
     if (user) {
       setEditName(user.name || '');
       setEditPhone(user.phone || '+62 812-4455-6677');
+      setEditAddress(user.address || '');
       setEditAvatar(user.avatarUrl || '');
       setSelectedFile(null);
       setUploadError(null);
@@ -301,6 +322,7 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
       updateProfile({
         name: editName,
         phone: editPhone,
+        address: editAddress,
         avatarUrl: finalAvatarUrl,
       });
 
@@ -338,15 +360,15 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
 
   return (
     <>
-      <div className="flex items-center gap-2 sm:gap-3" ref={dropdownRef}>
+      <div className="flex items-center gap-2 sm:gap-2.5" ref={dropdownRef}>
         {/* Tombol Keranjang Belanja */}
         <button
           onClick={() => setActiveModal('cart')}
-          className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 flex items-center justify-center transition border border-slate-200 cursor-pointer shadow-2xs"
+          className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 flex items-center justify-center transition border border-slate-200 cursor-pointer shadow-2xs group"
           title="Keranjang Belanja"
           type="button"
         >
-          <ShoppingCart className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+          <ShoppingCart className="w-4 h-4 sm:w-4.5 sm:h-4.5 group-hover:scale-110 transition-transform" />
           {cartCount > 0 && (
             <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-amber-500 text-white font-bold text-[10px] flex items-center justify-center shadow-xs ring-2 ring-white">
               {cartCount}
@@ -417,9 +439,11 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
                   <Phone className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
                   <span>{user.phone || '+62 812-4455-6677'}</span>
                 </div>
-                <div className="flex items-center gap-1 text-[11px] text-emerald-300/80 mt-1">
-                  <MapPin className="w-3 h-3 shrink-0" />
-                  <span>Minahasa Utara, Sulawesi Utara</span>
+                <div className="flex items-center gap-1.5 text-[11px] text-emerald-300/90 mt-1 max-w-[270px]">
+                  <MapPin className="w-3.5 h-3.5 shrink-0 text-emerald-300" />
+                  <span className="truncate" title={user.address || 'Minahasa Utara, Sulawesi Utara'}>
+                    {user.address || 'Minahasa Utara, Sulawesi Utara'}
+                  </span>
                 </div>
               </div>
 
@@ -444,8 +468,8 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
                     <UserIcon className="w-5 h-5" />
                   </div>
                   <div>
-                    <div className="text-xs font-bold text-slate-800">Edit Profil</div>
-                    <div className="text-[11px] text-slate-400">Ubah info pribadi & kontak</div>
+                    <div className="text-xs font-bold text-slate-800">Edit Profil & Alamat</div>
+                    <div className="text-[11px] text-slate-400">Ubah info pribadi, no HP & domisili</div>
                   </div>
                 </div>
                 <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-600 transition" />
@@ -454,18 +478,25 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
               <button
                 onClick={() => {
                   setIsOpen(false);
-                  setActiveModal('riwayat');
+                  router.push('/pesanan');
                 }}
                 className="w-full p-2.5 rounded-2xl hover:bg-slate-50 flex items-center justify-between group transition cursor-pointer text-left"
                 type="button"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center group-hover:scale-105 transition">
-                    <Receipt className="w-5 h-5" />
+                    <ClipboardList className="w-5 h-5" />
                   </div>
                   <div>
-                    <div className="text-xs font-bold text-slate-800">Riwayat Pembelian</div>
-                    <div className="text-[11px] text-slate-400">Status pesanan & nota koperasi</div>
+                    <div className="text-xs font-bold text-slate-800 flex items-center gap-2">
+                      <span>Monitoring Pesanan</span>
+                      {activeOrdersCount > 0 && (
+                        <span className="px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[9px] font-extrabold">
+                          {activeOrdersCount} aktif
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[11px] text-slate-400">Status pesanan & serah terima koperasi</div>
                   </div>
                 </div>
                 <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-600 transition" />
@@ -511,7 +542,7 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
 
       {/* Interactive Modal for Selected Menu Item */}
       <Dialog open={Boolean(activeModal)} onOpenChange={(open) => !open && setActiveModal(null)}>
-        <DialogContent className="sm:max-w-lg rounded-3xl p-6 bg-white border border-slate-200 shadow-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className={`${activeModal === 'riwayat' ? 'sm:max-w-2xl' : 'sm:max-w-lg'} rounded-3xl p-5 sm:p-6 bg-white border border-slate-200 shadow-2xl max-h-[90vh] overflow-y-auto`}>
           {/* ======================================================== */}
           {/* MODAL 1: KERANJANG BELANJA & MULTI-STEP CHECKOUT        */}
           {/* ======================================================== */}
@@ -867,11 +898,12 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
                       <button
                         type="button"
                         onClick={() => {
-                          setActiveModal('riwayat');
+                          setActiveModal(null);
+                          router.push('/pesanan');
                         }}
                         className="flex-1 py-2 border border-slate-200 hover:bg-slate-100 text-slate-700 rounded-xl font-semibold text-xs transition cursor-pointer"
                       >
-                        Lihat Riwayat Pesanan
+                        Pantau di Halaman Pesanan
                       </button>
                       <button
                         type="button"
@@ -888,131 +920,391 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
           )}
 
           {/* ======================================================== */}
-          {/* MODAL 2: RIWAYAT PEMBELIAN (INTEGRASI DATABASE ORDERS)  */}
+          {/* MODAL 2: MONITORING PESANAN PEMBELI & PETANI              */}
           {/* ======================================================== */}
           {activeModal === 'riwayat' && (
             <div>
               <DialogHeader className="text-left mb-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center border border-blue-100 shrink-0">
-                    <Receipt className="w-5 h-5" />
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center border border-emerald-100 shrink-0">
+                      <ClipboardList className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <DialogTitle className="text-base font-bold text-slate-900 leading-snug">
+                        Monitoring & Status Pesanan
+                      </DialogTitle>
+                      <DialogDescription className="text-xs text-slate-500 mt-0.5">
+                        Pantau progres penyiapan komoditas dan status serah terima fisik di koperasi.
+                      </DialogDescription>
+                    </div>
                   </div>
-                  <div>
-                    <DialogTitle className="text-base font-bold text-slate-900 leading-snug">
-                      Riwayat Pembelian Resmi
-                    </DialogTitle>
-                    <DialogDescription className="text-xs text-slate-500 mt-0.5">
-                      Daftar pesanan komoditas hasil tani Anda di Koperasi Sinar Pagi Sejahtera.
-                    </DialogDescription>
-                  </div>
+
+                  <button
+                    type="button"
+                    onClick={fetchUserOrders}
+                    disabled={isLoadingOrders}
+                    className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 hover:text-emerald-800 transition flex items-center gap-1.5 text-xs font-semibold shrink-0 cursor-pointer shadow-2xs"
+                    title="Muat Ulang Status Pesanan"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isLoadingOrders ? 'animate-spin text-emerald-600' : ''}`} />
+                    <span className="hidden sm:inline">Segarkan</span>
+                  </button>
                 </div>
               </DialogHeader>
 
+              {/* Filter Tabs */}
+              <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl text-xs font-semibold mb-3">
+                <button
+                  type="button"
+                  onClick={() => setOrderFilter('ALL')}
+                  className={`flex-1 py-1.5 rounded-lg transition cursor-pointer ${
+                    orderFilter === 'ALL'
+                      ? 'bg-white text-slate-900 shadow-2xs font-bold'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Semua ({userOrders.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOrderFilter('ACTIVE')}
+                  className={`flex-1 py-1.5 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                    orderFilter === 'ACTIVE'
+                      ? 'bg-white text-emerald-800 shadow-2xs font-bold'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <span>Dalam Proses</span>
+                  {activeOrdersCount > 0 && (
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  )}
+                  <span>({activeOrdersCount})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOrderFilter('DONE')}
+                  className={`flex-1 py-1.5 rounded-lg transition cursor-pointer ${
+                    orderFilter === 'DONE'
+                      ? 'bg-white text-slate-900 shadow-2xs font-bold'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Selesai ({userOrders.filter((o) => o.status === 'SELESAI' || o.status === 'DIBATALKAN').length})
+                </button>
+              </div>
+
               {isLoadingOrders ? (
                 <div className="py-12 flex flex-col items-center justify-center gap-2 text-xs text-slate-500">
-                  <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
-                  <span>Memuat daftar pesanan Anda...</span>
+                  <Loader2 className="w-6 h-6 text-emerald-600 animate-spin" />
+                  <span>Memuat status pesanan terbaru dari sistem koperasi...</span>
                 </div>
               ) : userOrders.length === 0 ? (
-                <div className="py-8 text-center text-slate-400 text-xs">
-                  <Receipt className="w-8 h-8 mx-auto mb-2 text-slate-300 stroke-1" />
-                  <p className="font-semibold text-slate-600">Belum ada transaksi pembelian</p>
-                  <p className="text-[11px] mt-0.5">Pesanan resmi Anda akan tercatat dan dapat dipantau di sini.</p>
+                <div className="py-10 text-center text-slate-400 text-xs">
+                  <ClipboardList className="w-10 h-10 mx-auto mb-2 text-slate-300 stroke-1" />
+                  <p className="font-bold text-slate-700 text-sm">Belum Ada Pesanan Masuk</p>
+                  <p className="text-[11px] text-slate-400 mt-1 max-w-xs mx-auto">
+                    Pesanan resmi Anda akan tercatat di sini dan dapat dipantau progresnya hingga siap diambil di gudang koperasi.
+                  </p>
                 </div>
               ) : (
-                <div className="space-y-3 max-h-80 overflow-y-auto pr-1 my-3">
-                  {userOrders.map((order) => {
-                    const statusConfig: Record<string, { label: string; badge: string }> = {
-                      MENUNGGU_PEMBAYARAN: {
-                        label: 'Menunggu Bayar',
-                        badge: 'bg-amber-100 text-amber-800 border-amber-200',
-                      },
-                      DIPROSES: {
-                        label: 'Lunas & Disiapkan',
-                        badge: 'bg-blue-100 text-blue-800 border-blue-200',
-                      },
-                      SIAP_DIAMBIL: {
-                        label: 'Siap Diambil di Koperasi',
-                        badge: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-                      },
-                      SELESAI: {
-                        label: 'Selesai',
+                <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1 my-3">
+                  {userOrders
+                    .filter((order) => {
+                      if (orderFilter === 'ACTIVE') {
+                        return (
+                          order.status === 'MENUNGGU_PEMBAYARAN' ||
+                          order.status === 'DIPROSES' ||
+                          order.status === 'SIAP_DIAMBIL'
+                        );
+                      }
+                      if (orderFilter === 'DONE') {
+                        return order.status === 'SELESAI' || order.status === 'DIBATALKAN';
+                      }
+                      return true;
+                    })
+                    .map((order) => {
+                      const statusConfig: Record<
+                        string,
+                        { label: string; badge: string; step: number; hint: string }
+                      > = {
+                        MENUNGGU_PEMBAYARAN: {
+                          label: 'Menunggu Bayar di Kasir',
+                          badge: 'bg-amber-100 text-amber-800 border-amber-300',
+                          step: 1,
+                          hint: 'Silakan datang ke kantor koperasi untuk pembayaran tunai (cash) langsung saat serah terima barang.',
+                        },
+                        DIPROSES: {
+                          label: 'Sedang Disiapkan di Gudang',
+                          badge: 'bg-blue-100 text-blue-800 border-blue-300',
+                          step: 2,
+                          hint: 'Staf gudang koperasi sedang mengecek fisik dan mengemas komoditas pesanan Anda.',
+                        },
+                        SIAP_DIAMBIL: {
+                          label: 'Siap Diambil di Koperasi',
+                          badge: 'bg-emerald-100 text-emerald-800 border-emerald-300 animate-pulse',
+                          step: 3,
+                          hint: 'Komoditas sudah siap! Kunjungi kantor & gudang koperasi untuk serah terima fisik dan pembayaran kas.',
+                        },
+                        SELESAI: {
+                          label: 'Pesanan Selesai / Lunas',
+                          badge: 'bg-slate-100 text-slate-800 border-slate-300',
+                          step: 4,
+                          hint: 'Barang telah diterima dan pembayaran tunai telah sah diselesaikan di kasir koperasi.',
+                        },
+                        DIBATALKAN: {
+                          label: 'Dibatalkan',
+                          badge: 'bg-red-100 text-red-800 border-red-300',
+                          step: 0,
+                          hint: 'Pesanan dibatalkan. Alokasi stok komoditas telah dikembalikan ke gudang koperasi.',
+                        },
+                      };
+
+                      const currentStatus = statusConfig[order.status] || {
+                        label: order.status,
                         badge: 'bg-slate-100 text-slate-800 border-slate-200',
-                      },
-                      DIBATALKAN: {
-                        label: 'Dibatalkan',
-                        badge: 'bg-red-100 text-red-800 border-red-200',
-                      },
-                    };
-                    const currentStatus = statusConfig[order.status] || {
-                      label: order.status,
-                      badge: 'bg-slate-100 text-slate-800 border-slate-200',
-                    };
+                        step: 1,
+                        hint: '',
+                      };
 
-                    return (
-                      <div
-                        key={order.id}
-                        className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs space-y-2"
-                      >
-                        <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
-                          <div>
-                            <span className="font-extrabold text-slate-900">
-                              #{order.orderNumber}
-                            </span>
-                            <div className="text-[10px] text-slate-400 mt-0.5">
-                              {new Date(order.createdAt).toLocaleDateString('id-ID', {
-                                day: 'numeric',
-                                month: 'short',
-                                year: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
+                      const stepIdx = currentStatus.step;
+
+                      return (
+                        <div
+                          key={order.id}
+                          className="p-4 bg-slate-50/70 border border-slate-200 rounded-2xl text-xs space-y-3 shadow-2xs hover:border-emerald-300 transition"
+                        >
+                          {/* Header Invoice */}
+                          <div className="flex items-start justify-between gap-2 border-b border-slate-200/80 pb-2.5">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-extrabold text-sm text-slate-900 tracking-tight">
+                                  #{order.orderNumber}
+                                </span>
+                                <span
+                                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${currentStatus.badge}`}
+                                >
+                                  {currentStatus.label}
+                                </span>
+                              </div>
+                              <div className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1.5">
+                                <Clock className="w-3 h-3 text-slate-400 shrink-0" />
+                                <span>
+                                  {new Date(order.createdAt).toLocaleDateString('id-ID', {
+                                    day: 'numeric',
+                                    month: 'long',
+                                    year: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  })}
+                                </span>
+                              </div>
                             </div>
                           </div>
-                          <span
-                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${currentStatus.badge}`}
-                          >
-                            {currentStatus.label}
-                          </span>
-                        </div>
 
-                        {/* List Items */}
-                        <div className="space-y-1.5 py-1">
-                          {order.items?.map((item: any) => (
-                            <div key={item.id} className="flex items-center justify-between text-[11px]">
-                              <span className="text-slate-700">
-                                {item.product?.nama || 'Komoditas'} ({item.quantity} {item.product?.satuan || 'unit'})
-                              </span>
-                              <span className="font-semibold text-slate-900">
-                                Rp {Number(item.subtotal).toLocaleString('id-ID')}
-                              </span>
+                          {/* Visual Step Tracker (Hanya jika belum batal) */}
+                          {order.status !== 'DIBATALKAN' ? (
+                            <div className="bg-white p-3 rounded-xl border border-slate-200/80 shadow-2xs">
+                              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+                                Progres Penyiapan Koperasi:
+                              </div>
+                              <div className="grid grid-cols-4 gap-1 text-center relative">
+                                {/* Connecting Bar Background */}
+                                <div className="absolute top-3.5 left-[12%] right-[12%] h-1 bg-slate-100 -z-0 rounded-full" />
+                                {/* Connecting Bar Active */}
+                                <div
+                                  className="absolute top-3.5 left-[12%] h-1 bg-emerald-600 -z-0 rounded-full transition-all duration-500"
+                                  style={{
+                                    width:
+                                      stepIdx === 1
+                                        ? '0%'
+                                        : stepIdx === 2
+                                        ? '38%'
+                                        : stepIdx === 3
+                                        ? '75%'
+                                        : '76%',
+                                  }}
+                                />
+
+                                {/* Step 1: Pesanan Masuk */}
+                                <div className="flex flex-col items-center relative z-10">
+                                  <div
+                                    className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs shadow-xs transition ${
+                                      stepIdx >= 1
+                                        ? 'bg-emerald-600 text-white ring-2 ring-emerald-100'
+                                        : 'bg-slate-100 text-slate-400'
+                                    }`}
+                                  >
+                                    {stepIdx > 1 ? '✓' : '1'}
+                                  </div>
+                                  <span className="text-[10px] font-semibold text-slate-700 mt-1 leading-tight">
+                                    Pesanan Masuk
+                                  </span>
+                                </div>
+
+                                {/* Step 2: Disiapkan Gudang */}
+                                <div className="flex flex-col items-center relative z-10">
+                                  <div
+                                    className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs shadow-xs transition ${
+                                      stepIdx >= 2
+                                        ? 'bg-emerald-600 text-white ring-2 ring-emerald-100'
+                                        : 'bg-slate-100 text-slate-400'
+                                    }`}
+                                  >
+                                    {stepIdx > 2 ? '✓' : '2'}
+                                  </div>
+                                  <span className="text-[10px] font-semibold text-slate-700 mt-1 leading-tight">
+                                    Disiapkan
+                                  </span>
+                                </div>
+
+                                {/* Step 3: Siap Diambil */}
+                                <div className="flex flex-col items-center relative z-10">
+                                  <div
+                                    className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs shadow-xs transition ${
+                                      stepIdx >= 3
+                                        ? 'bg-emerald-600 text-white ring-2 ring-emerald-100'
+                                        : 'bg-slate-100 text-slate-400'
+                                    }`}
+                                  >
+                                    {stepIdx > 3 ? '✓' : '3'}
+                                  </div>
+                                  <span className="text-[10px] font-semibold text-slate-700 mt-1 leading-tight">
+                                    Siap Diambil
+                                  </span>
+                                </div>
+
+                                {/* Step 4: Selesai */}
+                                <div className="flex flex-col items-center relative z-10">
+                                  <div
+                                    className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs shadow-xs transition ${
+                                      stepIdx >= 4
+                                        ? 'bg-emerald-600 text-white ring-2 ring-emerald-100'
+                                        : 'bg-slate-100 text-slate-400'
+                                    }`}
+                                  >
+                                    {stepIdx >= 4 ? '✓' : '4'}
+                                  </div>
+                                  <span className="text-[10px] font-semibold text-slate-700 mt-1 leading-tight">
+                                    Selesai
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="mt-2.5 pt-2 border-t border-slate-100 text-[11px] text-slate-600 flex items-center gap-1.5">
+                                <span className="font-bold text-emerald-800">Petunjuk:</span>
+                                <span>{currentStatus.hint}</span>
+                              </div>
                             </div>
-                          ))}
-                        </div>
+                          ) : (
+                            <div className="p-2.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
+                              <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
+                              <span>{currentStatus.hint}</span>
+                            </div>
+                          )}
 
-                        {/* Total & Action */}
-                        <div className="flex items-center justify-between pt-2 border-t border-slate-200/80">
-                          <div>
-                            <span className="text-[10px] text-slate-500 block">Metode: {order.paymentMethod === 'CASH_KOPERASI' ? 'Cash di Koperasi' : 'Transfer BRI'}</span>
-                            <span className="text-xs font-black text-emerald-800">
-                              Rp {Number(order.totalAmount).toLocaleString('id-ID')}
-                            </span>
+                          {/* List Komoditas */}
+                          <div className="space-y-1.5 bg-white p-3 rounded-xl border border-slate-200/80">
+                            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                              Komoditas yang Dipesan:
+                            </div>
+                            {order.items?.map((item: any) => (
+                              <div
+                                key={item.id}
+                                className="flex items-center justify-between text-xs py-1 border-b border-slate-100 last:border-0"
+                              >
+                                <div className="flex items-center gap-2 min-w-0">
+                                  {item.product?.imageUrl ? (
+                                    <img
+                                      src={item.product.imageUrl}
+                                      alt={item.product.nama}
+                                      className="w-8 h-8 rounded-lg object-cover border border-slate-200 shrink-0"
+                                    />
+                                  ) : (
+                                    <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 text-xs font-bold">
+                                      🌾
+                                    </div>
+                                  )}
+                                  <div className="min-w-0">
+                                    <div className="font-bold text-slate-900 truncate">
+                                      {item.namaProduk || item.product?.nama || 'Komoditas'}
+                                    </div>
+                                    <div className="text-[10px] text-slate-400">
+                                      {item.quantity} {item.satuan || item.product?.satuan || 'unit'} × Rp{' '}
+                                      {Number(item.hargaPerSatuan).toLocaleString('id-ID')}
+                                      {item.petani?.name && (
+                                        <span className="text-emerald-700 ml-1 font-medium">
+                                          (Mitra: {item.petani.name})
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                                <span className="font-extrabold text-slate-900 shrink-0 ml-2">
+                                  Rp {Number(item.subtotal).toLocaleString('id-ID')}
+                                </span>
+                              </div>
+                            ))}
                           </div>
 
-                          {order.status === 'MENUNGGU_PEMBAYARAN' && (
+                          {/* Info Lokasi Ambil & Alamat Rumah */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                            <div className="p-2.5 bg-white rounded-xl border border-slate-200/80">
+                              <span className="text-slate-400 font-bold block text-[10px] uppercase">
+                                Lokasi Serah Terima Barang:
+                              </span>
+                              <div className="text-slate-800 font-semibold mt-0.5 flex items-start gap-1">
+                                <Store className="w-3.5 h-3.5 text-emerald-700 shrink-0 mt-0.5" />
+                                <span>{order.alamatKirim || pickupLocation}</span>
+                              </div>
+                            </div>
+                            <div className="p-2.5 bg-white rounded-xl border border-slate-200/80">
+                              <span className="text-slate-400 font-bold block text-[10px] uppercase">
+                                Alamat Domisili Pembeli:
+                              </span>
+                              <div className="text-slate-800 font-semibold mt-0.5 flex items-start gap-1">
+                                <Home className="w-3.5 h-3.5 text-blue-700 shrink-0 mt-0.5" />
+                                <span>
+                                  {order.pembeli?.address || user?.address || 'Belum diisi di profil'}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {order.catatan && (
+                            <div className="p-2 bg-amber-50/70 border border-amber-200/60 rounded-xl text-[11px] text-amber-900">
+                              <span className="font-bold">Catatan:</span> {order.catatan}
+                            </div>
+                          )}
+
+                          {/* Footer Total & WhatsApp Action */}
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-slate-200/80">
+                            <div>
+                              <div className="text-[10px] text-slate-400">
+                                Metode:{' '}
+                                <strong className="text-slate-700">
+                                  {order.paymentMethod === 'CASH_KOPERASI'
+                                    ? 'Bayar Tunai (Cash) di Koperasi'
+                                    : 'Transfer BRI'}
+                                </strong>
+                              </div>
+                              <div className="text-sm font-black text-emerald-800">
+                                Total: Rp {Number(order.totalAmount).toLocaleString('id-ID')}
+                              </div>
+                            </div>
+
                             <button
                               type="button"
                               onClick={() => handleSendWhatsAppConfirmation(order)}
-                              className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] flex items-center gap-1.5 transition cursor-pointer"
+                              className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
                             >
-                              <MessageCircle className="w-3 h-3" />
-                              <span>Konfirmasi WA</span>
+                              <MessageCircle className="w-3.5 h-3.5 text-emerald-100" />
+                              <span>Hubungi Admin WA</span>
                             </button>
-                          )}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
                 </div>
               )}
 
@@ -1201,6 +1493,22 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
                     placeholder="+62 812-xxxx-xxxx"
                     className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600"
                   />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-700 mb-1 flex items-center gap-1.5">
+                    <Home className="w-3.5 h-3.5 text-emerald-700" />
+                    <span>Alamat Rumah Lengkap (Domisili)</span>
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={editAddress}
+                    onChange={(e) => setEditAddress(e.target.value)}
+                    placeholder="Contoh: Jaga II, Desa Kolongan, Kec. Kalawat, Kab. Minahasa Utara (Patokan dekat kantor desa)"
+                    className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600 resize-none text-slate-800"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Alamat tempat tinggal resmi petani & pembeli agar tercatat resmi di sistem koperasi jika ada hal mendesak.
+                  </p>
                 </div>
               </div>
 

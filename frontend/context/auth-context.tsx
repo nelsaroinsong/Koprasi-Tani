@@ -219,7 +219,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
     saveUser(updated);
 
-    // Kirim perubahan (Nama, No Telepon, Avatar) ke database PostgreSQL
+    // Kirim perubahan (Nama, No Telepon, Alamat, Avatar) ke database PostgreSQL
     try {
       await fetch('/api/user/profile', {
         method: 'POST',
@@ -228,6 +228,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email: currentUser.email,
           name: data.name,
           phone: data.phone,
+          address: data.address,
           avatarUrl: data.avatarUrl,
         }),
       });

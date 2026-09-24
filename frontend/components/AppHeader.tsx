@@ -7,7 +7,7 @@ import UserProfileDropdown from '@/components/UserProfileDropdown';
 import { useAuth } from '@/context/auth-context';
 
 interface AppHeaderProps {
-  activePage?: 'beranda' | 'toko' | 'sewa-alat';
+  activePage?: 'beranda' | 'toko' | 'sewa-alat' | 'pesanan';
 }
 
 export default function AppHeader({ activePage = 'beranda' }: AppHeaderProps) {

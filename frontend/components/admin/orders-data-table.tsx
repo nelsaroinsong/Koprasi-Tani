@@ -567,15 +567,24 @@ export function OrdersDataTable() {
                   <User className="w-3.5 h-3.5 text-emerald-700" />
                   <span>Informasi Pembeli</span>
                 </div>
-                <div className="grid grid-cols-2 gap-2 text-slate-600 pt-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-600 pt-1">
                   <div>
                     Nama: <strong className="text-slate-900">{selectedOrder.pembeli?.name}</strong>
                   </div>
                   <div>
                     Kontak: <strong className="text-slate-900">{selectedOrder.pembeli?.phone || '-'}</strong>
                   </div>
-                  <div className="col-span-2">
-                    Alamat: <span className="text-slate-800">{selectedOrder.alamatKirim || selectedOrder.pembeli?.address || '-'}</span>
+                  <div className="col-span-1 sm:col-span-2">
+                    <span className="text-slate-500">Alamat Rumah (Domisili):</span>{' '}
+                    <strong className="text-slate-900">
+                      {selectedOrder.pembeli?.address || 'Belum diisi di profil pengguna'}
+                    </strong>
+                  </div>
+                  <div className="col-span-1 sm:col-span-2">
+                    <span className="text-slate-500">Titik Serah Terima:</span>{' '}
+                    <span className="text-slate-800 font-medium">
+                      {selectedOrder.alamatKirim || 'Kantor & Gudang Koperasi'}
+                    </span>
                   </div>
                 </div>
               </div>
