@@ -22,6 +22,7 @@ export async function GET() {
         email: true,
         name: true,
         phone: true,
+        address: true,
         avatarUrl: true,
         role: true,
         isVerified: true,
@@ -60,6 +61,7 @@ export async function POST(request: Request) {
     const {
       name,
       phone,
+      address,
       avatarUrl,
       currentPassword,
       newPassword,
@@ -84,6 +86,11 @@ export async function POST(request: Request) {
     // 2. Validasi & Update Nomor Telepon
     if (phone !== undefined) {
       updateData.phone = typeof phone === 'string' ? phone.trim() : null;
+    }
+
+    // 2b. Validasi & Update Alamat Kantor & Gudang Koperasi
+    if (address !== undefined) {
+      updateData.address = typeof address === 'string' ? address.trim() : null;
     }
 
     // 3. Validasi & Update Foto Profil

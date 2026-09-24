@@ -24,6 +24,7 @@ import {
   PackageCheck,
   Check,
   Loader2,
+  Banknote,
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import {
@@ -42,14 +43,28 @@ export default function UserProfileDropdown() {
   const [cartCount, setCartCount] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Multi-step Checkout States
+  // Multi-step Checkout States (Hanya Cash di Koperasi & Ambil di Gudang Koperasi)
+  const DEFAULT_PICKUP_LOCATION =
+    'Koperasi Sinar Pagi Sejahtera — Jl. Raya Kolongan, Kec. Kalawat, Kabupaten Minahasa Utara, Sulawesi Utara';
   const [cartStep, setCartStep] = useState<'CART' | 'CHECKOUT' | 'SUCCESS'>('CART');
-  const [paymentMethod, setPaymentMethod] = useState<'CASH_KOPERASI' | 'TRANSFER_KOPERASI'>('CASH_KOPERASI');
-  const [orderAddress, setOrderAddress] = useState('');
+  const [paymentMethod] = useState<'CASH_KOPERASI'>('CASH_KOPERASI');
+  const [pickupLocation, setPickupLocation] = useState(DEFAULT_PICKUP_LOCATION);
   const [orderNotes, setOrderNotes] = useState('');
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
   const [createdOrderResult, setCreatedOrderResult] = useState<any | null>(null);
+
+  // Ambil alamat dinamis kantor & gudang koperasi yang diatur oleh Admin
+  useEffect(() => {
+    fetch('/api/koperasi/info')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.alamat) {
+          setPickupLocation(data.alamat);
+        }
+      })
+      .catch(() => {});
+  }, [activeModal]);
 
   // Riwayat Orders State
   const [userOrders, setUserOrders] = useState<any[]>([]);
@@ -96,15 +111,6 @@ export default function UserProfileDropdown() {
     window.addEventListener('cart-updated', handleCartEvent);
     return () => window.removeEventListener('cart-updated', handleCartEvent);
   }, [syncCart]);
-
-  // Inisialisasi alamat pengiriman saat user terdeteksi
-  useEffect(() => {
-    if (user?.address) {
-      setOrderAddress(user.address);
-    } else {
-      setOrderAddress('Ambil Langsung di Gudang Koperasi Sinar Pagi Sejahtera');
-    }
-  }, [user]);
 
   // Fetch riwayat pesanan ketika modal riwayat dibuka
   const fetchUserOrders = useCallback(async () => {
@@ -162,8 +168,8 @@ export default function UserProfileDropdown() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          paymentMethod,
-          alamatKirim: orderAddress,
+          paymentMethod: 'CASH_KOPERASI',
+          alamatKirim: pickupLocation,
           catatan: orderNotes,
           items: itemsPayload,
         }),
@@ -203,10 +209,7 @@ export default function UserProfileDropdown() {
       )
       .join('\n\n');
 
-    const paymentText =
-      orderData.paymentMethod === 'CASH_KOPERASI'
-        ? '💵 Bayar Tunai (Cash) di Kantor Koperasi'
-        : '💳 Transfer Bank Koperasi (BRI: 0012-01-002891-53-0)';
+    const paymentText = '💵 Bayar Tunai (Cash) di Kantor Koperasi';
 
     const message = `Halo Pengurus Koperasi Sinar Pagi Sejahtera,
 Saya telah membuat *Pesanan Resmi* melalui Toko Online Koperasi:
@@ -214,7 +217,7 @@ Saya telah membuat *Pesanan Resmi* melalui Toko Online Koperasi:
 *No. Pesanan:* #${orderData.orderNumber}
 *Metode Pembayaran:* ${paymentText}
 *Total Tagihan:* Rp ${Number(orderData.totalAmount).toLocaleString('id-ID')}
-*Alamat / Pengambilan:* ${orderData.alamatKirim || '-'}
+*Lokasi Pengambilan:* ${pickupLocation}
 *Catatan:* ${orderData.catatan || '-'}
 
 *Data Pemesan:*
@@ -692,82 +695,53 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
                   </div>
 
                   <div className="space-y-3.5 my-3 text-xs">
-                    {/* Metode Pembayaran */}
+                    {/* Metode Pembayaran - Murni Tunai (Cash) di Koperasi */}
                     <div>
                       <label className="block text-[11px] font-bold text-slate-800 mb-1.5">
-                        Pilih Metode Pembayaran ke Koperasi *
+                        Metode Pembayaran *
                       </label>
-                      <div className="space-y-2">
-                        {/* Option 1: Cash Tunai */}
-                        <label
-                          className={`flex items-start gap-3 p-3 rounded-xl border transition cursor-pointer ${
-                            paymentMethod === 'CASH_KOPERASI'
-                              ? 'bg-emerald-50/70 border-emerald-500 ring-1 ring-emerald-500'
-                              : 'bg-white border-slate-200 hover:bg-slate-50'
-                          }`}
-                        >
-                          <input
-                            type="radio"
-                            name="paymentMethod"
-                            checked={paymentMethod === 'CASH_KOPERASI'}
-                            onChange={() => setPaymentMethod('CASH_KOPERASI')}
-                            className="mt-0.5 text-emerald-600 focus:ring-emerald-500"
-                          />
-                          <div className="flex-1">
-                            <div className="font-bold text-slate-900 flex items-center justify-between">
-                              <span>💵 Bayar Tunai (Cash) di Koperasi</span>
-                              <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded">
-                                Langsung di Tempat
-                              </span>
-                            </div>
-                            <p className="text-[11px] text-slate-500 mt-0.5">
-                              Bayar langsung secara tunai kepada kasir/admin di kantor koperasi saat serah terima barang.
-                            </p>
+                      <div className="flex items-start gap-3 p-3 rounded-xl border border-emerald-500 bg-emerald-50/70 shadow-2xs">
+                        <div className="w-8 h-8 rounded-lg bg-emerald-700 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+                          <Banknote className="w-4 h-4" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-bold text-slate-900 flex items-center justify-between">
+                            <span>Bayar Tunai (Cash) di Koperasi</span>
+                            <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-200">
+                              Langsung di Tempat
+                            </span>
                           </div>
-                        </label>
-
-                        {/* Option 2: Transfer Bank */}
-                        <label
-                          className={`flex items-start gap-3 p-3 rounded-xl border transition cursor-pointer ${
-                            paymentMethod === 'TRANSFER_KOPERASI'
-                              ? 'bg-emerald-50/70 border-emerald-500 ring-1 ring-emerald-500'
-                              : 'bg-white border-slate-200 hover:bg-slate-50'
-                          }`}
-                        >
-                          <input
-                            type="radio"
-                            name="paymentMethod"
-                            checked={paymentMethod === 'TRANSFER_KOPERASI'}
-                            onChange={() => setPaymentMethod('TRANSFER_KOPERASI')}
-                            className="mt-0.5 text-emerald-600 focus:ring-emerald-500"
-                          />
-                          <div className="flex-1">
-                            <div className="font-bold text-slate-900 flex items-center justify-between">
-                              <span>💳 Transfer Bank Koperasi</span>
-                              <span className="text-[10px] bg-blue-100 text-blue-800 font-bold px-1.5 py-0.5 rounded">
-                                Rekening Resmi
-                              </span>
-                            </div>
-                            <p className="text-[11px] text-slate-500 mt-0.5">
-                              Transfer ke rekening <strong>BRI: 0012-01-002891-53-0</strong> a/n Koperasi Sinar Pagi Sejahtera.
-                            </p>
-                          </div>
-                        </label>
+                          <p className="text-[11px] text-slate-600 mt-0.5 leading-relaxed">
+                            Bayar langsung secara tunai kepada kasir/admin di kantor koperasi saat serah terima fisik barang.
+                          </p>
+                        </div>
                       </div>
                     </div>
 
-                    {/* Alamat Pengiriman / Pengambilan */}
+                    {/* Lokasi Pengambilan - Murni Ambil di Kantor & Gudang Koperasi */}
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-800 mb-1">
-                        Alamat Pengiriman / Lokasi Pengambilan *
+                      <label className="block text-[11px] font-bold text-slate-800 mb-1.5">
+                        Lokasi Pengambilan Komoditas *
                       </label>
-                      <textarea
-                        rows={2}
-                        value={orderAddress}
-                        onChange={(e) => setOrderAddress(e.target.value)}
-                        placeholder="Contoh: Ambil langsung di Gudang Koperasi atau cantumkan alamat rumah..."
-                        className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600"
-                      />
+                      <div className="p-3 rounded-xl border border-slate-200 bg-slate-50 flex items-start gap-3 shadow-2xs">
+                        <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center shrink-0 mt-0.5 border border-amber-200">
+                          <MapPin className="w-4 h-4 text-amber-700" />
+                        </div>
+                        <div className="flex-1 text-xs">
+                          <div className="font-bold text-slate-900 flex items-center justify-between">
+                            <span>Kantor & Gudang Koperasi</span>
+                            <span className="text-[10px] bg-slate-200/80 text-slate-700 font-semibold px-2 py-0.5 rounded">
+                              Ambil di Tempat
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-slate-600 mt-0.5 leading-relaxed">
+                            {pickupLocation}
+                          </div>
+                          <p className="text-[10px] text-emerald-700 font-semibold mt-1">
+                            ✓ Komoditas disiapkan dan diserahkan langsung oleh staf gudang koperasi.
+                          </p>
+                        </div>
+                      </div>
                     </div>
 
                     {/* Catatan Tambahan */}
@@ -779,7 +753,7 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
                         type="text"
                         value={orderNotes}
                         onChange={(e) => setOrderNotes(e.target.value)}
-                        placeholder="Contoh: Mohon dikemas karung goni, rencana ambil besok pagi"
+                        placeholder="Contoh: Rencana ambil besok pagi jam 09:00, mohon dikemas karung..."
                         className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600"
                       />
                     </div>
@@ -862,9 +836,13 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
                     <div className="flex justify-between">
                       <span className="text-slate-500">Metode Bayar:</span>
                       <span className="font-semibold text-slate-800">
-                        {createdOrderResult.paymentMethod === 'CASH_KOPERASI'
-                          ? 'Tunai di Kantor Koperasi'
-                          : 'Transfer Bank BRI'}
+                        Tunai (Cash) di Kantor Koperasi
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Lokasi Ambil:</span>
+                      <span className="font-semibold text-slate-800">
+                        Kantor & Gudang Koperasi
                       </span>
                     </div>
                     <div className="flex justify-between border-t border-slate-200 pt-1.5">

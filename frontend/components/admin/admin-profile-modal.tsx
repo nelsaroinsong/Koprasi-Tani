@@ -21,6 +21,7 @@ import {
   Loader2,
   ShieldCheck,
   KeyRound,
+  MapPin,
 } from 'lucide-react';
 
 interface AdminProfileModalProps {
@@ -31,12 +32,14 @@ interface AdminProfileModalProps {
     email: string;
     avatar?: string;
     phone?: string;
+    address?: string;
   };
   onUserUpdated: (updatedUser: {
     name: string;
     email: string;
     avatar?: string;
     phone?: string;
+    address?: string;
   }) => void;
 }
 
@@ -50,6 +53,7 @@ export function AdminProfileModal({
 
   const [name, setName] = useState(currentUser.name || '');
   const [phone, setPhone] = useState(currentUser.phone || '');
+  const [address, setAddress] = useState(currentUser.address || '');
   const [avatarUrl, setAvatarUrl] = useState(currentUser.avatar || '');
 
   // Password fields
@@ -87,6 +91,7 @@ export function AdminProfileModal({
           if (data?.user) {
             setName(data.user.name || '');
             setPhone(data.user.phone || '');
+            setAddress(data.user.address || '');
             if (data.user.avatarUrl) setAvatarUrl(data.user.avatarUrl);
           }
         })
@@ -175,6 +180,7 @@ export function AdminProfileModal({
         body: JSON.stringify({
           name: name.trim(),
           phone: phone.trim(),
+          address: address.trim(),
           avatarUrl,
           ...(changePassword && {
             currentPassword,
@@ -195,6 +201,7 @@ export function AdminProfileModal({
         email: data.user.email,
         avatar: data.user.avatarUrl,
         phone: data.user.phone,
+        address: data.user.address,
       });
 
       setTimeout(() => {
@@ -364,6 +371,27 @@ export function AdminProfileModal({
                   className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-600 focus:bg-white transition"
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Alamat Kantor & Gudang Koperasi (Lokasi Ambil Pesanan)
+              </label>
+              <div className="relative">
+                <div className="absolute top-2.5 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                  <MapPin className="w-4 h-4 text-emerald-700" />
+                </div>
+                <textarea
+                  rows={2}
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  placeholder="Koperasi Sinar Pagi Sejahtera — Jl. Raya Kolongan, Kec. Kalawat, Kab. Minahasa Utara, Sulawesi Utara"
+                  className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-600 focus:bg-white transition"
+                />
+              </div>
+              <p className="text-[10px] text-slate-400 mt-1">
+                Alamat ini akan otomatis menjadi lokasi serah terima saat pembeli checkout komoditas di toko online.
+              </p>
             </div>
           </div>
 

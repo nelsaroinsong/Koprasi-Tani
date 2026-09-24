@@ -31,11 +31,19 @@ import {
   ShoppingBag,
   User,
   Calendar,
+  MapPin,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useDebounce } from '@/hooks/use-debounce';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import { useToast } from '@/context/toast-context';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import {
   ProductFormModal,
   AdminProductData,
@@ -80,6 +88,59 @@ export function TokoOnlineDataTable() {
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<AdminProductData | null>(null);
+
+  // Warehouse Address States
+  const [warehouseAddress, setWarehouseAddress] = useState(
+    'Koperasi Sinar Pagi Sejahtera — Jl. Raya Kolongan, Kec. Kalawat, Kabupaten Minahasa Utara, Sulawesi Utara'
+  );
+  const [isEditAddressOpen, setIsEditAddressOpen] = useState(false);
+  const [tempAddress, setTempAddress] = useState('');
+  const [isSavingAddress, setIsSavingAddress] = useState(false);
+
+  // Fetch cooperative warehouse address
+  const fetchCoopInfo = useCallback(async () => {
+    try {
+      const res = await fetch('/api/koperasi/info');
+      const data = await res.json();
+      if (data?.alamat) {
+        setWarehouseAddress(data.alamat);
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    fetchCoopInfo();
+  }, [fetchCoopInfo]);
+
+  const handleSaveAddress = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tempAddress.trim()) return;
+    try {
+      setIsSavingAddress(true);
+      const res = await fetch('/api/koperasi/info', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ alamat: tempAddress.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Gagal mengubah alamat gudang.');
+      setWarehouseAddress(data.alamat);
+      setIsEditAddressOpen(false);
+      showToast({
+        title: 'Alamat Gudang Diperbarui',
+        message: 'Alamat serah terima barang di toko online telah berhasil diperbarui.',
+        type: 'success',
+      });
+    } catch (err: any) {
+      showToast({
+        title: 'Gagal Simpan Alamat',
+        message: err.message,
+        type: 'error',
+      });
+    } finally {
+      setIsSavingAddress(false);
+    }
+  };
 
   // Status Filter Options
   const statusOptions: ComboboxOption[] = useMemo(
@@ -255,20 +316,33 @@ export function TokoOnlineDataTable() {
               setFormMode('CREATE');
               setFormModalOpen(true);
             }}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold shadow-xs transition cursor-pointer"
+            className="flex items-center px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold shadow-xs transition cursor-pointer"
           >
-            <Plus className="w-4 h-4" />
             <span>+ Input Komoditas Masuk Gudang</span>
           </button>
         </div>
       </div>
 
-      {/* Info Banner Alur B Satu Pintu */}
-      <div className="p-3.5 rounded-xl bg-emerald-50/80 border border-emerald-200/80 flex items-start gap-2.5 text-xs">
-        <Package className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
-        <div className="text-slate-700 leading-relaxed text-[11px]">
-          <strong className="text-emerald-900">Alur Masuk Fisik Barang:</strong> Petani membawa hasil panen ke gudang koperasi. Admin menimbang dan menginput data komoditas dengan memilih nama petani pemilik. Uang tunai hasil penjualan komoditas akan otomatis dialokasikan ke petani tersebut.
+      {/* Info Banner Alur B Satu Pintu & Alamat Gudang */}
+      <div className="p-3.5 rounded-xl bg-emerald-50/80 border border-emerald-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+        <div className="flex items-start gap-2.5">
+          <Package className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
+          <div className="text-slate-700 leading-relaxed text-[11px]">
+            <strong className="text-emerald-900">Alur Masuk Fisik Barang:</strong> Petani membawa hasil panen ke gudang koperasi. Admin menimbang dan menginput data komoditas. Pembeli mengambil pesanan tunai di: <span className="font-semibold text-emerald-900 underline">{warehouseAddress}</span>
+          </div>
         </div>
+        <button
+          type="button"
+          onClick={() => {
+            setTempAddress(warehouseAddress);
+            setIsEditAddressOpen(true);
+          }}
+          className="shrink-0 px-2.5 py-1.5 rounded-xl border border-emerald-300 bg-white hover:bg-emerald-50 text-emerald-800 text-[11px] font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
+          title="Ubah Alamat Pengambilan Barang"
+        >
+          <MapPin className="w-3.5 h-3.5 text-emerald-700" />
+          <span>Ubah Alamat Gudang</span>
+        </button>
       </div>
 
       {/* Toolbar: Search & Combobox Filtering */}
@@ -597,6 +671,62 @@ export function TokoOnlineDataTable() {
         onSuccess={fetchProducts}
         product={productToDelete}
       />
+
+      {/* Modal 3: Edit Warehouse Address Dialog */}
+      <Dialog open={isEditAddressOpen} onOpenChange={setIsEditAddressOpen}>
+        <DialogContent className="sm:max-w-md rounded-3xl p-6 bg-white border border-slate-200 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <MapPin className="w-5 h-5 text-emerald-700" />
+              <span>Ubah Alamat Kantor & Gudang Koperasi</span>
+            </DialogTitle>
+          </DialogHeader>
+
+          <form onSubmit={handleSaveAddress} className="space-y-4 my-2">
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Alamat ini akan ditampilkan kepada pembeli di halaman checkout sebagai lokasi pengambilan fisik komoditas pesanan.
+            </p>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                Alamat Lengkap Pengambilan *
+              </label>
+              <textarea
+                rows={3}
+                value={tempAddress}
+                onChange={(e) => setTempAddress(e.target.value)}
+                placeholder="Contoh: Koperasi Sinar Pagi Sejahtera — Jl. Raya Kolongan, Kec. Kalawat, Minahasa Utara"
+                className="w-full text-xs p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 font-medium"
+                required
+              />
+            </div>
+
+            <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setIsEditAddressOpen(false)}
+                className="px-4 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl text-xs font-semibold cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                disabled={isSavingAddress || !tempAddress.trim()}
+                className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-60"
+              >
+                {isSavingAddress ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Menyimpan...</span>
+                  </>
+                ) : (
+                  <span>Simpan Alamat Gudang</span>
+                )}
+              </button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
