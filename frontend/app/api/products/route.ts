@@ -54,6 +54,16 @@ export async function GET(request: Request) {
         prisma.product.count({ where: whereCondition }),
         prisma.product.findMany({
           where: whereCondition,
+          include: {
+            petani: {
+              select: {
+                id: true,
+                name: true,
+                phone: true,
+                avatarUrl: true,
+              },
+            },
+          },
           orderBy: { createdAt: 'desc' },
           skip,
           take: limit,

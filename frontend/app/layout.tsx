@@ -33,7 +33,7 @@ import SessionTimeoutManager from '@/components/SessionTimeoutManager';
 export default function RootLayout({children}: {children: React.ReactNode}) {
   return (
     <html lang="id" className={plusJakartaSans.variable}>
-      <body className="font-sans antialiased bg-dot-pattern text-slate-800 selection:bg-emerald-100 selection:text-emerald-900" suppressHydrationWarning>
+      <body className="font-sans antialiased bg-dot-pattern text-slate-800 selection:bg-emerald-100 selection:text-emerald-900 pb-16 lg:pb-0" suppressHydrationWarning>
         <SessionProvider>
           <AuthProvider>
             <ToastProvider>

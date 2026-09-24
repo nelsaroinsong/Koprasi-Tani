@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ShoppingBag, Tractor, Menu, X, ChevronRight, ShieldCheck, Home, LogIn } from 'lucide-react';
 import UserProfileDropdown from '@/components/UserProfileDropdown';
 import { useAuth } from '@/context/auth-context';
+import BottomNav from '@/components/BottomNav';
 
 interface AppHeaderProps {
   activePage?: 'beranda' | 'toko' | 'sewa-alat' | 'pesanan';
@@ -15,7 +16,8 @@ export default function AppHeader({ activePage = 'beranda' }: AppHeaderProps) {
   const { user } = useAuth();
 
   return (
-    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
+    <>
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
       <div className="max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8 h-13 sm:h-16 flex items-center justify-between gap-2 sm:gap-3">
         {/* Brand Logo - Mengarah ke /toko saat login, atau ke / saat belum login */}
         <div className="flex items-center gap-3 sm:gap-6 min-w-0">
@@ -203,5 +205,7 @@ export default function AppHeader({ activePage = 'beranda' }: AppHeaderProps) {
         </div>
       )}
     </header>
-  );
+    <BottomNav activePage={activePage} />
+  </>
+);
 }

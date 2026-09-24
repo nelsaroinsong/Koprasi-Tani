@@ -720,18 +720,19 @@ export default function TokoOnlinePage() {
                         Stok {Number(prod.stok).toLocaleString('id-ID')}
                       </div>
 
-                      {/* Nama Petani (Di bawah stok dengan ukuran text proporsional) */}
+                      {/* Nama Akun Petani (Di bawah stok dengan ukuran text proporsional) */}
                       <div
                         onClick={(e) => {
-                          if (prod.petani?.id || prod.petaniId) {
+                          const targetId = prod.petani?.id || prod.petaniId || (isPetani ? user?.id : null);
+                          if (targetId) {
                             e.stopPropagation();
-                            router.push(`/toko/petani/${prod.petani?.id || prod.petaniId}`);
+                            router.push(`/toko/petani/${targetId}`);
                           }
                         }}
                         className="text-[10px] sm:text-xs font-bold text-slate-800 hover:text-emerald-700 hover:underline transition-colors truncate"
-                        title={prod.petani?.name ? `Kunjungi Toko ${prod.petani.name}` : 'Petani Mitra'}
+                        title={`Kunjungi Toko ${prod.petani?.name || (isPetani ? user?.name : 'Petani Koperasi') || 'Petani Koperasi'}`}
                       >
-                        {prod.petani?.name || 'Petani Mitra'}
+                        {prod.petani?.name || (isPetani ? user?.name : 'Petani Koperasi') || 'Petani Koperasi'}
                       </div>
                     </div>
                   </div>
