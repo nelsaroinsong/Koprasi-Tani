@@ -2,16 +2,16 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { ShoppingBag, Tractor, Menu, X, ChevronRight, ShieldCheck, Home, LogIn } from 'lucide-react';
+import { ShoppingBag, Tractor, Receipt, Menu, X, ChevronRight, ShieldCheck, LogIn, User as UserIcon } from 'lucide-react';
 import UserProfileDropdown from '@/components/UserProfileDropdown';
 import { useAuth } from '@/context/auth-context';
 import BottomNav from '@/components/BottomNav';
 
 interface AppHeaderProps {
-  activePage?: 'beranda' | 'toko' | 'sewa-alat' | 'pesanan';
+  activePage?: 'toko' | 'sewa-alat' | 'pesanan' | 'profile' | 'beranda';
 }
 
-export default function AppHeader({ activePage = 'beranda' }: AppHeaderProps) {
+export default function AppHeader({ activePage = 'toko' }: AppHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user } = useAuth();
 
@@ -38,42 +38,51 @@ export default function AppHeader({ activePage = 'beranda' }: AppHeaderProps) {
             </div>
           </Link>
 
-          {/* Desktop Navigation Links */}
+          {/* Desktop Navigation Links - Tanpa Beranda, Active BG Hijau */}
           <nav className="hidden md:flex items-center gap-1.5 text-xs font-semibold">
-            {!user && (
-              <Link
-                href="/"
-                className={`px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5 ${
-                  activePage === 'beranda'
-                    ? 'bg-emerald-50 text-emerald-800 shadow-2xs font-bold ring-1 ring-emerald-600/20'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                }`}
-              >
-                <Home className="w-3.5 h-3.5" />
-                <span>Beranda</span>
-              </Link>
-            )}
             <Link
               href="/toko"
               className={`px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5 ${
                 activePage === 'toko'
-                  ? 'bg-emerald-50 text-emerald-800 shadow-2xs font-bold ring-1 ring-emerald-600/20'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  ? 'bg-emerald-700 text-white shadow-xs font-bold'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-semibold'
               }`}
             >
-              <ShoppingBag className="w-3.5 h-3.5" />
+              <ShoppingBag className={`w-3.5 h-3.5 ${activePage === 'toko' ? 'text-white' : 'text-slate-500'}`} />
               <span>Toko Online</span>
             </Link>
             <Link
               href="/sewa-alat"
               className={`px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5 ${
                 activePage === 'sewa-alat'
-                  ? 'bg-emerald-50 text-emerald-800 shadow-2xs font-bold ring-1 ring-emerald-600/20'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  ? 'bg-emerald-700 text-white shadow-xs font-bold'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-semibold'
               }`}
             >
-              <Tractor className="w-3.5 h-3.5" />
+              <Tractor className={`w-3.5 h-3.5 ${activePage === 'sewa-alat' ? 'text-white' : 'text-slate-500'}`} />
               <span>Sewa Alat</span>
+            </Link>
+            <Link
+              href="/pesanan"
+              className={`px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5 ${
+                activePage === 'pesanan'
+                  ? 'bg-emerald-700 text-white shadow-xs font-bold'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-semibold'
+              }`}
+            >
+              <Receipt className={`w-3.5 h-3.5 ${activePage === 'pesanan' ? 'text-white' : 'text-slate-500'}`} />
+              <span>Pesanan</span>
+            </Link>
+            <Link
+              href={user ? '/profile' : '/login'}
+              className={`px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5 ${
+                activePage === 'profile'
+                  ? 'bg-emerald-700 text-white shadow-xs font-bold'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-semibold'
+              }`}
+            >
+              <UserIcon className={`w-3.5 h-3.5 ${activePage === 'profile' ? 'text-white' : 'text-slate-500'}`} />
+              <span>Profil</span>
             </Link>
           </nav>
         </div>
@@ -116,34 +125,12 @@ export default function AppHeader({ activePage = 'beranda' }: AppHeaderProps) {
             Pilih Layanan & Fitur
           </div>
 
-          {!user && (
-            <Link
-              href="/"
-              onClick={() => setMobileMenuOpen(false)}
-              className={`w-full px-3.5 py-2.5 rounded-xl font-semibold text-xs flex items-center justify-between transition ${
-                activePage === 'beranda'
-                  ? 'bg-emerald-700 text-white shadow-xs'
-                  : 'text-slate-700 hover:bg-slate-50 border border-slate-100'
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <Home className="w-4 h-4" />
-                <span>Beranda</span>
-              </div>
-              {activePage === 'beranda' ? (
-                <span className="text-[10px] font-bold bg-white/20 px-2 py-0.5 rounded-md">Aktif</span>
-              ) : (
-                <ChevronRight className="w-3.5 h-3.5 opacity-60" />
-              )}
-            </Link>
-          )}
-
           <Link
             href="/toko"
             onClick={() => setMobileMenuOpen(false)}
             className={`w-full px-3.5 py-2.5 rounded-xl font-semibold text-xs flex items-center justify-between transition ${
               activePage === 'toko'
-                ? 'bg-emerald-700 text-white shadow-xs'
+                ? 'bg-emerald-700 text-white shadow-xs font-bold'
                 : 'text-slate-700 hover:bg-slate-50 border border-slate-100'
             }`}
           >
@@ -163,7 +150,7 @@ export default function AppHeader({ activePage = 'beranda' }: AppHeaderProps) {
             onClick={() => setMobileMenuOpen(false)}
             className={`w-full px-3.5 py-2.5 rounded-xl font-semibold text-xs flex items-center justify-between transition ${
               activePage === 'sewa-alat'
-                ? 'bg-emerald-700 text-white shadow-xs'
+                ? 'bg-emerald-700 text-white shadow-xs font-bold'
                 : 'text-slate-700 hover:bg-slate-50 border border-slate-100'
             }`}
           >
@@ -172,6 +159,46 @@ export default function AppHeader({ activePage = 'beranda' }: AppHeaderProps) {
               <span>Sewa Alat Pertanian (Alsintan)</span>
             </div>
             {activePage === 'sewa-alat' ? (
+              <span className="text-[10px] font-bold bg-white/20 px-2 py-0.5 rounded-md">Aktif</span>
+            ) : (
+              <ChevronRight className="w-3.5 h-3.5 opacity-60" />
+            )}
+          </Link>
+
+          <Link
+            href="/pesanan"
+            onClick={() => setMobileMenuOpen(false)}
+            className={`w-full px-3.5 py-2.5 rounded-xl font-semibold text-xs flex items-center justify-between transition ${
+              activePage === 'pesanan'
+                ? 'bg-emerald-700 text-white shadow-xs font-bold'
+                : 'text-slate-700 hover:bg-slate-50 border border-slate-100'
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <Receipt className="w-4 h-4" />
+              <span>Daftar & Status Pesanan</span>
+            </div>
+            {activePage === 'pesanan' ? (
+              <span className="text-[10px] font-bold bg-white/20 px-2 py-0.5 rounded-md">Aktif</span>
+            ) : (
+              <ChevronRight className="w-3.5 h-3.5 opacity-60" />
+            )}
+          </Link>
+
+          <Link
+            href={user ? '/profile' : '/login'}
+            onClick={() => setMobileMenuOpen(false)}
+            className={`w-full px-3.5 py-2.5 rounded-xl font-semibold text-xs flex items-center justify-between transition ${
+              activePage === 'profile'
+                ? 'bg-emerald-700 text-white shadow-xs font-bold'
+                : 'text-slate-700 hover:bg-slate-50 border border-slate-100'
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <UserIcon className="w-4 h-4" />
+              <span>Halaman Profil Akun</span>
+            </div>
+            {activePage === 'profile' ? (
               <span className="text-[10px] font-bold bg-white/20 px-2 py-0.5 rounded-md">Aktif</span>
             ) : (
               <ChevronRight className="w-3.5 h-3.5 opacity-60" />

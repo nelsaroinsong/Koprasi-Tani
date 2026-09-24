@@ -45,7 +45,7 @@ import {
 
 export default function UserProfileDropdown() {
   const router = useRouter();
-  const { user, logout, updateProfile } = useAuth();
+  const { user, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [cartItems, setCartItems] = useState<any[]>([]);
@@ -110,15 +110,6 @@ export default function UserProfileDropdown() {
       .catch(() => {});
   }, [activeModal]);
 
-  // Riwayat Orders State
-  const [userOrders, setUserOrders] = useState<any[]>([]);
-  const [isLoadingOrders, setIsLoadingOrders] = useState(false);
-  const [orderFilter, setOrderFilter] = useState<'ALL' | 'ACTIVE' | 'DONE'>('ALL');
-
-  const activeOrdersCount = userOrders.filter(
-    (o) => o.status === 'MENUNGGU_PEMBAYARAN' || o.status === 'DIPROSES' || o.status === 'SIAP_DIAMBIL'
-  ).length;
-
   // Sync cart from localStorage
   const syncCart = useCallback(() => {
     try {
@@ -161,35 +152,12 @@ export default function UserProfileDropdown() {
     return () => window.removeEventListener('cart-updated', handleCartEvent);
   }, [syncCart]);
 
-  // Fetch riwayat pesanan ketika modal riwayat dibuka
-  const fetchUserOrders = useCallback(async () => {
-    try {
-      setIsLoadingOrders(true);
-      const res = await fetch('/api/orders');
-      const data = await res.json();
-      if (res.ok && data.orders) {
-        setUserOrders(data.orders);
-      }
-    } catch (err) {
-      console.error('Error fetch user orders:', err);
-    } finally {
-      setIsLoadingOrders(false);
-    }
-  }, []);
-
   useEffect(() => {
-    fetchUserOrders();
-  }, [fetchUserOrders]);
-
-  useEffect(() => {
-    if (activeModal === 'riwayat') {
-      fetchUserOrders();
-    }
     if (activeModal === 'cart') {
       setCartStep('CART');
       setOrderError(null);
     }
-  }, [activeModal, fetchUserOrders]);
+  }, [activeModal]);
 
   // Update kuantitas produk di dalam keranjang
   const updateCartItemQty = (idx: number, delta: number) => {
@@ -240,7 +208,6 @@ export default function UserProfileDropdown() {
       localStorage.removeItem('koperasi_cart');
       syncCart();
       window.dispatchEvent(new CustomEvent('cart-updated'));
-      fetchUserOrders();
     } catch (err: any) {
       console.error(err);
       setOrderError(err.message || 'Terjadi gangguan saat memproses pesanan.');
@@ -286,89 +253,6 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
 
     const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
     window.open(waUrl, '_blank');
-  };
-
-  // Edit Profile Form State
-  const [editName, setEditName] = useState('');
-  const [editPhone, setEditPhone] = useState('');
-  const [editAddress, setEditAddress] = useState('');
-  const [editAvatar, setEditAvatar] = useState('');
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Sync edit form with current user on modal open
-  useEffect(() => {
-    if (user) {
-      setEditName(user.name || '');
-      setEditPhone(user.phone || '+62 812-4455-6677');
-      setEditAddress(user.address || '');
-      setEditAvatar(user.avatarUrl || '');
-      setSelectedFile(null);
-      setUploadError(null);
-    }
-  }, [user, activeModal]);
-
-  // Handle local avatar image selection
-  const handleAvatarFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setSelectedFile(file);
-    setUploadError(null);
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        setEditAvatar(reader.result);
-      }
-    };
-    reader.readAsDataURL(file);
-  };
-
-  // Upload ke R2 & Simpan Profil
-  const handleSaveProfile = async () => {
-    setIsUploading(true);
-    setUploadError(null);
-    let finalAvatarUrl = editAvatar;
-
-    try {
-      if (selectedFile) {
-        const formData = new FormData();
-        formData.append('file', selectedFile);
-        if (user?.email) {
-          formData.append('email', user.email);
-        }
-
-        const res = await fetch('/api/upload/profile', {
-          method: 'POST',
-          body: formData,
-        });
-
-        const data = await res.json();
-        if (!res.ok || data.error) {
-          throw new Error(data.error || 'Gagal mengunggah foto ke Cloudflare R2');
-        }
-
-        finalAvatarUrl = data.url;
-      }
-
-      updateProfile({
-        name: editName,
-        phone: editPhone,
-        address: editAddress,
-        avatarUrl: finalAvatarUrl,
-      });
-
-      setActiveModal(null);
-      setSelectedFile(null);
-    } catch (err: any) {
-      console.error(err);
-      setUploadError(err.message || 'Terjadi kesalahan saat mengunggah foto ke R2.');
-    } finally {
-      setIsUploading(false);
-    }
   };
 
   // Close dropdown when clicked outside
@@ -442,8 +326,15 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
         {/* Dropdown Card */}
         {isOpen && (
           <div className="absolute right-3 sm:right-6 top-16 sm:top-20 z-50 w-[320px] sm:w-[350px] bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in-50 zoom-in-95 duration-200">
-            {/* Dark Forest Green Header */}
-            <div className="bg-[#1b4332] text-white p-5 relative overflow-hidden">
+            {/* Dark Forest Green Header - Klik mengarah langsung ke halaman /profile */}
+            <div
+              onClick={() => {
+                setIsOpen(false);
+                router.push('/profile');
+              }}
+              className="bg-[#1b4332] hover:bg-[#16382a] text-white p-5 relative overflow-hidden cursor-pointer transition"
+              title="Buka Halaman Profil Saya"
+            >
               <div className="absolute -top-12 -right-12 w-32 h-32 rounded-full bg-emerald-500/20 blur-2xl" />
 
               <div className="flex justify-between items-start mb-4 relative z-10">
@@ -467,8 +358,9 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
               </div>
 
               <div className="relative z-10 mb-4">
-                <h3 className="text-base font-bold tracking-tight text-white leading-tight">
-                  {user.name}
+                <h3 className="text-base font-bold tracking-tight text-white leading-tight flex items-center gap-1.5">
+                  <span>{user.name}</span>
+                  <ChevronRight className="w-4 h-4 text-emerald-400 opacity-80" />
                 </h3>
                 <div className="flex items-center gap-1.5 text-xs text-emerald-200 mt-1">
                   <Phone className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
@@ -487,12 +379,13 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
                 <span className="font-bold text-xs text-emerald-100">{registeredDate}</span>
               </div>
 
-              {/* Status Mengikuti & Pengikut (Tampil di Bawah Terdaftar dengan navigasi ke /toko/mengikuti) */}
+              {/* Status Mengikuti & Pengikut */}
               {user.role === 'PETANI' ? (
                 <div className="mt-2 pt-2 border-t border-emerald-700/40 flex items-center justify-between text-xs text-emerald-100/90 relative z-10">
                   <button
                     type="button"
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setIsOpen(false);
                       router.push('/toko/mengikuti');
                     }}
@@ -513,7 +406,8 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
                   <span className="text-[11px] text-emerald-300/80 font-medium">Mengikuti:</span>
                   <button
                     type="button"
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setIsOpen(false);
                       router.push('/toko/mengikuti');
                     }}
@@ -527,12 +421,12 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
               )}
             </div>
 
-            {/* Menu List */}
+            {/* Menu List - Tanpa Monitoring Pesanan (karena pesanan sudah ada di navbar), profil mengarah ke halaman sendiri /profile */}
             <div className="p-3.5 space-y-1">
               <button
                 onClick={() => {
                   setIsOpen(false);
-                  setActiveModal('edit-profile');
+                  router.push('/profile');
                 }}
                 className="w-full p-2.5 rounded-2xl hover:bg-slate-50 flex items-center justify-between group transition cursor-pointer text-left"
                 type="button"
@@ -542,35 +436,8 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
                     <UserIcon className="w-5 h-5" />
                   </div>
                   <div>
-                    <div className="text-xs font-bold text-slate-800">Edit Profil & Alamat</div>
-                    <div className="text-[11px] text-slate-400">Ubah info pribadi, no HP & domisili</div>
-                  </div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-600 transition" />
-              </button>
-
-              <button
-                onClick={() => {
-                  setIsOpen(false);
-                  router.push('/pesanan');
-                }}
-                className="w-full p-2.5 rounded-2xl hover:bg-slate-50 flex items-center justify-between group transition cursor-pointer text-left"
-                type="button"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center group-hover:scale-105 transition">
-                    <ClipboardList className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-slate-800 flex items-center gap-2">
-                      <span>Monitoring Pesanan</span>
-                      {activeOrdersCount > 0 && (
-                        <span className="px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[9px] font-extrabold">
-                          {activeOrdersCount} aktif
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-[11px] text-slate-400">Status pesanan & serah terima koperasi</div>
+                    <div className="text-xs font-bold text-slate-800">Halaman Profil Saya</div>
+                    <div className="text-[11px] text-slate-400">Kelola identitas, foto profil & kontak domisili</div>
                   </div>
                 </div>
                 <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-600 transition" />
@@ -993,406 +860,6 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
             </div>
           )}
 
-          {/* ======================================================== */}
-          {/* MODAL 2: MONITORING PESANAN PEMBELI & PETANI              */}
-          {/* ======================================================== */}
-          {activeModal === 'riwayat' && (
-            <div>
-              <DialogHeader className="text-left mb-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center border border-emerald-100 shrink-0">
-                      <ClipboardList className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <DialogTitle className="text-base font-bold text-slate-900 leading-snug">
-                        Monitoring & Status Pesanan
-                      </DialogTitle>
-                      <DialogDescription className="text-xs text-slate-500 mt-0.5">
-                        Pantau progres penyiapan komoditas dan status serah terima fisik di koperasi.
-                      </DialogDescription>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={fetchUserOrders}
-                    disabled={isLoadingOrders}
-                    className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 hover:text-emerald-800 transition flex items-center gap-1.5 text-xs font-semibold shrink-0 cursor-pointer shadow-2xs"
-                    title="Muat Ulang Status Pesanan"
-                  >
-                    <RefreshCw className={`w-3.5 h-3.5 ${isLoadingOrders ? 'animate-spin text-emerald-600' : ''}`} />
-                    <span className="hidden sm:inline">Segarkan</span>
-                  </button>
-                </div>
-              </DialogHeader>
-
-              {/* Filter Tabs */}
-              <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl text-xs font-semibold mb-3">
-                <button
-                  type="button"
-                  onClick={() => setOrderFilter('ALL')}
-                  className={`flex-1 py-1.5 rounded-lg transition cursor-pointer ${
-                    orderFilter === 'ALL'
-                      ? 'bg-white text-slate-900 shadow-2xs font-bold'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  Semua ({userOrders.length})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setOrderFilter('ACTIVE')}
-                  className={`flex-1 py-1.5 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 ${
-                    orderFilter === 'ACTIVE'
-                      ? 'bg-white text-emerald-800 shadow-2xs font-bold'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  <span>Dalam Proses</span>
-                  {activeOrdersCount > 0 && (
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  )}
-                  <span>({activeOrdersCount})</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setOrderFilter('DONE')}
-                  className={`flex-1 py-1.5 rounded-lg transition cursor-pointer ${
-                    orderFilter === 'DONE'
-                      ? 'bg-white text-slate-900 shadow-2xs font-bold'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  Selesai ({userOrders.filter((o) => o.status === 'SELESAI' || o.status === 'DIBATALKAN').length})
-                </button>
-              </div>
-
-              {isLoadingOrders ? (
-                <div className="py-12 flex flex-col items-center justify-center gap-2 text-xs text-slate-500">
-                  <Loader2 className="w-6 h-6 text-emerald-600 animate-spin" />
-                  <span>Memuat status pesanan terbaru dari sistem koperasi...</span>
-                </div>
-              ) : userOrders.length === 0 ? (
-                <div className="py-10 text-center text-slate-400 text-xs">
-                  <ClipboardList className="w-10 h-10 mx-auto mb-2 text-slate-300 stroke-1" />
-                  <p className="font-bold text-slate-700 text-sm">Belum Ada Pesanan Masuk</p>
-                  <p className="text-[11px] text-slate-400 mt-1 max-w-xs mx-auto">
-                    Pesanan resmi Anda akan tercatat di sini dan dapat dipantau progresnya hingga siap diambil di gudang koperasi.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1 my-3">
-                  {userOrders
-                    .filter((order) => {
-                      if (orderFilter === 'ACTIVE') {
-                        return (
-                          order.status === 'MENUNGGU_PEMBAYARAN' ||
-                          order.status === 'DIPROSES' ||
-                          order.status === 'SIAP_DIAMBIL'
-                        );
-                      }
-                      if (orderFilter === 'DONE') {
-                        return order.status === 'SELESAI' || order.status === 'DIBATALKAN';
-                      }
-                      return true;
-                    })
-                    .map((order) => {
-                      const statusConfig: Record<
-                        string,
-                        { label: string; badge: string; step: number; hint: string }
-                      > = {
-                        MENUNGGU_PEMBAYARAN: {
-                          label: 'Menunggu Bayar di Kasir',
-                          badge: 'bg-amber-100 text-amber-800 border-amber-300',
-                          step: 1,
-                          hint: 'Silakan datang ke kantor koperasi untuk pembayaran tunai (cash) langsung saat serah terima barang.',
-                        },
-                        DIPROSES: {
-                          label: 'Sedang Disiapkan di Gudang',
-                          badge: 'bg-blue-100 text-blue-800 border-blue-300',
-                          step: 2,
-                          hint: 'Staf gudang koperasi sedang mengecek fisik dan mengemas komoditas pesanan Anda.',
-                        },
-                        SIAP_DIAMBIL: {
-                          label: 'Siap Diambil di Koperasi',
-                          badge: 'bg-emerald-100 text-emerald-800 border-emerald-300 animate-pulse',
-                          step: 3,
-                          hint: 'Komoditas sudah siap! Kunjungi kantor & gudang koperasi untuk serah terima fisik dan pembayaran kas.',
-                        },
-                        SELESAI: {
-                          label: 'Pesanan Selesai / Lunas',
-                          badge: 'bg-slate-100 text-slate-800 border-slate-300',
-                          step: 4,
-                          hint: 'Barang telah diterima dan pembayaran tunai telah sah diselesaikan di kasir koperasi.',
-                        },
-                        DIBATALKAN: {
-                          label: 'Dibatalkan',
-                          badge: 'bg-red-100 text-red-800 border-red-300',
-                          step: 0,
-                          hint: 'Pesanan dibatalkan. Alokasi stok komoditas telah dikembalikan ke gudang koperasi.',
-                        },
-                      };
-
-                      const currentStatus = statusConfig[order.status] || {
-                        label: order.status,
-                        badge: 'bg-slate-100 text-slate-800 border-slate-200',
-                        step: 1,
-                        hint: '',
-                      };
-
-                      const stepIdx = currentStatus.step;
-
-                      return (
-                        <div
-                          key={order.id}
-                          className="p-4 bg-slate-50/70 border border-slate-200 rounded-2xl text-xs space-y-3 shadow-2xs hover:border-emerald-300 transition"
-                        >
-                          {/* Header Invoice */}
-                          <div className="flex items-start justify-between gap-2 border-b border-slate-200/80 pb-2.5">
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className="font-extrabold text-sm text-slate-900 tracking-tight">
-                                  #{order.orderNumber}
-                                </span>
-                                <span
-                                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${currentStatus.badge}`}
-                                >
-                                  {currentStatus.label}
-                                </span>
-                              </div>
-                              <div className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1.5">
-                                <Clock className="w-3 h-3 text-slate-400 shrink-0" />
-                                <span>
-                                  {new Date(order.createdAt).toLocaleDateString('id-ID', {
-                                    day: 'numeric',
-                                    month: 'long',
-                                    year: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                  })}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Visual Step Tracker (Hanya jika belum batal) */}
-                          {order.status !== 'DIBATALKAN' ? (
-                            <div className="bg-white p-3 rounded-xl border border-slate-200/80 shadow-2xs">
-                              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
-                                Progres Penyiapan Koperasi:
-                              </div>
-                              <div className="grid grid-cols-4 gap-1 text-center relative">
-                                {/* Connecting Bar Background */}
-                                <div className="absolute top-3.5 left-[12%] right-[12%] h-1 bg-slate-100 -z-0 rounded-full" />
-                                {/* Connecting Bar Active */}
-                                <div
-                                  className="absolute top-3.5 left-[12%] h-1 bg-emerald-600 -z-0 rounded-full transition-all duration-500"
-                                  style={{
-                                    width:
-                                      stepIdx === 1
-                                        ? '0%'
-                                        : stepIdx === 2
-                                        ? '38%'
-                                        : stepIdx === 3
-                                        ? '75%'
-                                        : '76%',
-                                  }}
-                                />
-
-                                {/* Step 1: Pesanan Masuk */}
-                                <div className="flex flex-col items-center relative z-10">
-                                  <div
-                                    className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs shadow-xs transition ${
-                                      stepIdx >= 1
-                                        ? 'bg-emerald-600 text-white ring-2 ring-emerald-100'
-                                        : 'bg-slate-100 text-slate-400'
-                                    }`}
-                                  >
-                                    {stepIdx > 1 ? '✓' : '1'}
-                                  </div>
-                                  <span className="text-[10px] font-semibold text-slate-700 mt-1 leading-tight">
-                                    Pesanan Masuk
-                                  </span>
-                                </div>
-
-                                {/* Step 2: Disiapkan Gudang */}
-                                <div className="flex flex-col items-center relative z-10">
-                                  <div
-                                    className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs shadow-xs transition ${
-                                      stepIdx >= 2
-                                        ? 'bg-emerald-600 text-white ring-2 ring-emerald-100'
-                                        : 'bg-slate-100 text-slate-400'
-                                    }`}
-                                  >
-                                    {stepIdx > 2 ? '✓' : '2'}
-                                  </div>
-                                  <span className="text-[10px] font-semibold text-slate-700 mt-1 leading-tight">
-                                    Disiapkan
-                                  </span>
-                                </div>
-
-                                {/* Step 3: Siap Diambil */}
-                                <div className="flex flex-col items-center relative z-10">
-                                  <div
-                                    className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs shadow-xs transition ${
-                                      stepIdx >= 3
-                                        ? 'bg-emerald-600 text-white ring-2 ring-emerald-100'
-                                        : 'bg-slate-100 text-slate-400'
-                                    }`}
-                                  >
-                                    {stepIdx > 3 ? '✓' : '3'}
-                                  </div>
-                                  <span className="text-[10px] font-semibold text-slate-700 mt-1 leading-tight">
-                                    Siap Diambil
-                                  </span>
-                                </div>
-
-                                {/* Step 4: Selesai */}
-                                <div className="flex flex-col items-center relative z-10">
-                                  <div
-                                    className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs shadow-xs transition ${
-                                      stepIdx >= 4
-                                        ? 'bg-emerald-600 text-white ring-2 ring-emerald-100'
-                                        : 'bg-slate-100 text-slate-400'
-                                    }`}
-                                  >
-                                    {stepIdx >= 4 ? '✓' : '4'}
-                                  </div>
-                                  <span className="text-[10px] font-semibold text-slate-700 mt-1 leading-tight">
-                                    Selesai
-                                  </span>
-                                </div>
-                              </div>
-
-                              <div className="mt-2.5 pt-2 border-t border-slate-100 text-[11px] text-slate-600 flex items-center gap-1.5">
-                                <span className="font-bold text-emerald-800">Petunjuk:</span>
-                                <span>{currentStatus.hint}</span>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="p-2.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
-                              <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
-                              <span>{currentStatus.hint}</span>
-                            </div>
-                          )}
-
-                          {/* List Komoditas */}
-                          <div className="space-y-1.5 bg-white p-3 rounded-xl border border-slate-200/80">
-                            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
-                              Komoditas yang Dipesan:
-                            </div>
-                            {order.items?.map((item: any) => (
-                              <div
-                                key={item.id}
-                                className="flex items-center justify-between text-xs py-1 border-b border-slate-100 last:border-0"
-                              >
-                                <div className="flex items-center gap-2 min-w-0">
-                                  {item.product?.imageUrl ? (
-                                    <img
-                                      src={item.product.imageUrl}
-                                      alt={item.product.nama}
-                                      className="w-8 h-8 rounded-lg object-cover border border-slate-200 shrink-0"
-                                    />
-                                  ) : (
-                                    <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 text-xs font-bold">
-                                      🌾
-                                    </div>
-                                  )}
-                                  <div className="min-w-0">
-                                    <div className="font-bold text-slate-900 truncate">
-                                      {item.namaProduk || item.product?.nama || 'Komoditas'}
-                                    </div>
-                                    <div className="text-[10px] text-slate-400">
-                                      {item.quantity} {item.satuan || item.product?.satuan || 'unit'} × Rp{' '}
-                                      {Number(item.hargaPerSatuan).toLocaleString('id-ID')}
-                                      {item.petani?.name && (
-                                        <span className="text-emerald-700 ml-1 font-medium">
-                                          (Mitra: {item.petani.name})
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                                <span className="font-extrabold text-slate-900 shrink-0 ml-2">
-                                  Rp {Number(item.subtotal).toLocaleString('id-ID')}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-
-                          {/* Info Lokasi Ambil & Alamat Rumah */}
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
-                            <div className="p-2.5 bg-white rounded-xl border border-slate-200/80">
-                              <span className="text-slate-400 font-bold block text-[10px] uppercase">
-                                Lokasi Serah Terima Barang:
-                              </span>
-                              <div className="text-slate-800 font-semibold mt-0.5 flex items-start gap-1">
-                                <Store className="w-3.5 h-3.5 text-emerald-700 shrink-0 mt-0.5" />
-                                <span>{order.alamatKirim || pickupLocation}</span>
-                              </div>
-                            </div>
-                            <div className="p-2.5 bg-white rounded-xl border border-slate-200/80">
-                              <span className="text-slate-400 font-bold block text-[10px] uppercase">
-                                Alamat Domisili Pembeli:
-                              </span>
-                              <div className="text-slate-800 font-semibold mt-0.5 flex items-start gap-1">
-                                <Home className="w-3.5 h-3.5 text-blue-700 shrink-0 mt-0.5" />
-                                <span>
-                                  {order.pembeli?.address || user?.address || 'Belum diisi di profil'}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-
-                          {order.catatan && (
-                            <div className="p-2 bg-amber-50/70 border border-amber-200/60 rounded-xl text-[11px] text-amber-900">
-                              <span className="font-bold">Catatan:</span> {order.catatan}
-                            </div>
-                          )}
-
-                          {/* Footer Total & WhatsApp Action */}
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-slate-200/80">
-                            <div>
-                              <div className="text-[10px] text-slate-400">
-                                Metode:{' '}
-                                <strong className="text-slate-700">
-                                  {order.paymentMethod === 'CASH_KOPERASI'
-                                    ? 'Bayar Tunai (Cash) di Koperasi'
-                                    : 'Transfer BRI'}
-                                </strong>
-                              </div>
-                              <div className="text-sm font-black text-emerald-800">
-                                Total: Rp {Number(order.totalAmount).toLocaleString('id-ID')}
-                              </div>
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={() => handleSendWhatsAppConfirmation(order)}
-                              className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
-                            >
-                              <MessageCircle className="w-3.5 h-3.5 text-emerald-100" />
-                              <span>Hubungi Admin WA</span>
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                </div>
-              )}
-
-              <button
-                type="button"
-                onClick={() => setActiveModal(null)}
-                className="w-full py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-semibold text-xs transition cursor-pointer mt-2"
-              >
-                Tutup
-              </button>
-            </div>
-          )}
-
-          {/* ======================================================== */}
           {/* MODAL 3: METODE PEMBAYARAN KOPERASI                     */}
           {/* ======================================================== */}
           {activeModal === 'pembayaran' && (
@@ -1476,133 +943,7 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
             </div>
           )}
 
-          {/* ======================================================== */}
-          {/* MODAL 4: EDIT PROFIL                                    */}
-          {/* ======================================================== */}
-          {activeModal === 'edit-profile' && (
-            <div>
-              <DialogHeader className="text-left mb-3">
-                <DialogTitle className="text-base font-bold text-slate-900 leading-snug">
-                  Edit Profil Akun
-                </DialogTitle>
-                <DialogDescription className="text-xs text-slate-500 mt-0.5">
-                  Perbarui foto profil, nama lengkap, dan nomor kontak Anda.
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="flex flex-col items-center justify-center mb-5">
-                <div className="relative group">
-                  <div className="w-20 h-20 rounded-full bg-emerald-800 text-white flex items-center justify-center font-bold text-2xl shadow-md border-2 border-emerald-500 overflow-hidden">
-                    {editAvatar ? (
-                      <img src={editAvatar} alt="Foto Profil" className="w-full h-full object-cover" />
-                    ) : (
-                      <span>{userInitial}</span>
-                    )}
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center shadow-md ring-2 ring-white cursor-pointer transition"
-                    title="Ganti Foto Profil"
-                  >
-                    <Camera className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  accept="image/*"
-                  onChange={handleAvatarFile}
-                  className="hidden"
-                />
-
-                <div className="flex items-center gap-3 mt-2.5">
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="text-[11px] font-semibold text-emerald-700 hover:text-emerald-800 hover:underline cursor-pointer"
-                  >
-                    Unggah Foto Baru
-                  </button>
-                  {editAvatar && (
-                    <button
-                      type="button"
-                      onClick={() => setEditAvatar('')}
-                      className="text-[11px] text-red-500 hover:text-red-700 flex items-center gap-1 cursor-pointer"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                      <span>Hapus</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              <div className="space-y-3 mb-5">
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-700 mb-1">Nama Lengkap</label>
-                  <input
-                    type="text"
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-700 mb-1">Email</label>
-                  <input
-                    type="email"
-                    disabled
-                    defaultValue={user.email}
-                    className="w-full text-xs px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-slate-500 cursor-not-allowed"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-700 mb-1">Nomor WhatsApp / Telepon</label>
-                  <input
-                    type="tel"
-                    value={editPhone}
-                    onChange={(e) => setEditPhone(e.target.value)}
-                    placeholder="+62 812-xxxx-xxxx"
-                    className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-700 mb-1 flex items-center gap-1.5">
-                    <Home className="w-3.5 h-3.5 text-emerald-700" />
-                    <span>Alamat Rumah Lengkap (Domisili)</span>
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={editAddress}
-                    onChange={(e) => setEditAddress(e.target.value)}
-                    placeholder="Contoh: Jaga II, Desa Kolongan, Kec. Kalawat, Kab. Minahasa Utara (Patokan dekat kantor desa)"
-                    className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600 resize-none text-slate-800"
-                  />
-                  <p className="text-[10px] text-slate-400 mt-1">
-                    Alamat tempat tinggal resmi petani & pembeli agar tercatat resmi di sistem koperasi jika ada hal mendesak.
-                  </p>
-                </div>
-              </div>
-
-              {uploadError && (
-                <div className="mb-4 p-2.5 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs">
-                  {uploadError}
-                </div>
-              )}
-
-              <button
-                type="button"
-                disabled={isUploading}
-                onClick={handleSaveProfile}
-                className="w-full py-2.5 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white rounded-xl font-semibold text-xs transition cursor-pointer shadow-xs"
-              >
-                {isUploading ? 'Mengunggah Foto ke Cloudflare R2...' : 'Simpan Perubahan'}
-              </button>
-            </div>
-          )}
-        </DialogContent>
+          </DialogContent>
       </Dialog>
     </>
   );
