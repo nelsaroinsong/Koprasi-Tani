@@ -52,6 +52,41 @@ export default function UserProfileDropdown() {
   const [cartCount, setCartCount] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Follow Stats: Mengikuti & Diikuti
+  const [followStats, setFollowStats] = useState<{ followingCount: number; followersCount: number }>({
+    followingCount: 0,
+    followersCount: 0,
+  });
+
+  const fetchFollowStats = useCallback(async () => {
+    try {
+      const res = await fetch('/api/user/profile');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.user) {
+          setFollowStats({
+            followingCount: data.user.followingCount || 0,
+            followersCount: data.user.followersCount || 0,
+          });
+        }
+      }
+    } catch (e) {
+      console.error('Error fetching follow stats:', e);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      fetchFollowStats();
+    }
+  }, [user, fetchFollowStats]);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchFollowStats();
+    }
+  }, [isOpen, fetchFollowStats]);
+
   // Multi-step Checkout States (Hanya Cash di Koperasi & Ambil di Gudang Koperasi)
   const DEFAULT_PICKUP_LOCATION =
     'Koperasi Sinar Pagi Sejahtera — Jl. Raya Kolongan, Kec. Kalawat, Kabupaten Minahasa Utara, Sulawesi Utara';
@@ -451,6 +486,26 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
                 <span className="text-[11px] text-emerald-300/80 font-medium">Terdaftar</span>
                 <span className="font-bold text-xs text-emerald-100">{registeredDate}</span>
               </div>
+
+              {/* Status Mengikuti & Diikuti (Tampil di Bawah Terdaftar) */}
+              {user.role === 'PETANI' ? (
+                <div className="pt-2 border-t border-emerald-700/40 flex items-center justify-between text-xs text-emerald-100/90 relative z-10">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] text-emerald-300/80 font-medium">Mengikuti:</span>
+                    <span className="font-bold text-xs text-emerald-100">{followStats.followingCount}</span>
+                  </div>
+                  <span className="text-emerald-500/60">•</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] text-emerald-300/80 font-medium">Diikuti:</span>
+                    <span className="font-bold text-xs text-emerald-100">{followStats.followersCount} Pengikut</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="pt-2 border-t border-emerald-700/40 flex items-center justify-between text-xs text-emerald-100/90 relative z-10">
+                  <span className="text-[11px] text-emerald-300/80 font-medium">Mengikuti:</span>
+                  <span className="font-bold text-xs text-emerald-100">{followStats.followingCount} Petani</span>
+                </div>
+              )}
             </div>
 
             {/* Menu List */}

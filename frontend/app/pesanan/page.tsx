@@ -28,8 +28,11 @@ import {
   Phone,
   Loader2,
   ExternalLink,
+  Star,
+  X,
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
+import { useToast } from '@/context/toast-context';
 
 type OrderStatus = 'ALL' | 'MENUNGGU_PEMBAYARAN' | 'DIPROSES' | 'SIAP_DIAMBIL' | 'SELESAI' | 'DIBATALKAN';
 
@@ -44,6 +47,7 @@ const STATUS_FILTERS: { key: OrderStatus; label: string }[] = [
 
 export default function PesananPage() {
   const { user, isLoading: authLoading } = useAuth();
+  const { showToast } = useToast();
   const router = useRouter();
 
   const [orders, setOrders] = useState<any[]>([]);
@@ -51,6 +55,12 @@ export default function PesananPage() {
   const [activeFilter, setActiveFilter] = useState<OrderStatus>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
+
+  // Review Modal State for Selesai Orders
+  const [reviewItem, setReviewItem] = useState<any | null>(null);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
 
   const [warehouseAddress, setWarehouseAddress] = useState(
     'Koperasi Sinar Pagi Sejahtera — Jl. Raya Kolongan, Kec. Kalawat, Kabupaten Minahasa Utara, Sulawesi Utara'
@@ -138,6 +148,55 @@ export default function PesananPage() {
       return true;
     });
   }, [orders, activeFilter, searchQuery]);
+
+  const handleOpenReviewModal = (item: any) => {
+    setReviewItem(item);
+    setReviewRating(5);
+    setReviewComment('');
+  };
+
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reviewItem) return;
+
+    try {
+      setIsSubmittingReview(true);
+      const prodId = reviewItem.productId || reviewItem.product?.id;
+      const res = await fetch(`/api/products/${prodId}/reviews`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          rating: reviewRating,
+          komentar: reviewComment,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        showToast({
+          title: 'Ulasan Berhasil Dikirim',
+          message: `Terima kasih! Ulasan Anda untuk "${reviewItem.namaProduk || reviewItem.product?.nama}" telah tersimpan.`,
+          type: 'success',
+        });
+        setReviewItem(null);
+      } else {
+        showToast({
+          title: 'Gagal Mengirim Ulasan',
+          message: data.error || 'Terjadi kesalahan saat menyimpan ulasan.',
+          type: 'error',
+        });
+      }
+    } catch (err) {
+      console.error('Error submit review:', err);
+      showToast({
+        title: 'Gagal',
+        message: 'Tidak dapat menghubungi server.',
+        type: 'error',
+      });
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
 
   // Konfigurasi Status Badge & Stepper
   const getStatusConfig = (status: string) => {
@@ -624,6 +683,26 @@ Mohon info kesiapan fisik komoditas di gudang koperasi. Terima kasih.`;
                                 <strong>{item.petani.name}</strong>
                               </div>
                             )}
+
+                            {/* Tombol Beri Ulasan khusus pesanan SELESAI */}
+                            {order.status === 'SELESAI' && (
+                              <div className="mt-2 flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenReviewModal(item)}
+                                  className="px-3 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-[11px] font-bold transition flex items-center gap-1 cursor-pointer shadow-2xs"
+                                >
+                                  <Star className="w-3 h-3 text-amber-500 fill-amber-400" />
+                                  <span>Beri Ulasan</span>
+                                </button>
+                                <Link
+                                  href={`/toko/${item.productId || item.product?.id}`}
+                                  className="text-[11px] text-emerald-700 hover:underline font-semibold"
+                                >
+                                  Lihat Komoditas →
+                                </Link>
+                              </div>
+                            )}
                           </div>
 
                           <div className="text-right shrink-0">
@@ -710,7 +789,17 @@ Mohon info kesiapan fisik komoditas di gudang koperasi. Terima kasih.`;
                       Ada pertanyaan seputar pesanan ini? Hubungi langsung staf/admin koperasi.
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {order.status === 'SELESAI' && order.items && order.items.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenReviewModal(order.items[0])}
+                          className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white font-bold text-xs flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+                        >
+                          <Star className="w-3.5 h-3.5 fill-white text-white" />
+                          <span>Beri Ulasan</span>
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => handleOpenWhatsApp(order)}
@@ -733,6 +822,122 @@ Mohon info kesiapan fisik komoditas di gudang koperasi. Terima kasih.`;
           </div>
         )}
       </main>
+
+      {/* Modal Dialog Beri Ulasan Komoditas (Khusus Pesanan Selesai) */}
+      {reviewItem && (
+        <div
+          onClick={() => setReviewItem(null)}
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in-0 duration-200"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-slate-100 space-y-5 animate-in zoom-in-95 duration-200"
+          >
+            {/* Header Modal */}
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="text-base font-black text-slate-900">Beri Penilaian & Ulasan</h3>
+                <p className="text-xs text-slate-500">Bagikan kepuasan Anda setelah pesanan selesai diterima</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReviewItem(null)}
+                className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Info Produk */}
+            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-200/80">
+              {reviewItem.product?.imageUrl ? (
+                <img
+                  src={reviewItem.product.imageUrl}
+                  alt={reviewItem.namaProduk}
+                  className="w-12 h-12 rounded-xl object-cover border border-slate-200"
+                />
+              ) : (
+                <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-lg">
+                  🌾
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <h4 className="text-xs font-bold text-slate-900 truncate">
+                  {reviewItem.namaProduk || reviewItem.product?.nama}
+                </h4>
+                <div className="text-[11px] text-slate-500">
+                  {reviewItem.quantity} {reviewItem.satuan || reviewItem.product?.satuan} • Mitra Petani: {reviewItem.petani?.name || 'Petani Koperasi'}
+                </div>
+              </div>
+            </div>
+
+            {/* Form Review */}
+            <form onSubmit={handleSubmitReview} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-800 mb-1.5">
+                  Rating Bintang ({reviewRating} dari 5)
+                </label>
+                <div className="flex items-center gap-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setReviewRating(star)}
+                      className="p-1 hover:scale-110 transition cursor-pointer"
+                    >
+                      <Star
+                        className={`w-8 h-8 ${
+                          star <= reviewRating
+                            ? 'fill-amber-400 text-amber-400'
+                            : 'fill-slate-200 text-slate-300'
+                        }`}
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-800 mb-1.5">
+                  Ulasan & Catatan Kualitas
+                </label>
+                <textarea
+                  rows={3}
+                  value={reviewComment}
+                  onChange={(e) => setReviewComment(e.target.value)}
+                  placeholder="Ceritakan kesegaran panen, bobot timbangan, atau kepuasan terhadap hasil komoditas petani..."
+                  className="w-full p-3 rounded-2xl border border-slate-200 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-600/30 focus:border-emerald-600"
+                  required
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setReviewItem(null)}
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-semibold text-xs hover:bg-slate-50 transition cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingReview}
+                  className="px-5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
+                >
+                  {isSubmittingReview ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Mengirim...</span>
+                    </>
+                  ) : (
+                    <span>Kirim Ulasan</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

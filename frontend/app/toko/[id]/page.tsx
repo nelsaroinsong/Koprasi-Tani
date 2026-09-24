@@ -24,6 +24,8 @@ import {
   Check,
   Tag,
   AlertCircle,
+  X,
+  Maximize2,
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -47,6 +49,9 @@ export default function ProductDetailPage({
 
   // Stepper state
   const [quantity, setQuantity] = useState(1);
+
+  // Lightbox Modal Gambar Ukuran Asli
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
 
   // Follow button state
   const [isFollowed, setIsFollowed] = useState(false);
@@ -342,7 +347,11 @@ export default function ProductDetailPage({
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6 lg:gap-10">
             {/* Left Column: Product Image & Cooperative Panen Badges */}
             <div className="md:col-span-5 flex flex-col gap-3">
-              <div className="relative aspect-square w-full rounded-2xl overflow-hidden bg-slate-100 border border-slate-200/80 shadow-2xs group">
+              <div
+                onClick={() => setIsImageModalOpen(true)}
+                className="relative aspect-square w-full rounded-2xl overflow-hidden bg-slate-100 border border-slate-200/80 shadow-2xs group cursor-zoom-in"
+                title="Klik untuk melihat foto ukuran asli"
+              >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={
@@ -352,6 +361,14 @@ export default function ProductDetailPage({
                   alt={product.nama}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
+
+                {/* Hover overlay hint */}
+                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                  <div className="bg-black/60 text-white text-xs px-3 py-1.5 rounded-full flex items-center gap-1.5 backdrop-blur-xs font-semibold shadow-md">
+                    <Maximize2 className="w-3.5 h-3.5" />
+                    <span>Lihat Ukuran Asli</span>
+                  </div>
+                </div>
 
                 {/* Floating Badges */}
                 <div className="absolute top-3 left-3 bg-emerald-700 text-white text-[11px] font-bold px-2.5 py-1 rounded-lg shadow-xs backdrop-blur-xs">
@@ -423,10 +440,7 @@ export default function ProductDetailPage({
                 </div>
               </div>
 
-              {/* Separator from shadcn */}
-              <Separator className="my-1 bg-slate-200/80" />
-
-              {/* SELLER / PETANI INFO CARD (Matching Gambar 1 & Gambar 2 reference) */}
+              {/* SELLER / PETANI INFO CARD (Matching Gambar 1 & Gambar 2 reference - garis atas dihilangkan) */}
               <div className="p-4 rounded-xl border border-slate-200/90 bg-white hover:border-emerald-300 transition-colors shadow-2xs">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
@@ -642,13 +656,20 @@ export default function ProductDetailPage({
               </p>
             </div>
 
-            <button
-              onClick={() => setIsReviewFormOpen(!isReviewFormOpen)}
-              className="px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition shadow-2xs flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
-            >
-              <MessageSquare className="w-3.5 h-3.5" />
-              <span>{isReviewFormOpen ? 'Tutup Formulir' : 'Tulis Ulasan'}</span>
-            </button>
+            {productData.userState?.hasPurchased ? (
+              <button
+                onClick={() => setIsReviewFormOpen(!isReviewFormOpen)}
+                className="px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition shadow-2xs flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span>{isReviewFormOpen ? 'Tutup Formulir' : 'Tulis Ulasan'}</span>
+              </button>
+            ) : (
+              <div className="text-[11px] text-slate-500 bg-slate-50 border border-slate-200/80 px-3 py-1.5 rounded-xl flex items-center gap-1.5 self-start sm:self-auto">
+                <CheckCircle2 className="w-3.5 h-3.5 text-slate-400" />
+                <span>Ulasan dapat diberikan setelah pesanan Anda selesai diterima</span>
+              </div>
+            )}
           </div>
 
           {/* Form Tulis Ulasan (Collapsible) */}
@@ -789,15 +810,22 @@ export default function ProductDetailPage({
               </div>
               <h3 className="text-sm font-bold text-slate-800">Belum Ada Ulasan Pembeli</h3>
               <p className="text-xs text-slate-500 max-w-md mx-auto mt-1 mb-4">
-                Komoditas ini belum memiliki ulasan dari pembeli. Beli sekarang dan jadilah orang pertama yang memberikan rating dan ulasan!
+                Komoditas ini belum memiliki ulasan dari pembeli. Beli sekarang dan berikan penilaian setelah pesanan Anda selesai!
               </p>
-              <button
-                onClick={() => setIsReviewFormOpen(true)}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition shadow-xs cursor-pointer"
-              >
-                <MessageSquare className="w-3.5 h-3.5" />
-                <span>Beri Ulasan Pertama</span>
-              </button>
+              {productData.userState?.hasPurchased ? (
+                <button
+                  onClick={() => setIsReviewFormOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition shadow-xs cursor-pointer"
+                >
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  <span>Beri Ulasan Pertama</span>
+                </button>
+              ) : (
+                <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-medium">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Ulasan dapat diberikan setelah Anda membeli komoditas ini</span>
+                </div>
+              )}
             </div>
           )}
 
@@ -903,6 +931,47 @@ export default function ProductDetailPage({
           )}
         </section>
       </main>
+
+      {/* Lightbox / Modal Tampilan Gambar Resolusi Penuh (Ukuran Asli) */}
+      {isImageModalOpen && (
+        <div
+          onClick={() => setIsImageModalOpen(false)}
+          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 animate-in fade-in-0 duration-200 cursor-zoom-out"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative max-w-4xl w-full max-h-[92vh] bg-slate-900 rounded-2xl overflow-hidden shadow-2xl flex flex-col border border-slate-800 cursor-default"
+          >
+            {/* Header Modal */}
+            <div className="px-4 py-3 bg-slate-900/95 text-white flex items-center justify-between border-b border-slate-800">
+              <div className="flex items-center gap-2 text-xs font-bold truncate pr-4">
+                <span className="truncate">{product.nama}</span>
+                <span className="text-slate-400 font-normal">| Tampilan Ukuran Asli</span>
+              </div>
+              <button
+                onClick={() => setIsImageModalOpen(false)}
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition cursor-pointer"
+                title="Tutup (Esc)"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Container Foto Full Size */}
+            <div className="overflow-auto flex-1 flex items-center justify-center p-3 sm:p-6 bg-black/60">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={
+                  product.imageUrl ||
+                  'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=1200&q=90'
+                }
+                alt={product.nama}
+                className="max-w-full max-h-[78vh] object-contain rounded-xl shadow-2xl"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

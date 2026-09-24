@@ -25,6 +25,28 @@ export async function GET() {
       orderBy: { createdAt: 'asc' },
     });
 
+    // Hitung jumlah mengikuti & diikuti
+    let followingCount = 0;
+    let followersCount = 0;
+
+    try {
+      if ((prisma as any).follow) {
+        [followingCount, followersCount] = await Promise.all([
+          (prisma as any).follow.count({ where: { followerId: dbUser.id } }),
+          (prisma as any).follow.count({ where: { petaniId: dbUser.id } }),
+        ]);
+      } else {
+        const [followingRows, followerRows]: any[] = await Promise.all([
+          prisma.$queryRawUnsafe(`SELECT COUNT(*)::int as count FROM follows WHERE "followerId" = $1`, dbUser.id),
+          prisma.$queryRawUnsafe(`SELECT COUNT(*)::int as count FROM follows WHERE "petaniId" = $1`, dbUser.id),
+        ]);
+        followingCount = followingRows[0]?.count || 0;
+        followersCount = followerRows[0]?.count || 0;
+      }
+    } catch (e) {
+      console.warn('Error reading follow stats for user:', e);
+    }
+
     return NextResponse.json({
       success: true,
       user: {
@@ -38,6 +60,8 @@ export async function GET() {
         isOnboarded: dbUser.isOnboarded,
         avatarUrl: dbUser.avatarUrl,
         createdAt: dbUser.createdAt,
+        followingCount,
+        followersCount,
       },
       adminContact: {
         phone: adminUser?.phone || null,

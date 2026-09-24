@@ -627,22 +627,23 @@ export default function TokoOnlinePage() {
                         <span className="text-[9px] text-slate-400 font-normal">/{prod.satuan}</span>
                       </div>
 
-                      {/* Stok & Nama Petani (Klik nama petani mengarah ke etalase toko petani) */}
-                      <div className="flex items-center gap-1 text-[10px] text-slate-500 mt-0.5 truncate">
-                        <span className="truncate font-medium text-slate-700">Stok {Number(prod.stok).toLocaleString('id-ID')}</span>
-                        <span className="text-slate-300">•</span>
-                        <span
-                          onClick={(e) => {
-                            if (prod.petani?.id || prod.petaniId) {
-                              e.stopPropagation();
-                              router.push(`/toko/petani/${prod.petani?.id || prod.petaniId}`);
-                            }
-                          }}
-                          className="truncate text-slate-500 hover:text-emerald-700 hover:underline transition-colors"
-                          title="Kunjungi Toko Petani"
-                        >
-                          {prod.petani?.name || 'Petani Binaan'}
-                        </span>
+                      {/* Stok */}
+                      <div className="text-[11px] text-slate-500 font-medium mt-0.5">
+                        Stok {Number(prod.stok).toLocaleString('id-ID')}
+                      </div>
+
+                      {/* Nama Petani (Di bawah stok dengan ukuran text lebih besar) */}
+                      <div
+                        onClick={(e) => {
+                          if (prod.petani?.id || prod.petaniId) {
+                            e.stopPropagation();
+                            router.push(`/toko/petani/${prod.petani?.id || prod.petaniId}`);
+                          }
+                        }}
+                        className="text-xs font-bold text-slate-800 hover:text-emerald-700 hover:underline transition-colors truncate mt-0.5"
+                        title={prod.petani?.name ? `Kunjungi Toko ${prod.petani.name}` : 'Petani Mitra'}
+                      >
+                        {prod.petani?.name || 'Petani Mitra'}
                       </div>
                     </div>
                   </div>

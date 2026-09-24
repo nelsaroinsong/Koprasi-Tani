@@ -194,13 +194,13 @@ export async function GET(
         console.warn('Error checking follow status:', fCheckErr);
       }
 
-      // Cek apakah pembeli pernah beli produk ini
+      // Cek apakah pembeli sudah berhasil membeli produk ini (status pesanan SELESAI)
       const orderCount = await prisma.orderItem.count({
         where: {
           productId: id,
           order: {
             pembeliId: currentUserId,
-            status: { not: 'DIBATALKAN' },
+            status: 'SELESAI',
           },
         },
       });

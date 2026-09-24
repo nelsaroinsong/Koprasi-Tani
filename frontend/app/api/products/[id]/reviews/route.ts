@@ -92,6 +92,27 @@ export async function POST(
       return NextResponse.json({ error: 'Komoditas tidak ditemukan.' }, { status: 404 });
     }
 
+    // Pastikan pengguna sudah berhasil membeli komoditas ini (status pesanan SELESAI)
+    const completedPurchaseCount = await prisma.orderItem.count({
+      where: {
+        productId,
+        order: {
+          pembeliId: currentUser.id,
+          status: 'SELESAI',
+        },
+      },
+    });
+
+    if (completedPurchaseCount === 0 && currentUser.role !== 'ADMIN') {
+      return NextResponse.json(
+        {
+          error:
+            'Ulasan hanya dapat diberikan setelah Anda berhasil membeli dan pesanan komoditas ini berstatus Selesai.',
+        },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const { rating, komentar, fotoUrl } = body;
 
