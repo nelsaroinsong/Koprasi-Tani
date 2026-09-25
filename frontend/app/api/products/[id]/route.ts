@@ -348,14 +348,50 @@ export async function DELETE(
       );
     }
 
-    await prisma.product.delete({
-      where: { id },
+    // Hapus relasi yang merujuk ke produk (reviews, order_items) dalam transaksi
+    await prisma.$transaction(async (tx) => {
+      // 1. Hapus reviews terkait produk
+      await tx.review.deleteMany({
+        where: { productId: id },
+      });
+
+      // 2. Ambil list order yang memuat item produk ini
+      const relatedItems = await tx.orderItem.findMany({
+        where: { productId: id },
+        select: { orderId: true },
+      });
+      const orderIds = Array.from(new Set(relatedItems.map((item) => item.orderId)));
+
+      // 3. Hapus order_items terkait produk
+      await tx.orderItem.deleteMany({
+        where: { productId: id },
+      });
+
+      // 4. Bersihkan data pesanan yang kosong jika seluruh itemnya telah dihapus
+      for (const orderId of orderIds) {
+        const remainingCount = await tx.orderItem.count({
+          where: { orderId },
+        });
+        if (remainingCount === 0) {
+          await tx.order.delete({
+            where: { id: orderId },
+          });
+        }
+      }
+
+      // 5. Hapus produk
+      await tx.product.delete({
+        where: { id },
+      });
     });
 
-    // Invalidate cache produk dan dashboard petani
+    // Invalidate cache produk, orders, dan dashboard petani
     await Promise.all([
       delCachePattern('products:*'),
       delCachePattern('petani:dashboard:*'),
+      delCachePattern('petani:*'),
+      delCachePattern('admin:orders:*'),
+      delCachePattern('user:orders:*'),
     ]);
 
     return NextResponse.json({
