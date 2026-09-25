@@ -278,7 +278,7 @@ Mohon info kesiapan fisik komoditas di gudang koperasi. Terima kasih.`;
   if (!authLoading && !user) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
-        <AppHeader />
+        <AppHeader activePage="pesanan" />
         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
           <div className="w-16 h-16 rounded-3xl bg-emerald-100 text-emerald-800 flex items-center justify-center mb-4 shadow-sm">
             <ShoppingBag className="w-8 h-8" />
@@ -300,7 +300,7 @@ Mohon info kesiapan fisik komoditas di gudang koperasi. Terima kasih.`;
 
   return (
     <div className="min-h-screen bg-[#f8fafc] flex flex-col font-sans">
-      <AppHeader />
+      <AppHeader activePage="pesanan" />
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-2.5 sm:px-6 lg:px-8 py-2.5 sm:py-6 space-y-2.5 sm:space-y-6">

@@ -216,7 +216,7 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-slate-50/70 pb-20 lg:pb-10">
-      <AppHeader />
+      <AppHeader activePage="profile" />
 
       <main className="max-w-2xl mx-auto px-3 sm:px-6 pt-4 sm:pt-8">
         {/* Back Link */}

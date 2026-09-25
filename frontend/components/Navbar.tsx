@@ -70,8 +70,8 @@ export default function Navbar({
           </div>
         </a>
 
-        {/* Menu Navigasi Utama Desktop */}
-        <nav id="desktop-nav-menu" className="hidden md:flex items-center gap-2 text-sm font-medium">
+        {/* Menu Navigasi Utama Desktop - Hanya tampil di desktop (>= lg) */}
+        <nav id="desktop-nav-menu" className="hidden lg:flex items-center gap-2 text-sm font-medium">
           <button
             id="nav-toko"
             onClick={(e) => handleNavClick(e, 'toko')}
@@ -136,119 +136,8 @@ export default function Navbar({
               <span>Masuk</span>
             </Link>
           )}
-
-          {/* Mobile Menu Hamburger */}
-          <button
-            id="mobile-menu-toggle"
-            aria-label="Toggle Menu"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-1.5 sm:p-2 text-slate-600 hover:bg-slate-100 rounded-lg md:hidden transition cursor-pointer"
-            type="button"
-          >
-            {mobileMenuOpen ? <X className="w-5 h-5 sm:w-6 sm:h-6" /> : <Menu className="w-5 h-5 sm:w-6 sm:h-6" />}
-          </button>
         </div>
       </div>
-
-      {/* Mobile Drawer Menu */}
-      {mobileMenuOpen && (
-        <div id="mobile-nav-drawer" className="md:hidden bg-white border-b border-slate-200 px-4 pt-3 pb-4 space-y-1.5 shadow-lg">
-          <button
-            onClick={(e) => handleNavClick(e, 'toko')}
-            className={`w-full text-left px-3.5 py-2.5 rounded-xl font-medium text-sm flex items-center justify-between transition cursor-pointer ${
-              activeSection === 'toko'
-                ? 'bg-emerald-700 text-white font-semibold shadow-xs'
-                : 'text-slate-700 hover:bg-slate-100'
-            }`}
-            type="button"
-          >
-            <span className="flex items-center gap-2.5">
-              <ShoppingBag className="w-4 h-4" />
-              <span>Toko Online</span>
-            </span>
-          </button>
-
-          <button
-            onClick={(e) => handleNavClick(e, 'alsintan')}
-            className={`w-full text-left px-3.5 py-2.5 rounded-xl font-medium text-sm flex items-center justify-between transition cursor-pointer ${
-              activeSection === 'alsintan'
-                ? 'bg-emerald-700 text-white font-semibold shadow-xs'
-                : 'text-slate-700 hover:bg-slate-100'
-            }`}
-            type="button"
-          >
-            <span className="flex items-center gap-2.5">
-              <Tractor className="w-4 h-4" />
-              <span>Sewa Alat</span>
-            </span>
-          </button>
-
-          <button
-            onClick={() => {
-              setMobileMenuOpen(false);
-              router.push('/pesanan');
-            }}
-            className={`w-full text-left px-3.5 py-2.5 rounded-xl font-medium text-sm flex items-center justify-between transition cursor-pointer ${
-              activeSection === 'pesanan'
-                ? 'bg-emerald-700 text-white font-semibold shadow-xs'
-                : 'text-slate-700 hover:bg-slate-100'
-            }`}
-            type="button"
-          >
-            <span className="flex items-center gap-2.5">
-              <Receipt className="w-4 h-4" />
-              <span>Daftar Pesanan</span>
-            </span>
-          </button>
-
-          <button
-            onClick={() => {
-              setMobileMenuOpen(false);
-              router.push(user ? '/profile' : '/login');
-            }}
-            className={`w-full text-left px-3.5 py-2.5 rounded-xl font-medium text-sm flex items-center justify-between transition cursor-pointer ${
-              activeSection === 'profile'
-                ? 'bg-emerald-700 text-white font-semibold shadow-xs'
-                : 'text-slate-700 hover:bg-slate-100'
-            }`}
-            type="button"
-          >
-            <span className="flex items-center gap-2.5">
-              <UserIcon className="w-4 h-4" />
-              <span>Halaman Profil</span>
-            </span>
-          </button>
-
-          <div className="pt-2 border-t border-slate-100">
-            {user ? (
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  logout();
-                }}
-                className="w-full text-left px-3.5 py-2.5 rounded-xl font-semibold text-red-600 bg-red-50 hover:bg-red-100 text-sm flex items-center justify-between cursor-pointer transition"
-                type="button"
-              >
-                <span className="flex items-center gap-2.5">
-                  <LogOut className="w-4 h-4" />
-                  <span>Keluar ({user.name})</span>
-                </span>
-              </button>
-            ) : (
-              <Link
-                href="/login"
-                onClick={() => setMobileMenuOpen(false)}
-                className="w-full text-left px-3.5 py-2.5 rounded-xl font-semibold text-forest-accent bg-emerald-50 hover:bg-emerald-100 text-sm flex items-center justify-between cursor-pointer transition"
-              >
-                <span className="flex items-center gap-2.5">
-                  <LogIn className="w-4 h-4" />
-                  <span>Masuk / Login</span>
-                </span>
-              </Link>
-            )}
-          </div>
-        </div>
-      )}
     </header>
   );
 }
