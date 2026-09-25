@@ -69,7 +69,7 @@ export function NavUser({
                     {userInitial}
                   </AvatarFallback>
                 </Avatar>
-                <div className="grid flex-1 text-left text-sm leading-tight">
+                <div className="grid flex-1 text-left text-sm leading-tight min-w-0">
                   <span className="truncate font-semibold text-slate-800 text-xs">
                     {user.name}
                   </span>
@@ -81,25 +81,39 @@ export function NavUser({
               </SidebarMenuButton>
             </DropdownMenuTrigger>
             <DropdownMenuContent
-              className="w-(--radix-dropdown-menu-trigger-width) min-w-60 rounded-2xl p-1.5 shadow-xl border-slate-200"
+              className="w-max min-w-[300px] max-w-[calc(100vw-2rem)] sm:max-w-md rounded-2xl p-2 shadow-xl border-slate-200 bg-white"
               side={isMobile ? "bottom" : "right"}
               align="end"
-              sideOffset={6}
+              sideOffset={8}
             >
               <DropdownMenuLabel className="p-0 font-normal">
-                <div className="flex items-center gap-2.5 px-2 py-2 text-left bg-emerald-50/60 rounded-xl mb-1 border border-emerald-100/60">
-                  <Avatar className="h-9 w-9 rounded-xl border border-emerald-300 shadow-2xs">
+                <div className="flex items-center gap-3 p-2.5 text-left bg-emerald-50/70 rounded-xl mb-1.5 border border-emerald-100/80 min-w-0">
+                  <Avatar className="h-10 w-10 rounded-xl border border-emerald-300 shadow-2xs shrink-0">
                     <AvatarImage src={user.avatar} alt={user.name} className="object-cover" />
                     <AvatarFallback className="rounded-xl bg-emerald-200 text-emerald-900 font-bold text-xs">
                       {userInitial}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="grid flex-1 text-left text-sm leading-tight">
-                    <div className="flex items-center gap-1.5">
-                      <span className="truncate font-bold text-slate-900 text-xs">{user.name}</span>
+                  <div className="flex-1 min-w-0 text-left">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <div className="min-w-0 flex-1 overflow-hidden relative">
+                        <span
+                          className="block font-bold text-slate-900 text-xs whitespace-nowrap overflow-hidden [mask-image:linear-gradient(to_right,black_85%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_right,black_85%,transparent_100%)] pr-1"
+                          title={user.name}
+                        >
+                          {user.name}
+                        </span>
+                      </div>
                       <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                     </div>
-                    <span className="truncate text-[11px] text-slate-500">{user.email}</span>
+                    <div className="overflow-hidden relative mt-0.5">
+                      <span
+                        className="block text-[11px] text-slate-500 whitespace-nowrap overflow-hidden [mask-image:linear-gradient(to_right,black_85%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_right,black_85%,transparent_100%)] pr-1"
+                        title={user.email}
+                      >
+                        {user.email}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </DropdownMenuLabel>
