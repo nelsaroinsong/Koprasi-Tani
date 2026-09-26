@@ -8,13 +8,17 @@ import { TokoOnlineDataTable } from '@/components/admin/toko-data-table';
 import { OrdersDataTable } from '@/components/admin/orders-data-table';
 import { PayoutsDataTable } from '@/components/admin/payouts-data-table';
 import { TickerSettingsPanel } from '@/components/admin/ticker-settings-panel';
+import { LogoSettingsPanel } from '@/components/admin/logo-settings-panel';
 import { Sprout, Users, ShoppingBag, ArrowRight, Package, ShoppingCart, HandCoins } from 'lucide-react';
 
 export default function AdminPage() {
   const { activeTab, setActiveTab } = useAdmin();
 
-  // 0. Tampilan Pengaturan Web: Teks Berjalan
+  // 0. Tampilan Pengaturan Web: Teks Berjalan & Logo Mitra
   if (activeTab.group === 'Pengaturan Web') {
+    if (activeTab.item === 'Logo Mitra') {
+      return <LogoSettingsPanel />;
+    }
     return <TickerSettingsPanel />;
   }
 

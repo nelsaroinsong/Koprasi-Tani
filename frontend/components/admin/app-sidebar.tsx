@@ -90,7 +90,7 @@ const data = {
 }
 
 import { useAdmin } from "@/components/admin/admin-context"
-import { Sparkles } from "lucide-react"
+import { Sparkles, Building2 } from "lucide-react"
 import {
   SidebarGroup,
   SidebarGroupLabel,
@@ -121,6 +121,8 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
 
   const isTickerActive =
     activeTab.group === 'Pengaturan Web' && activeTab.item === 'Teks Berjalan';
+  const isLogoActive =
+    activeTab.group === 'Pengaturan Web' && activeTab.item === 'Logo Mitra';
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -161,6 +163,33 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
                     }
                   />
                   <span className="text-xs">Teks Berjalan</span>
+                </button>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                isActive={isLogoActive}
+                tooltip="Logo Mitra (Didukung Oleh)"
+                className={
+                  isLogoActive
+                    ? "bg-emerald-50 text-emerald-800 font-bold border-r-2 border-emerald-600 shadow-2xs hover:bg-emerald-50 hover:text-emerald-900 rounded-xl"
+                    : "text-slate-700 hover:bg-emerald-50/60 hover:text-emerald-800 transition rounded-xl"
+                }
+              >
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('Pengaturan Web', 'Logo Mitra')}
+                  className="flex items-center gap-2.5 px-3 py-2 cursor-pointer w-full text-left"
+                >
+                  <Building2
+                    className={
+                      isLogoActive
+                        ? "w-4 h-4 text-emerald-700 shrink-0"
+                        : "w-4 h-4 text-slate-500 group-hover:text-emerald-700 shrink-0 transition"
+                    }
+                  />
+                  <span className="text-xs">Logo Mitra</span>
                 </button>
               </SidebarMenuButton>
             </SidebarMenuItem>

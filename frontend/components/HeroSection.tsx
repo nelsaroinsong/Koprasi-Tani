@@ -93,25 +93,21 @@ export default function HeroSection({
             </Link>
           </div>
 
-          {/* Supported By Section */}
-          <div className="pt-8 border-t border-slate-200/80 max-w-4xl mx-auto">
-            <p className="text-xs uppercase tracking-widest font-bold text-slate-400 mb-4">
-              Didukung oleh
-            </p>
+          {/* Supported By Section: Static Centered Logo Row (Tanpa Gerak & Selalu Abu-abu Tanpa Hover) */}
+          {logos.length > 0 && (
+            <div className="pt-12 sm:pt-16 border-t border-slate-200/80 max-w-4xl mx-auto text-center">
+              <p className="font-[family-name:var(--font-inter),sans-serif] text-lg sm:text-xl text-slate-500 font-normal tracking-[-0.03em] mb-7 sm:mb-8">
+                Didukung Oleh
+              </p>
 
-            {/* Infinite Auto-Scrolling Logo Carousel with Edge Fade */}
-            <div className="relative w-full max-w-xl mx-auto overflow-hidden py-3 select-none [mask-image:linear-gradient(to_right,transparent,black_18%,black_82%,transparent)] [-webkit-mask-image:linear-gradient(to_right,transparent,black_18%,black_82%,transparent)]">
-              {/* Fade Overlay kiri & kanan untuk kompatibilitas browser */}
-              <div className="absolute left-0 top-0 bottom-0 w-12 sm:w-16 bg-gradient-to-r from-[#fafbf9] to-transparent z-10 pointer-events-none" />
-              <div className="absolute right-0 top-0 bottom-0 w-12 sm:w-16 bg-gradient-to-l from-[#fafbf9] to-transparent z-10 pointer-events-none" />
-
-              <div className="animate-marquee-infinite items-center gap-12 sm:gap-16">
-                {repeatedLogos.map((logo, idx) => {
-                  const isPolimdo = logo.key.toLowerCase().includes('polimdo');
+              {/* Baris Logo Statis di Tengah (Selalu Abu-abu / Grayscale & Tanpa Hover) */}
+              <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-14 md:gap-16">
+                {logos.map((logo) => {
+                  const isPolimdo = (logo.key || logo.name || '').toLowerCase().includes('polimdo');
                   return (
                     <div
-                      key={`${logo.key}-${idx}`}
-                      className="flex items-center justify-center shrink-0"
+                      key={logo.key || logo.name}
+                      className="flex items-center justify-center shrink-0 grayscale opacity-60 pointer-events-none select-none transition-none"
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
@@ -119,10 +115,9 @@ export default function HeroSection({
                         alt={logo.name}
                         className={`${
                           isPolimdo
-                            ? 'h-14 sm:h-16 max-w-[155px] sm:max-w-[185px]'
-                            : 'h-10 sm:h-12 max-w-[145px] sm:max-w-[175px]'
-                        } w-auto object-contain opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300`}
-                        title={logo.name}
+                            ? 'h-11 sm:h-13 max-w-[150px] sm:max-w-[180px]'
+                            : 'h-8 sm:h-10 max-w-[130px] sm:max-w-[160px]'
+                        } w-auto object-contain filter grayscale`}
                         loading="eager"
                       />
                     </div>
@@ -130,7 +125,7 @@ export default function HeroSection({
                 })}
               </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </section>

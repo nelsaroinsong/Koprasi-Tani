@@ -1,0 +1,14 @@
+[
+  {
+    "id": "logo-icare",
+    "key": "logo/logo-icare.webp",
+    "name": "ICARE",
+    "url": "/api/storage/logo/logo-icare.webp"
+  },
+  {
+    "id": "logo-polimdo",
+    "key": "logo/logo polimdo.png",
+    "name": "POLIMDO",
+    "url": "/api/storage/logo/logo polimdo.png"
+  }
+]
