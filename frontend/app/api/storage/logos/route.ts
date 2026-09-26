@@ -57,15 +57,24 @@ function writeLogosToFile(logos: PartnerLogo[]) {
   }
 }
 
+export const dynamic = 'force-dynamic';
+
 // 1. GET: Ambil daftar logo mitra pendukung
 export async function GET() {
   try {
     const logos = readLogosFromFile();
-    return NextResponse.json({
-      success: true,
-      total: logos.length,
-      logos,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        total: logos.length,
+        logos,
+      },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        },
+      }
+    );
   } catch (error: any) {
     console.error('Error fetching logos:', error);
     return NextResponse.json({
@@ -180,6 +189,7 @@ export async function PATCH(request: Request) {
     // Jika yang dikirim adalah array penuh baru (reorder)
     if (Array.isArray(body.logos)) {
       writeLogosToFile(body.logos);
+      await delCachePattern('logos:*').catch(() => {});
       return NextResponse.json({
         success: true,
         message: 'Urutan logo berhasil diperbarui.',

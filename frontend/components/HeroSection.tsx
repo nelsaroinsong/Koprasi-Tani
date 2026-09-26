@@ -38,19 +38,12 @@ export default function HeroSection({
   const [, setIsLoadingLogos] = useState(true);
 
   useEffect(() => {
-    fetch('/api/storage/logos')
+    fetch('/api/storage/logos', { cache: 'no-store' })
       .then((res) => res.json())
       .then((data) => {
-        if (data.success && data.logos && data.logos.length > 0) {
-          // Pastikan logo iCare selalu berada di sebelah kiri (indeks pertama)
-          const sorted = [...data.logos].sort((a: LogoItem, b: LogoItem) => {
-            const aIsIcare = a.key.toLowerCase().includes('icare');
-            const bIsIcare = b.key.toLowerCase().includes('icare');
-            if (aIsIcare && !bIsIcare) return -1;
-            if (!aIsIcare && bIsIcare) return 1;
-            return a.name.localeCompare(b.name);
-          });
-          setLogos(sorted);
+        if (data.success && Array.isArray(data.logos) && data.logos.length > 0) {
+          // Ikuti urutan persis seperti yang disimpan dan diatur oleh Admin
+          setLogos(data.logos);
         }
       })
       .catch(() => {})

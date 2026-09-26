@@ -16,6 +16,7 @@ import {
   X,
   AlertTriangle,
   RotateCcw,
+  ArrowLeftRight,
 } from 'lucide-react';
 import { useToast } from '@/context/toast-context';
 import {
@@ -163,6 +164,40 @@ export function LogoSettingsPanel() {
       });
     } catch (err) {
       console.error('Error saving logo order:', err);
+    }
+  };
+
+  const [isReordering, setIsReordering] = useState(false);
+
+  const handleReverseOrder = async () => {
+    if (logos.length < 2) return;
+    const reversed = [...logos].reverse();
+    setLogos(reversed);
+    setIsReordering(true);
+
+    try {
+      const res = await fetch('/api/storage/logos', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ logos: reversed }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Gagal menyimpan urutan');
+      showToast({
+        title: 'Urutan Diputar Balik',
+        message: 'Urutan logo berhasil diputar balik secara otomatis.',
+        type: 'success',
+      });
+    } catch (err: any) {
+      console.error('Error reversing logo order:', err);
+      showToast({
+        title: 'Gagal Membalik Urutan',
+        message: err.message || 'Terjadi kesalahan sistem',
+        type: 'error',
+      });
+      fetchLogos();
+    } finally {
+      setIsReordering(false);
     }
   };
 
@@ -399,16 +434,32 @@ export function LogoSettingsPanel() {
 
         {/* Kolom 2: Daftar Logo Aktif */}
         <div className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200 shadow-xs space-y-4 w-full min-w-0 lg:col-span-2">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b border-slate-100">
             <div className="flex items-center gap-2">
               <Building2 className="w-4 h-4 text-emerald-700" />
               <h2 className="text-sm font-bold text-slate-800">
                 Daftar Logo Terpasang ({logos.length})
               </h2>
             </div>
-            <span className="text-[11px] text-slate-400 font-medium">
-              Gunakan tombol panah untuk mengatur urutan kiri-kanan
-            </span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={handleReverseOrder}
+                disabled={logos.length < 2 || isReordering}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-200 bg-emerald-50/70 hover:bg-emerald-100 text-emerald-800 text-xs font-semibold shadow-2xs transition disabled:opacity-40 cursor-pointer active:scale-95"
+                title="Putar balik urutan logo (kiri jadi kanan, kanan jadi kiri)"
+              >
+                {isReordering ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-700" />
+                ) : (
+                  <ArrowLeftRight className="w-3.5 h-3.5 text-emerald-700" />
+                )}
+                <span>Putar Balik Urutan</span>
+              </button>
+              <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">
+                (atau gunakan panah ← →)
+              </span>
+            </div>
           </div>
 
           <div className="space-y-2.5">
