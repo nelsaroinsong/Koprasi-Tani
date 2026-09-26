@@ -19,6 +19,7 @@ import {
   Store,
   ArrowLeft,
   Mail,
+  LocateFixed,
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
@@ -37,7 +38,79 @@ export default function ProfilePage() {
   const [previewAvatar, setPreviewAvatar] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Handler Gunakan Lokasi Sekarang
+  const handleUseCurrentLocation = async () => {
+    if (typeof window === 'undefined' || !navigator.geolocation) {
+      showToast({
+        title: 'Lokasi Tidak Didukung',
+        message: 'Peramban Anda tidak mendukung deteksi lokasi (Geolocation).',
+        type: 'error',
+      });
+      return;
+    }
+
+    try {
+      setIsLocating(true);
+
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0,
+        });
+      });
+
+      const { latitude, longitude } = position.coords;
+
+      const res = await fetch(`/api/geocode/reverse?lat=${latitude}&lng=${longitude}`);
+      const data = await res.json();
+
+      if (res.ok && data?.address) {
+        setAddress(data.address);
+        showToast({
+          title: 'Lokasi Berhasil Dideteksi',
+          message: 'Alamat domisili telah diisi sesuai lokasi GPS Anda saat ini.',
+          type: 'success',
+        });
+      } else {
+        setAddress(`Titik GPS (${latitude.toFixed(6)}, ${longitude.toFixed(6)})`);
+        showToast({
+          title: 'Koordinat GPS Ditemukan',
+          message: 'Titik koordinat berhasil dimasukkan ke kolom alamat.',
+          type: 'info',
+        });
+      }
+    } catch (err: any) {
+      // Jika pengguna membatalkan (cancel / block) izin akses lokasi browser
+      if (err?.code === 1) {
+        showToast({
+          title: 'Akses Lokasi Dibatalkan',
+          message: 'Permintaan lokasi dibatalkan. Anda tetap dapat mengetikkan alamat secara manual.',
+          type: 'info',
+        });
+        return;
+      }
+
+      console.warn('Geolocation notice:', err?.message || err);
+      let errMsg = 'Gagal mendeteksi lokasi saat ini.';
+      if (err?.code === 2) {
+        errMsg = 'Informasi sinyal lokasi GPS tidak tersedia pada perangkat.';
+      } else if (err?.code === 3) {
+        errMsg = 'Waktu permintaan deteksi lokasi habis. Silakan coba kembali.';
+      }
+
+      showToast({
+        title: 'Gagal Deteksi Lokasi',
+        message: errMsg,
+        type: 'error',
+      });
+    } finally {
+      setIsLocating(false);
+    }
+  };
 
   // Follow stats
   const [followStats, setFollowStats] = useState({
@@ -370,9 +443,30 @@ export default function ProfilePage() {
 
             {/* Input Alamat Lengkap */}
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Alamat Lengkap Domisili / Lokasi Kirim
-              </label>
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <label className="block text-xs font-bold text-slate-700">
+                  Alamat Lengkap Domisili / Lokasi Kirim
+                </label>
+                <button
+                  type="button"
+                  onClick={handleUseCurrentLocation}
+                  disabled={isLocating || isSaving}
+                  className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100/80 active:bg-emerald-200/70 border border-emerald-200/80 px-2.5 py-1 rounded-lg transition cursor-pointer shadow-2xs disabled:opacity-50"
+                  title="Deteksi alamat secara otomatis dari GPS saat ini"
+                >
+                  {isLocating ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-700" />
+                      <span>Mendeteksi Lokasi...</span>
+                    </>
+                  ) : (
+                    <>
+                      <LocateFixed className="w-3.5 h-3.5 text-emerald-700" />
+                      <span>Gunakan Lokasi Sekarang</span>
+                    </>
+                  )}
+                </button>
+              </div>
               <div className="relative">
                 <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                 <textarea
@@ -380,7 +474,7 @@ export default function ProfilePage() {
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   placeholder="Tuliskan nama jalan, kelurahan/desa, kecamatan, dan patokan alamat..."
-                  className="w-full pl-9 pr-3 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600/30 focus:border-emerald-600 transition resize-none"
+                  className="w-full pl-9 pr-3 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600/30 focus:border-emerald-600 transition resize-none font-medium"
                 />
               </div>
             </div>

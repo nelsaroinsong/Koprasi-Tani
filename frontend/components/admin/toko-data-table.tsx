@@ -34,6 +34,7 @@ import {
   MapPin,
   Camera,
   Upload,
+  LocateFixed,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useDebounce } from '@/hooks/use-debounce';
@@ -148,6 +149,82 @@ export function TokoOnlineDataTable() {
       });
     } finally {
       setIsSavingAddress(false);
+    }
+  };
+
+  // State & Handler untuk Fitur 'Gunakan Lokasi Sekarang' (Geolocation GPS & Reverse Geocode)
+  const [isLocating, setIsLocating] = useState(false);
+
+  const handleUseCurrentLocation = async () => {
+    if (typeof window === 'undefined' || !navigator.geolocation) {
+      showToast({
+        title: 'Lokasi Tidak Didukung',
+        message: 'Peramban Anda tidak mendukung deteksi lokasi (Geolocation).',
+        type: 'error',
+      });
+      return;
+    }
+
+    try {
+      setIsLocating(true);
+
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0,
+        });
+      });
+
+      const { latitude, longitude } = position.coords;
+
+      // Panggil endpoint reverse geocode server internal
+      const res = await fetch(`/api/geocode/reverse?lat=${latitude}&lng=${longitude}`);
+      const data = await res.json();
+
+      if (res.ok && data?.address) {
+        setTempAddress(`Koperasi Sinar Pagi Sejahtera — ${data.address}`);
+        showToast({
+          title: 'Lokasi Berhasil Dideteksi',
+          message: 'Alamat gudang telah otomatis disesuaikan dengan posisi GPS Anda saat ini.',
+          type: 'success',
+        });
+      } else {
+        setTempAddress(
+          `Koperasi Sinar Pagi Sejahtera — Titik GPS (${latitude.toFixed(6)}, ${longitude.toFixed(6)})`
+        );
+        showToast({
+          title: 'Koordinat GPS Ditemukan',
+          message: 'Titik koordinat berhasil dimasukkan ke kolom alamat.',
+          type: 'info',
+        });
+      }
+    } catch (err: any) {
+      // Jika pengguna membatalkan (cancel / block) izin akses lokasi browser
+      if (err?.code === 1) {
+        showToast({
+          title: 'Akses Lokasi Dibatalkan',
+          message: 'Permintaan lokasi dibatalkan. Anda tetap dapat mengetikkan alamat secara manual.',
+          type: 'info',
+        });
+        return;
+      }
+
+      console.warn('Geolocation notice:', err?.message || err);
+      let errMsg = 'Gagal mendeteksi lokasi saat ini.';
+      if (err?.code === 2) {
+        errMsg = 'Informasi sinyal lokasi GPS tidak tersedia pada perangkat.';
+      } else if (err?.code === 3) {
+        errMsg = 'Waktu permintaan deteksi lokasi habis. Silakan coba kembali.';
+      }
+
+      showToast({
+        title: 'Gagal Deteksi Lokasi',
+        message: errMsg,
+        type: 'error',
+      });
+    } finally {
+      setIsLocating(false);
     }
   };
 
@@ -793,9 +870,30 @@ export function TokoOnlineDataTable() {
             </p>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                Alamat Lengkap Pengambilan *
-              </label>
+              <div className="flex items-center justify-between gap-2 mb-1.5">
+                <label className="block text-xs font-bold text-slate-700">
+                  Alamat Lengkap Pengambilan *
+                </label>
+                <button
+                  type="button"
+                  onClick={handleUseCurrentLocation}
+                  disabled={isLocating || isSavingAddress}
+                  className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100/80 active:bg-emerald-200/70 border border-emerald-200/80 px-2.5 py-1 rounded-lg transition cursor-pointer shadow-2xs disabled:opacity-50"
+                  title="Deteksi alamat secara otomatis dari GPS saat ini"
+                >
+                  {isLocating ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-700" />
+                      <span>Mendeteksi Lokasi...</span>
+                    </>
+                  ) : (
+                    <>
+                      <LocateFixed className="w-3.5 h-3.5 text-emerald-700" />
+                      <span>Gunakan Lokasi Sekarang</span>
+                    </>
+                  )}
+                </button>
+              </div>
               <textarea
                 rows={3}
                 value={tempAddress}
