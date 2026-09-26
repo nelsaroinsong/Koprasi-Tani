@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import AppHeader from '@/components/AppHeader';
 import HeroSection from '@/components/HeroSection';
 import MainFooter from '@/components/MainFooter';
+import LandingTicker from '@/components/LandingTicker';
 import { CheckCircle2 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 
@@ -66,6 +67,9 @@ export default function Home() {
 
       {/* Unified App Header (Style sama persis dengan halaman setelah login) */}
       <AppHeader activePage="beranda" />
+
+      {/* Ticker Banner Teks Bergerak di Bawah Navbar dengan Efek Fade */}
+      <LandingTicker />
 
       <main className="flex-1">
         {/* Hero Section */}
