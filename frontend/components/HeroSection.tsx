@@ -96,7 +96,7 @@ export default function HeroSection({
           {/* Supported By Section: Static Centered Logo Row (Tanpa Gerak & Selalu Abu-abu Tanpa Hover) */}
           {logos.length > 0 && (
             <div className="pt-12 sm:pt-16 border-t border-slate-200/80 max-w-4xl mx-auto text-center">
-              <p className="font-[family-name:var(--font-inter),sans-serif] text-lg sm:text-xl text-slate-500 font-normal tracking-[-0.03em] mb-7 sm:mb-8">
+              <p className="font-[family-name:var(--font-inter),sans-serif] text-base sm:text-lg text-slate-500 font-normal tracking-[-0.03em] mb-6 sm:mb-8">
                 Didukung Oleh
               </p>
 

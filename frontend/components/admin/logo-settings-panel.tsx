@@ -280,7 +280,7 @@ export function LogoSettingsPanel() {
 
         {/* The Exact Row Displayed on Landing Page */}
         <div className="py-8 px-4 rounded-2xl bg-[#fafbf9] border border-slate-200/80 text-center">
-          <p className="font-[family-name:var(--font-inter),sans-serif] text-lg sm:text-xl text-slate-500 font-normal tracking-[-0.03em] mb-7 sm:mb-8">
+          <p className="font-[family-name:var(--font-inter),sans-serif] text-base sm:text-lg text-slate-500 font-normal tracking-[-0.03em] mb-6 sm:mb-8">
             Didukung Oleh
           </p>
 
