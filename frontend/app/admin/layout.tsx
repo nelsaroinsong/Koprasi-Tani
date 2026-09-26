@@ -26,7 +26,7 @@ export default async function AdminLayout({
     <AdminProvider>
       <SidebarProvider>
         <AppSidebar user={session.user} />
-        <SidebarInset className="bg-slate-50/70 min-h-screen">
+        <SidebarInset className="bg-slate-50/70 min-h-screen min-w-0 max-w-full overflow-x-hidden">
           <header className="flex h-16 shrink-0 items-center justify-between gap-2 border-b border-emerald-950/10 bg-white/90 backdrop-blur-md px-4 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 sticky top-0 z-20">
             <div className="flex items-center gap-2.5">
               <SidebarTrigger className="-ml-1 hover:bg-emerald-50 hover:text-emerald-700 text-slate-600 transition rounded-xl p-2 cursor-pointer" />
@@ -37,7 +37,7 @@ export default async function AdminLayout({
               <AdminBreadcrumb />
             </div>
           </header>
-          <div className="flex flex-1 flex-col gap-4 p-4 sm:p-6">
+          <div className="flex flex-1 flex-col gap-4 p-4 sm:p-6 min-w-0 max-w-full w-full">
             {children}
           </div>
         </SidebarInset>

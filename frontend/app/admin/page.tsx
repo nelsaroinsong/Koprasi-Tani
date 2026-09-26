@@ -7,10 +7,16 @@ import { PembeliDataTable } from '@/components/admin/pembeli-data-table';
 import { TokoOnlineDataTable } from '@/components/admin/toko-data-table';
 import { OrdersDataTable } from '@/components/admin/orders-data-table';
 import { PayoutsDataTable } from '@/components/admin/payouts-data-table';
+import { TickerSettingsPanel } from '@/components/admin/ticker-settings-panel';
 import { Sprout, Users, ShoppingBag, ArrowRight, Package, ShoppingCart, HandCoins } from 'lucide-react';
 
 export default function AdminPage() {
   const { activeTab, setActiveTab } = useAdmin();
+
+  // 0. Tampilan Pengaturan Web: Teks Berjalan
+  if (activeTab.group === 'Pengaturan Web') {
+    return <TickerSettingsPanel />;
+  }
 
   // 1. Tampilan Halaman Pengguna: Petani
   if (activeTab.group === 'Pengguna' && activeTab.item === 'Petani') {

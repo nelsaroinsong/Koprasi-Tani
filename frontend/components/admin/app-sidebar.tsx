@@ -89,6 +89,16 @@ const data = {
   ],
 }
 
+import { useAdmin } from "@/components/admin/admin-context"
+import { Sparkles } from "lucide-react"
+import {
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+} from "@/components/ui/sidebar"
+
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   user?: {
     name?: string | null;
@@ -100,6 +110,8 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 }
 
 export function AppSidebar({ user, ...props }: AppSidebarProps) {
+  const { activeTab, setActiveTab } = useAdmin();
+
   const currentUser = {
     name: user?.name || data.user.name,
     email: user?.email || data.user.email,
@@ -107,13 +119,53 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
     phone: user?.phone || '',
   };
 
+  const isTickerActive =
+    activeTab.group === 'Pengaturan Web' && activeTab.item === 'Teks Berjalan';
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         <TeamSwitcher teams={data.teams} />
       </SidebarHeader>
       <SidebarContent>
+        {/* Menu Utama */}
         <NavMain items={data.navMain} />
+
+        {/* Grup Terpisah dari Menu Utama: Pengaturan Web & Tampilan */}
+        <SidebarGroup className="mt-2 pt-2 border-t border-slate-100">
+          <SidebarGroupLabel className="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-2 py-1.5">
+            Pengaturan Web
+          </SidebarGroupLabel>
+          <SidebarMenu className="space-y-1">
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                isActive={isTickerActive}
+                tooltip="Teks Berjalan Landing Page"
+                className={
+                  isTickerActive
+                    ? "bg-emerald-50 text-emerald-800 font-bold border-r-2 border-emerald-600 shadow-2xs hover:bg-emerald-50 hover:text-emerald-900 rounded-xl"
+                    : "text-slate-700 hover:bg-emerald-50/60 hover:text-emerald-800 transition rounded-xl"
+                }
+              >
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('Pengaturan Web', 'Teks Berjalan')}
+                  className="flex items-center gap-2.5 px-3 py-2 cursor-pointer w-full text-left"
+                >
+                  <Sparkles
+                    className={
+                      isTickerActive
+                        ? "w-4 h-4 text-emerald-700 shrink-0"
+                        : "w-4 h-4 text-slate-500 group-hover:text-emerald-700 shrink-0 transition"
+                    }
+                  />
+                  <span className="text-xs">Teks Berjalan</span>
+                </button>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={currentUser} />
