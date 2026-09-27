@@ -108,3 +108,50 @@ export async function delCachePattern(pattern: string): Promise<void> {
     console.warn(`[Redis] Error deleting pattern ${pattern}:`, err);
   }
 }
+
+/**
+ * Acquire a distributed lock using Redis SET NX PX
+ * Mencegah race condition ketika multi-user checkout produk yang sama di detik yang sama
+ */
+export async function acquireLock(
+  key: string,
+  ttlMs: number = 5000
+): Promise<string | null> {
+  if (!redis) return 'fallback-lock';
+  try {
+    if (redis.status === 'wait') {
+      await redis.connect().catch(() => {});
+    }
+    const token = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    const result = await redis.set(key, token, 'PX', ttlMs, 'NX');
+    return result === 'OK' ? token : null;
+  } catch (err) {
+    console.warn(`[Redis] Error acquiring lock for ${key}:`, err);
+    return 'fallback-lock';
+  }
+}
+
+/**
+ * Release distributed lock safely using Lua script
+ */
+export async function releaseLock(key: string, token: string): Promise<boolean> {
+  if (!redis || token === 'fallback-lock') return true;
+  try {
+    if (redis.status === 'wait') {
+      await redis.connect().catch(() => {});
+    }
+    const luaScript = `
+      if redis.call("get", KEYS[1]) == ARGV[1] then
+        return redis.call("del", KEYS[1])
+      else
+        return 0
+      end
+    `;
+    const result = await redis.eval(luaScript, 1, key, token);
+    return result === 1;
+  } catch (err) {
+    console.warn(`[Redis] Error releasing lock for ${key}:`, err);
+    return false;
+  }
+}
+

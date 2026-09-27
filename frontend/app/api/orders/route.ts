@@ -27,45 +27,81 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Keranjang belanja masih kosong.' }, { status: 400 });
     }
 
-    // Jalankan transaksi database agar konsistensi stok dan pesanan terjamin 100%
+    // Urutkan item berdasarkan productId secara deterministik untuk mencegah deadlock antar transaksi simultan
+    const sortedItems = [...items].sort((a, b) => {
+      const idA = a.productId || a.id || '';
+      const idB = b.productId || b.id || '';
+      return idA.localeCompare(idB);
+    });
+
+    // Jalankan transaksi database ACID dengan Pessimistic Row Locking (FOR UPDATE)
+    // Menjamin secara matematis bahwa jika 2 pembeli checkout barang yang sama (sisa 1) di saat bersamaan,
+    // pembeli kedua otomatis mengantre dan ditolak secara bersih setelah pembeli pertama selesai.
     const newOrder = await prisma.$transaction(async (tx) => {
       let totalAmount = 0;
       const orderItemsData = [];
 
-      for (const item of items) {
-        const product = await tx.product.findUnique({
-          where: { id: item.productId || item.id },
-          include: { petani: true },
-        });
-
-        if (!product) {
-          throw new Error(`Komoditas dengan ID ${item.productId || item.id} tidak ditemukan.`);
+      for (const item of sortedItems) {
+        const prodId = item.productId || item.id;
+        const requestedQty = parseInt(item.quantity, 10);
+        if (isNaN(requestedQty) || requestedQty <= 0) {
+          throw new Error('Jumlah pesanan tidak valid.');
         }
+
+        // 1. Pessimistic Row-Level Lock di PostgreSQL (SELECT ... FOR UPDATE)
+        // Row produk dikunci eksklusif. Transaksi lain yang mencoba mengakses produk ini WAJIB mengantre.
+        const lockedRows: any[] = await tx.$queryRawUnsafe(
+          `SELECT id, nama, stok, "hargaPerSatuan", satuan, "isTersedia", "petaniId"
+           FROM products
+           WHERE id = $1
+           FOR UPDATE`,
+          prodId
+        );
+
+        if (!lockedRows || lockedRows.length === 0) {
+          throw new Error(`Komoditas dengan ID "${prodId}" tidak ditemukan.`);
+        }
+
+        const product = lockedRows[0];
 
         if (!product.isTersedia) {
           throw new Error(`Komoditas "${product.nama}" saat ini sedang dinonaktifkan dari katalog.`);
         }
 
-        const requestedQty = parseInt(item.quantity, 10);
-        if (isNaN(requestedQty) || requestedQty <= 0) {
-          throw new Error(`Jumlah pesanan untuk "${product.nama}" tidak valid.`);
+        const currentStock = parseInt(product.stok, 10);
+
+        // Periksa ketersediaan stok terkini setelah lock didapatkan
+        if (currentStock < requestedQty) {
+          if (currentStock <= 0) {
+            throw new Error(
+              `Mohon maaf, komoditas "${product.nama}" baru saja habis terjual karena telah dibeli oleh pembeli lain terlebih dahulu.`
+            );
+          } else {
+            throw new Error(
+              `Mohon maaf, sisa stok komoditas "${product.nama}" saat ini hanya tersisa ${currentStock} ${product.satuan} (telah berkurang karena transaksi pembeli lain). Silakan sesuaikan jumlah pesanan Anda.`
+            );
+          }
         }
 
-        if (product.stok < requestedQty) {
-          throw new Error(
-            `Stok komoditas "${product.nama}" di gudang koperasi tidak mencukupi (Tersedia: ${product.stok} ${product.satuan}, diminta: ${requestedQty} ${product.satuan}).`
-          );
-        }
-
-        // Potong stok fisik komoditas di gudang koperasi secara real-time
-        await tx.product.update({
-          where: { id: product.id },
+        // 2. Atomic Conditional Decrement (Perlindungan ganda di level SQL)
+        const updateStockResult = await tx.product.updateMany({
+          where: {
+            id: product.id,
+            stok: { gte: requestedQty },
+            isTersedia: true,
+          },
           data: {
             stok: {
               decrement: requestedQty,
             },
           },
         });
+
+        if (updateStockResult.count === 0) {
+          throw new Error(
+            `Mohon maaf, komoditas "${product.nama}" baru saja habis terjual karena telah dibeli oleh pembeli lain terlebih dahulu.`
+          );
+        }
 
         const unitPrice = Number(product.hargaPerSatuan);
         const subtotal = unitPrice * requestedQty;
@@ -121,9 +157,11 @@ export async function POST(request: Request) {
       return createdOrder;
     });
 
-    // Invalidate Redis caches: products stock changed, admin orders list, petani dashboard, and user orders
+    // Invalidate Redis caches secara instan agar stok terbaru langsung terpantau oleh pembeli lain
     await Promise.all([
       delCachePattern('products:*'),
+      delCachePattern('product:detail:*'),
+      delCachePattern('categories:*'),
       delCachePattern('petani:*'),
       delCachePattern('admin:orders:*'),
       delCache(`user:orders:${currentUser.id}`),

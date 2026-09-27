@@ -550,9 +550,12 @@ Mohon dipersiapkan komoditas tersebut. Terima kasih!`;
                 </div>
 
                 {orderError && (
-                  <div className="p-2.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
-                    <span>{orderError}</span>
+                  <div className="p-3 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs flex items-start gap-2.5">
+                    <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
+                    <div className="space-y-1">
+                      <div className="font-bold text-amber-900">Perhatian Ketersediaan Stok</div>
+                      <div className="text-[11px] leading-relaxed text-amber-800">{orderError}</div>
+                    </div>
                   </div>
                 )}
               </div>
