@@ -40,6 +40,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useDebounce } from '@/hooks/use-debounce';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import { useToast } from '@/context/toast-context';
+import { useAdmin } from '@/components/admin/admin-context';
+import defaultCategoriesData from '@/data/categories.json';
 import {
   Dialog,
   DialogContent,
@@ -63,6 +65,20 @@ interface PaginationMeta {
 
 export function TokoOnlineDataTable() {
   const { showToast } = useToast();
+  const { setActiveTab } = useAdmin();
+
+  const [categoriesList, setCategoriesList] = useState<any[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('koperasi_categories_cache');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch {}
+    }
+    return defaultCategoriesData;
+  });
 
   const [productList, setProductList] = useState<AdminProductData[]>([]);
   const [petaniOptions, setPetaniOptions] = useState<PetaniOption[]>([]);
@@ -251,16 +267,14 @@ export function TokoOnlineDataTable() {
   );
 
   // Kategori Filter Options
-  const kategoriOptions: ComboboxOption[] = useMemo(
-    () => [
-      { value: 'SEMUA', label: 'Semua Kategori' },
-      { value: 'Kelapa', label: 'Kelapa' },
-      { value: 'Jagung', label: 'Jagung' },
-      { value: 'Turunan', label: 'Turunan' },
-      { value: 'Olahan', label: 'Olahan' },
-    ],
-    []
-  );
+  const kategoriOptions: ComboboxOption[] = useMemo(() => {
+    const all = [{ value: 'SEMUA', label: 'Semua Kategori' }];
+    const items = categoriesList.map((c: any) => ({
+      value: c.name,
+      label: `${c.emoji ? c.emoji + ' ' : ''}${c.name}`,
+    }));
+    return [...all, ...items];
+  }, [categoriesList]);
 
   // Reset page when search or filter changes
   useEffect(() => {
@@ -469,7 +483,16 @@ export function TokoOnlineDataTable() {
         </div>
 
         {/* Header Action Buttons */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <button
+            onClick={() => setActiveTab('Produk dan Layanan', 'Kategori Komoditas')}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-emerald-200 bg-emerald-50/70 hover:bg-emerald-100 text-emerald-800 text-xs font-semibold transition cursor-pointer shadow-2xs"
+            title="Buka Manajemen Kategori Komoditas"
+          >
+            <Tag className="w-3.5 h-3.5 text-emerald-700" />
+            <span>Kelola Kategori</span>
+          </button>
+
           <button
             onClick={fetchProducts}
             disabled={isLoading}

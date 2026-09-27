@@ -63,7 +63,8 @@ interface ProductFormModalProps {
   onSuccess: () => void;
 }
 
-const KATEGORI_OPTIONS = ['Kelapa', 'Jagung', 'Turunan', 'Olahan'];
+import defaultCategoriesData from '@/data/categories.json';
+
 const SATUAN_OPTIONS = ['kg', 'butir', 'karung', 'ikat', 'liter', 'botol'];
 
 export function ProductFormModal({
@@ -74,6 +75,20 @@ export function ProductFormModal({
   onClose,
   onSuccess,
 }: ProductFormModalProps) {
+  const [categoriesList, setCategoriesList] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('koperasi_categories_cache');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed.map((c: any) => c.name);
+          }
+        }
+      } catch {}
+    }
+    return defaultCategoriesData.map((c) => c.name);
+  });
   const { showToast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadingSource, setUploadingSource] = useState<'CAMERA' | 'GALLERY' | null>(null);
@@ -203,7 +218,7 @@ export function ProductFormModal({
   useEffect(() => {
     if (initialData && mode === 'EDIT') {
       setNama(initialData.nama || '');
-      if (KATEGORI_OPTIONS.includes(initialData.kategori)) {
+      if (categoriesList.includes(initialData.kategori)) {
         setKategori(initialData.kategori);
         setCustomKategori('');
       } else {
@@ -387,7 +402,7 @@ export function ProductFormModal({
                   onChange={(e) => setKategori(e.target.value)}
                   className="w-full pl-9 pr-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 shadow-2xs cursor-pointer"
                 >
-                  {KATEGORI_OPTIONS.map((cat) => (
+                  {categoriesList.map((cat) => (
                     <option key={cat} value={cat}>
                       {cat}
                     </option>

@@ -9,6 +9,7 @@ import { OrdersDataTable } from '@/components/admin/orders-data-table';
 import { PayoutsDataTable } from '@/components/admin/payouts-data-table';
 import { TickerSettingsPanel } from '@/components/admin/ticker-settings-panel';
 import { LogoSettingsPanel } from '@/components/admin/logo-settings-panel';
+import { CategoriesDataTable } from '@/components/admin/categories-data-table';
 import { Sprout, Users, ShoppingBag, ArrowRight, Package, ShoppingCart, HandCoins } from 'lucide-react';
 
 export default function AdminPage() {
@@ -32,8 +33,12 @@ export default function AdminPage() {
     return <PembeliDataTable />;
   }
 
-  // 3. Tampilan Halaman Produk dan Layanan: Toko Online / Sewa Alat
+  // 3. Tampilan Halaman Produk dan Layanan: Toko Online / Kategori / Sewa Alat
   if (activeTab.group === 'Produk dan Layanan') {
+    if (activeTab.item === 'Kategori Komoditas' || activeTab.item === 'Kategori') {
+      return <CategoriesDataTable />;
+    }
+
     if (activeTab.item === 'Sewa Alat') {
       return (
         <div className="flex-1 w-full min-h-[calc(100vh-8rem)] rounded-3xl border border-dashed border-emerald-200 bg-white/60 backdrop-blur-xs p-8 flex flex-col items-center justify-center text-center">

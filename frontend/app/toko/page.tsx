@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import AppHeader from '@/components/AppHeader';
@@ -28,50 +28,103 @@ import { useToast } from '@/context/toast-context';
 import { ProductFormModal, ProductData } from '@/components/toko/product-form-modal';
 import { ProductDeleteDialog } from '@/components/toko/product-delete-dialog';
 
-const KATEGORI_CONFIG = [
-  {
-    key: 'SEMUA',
-    label: 'Semua',
-    pillLabel: 'Kategori',
-    emoji: '🌾',
-    mobileBg: 'bg-gradient-to-br from-emerald-600 to-[#183d2e] text-white',
-  },
-  {
-    key: 'Kelapa',
-    label: 'Kelapa',
-    pillLabel: 'Kelapa',
-    emoji: '🥥',
-    mobileBg: 'bg-gradient-to-br from-amber-100 to-amber-200 text-amber-900 border border-amber-300/60',
-  },
-  {
-    key: 'Jagung',
-    label: 'Jagung',
-    pillLabel: 'Jagung',
-    emoji: '🌽',
-    mobileBg: 'bg-gradient-to-br from-yellow-100 to-amber-200 text-amber-900 border border-yellow-300/60',
-  },
-  {
-    key: 'Turunan',
-    label: 'Turunan',
-    pillLabel: 'Turunan',
-    emoji: '📦',
-    mobileBg: 'bg-gradient-to-br from-sky-100 to-blue-200 text-blue-900 border border-sky-300/60',
-  },
-  {
-    key: 'Olahan',
-    label: 'Olahan',
-    pillLabel: 'Olahan',
-    emoji: '🥫',
-    mobileBg: 'bg-gradient-to-br from-purple-100 to-fuchsia-200 text-purple-900 border border-purple-300/60',
-  },
-];
+import defaultCategoriesData from '@/data/categories.json';
 
-const KATEGORI_TABS = KATEGORI_CONFIG.map((c) => c.key);
+const CATEGORIES_STORAGE_KEY = 'koperasi_categories_cache';
+
+interface CategoryItem {
+  id: string;
+  name: string;
+  slug: string;
+  emoji: string;
+  description?: string;
+  mobileBg?: string;
+}
+
+export interface TabCategoryConfig {
+  key: string;
+  label: string;
+  pillLabel: string;
+  emoji: string;
+  mobileBg: string;
+}
+
+function getInitialCategories(): CategoryItem[] {
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem(CATEGORIES_STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch {}
+  }
+  return defaultCategoriesData as CategoryItem[];
+}
 
 export default function TokoOnlinePage() {
   const { user, isLoading: authLoading } = useAuth();
   const { showToast } = useToast();
   const router = useRouter();
+
+  // Dynamic Categories State from Admin
+  const [categories, setCategories] = useState<CategoryItem[]>(() => getInitialCategories());
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch('/api/categories', { cache: 'no-store' });
+        const data = await res.json();
+        if (data.success && Array.isArray(data.categories)) {
+          setCategories(data.categories);
+          try {
+            localStorage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(data.categories));
+          } catch {}
+        }
+      } catch (err) {
+        console.error('Error fetching categories in toko page:', err);
+      }
+    };
+
+    fetchCategories();
+
+    const handleCategoriesUpdate = () => {
+      const updated = getInitialCategories();
+      if (updated && updated.length > 0) {
+        setCategories(updated);
+      }
+    };
+
+    window.addEventListener('categories_updated', handleCategoriesUpdate);
+    window.addEventListener('storage', handleCategoriesUpdate);
+
+    return () => {
+      window.removeEventListener('categories_updated', handleCategoriesUpdate);
+      window.removeEventListener('storage', handleCategoriesUpdate);
+    };
+  }, []);
+
+  const dynamicKategoriConfig = useMemo<TabCategoryConfig[]>(() => {
+    const allTab: TabCategoryConfig = {
+      key: 'SEMUA',
+      label: 'Semua',
+      pillLabel: 'Kategori',
+      emoji: '🌾',
+      mobileBg: 'bg-gradient-to-br from-emerald-600 to-[#183d2e] text-white',
+    };
+    const mapped: TabCategoryConfig[] = categories.map((cat) => ({
+      key: cat.name,
+      label: cat.name,
+      pillLabel: cat.name,
+      emoji: cat.emoji || '🌾',
+      mobileBg:
+        cat.mobileBg ||
+        'bg-gradient-to-br from-amber-100 to-amber-200 text-amber-900 border border-amber-300/60',
+    }));
+    return [allTab, ...mapped];
+  }, [categories]);
 
   // Tab State: 'PRODUK_SAYA' | 'BELANJA_KOPERASI'
   const isPetani = user?.role === 'PETANI';
@@ -563,17 +616,17 @@ export default function TokoOnlinePage() {
           </div>
         </div>
 
-        {/* 1. Category Navigation - Mobile Mode (Pas Layar dengan 5 Kolom Proporsional & Margin Top Lega) */}
-        <div className="block sm:hidden mt-5 mb-5 px-1">
-          <div className="grid grid-cols-5 gap-1 w-full items-start">
-            {KATEGORI_CONFIG.map((cat) => {
+        {/* 1. Category Navigation - Mobile Mode (Scrollable fleksibel jika kategori bertambah) */}
+        <div className="block sm:hidden mt-3 mb-4 px-0.5">
+          <div className="flex items-start gap-2.5 overflow-x-auto pt-2.5 pb-2.5 px-2 no-scrollbar">
+            {dynamicKategoriConfig.map((cat) => {
               const isSelected = selectedKategori === cat.key;
               return (
                 <button
                   key={cat.key}
                   type="button"
                   onClick={() => setSelectedKategori(cat.key)}
-                  className="flex flex-col items-center gap-1.5 w-full group cursor-pointer focus:outline-none transition active:scale-95"
+                  className="flex flex-col items-center gap-1.5 shrink-0 w-16 group cursor-pointer focus:outline-none transition active:scale-95 py-0.5"
                 >
                   <div
                     className={`w-11 h-11 rounded-full flex items-center justify-center shadow-2xs transition-all ${
@@ -607,7 +660,7 @@ export default function TokoOnlinePage() {
 
         {/* 2. Category Navigation - Tablet & Desktop Mode (Rounded-lg: Agak Kotak Bersudut Halus, Tidak Lancip) */}
         <div className="hidden sm:flex items-center gap-2 overflow-x-auto pb-2 mb-5 no-scrollbar">
-          {KATEGORI_CONFIG.map((cat) => {
+          {dynamicKategoriConfig.map((cat) => {
             const isSelected = selectedKategori === cat.key;
             return (
               <button

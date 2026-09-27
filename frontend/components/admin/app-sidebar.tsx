@@ -66,6 +66,10 @@ const data = {
           url: "/admin",
         },
         {
+          title: "Kategori Komoditas",
+          url: "/admin",
+        },
+        {
           title: "Sewa Alat",
           url: "/admin",
         },

@@ -23,6 +23,8 @@ export interface ProductData {
   isTersedia?: boolean;
 }
 
+import defaultCategoriesData from '@/data/categories.json';
+
 interface ProductFormModalProps {
   isOpen: boolean;
   mode: 'CREATE' | 'EDIT';
@@ -31,7 +33,6 @@ interface ProductFormModalProps {
   onSuccess: () => void;
 }
 
-const KATEGORI_OPTIONS = ['Kelapa', 'Jagung', 'Turunan', 'Olahan', 'Sayuran', 'Lainnya'];
 const SATUAN_OPTIONS = ['kg', 'butir', 'karung', 'liter', 'ikat', 'pack'];
 
 export function ProductFormModal({
@@ -41,8 +42,23 @@ export function ProductFormModal({
   onClose,
   onSuccess,
 }: ProductFormModalProps) {
+  const [categoriesList, setCategoriesList] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('koperasi_categories_cache');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed.map((c: any) => c.name);
+          }
+        }
+      } catch {}
+    }
+    return defaultCategoriesData.map((c) => c.name);
+  });
+
   const [nama, setNama] = useState('');
-  const [kategori, setKategori] = useState('Kelapa');
+  const [kategori, setKategori] = useState(() => categoriesList[0] || 'Kelapa');
   const [hargaPerSatuan, setHargaPerSatuan] = useState('');
   const [satuan, setSatuan] = useState('kg');
   const [stok, setStok] = useState('');
@@ -293,7 +309,7 @@ export function ProductFormModal({
                 onChange={(e) => setKategori(e.target.value)}
                 className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600 focus:bg-white transition cursor-pointer"
               >
-                {KATEGORI_OPTIONS.map((cat) => (
+                {categoriesList.map((cat) => (
                   <option key={cat} value={cat}>
                     {cat}
                   </option>
