@@ -4,24 +4,31 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 
+import defaultSavedLogos from '@/data/partner-logos.json';
+
+const LOGOS_STORAGE_KEY = 'koperasi_partner_logos';
+
 interface LogoItem {
-  key: string;
+  id?: string;
+  key?: string;
   name: string;
   url: string;
 }
 
-const DEFAULT_LOGOS: LogoItem[] = [
-  {
-    key: 'logo/logo-icare.webp',
-    name: 'ICARE',
-    url: '/api/storage/logo/logo-icare.webp',
-  },
-  {
-    key: 'logo/logo polimdo.png',
-    name: 'POLIMDO',
-    url: '/api/storage/logo/logo polimdo.png',
-  },
-];
+function getStoredLogos(): LogoItem[] | null {
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem(LOGOS_STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch {}
+  }
+  return null;
+}
 
 interface HeroSectionProps {
   onJoinKoperasi?: () => void;
@@ -34,20 +41,47 @@ export default function HeroSection({
   onJoinKoperasi,
   onExploreToko,
 }: HeroSectionProps) {
-  const [logos, setLogos] = useState<LogoItem[]>(DEFAULT_LOGOS);
-  const [, setIsLoadingLogos] = useState(true);
+  // Inisialisasi awal langsung memuat seluruh logo dari cache atau partner-logos.json
+  // Menghilangkan efek keterlambatan kemunculan logo saat refresh
+  const [logos, setLogos] = useState<LogoItem[]>(() => {
+    const cached = getStoredLogos();
+    if (cached) return cached;
+    if (Array.isArray(defaultSavedLogos) && defaultSavedLogos.length > 0) {
+      return defaultSavedLogos as LogoItem[];
+    }
+    return [];
+  });
+  const [, setIsLoadingLogos] = useState(false);
 
   useEffect(() => {
     fetch('/api/storage/logos', { cache: 'no-store' })
       .then((res) => res.json())
       .then((data) => {
         if (data.success && Array.isArray(data.logos) && data.logos.length > 0) {
-          // Ikuti urutan persis seperti yang disimpan dan diatur oleh Admin
           setLogos(data.logos);
+          try {
+            localStorage.setItem(LOGOS_STORAGE_KEY, JSON.stringify(data.logos));
+          } catch {}
         }
       })
       .catch(() => {})
       .finally(() => setIsLoadingLogos(false));
+
+    // Dengarkan pembaruan langsung dari admin panel
+    const handleLogosUpdate = () => {
+      const updated = getStoredLogos();
+      if (updated) {
+        setLogos(updated);
+      }
+    };
+
+    window.addEventListener('partner_logos_updated', handleLogosUpdate);
+    window.addEventListener('storage', handleLogosUpdate);
+
+    return () => {
+      window.removeEventListener('partner_logos_updated', handleLogosUpdate);
+      window.removeEventListener('storage', handleLogosUpdate);
+    };
   }, []);
 
   // Gandakan daftar logo agar animasi looping infinite scroll berjalan mulus tanpa jeda

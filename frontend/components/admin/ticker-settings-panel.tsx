@@ -194,6 +194,20 @@ export function TickerSettingsPanel() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan pengaturan.');
 
+      // Simpan langsung ke localStorage agar instan tanpa flicker saat refresh
+      try {
+        localStorage.setItem(
+          'koperasi_ticker_settings',
+          JSON.stringify({
+            isActive,
+            speed,
+            bgColor,
+            items: validItems,
+          })
+        );
+        window.dispatchEvent(new Event('ticker_settings_updated'));
+      } catch {}
+
       showToast({
         title: 'Pengaturan Berhasil Disimpan',
         message: 'Tampilan teks berjalan di landing page telah berhasil diperbarui.',

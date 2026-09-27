@@ -17,10 +17,6 @@ export default function MainFooter({}: MainFooterProps) {
             <Globe className="w-4 h-4 text-slate-600 shrink-0" />
             <span>Indonesia</span>
           </div>
-
-          <span className="text-xs sm:text-sm font-semibold text-slate-900 tracking-tight">
-            Sinar Pagi Sejahtera
-          </span>
         </div>
 
         {/* Baris 2: Legalitas & Hak Cipta */}

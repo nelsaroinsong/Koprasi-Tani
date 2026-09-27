@@ -62,12 +62,20 @@ export function LogoSettingsPanel() {
       const data = await res.json();
       if (data.success && Array.isArray(data.logos)) {
         setLogos(data.logos);
+        updateLocalLogos(data.logos);
       }
     } catch (err) {
       console.error('Error fetching partner logos:', err);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const updateLocalLogos = (items: PartnerLogo[]) => {
+    try {
+      localStorage.setItem('koperasi_partner_logos', JSON.stringify(items));
+      window.dispatchEvent(new Event('partner_logos_updated'));
+    } catch {}
   };
 
   useEffect(() => {
@@ -129,6 +137,7 @@ export function LogoSettingsPanel() {
       });
 
       setLogos(data.logos);
+      updateLocalLogos(data.logos);
       setSelectedFile(null);
       setPreviewFileUrl(null);
       setNewLogoName('');
@@ -154,6 +163,7 @@ export function LogoSettingsPanel() {
     newLogos[targetIndex] = temp;
 
     setLogos(newLogos);
+    updateLocalLogos(newLogos);
 
     // Simpan urutan baru ke backend
     try {
@@ -173,6 +183,7 @@ export function LogoSettingsPanel() {
     if (logos.length < 2) return;
     const reversed = [...logos].reverse();
     setLogos(reversed);
+    updateLocalLogos(reversed);
     setIsReordering(true);
 
     try {
@@ -219,6 +230,7 @@ export function LogoSettingsPanel() {
       if (!res.ok) throw new Error(data.error || 'Gagal mengubah nama');
 
       setLogos(data.logos);
+      updateLocalLogos(data.logos);
       setEditingId(null);
       showToast({
         title: 'Nama Diperbarui',
@@ -246,6 +258,7 @@ export function LogoSettingsPanel() {
       if (!res.ok) throw new Error(data.error || 'Gagal menghapus logo');
 
       setLogos(data.logos);
+      updateLocalLogos(data.logos);
       setDeleteLogoTarget(null);
       showToast({
         title: 'Logo Dihapus',

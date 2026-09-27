@@ -1,6 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import defaultTickerConfig from '@/data/ticker-settings.json';
+
+const TICKER_STORAGE_KEY = 'koperasi_ticker_settings';
 
 const DEFAULT_ITEMS = [
   'HASIL PANEN LANGSUNG DARI PETANI',
@@ -40,31 +43,92 @@ const PRESETS: Record<string, { bgClass: string; textClass: string; dotClass: st
   },
 };
 
+function getSavedSettings() {
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem(TICKER_STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed && typeof parsed === 'object') {
+          return parsed;
+        }
+      }
+    } catch {}
+  }
+  return null;
+}
+
 export default function LandingTicker() {
-  const [isActive, setIsActive] = useState(true);
-  const [speed, setSpeed] = useState(26);
-  const [bgColor, setBgColor] = useState('forest');
-  const [items, setItems] = useState<string[]>(DEFAULT_ITEMS);
+  // Inisialisasi awal membaca dari localStorage atau langsung dari ticker-settings.json
+  // Hal ini menghilangkan efek 'flash' (beralih warna dari hijau ke kuning saat refresh)
+  const [isActive, setIsActive] = useState(() => {
+    const cached = getSavedSettings();
+    if (cached && typeof cached.isActive === 'boolean') return cached.isActive;
+    return typeof defaultTickerConfig.isActive === 'boolean' ? defaultTickerConfig.isActive : true;
+  });
+
+  const [speed, setSpeed] = useState(() => {
+    const cached = getSavedSettings();
+    if (cached && typeof cached.speed === 'number') return cached.speed;
+    return typeof defaultTickerConfig.speed === 'number' ? defaultTickerConfig.speed : 50;
+  });
+
+  const [bgColor, setBgColor] = useState(() => {
+    const cached = getSavedSettings();
+    if (cached && cached.bgColor) return cached.bgColor;
+    return defaultTickerConfig.bgColor || 'lime';
+  });
+
+  const [items, setItems] = useState<string[]>(() => {
+    const cached = getSavedSettings();
+    if (cached && Array.isArray(cached.items) && cached.items.length > 0) return cached.items;
+    if (Array.isArray(defaultTickerConfig.items) && defaultTickerConfig.items.length > 0) return defaultTickerConfig.items;
+    return DEFAULT_ITEMS;
+  });
 
   useEffect(() => {
-    fetch('/api/ticker')
+    // Sinkronisasi data terbaru dari server
+    fetch('/api/ticker', { cache: 'no-store' })
       .then((res) => res.json())
       .then((data) => {
         if (data.success && data.settings) {
           setIsActive(data.settings.isActive ?? true);
-          setSpeed(data.settings.speed ?? 26);
-          setBgColor(data.settings.bgColor || 'forest');
+          setSpeed(data.settings.speed ?? 50);
+          setBgColor(data.settings.bgColor || 'lime');
           if (Array.isArray(data.settings.items) && data.settings.items.length > 0) {
             setItems(data.settings.items);
           }
+          // Simpan ke localStorage agar saat refresh langsung instan
+          try {
+            localStorage.setItem(TICKER_STORAGE_KEY, JSON.stringify(data.settings));
+          } catch {}
         }
       })
       .catch(() => {});
+
+    // Tangkap perubahan seketika jika admin mengubah setting di tab yang sama
+    const handleStorageUpdate = () => {
+      const updated = getSavedSettings();
+      if (updated) {
+        if (typeof updated.isActive === 'boolean') setIsActive(updated.isActive);
+        if (typeof updated.speed === 'number') setSpeed(updated.speed);
+        if (updated.bgColor) setBgColor(updated.bgColor);
+        if (Array.isArray(updated.items) && updated.items.length > 0) setItems(updated.items);
+      }
+    };
+
+    window.addEventListener('ticker_settings_updated', handleStorageUpdate);
+    window.addEventListener('storage', handleStorageUpdate);
+
+    return () => {
+      window.removeEventListener('ticker_settings_updated', handleStorageUpdate);
+      window.removeEventListener('storage', handleStorageUpdate);
+    };
   }, []);
 
   if (!isActive) return null;
 
-  const currentPreset = PRESETS[bgColor] || PRESETS.forest;
+  const currentPreset = PRESETS[bgColor] || PRESETS.lime || PRESETS.forest;
   const duplicatedItems = [...items, ...items];
 
   return (
