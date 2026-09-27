@@ -189,10 +189,11 @@ export async function POST(
       };
     }
 
-    // Invalidate review cache, product cache, and farmer profile cache
+    // Invalidate review cache, product detail cache, and farmer profile cache
     await Promise.all([
       delCache(`reviews:product:${productId}`),
-      delCache(`products:${productId}`),
+      delCache(`product:detail:${productId}:public`),
+      delCachePattern('products:*'),
       delCachePattern(`petani:*`),
     ]).catch(() => {});
 

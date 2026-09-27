@@ -3,13 +3,13 @@
 import React, { useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ShoppingBag, Tractor, Receipt, LogIn, User as UserIcon } from 'lucide-react';
+import { ShoppingBag, ShoppingCart, Tractor, Receipt, LogIn, User as UserIcon, LayoutDashboard } from 'lucide-react';
 import UserProfileDropdown from '@/components/UserProfileDropdown';
 import { useAuth } from '@/context/auth-context';
 import BottomNav from '@/components/BottomNav';
 
 interface AppHeaderProps {
-  activePage?: 'toko' | 'sewa-alat' | 'pesanan' | 'profile' | 'beranda';
+  activePage?: 'toko' | 'sewa-alat' | 'pesanan' | 'dashboard' | 'profile' | 'beranda';
 }
 
 export default function AppHeader({ activePage }: AppHeaderProps) {
@@ -19,6 +19,7 @@ export default function AppHeader({ activePage }: AppHeaderProps) {
   // Deteksi halaman aktif secara otomatis berdasarkan pathname jika props tidak spesifik
   const currentActive = useMemo(() => {
     if (activePage && activePage !== 'beranda') return activePage;
+    if (pathname.startsWith('/dashboard')) return 'dashboard';
     if (pathname.startsWith('/pesanan')) return 'pesanan';
     if (pathname.startsWith('/profile') || pathname.startsWith('/profil')) return 'profile';
     if (pathname.startsWith('/sewa-alat')) return 'sewa-alat';
@@ -35,6 +36,7 @@ export default function AppHeader({ activePage }: AppHeaderProps) {
         <div className="flex items-center shrink-0 z-10">
           <Link
             href={user ? '/toko' : '/'}
+            prefetch={true}
             className="flex items-center gap-1.5 sm:gap-2.5 group focus:outline-none shrink-0"
           >
             <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-emerald-700 flex items-center justify-center text-white shadow-xs group-hover:scale-105 transition-transform">
@@ -55,6 +57,7 @@ export default function AppHeader({ activePage }: AppHeaderProps) {
         <nav className="hidden lg:flex items-center justify-center gap-1.5 text-xs font-semibold absolute left-1/2 -translate-x-1/2">
           <Link
             href="/toko"
+            prefetch={true}
             className={`px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5 ${
               currentActive === 'toko'
                 ? 'bg-emerald-700 text-white shadow-xs font-bold'
@@ -66,6 +69,7 @@ export default function AppHeader({ activePage }: AppHeaderProps) {
           </Link>
           <Link
             href="/sewa-alat"
+            prefetch={true}
             className={`px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5 ${
               currentActive === 'sewa-alat'
                 ? 'bg-emerald-700 text-white shadow-xs font-bold'
@@ -77,6 +81,7 @@ export default function AppHeader({ activePage }: AppHeaderProps) {
           </Link>
           <Link
             href="/pesanan"
+            prefetch={true}
             className={`px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5 ${
               currentActive === 'pesanan'
                 ? 'bg-emerald-700 text-white shadow-xs font-bold'
@@ -86,8 +91,26 @@ export default function AppHeader({ activePage }: AppHeaderProps) {
             <Receipt className={`w-3.5 h-3.5 ${currentActive === 'pesanan' ? 'text-white' : 'text-slate-500'}`} />
             <span>Pesanan</span>
           </Link>
+
+          {/* Khusus Role Petani: Fitur Dashboard Mandiri di antara Pesanan dan Profil */}
+          {user?.role === 'PETANI' && (
+            <Link
+              href="/dashboard"
+              prefetch={true}
+              className={`px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5 ${
+                currentActive === 'dashboard'
+                  ? 'bg-emerald-700 text-white shadow-xs font-bold'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-semibold'
+              }`}
+            >
+              <LayoutDashboard className={`w-3.5 h-3.5 ${currentActive === 'dashboard' ? 'text-white' : 'text-slate-500'}`} />
+              <span>Dashboard</span>
+            </Link>
+          )}
+
           <Link
             href={user ? '/profile' : '/login'}
+            prefetch={true}
             className={`px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5 ${
               currentActive === 'profile'
                 ? 'bg-emerald-700 text-white shadow-xs font-bold'
@@ -100,7 +123,18 @@ export default function AppHeader({ activePage }: AppHeaderProps) {
         </nav>
 
         {/* Right Section: Keranjang Belanja & Profil Dropdown (Desktop) */}
-        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 z-10">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0 z-10">
+          {!user && (
+            <Link
+              href="/cart"
+              prefetch={true}
+              className="relative w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 flex items-center justify-center transition border border-slate-200 cursor-pointer shadow-2xs group"
+              title="Keranjang Belanja"
+            >
+              <ShoppingCart className="w-3.5 h-3.5 sm:w-4 sm:h-4 group-hover:scale-110 transition-transform" />
+            </Link>
+          )}
+
           {user ? (
             <UserProfileDropdown />
           ) : (

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
-import { delCachePattern } from '@/lib/redis';
+import { getCache, setCache, delCache, delCachePattern } from '@/lib/redis';
 
 export async function GET(
   request: Request,
@@ -20,154 +20,198 @@ export async function GET(
       if (user) currentUserId = user.id;
     }
 
-    const product = await prisma.product.findUnique({
-      where: { id },
-      include: {
-        petani: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            phone: true,
-            address: true,
-            avatarUrl: true,
-            isVerified: true,
-            createdAt: true,
-          },
-        },
-      },
-    });
+    // Cek Redis cache untuk data detail produk, ulasan & statistik petani (data publik yang berat)
+    const publicDetailCacheKey = `product:detail:${id}:public`;
+    let cachedPublic = await getCache<any>(publicDetailCacheKey);
 
-    if (!product) {
-      return NextResponse.json({ error: 'Komoditas tidak ditemukan' }, { status: 404 });
-    }
+    let product = cachedPublic?.product;
+    let stats = cachedPublic?.stats;
+    let reviews = cachedPublic?.reviews;
+    let petani = cachedPublic?.petani;
 
-    // 1. Hitung total terjual produk ini
-    const soldItems = await prisma.orderItem.findMany({
-      where: {
-        productId: id,
-        order: {
-          status: { not: 'DIBATALKAN' },
-        },
-      },
-      select: { quantity: true },
-    });
-    const totalSold = soldItems.reduce((acc, item) => acc + item.quantity, 0);
-
-    // 2. Ambil ulasan produk
-    let reviews: any[] = [];
-    try {
-      if ((prisma as any).review) {
-        reviews = await (prisma as any).review.findMany({
-          where: { productId: id },
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                avatarUrl: true,
-              },
+    if (!cachedPublic) {
+      const dbProduct = await prisma.product.findUnique({
+        where: { id },
+        include: {
+          petani: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              phone: true,
+              address: true,
+              avatarUrl: true,
+              isVerified: true,
+              createdAt: true,
             },
           },
-          orderBy: { createdAt: 'desc' },
-        });
-      } else {
-        const rows: any[] = await prisma.$queryRawUnsafe(
-          `SELECT r.id, r.rating, r.komentar, r."fotoUrl", r."createdAt",
-                  u.id as "userId", u.name as "userName", u."avatarUrl" as "userAvatar"
-           FROM reviews r
-           LEFT JOIN users u ON r."userId" = u.id
-           WHERE r."productId" = $1
-           ORDER BY r."createdAt" DESC`,
-          id
-        );
-        reviews = rows.map((row) => ({
-          id: row.id,
-          rating: row.rating,
-          komentar: row.komentar,
-          fotoUrl: row.fotoUrl,
-          createdAt: row.createdAt,
-          user: {
-            id: row.userId,
-            name: row.userName,
-            avatarUrl: row.userAvatar,
-          },
-        }));
+        },
+      });
+
+      if (!dbProduct) {
+        return NextResponse.json({ error: 'Komoditas tidak ditemukan' }, { status: 404 });
       }
-    } catch (revErr) {
-      console.warn('Error reading reviews:', revErr);
-    }
 
-    const totalReviews = reviews.length;
-    const breakdown = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
-    let sumRating = 0;
-    let satisfiedCount = 0;
+      product = dbProduct;
 
-    reviews.forEach((r: any) => {
-      const rating = Math.min(5, Math.max(1, r.rating || 5));
-      if (rating in breakdown) {
-        breakdown[rating as keyof typeof breakdown] += 1;
-      }
-      sumRating += rating;
-      if (rating >= 4) {
-        satisfiedCount += 1;
-      }
-    });
-
-    const avgRating = totalReviews > 0 ? Number((sumRating / totalReviews).toFixed(1)) : null;
-    const satisfiedPercentage = totalReviews > 0 ? Math.round((satisfiedCount / totalReviews) * 100) : null;
-
-    // 3. Hitung statistik Petani
-    const petaniId = product.petaniId;
-    const [petaniProductsCount, petaniSoldItems] = await Promise.all([
-      prisma.product.count({
-        where: { petaniId, isTersedia: true },
-      }),
-      prisma.orderItem.findMany({
+      // 1. Hitung total terjual produk ini
+      const soldItems = await prisma.orderItem.findMany({
         where: {
-          petaniId,
-          order: { status: { not: 'DIBATALKAN' } },
+          productId: id,
+          order: {
+            status: { not: 'DIBATALKAN' },
+          },
         },
         select: { quantity: true },
-      }),
-    ]);
+      });
+      const totalSold = soldItems.reduce((acc, item) => acc + item.quantity, 0);
 
-    let petaniFollowersCount = 0;
-    let petaniReviews: any[] = [];
-    try {
-      if ((prisma as any).follow) {
-        petaniFollowersCount = await (prisma as any).follow.count({ where: { petaniId } });
-      } else {
-        const fRows: any[] = await prisma.$queryRawUnsafe(
-          `SELECT COUNT(*)::int as count FROM follows WHERE "petaniId" = $1`,
-          petaniId
-        );
-        petaniFollowersCount = fRows[0]?.count || 0;
+      // 2. Ambil ulasan produk
+      reviews = [];
+      try {
+        if ((prisma as any).review) {
+          reviews = await (prisma as any).review.findMany({
+            where: { productId: id },
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  avatarUrl: true,
+                },
+              },
+            },
+            orderBy: { createdAt: 'desc' },
+          });
+        } else {
+          const rows: any[] = await prisma.$queryRawUnsafe(
+            `SELECT r.id, r.rating, r.komentar, r."fotoUrl", r."createdAt",
+                    u.id as "userId", u.name as "userName", u."avatarUrl" as "userAvatar"
+             FROM reviews r
+             LEFT JOIN users u ON r."userId" = u.id
+             WHERE r."productId" = $1
+             ORDER BY r."createdAt" DESC`,
+            id
+          );
+          reviews = rows.map((row) => ({
+            id: row.id,
+            rating: row.rating,
+            komentar: row.komentar,
+            fotoUrl: row.fotoUrl,
+            createdAt: row.createdAt,
+            user: {
+              id: row.userId,
+              name: row.userName,
+              avatarUrl: row.userAvatar,
+            },
+          }));
+        }
+      } catch (revErr) {
+        console.warn('Error reading reviews:', revErr);
       }
 
-      if ((prisma as any).review) {
-        petaniReviews = await (prisma as any).review.findMany({
-          where: { product: { petaniId } },
-          select: { rating: true },
-        });
-      } else {
-        petaniReviews = await prisma.$queryRawUnsafe(
-          `SELECT r.rating FROM reviews r
-           JOIN products p ON r."productId" = p.id
-           WHERE p."petaniId" = $1`,
-          petaniId
-        );
+      const totalReviews = reviews.length;
+      const breakdown = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+      let sumRating = 0;
+      let satisfiedCount = 0;
+
+      reviews.forEach((r: any) => {
+        const rating = Math.min(5, Math.max(1, r.rating || 5));
+        if (rating in breakdown) {
+          breakdown[rating as keyof typeof breakdown] += 1;
+        }
+        sumRating += rating;
+        if (rating >= 4) {
+          satisfiedCount += 1;
+        }
+      });
+
+      const avgRating = totalReviews > 0 ? Number((sumRating / totalReviews).toFixed(1)) : null;
+      const satisfiedPercentage = totalReviews > 0 ? Math.round((satisfiedCount / totalReviews) * 100) : null;
+
+      // 3. Hitung statistik Petani
+      const petaniId = product.petaniId;
+      const [petaniProductsCount, petaniSoldItems] = await Promise.all([
+        prisma.product.count({
+          where: { petaniId, isTersedia: true },
+        }),
+        prisma.orderItem.findMany({
+          where: {
+            petaniId,
+            order: { status: { not: 'DIBATALKAN' } },
+          },
+          select: { quantity: true },
+        }),
+      ]);
+
+      let petaniFollowersCount = 0;
+      let petaniReviews: any[] = [];
+      try {
+        if ((prisma as any).follow) {
+          petaniFollowersCount = await (prisma as any).follow.count({ where: { petaniId } });
+        } else {
+          const fRows: any[] = await prisma.$queryRawUnsafe(
+            `SELECT COUNT(*)::int as count FROM follows WHERE "petaniId" = $1`,
+            petaniId
+          );
+          petaniFollowersCount = fRows[0]?.count || 0;
+        }
+
+        if ((prisma as any).review) {
+          petaniReviews = await (prisma as any).review.findMany({
+            where: { product: { petaniId } },
+            select: { rating: true },
+          });
+        } else {
+          petaniReviews = await prisma.$queryRawUnsafe(
+            `SELECT r.rating FROM reviews r
+             JOIN products p ON r."productId" = p.id
+             WHERE p."petaniId" = $1`,
+            petaniId
+          );
+        }
+      } catch (pErr) {
+        console.warn('Error reading farmer reviews/followers:', pErr);
       }
-    } catch (pErr) {
-      console.warn('Error reading farmer reviews/followers:', pErr);
+
+      const petaniTotalTerjual = petaniSoldItems.reduce((acc, item) => acc + item.quantity, 0);
+      const petaniTotalReviews = petaniReviews.length;
+      const petaniSumRating = petaniReviews.reduce((acc: number, r: any) => acc + (r.rating || 5), 0);
+      const petaniAvgRating = petaniTotalReviews > 0 ? Number((petaniSumRating / petaniTotalReviews).toFixed(1)) : null;
+
+      const publicPayload = {
+        product: {
+          ...product,
+          totalSold,
+        },
+        stats: {
+          totalReviews,
+          avgRating,
+          satisfiedPercentage,
+          breakdown,
+        },
+        reviews,
+        petani: {
+          ...product.petani,
+          totalBarang: petaniProductsCount,
+          totalTerjual: petaniTotalTerjual,
+          followersCount: petaniFollowersCount,
+          avgRating: petaniAvgRating,
+          totalReviews: petaniTotalReviews,
+        },
+      };
+
+      // Simpan ke Redis selama 5 menit (300 detik)
+      await setCache(publicDetailCacheKey, publicPayload, 300);
+
+      product = publicPayload.product;
+      stats = publicPayload.stats;
+      reviews = publicPayload.reviews;
+      petani = publicPayload.petani;
     }
 
-    const petaniTotalTerjual = petaniSoldItems.reduce((acc, item) => acc + item.quantity, 0);
-    const petaniTotalReviews = petaniReviews.length;
-    const petaniSumRating = petaniReviews.reduce((acc: number, r: any) => acc + (r.rating || 5), 0);
-    const petaniAvgRating = petaniTotalReviews > 0 ? Number((petaniSumRating / petaniTotalReviews).toFixed(1)) : null;
-
-    // Cek apakah user saat ini mengikuti petani ini
+    // 4. Cek state spesifik user saat ini jika login
+    const petaniId = product.petaniId;
     let isFollowed = false;
     let hasPurchased = false;
 
@@ -209,24 +253,11 @@ export async function GET(
     }
 
     return NextResponse.json({
-      product: {
-        ...product,
-        totalSold,
-      },
-      stats: {
-        totalReviews,
-        avgRating,
-        satisfiedPercentage,
-        breakdown,
-      },
+      product,
+      stats,
       reviews,
       petani: {
-        ...product.petani,
-        totalBarang: petaniProductsCount,
-        totalTerjual: petaniTotalTerjual,
-        followersCount: petaniFollowersCount,
-        avgRating: petaniAvgRating,
-        totalReviews: petaniTotalReviews,
+        ...petani,
         isFollowed,
       },
       userState: {
@@ -295,9 +326,11 @@ export async function PUT(
       },
     });
 
-    // Invalidate cache produk dan dashboard petani
+    // Invalidate cache produk, detail produk, categories dan dashboard petani
     await Promise.all([
       delCachePattern('products:*'),
+      delCachePattern('product:detail:*'),
+      delCachePattern('categories:*'),
       delCachePattern('petani:dashboard:*'),
     ]);
 
@@ -385,9 +418,11 @@ export async function DELETE(
       });
     });
 
-    // Invalidate cache produk, orders, dan dashboard petani
+    // Invalidate cache produk, detail produk, categories, orders, dan dashboard petani
     await Promise.all([
       delCachePattern('products:*'),
+      delCachePattern('product:detail:*'),
+      delCachePattern('categories:*'),
       delCachePattern('petani:dashboard:*'),
       delCachePattern('petani:*'),
       delCachePattern('admin:orders:*'),

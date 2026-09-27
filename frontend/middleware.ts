@@ -50,9 +50,9 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/toko', request.url));
   }
 
-  // 4. Response normal dengan header anti-cache untuk halaman terproteksi
+  // 4. Response normal (Izinkan Next.js router cache untuk rute pengguna agar navigasi instan)
   const response = NextResponse.next();
-  if (isAccessingAdmin || isAccessingUserProtected) {
+  if (isAccessingAdmin) {
     response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     response.headers.set('Pragma', 'no-cache');
     response.headers.set('Expires', '0');

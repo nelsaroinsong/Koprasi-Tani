@@ -8,16 +8,18 @@ import {
   Tractor,
   Receipt,
   User as UserIcon,
+  LayoutDashboard,
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 
 interface BottomNavProps {
-  activePage?: 'toko' | 'sewa-alat' | 'pesanan' | 'profile' | 'beranda';
+  activePage?: 'toko' | 'sewa-alat' | 'pesanan' | 'dashboard' | 'profile' | 'beranda';
 }
 
 export default function BottomNav({ activePage }: BottomNavProps) {
   const pathname = usePathname();
   const { user } = useAuth();
+  const isPetani = user?.role === 'PETANI';
 
   // Deteksi status active page secara otomatis jika tidak dipassing dari props
   const isToko = activePage
@@ -29,6 +31,9 @@ export default function BottomNav({ activePage }: BottomNavProps) {
   const isPesanan = activePage
     ? activePage === 'pesanan'
     : pathname.startsWith('/pesanan');
+  const isDashboard = activePage
+    ? activePage === 'dashboard'
+    : pathname.startsWith('/dashboard');
   const isProfile = activePage
     ? activePage === 'profile'
     : pathname.startsWith('/profile') || pathname.startsWith('/profil');
@@ -55,6 +60,17 @@ export default function BottomNav({ activePage }: BottomNavProps) {
       icon: Receipt,
       isActive: isPesanan,
     },
+    ...(isPetani
+      ? [
+          {
+            key: 'dashboard',
+            label: 'Dashboard',
+            href: '/dashboard',
+            icon: LayoutDashboard,
+            isActive: isDashboard,
+          },
+        ]
+      : []),
     {
       key: 'profile',
       label: 'Profil',
@@ -69,7 +85,7 @@ export default function BottomNav({ activePage }: BottomNavProps) {
       aria-label="Navigasi Bawah Layanan Koperasi"
       className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-200/90 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] lg:hidden pb-[env(safe-area-inset-bottom,0px)]"
     >
-      <div className="max-w-md mx-auto grid grid-cols-4 h-15 sm:h-16 items-center px-2">
+      <div className={`max-w-md mx-auto grid ${isPetani ? 'grid-cols-5' : 'grid-cols-4'} h-15 sm:h-16 items-center px-1 sm:px-2`}>
         {navItems.map((item) => {
           const Icon = item.icon;
 
@@ -77,6 +93,7 @@ export default function BottomNav({ activePage }: BottomNavProps) {
             <Link
               key={item.key}
               href={item.href}
+              prefetch={true}
               className="focus:outline-none flex items-center justify-center p-1"
               aria-label={item.label}
             >

@@ -108,6 +108,20 @@ export default function Navbar({
           >
             Pesanan
           </button>
+          {user?.role === 'PETANI' && (
+            <button
+              id="nav-dashboard"
+              onClick={() => router.push('/dashboard')}
+              className={`px-4 py-2 rounded-full font-semibold transition cursor-pointer ${
+                activeSection === 'dashboard'
+                  ? 'bg-emerald-700 text-white shadow-xs font-bold'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
+              }`}
+              type="button"
+            >
+              Dashboard
+            </button>
+          )}
           <button
             id="nav-profil"
             onClick={() => router.push(user ? '/profile' : '/login')}

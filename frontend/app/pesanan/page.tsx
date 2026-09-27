@@ -45,13 +45,15 @@ const STATUS_FILTERS: { key: OrderStatus; label: string }[] = [
   { key: 'DIBATALKAN', label: 'Dibatalkan' },
 ];
 
+let cachedUserOrders: any[] | null = null;
+
 export default function PesananPage() {
   const { user, isLoading: authLoading } = useAuth();
   const { showToast } = useToast();
   const router = useRouter();
 
-  const [orders, setOrders] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [orders, setOrders] = useState<any[]>(() => cachedUserOrders || []);
+  const [isLoading, setIsLoading] = useState(() => !cachedUserOrders);
   const [activeFilter, setActiveFilter] = useState<OrderStatus>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
@@ -79,13 +81,16 @@ export default function PesananPage() {
   }, []);
 
   // Fetch daftar pesanan pengguna
-  const fetchOrders = useCallback(async () => {
+  const fetchOrders = useCallback(async (silent = false) => {
     try {
-      setIsLoading(true);
+      if (!silent) {
+        setIsLoading(true);
+      }
       const res = await fetch('/api/orders');
       const data = await res.json();
       if (res.ok && data.orders) {
         setOrders(data.orders);
+        cachedUserOrders = data.orders;
       }
     } catch (err) {
       console.error('Error fetching orders:', err);
@@ -96,7 +101,7 @@ export default function PesananPage() {
 
   useEffect(() => {
     if (user) {
-      fetchOrders();
+      fetchOrders(Boolean(cachedUserOrders));
     }
   }, [user, fetchOrders]);
 
@@ -334,7 +339,7 @@ Mohon info kesiapan fisik komoditas di gudang koperasi. Terima kasih.`;
 
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <button
-              onClick={fetchOrders}
+              onClick={() => fetchOrders()}
               disabled={isLoading}
               className="px-3 sm:px-4 py-1.5 sm:py-2.5 rounded-xl sm:rounded-2xl bg-white hover:bg-slate-50 text-slate-700 hover:text-emerald-800 border border-slate-200 font-bold text-[11px] sm:text-xs flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
               type="button"

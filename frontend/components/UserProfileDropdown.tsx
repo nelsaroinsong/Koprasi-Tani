@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   User as UserIcon,
@@ -33,6 +34,7 @@ import {
   Store,
   Home,
   Boxes,
+  LayoutDashboard,
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import {
@@ -281,11 +283,11 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
     <>
       <div className="flex items-center gap-1.5 sm:gap-2.5" ref={dropdownRef}>
         {/* Tombol Keranjang Belanja */}
-        <button
-          onClick={() => setActiveModal('cart')}
+        <Link
+          href="/cart"
+          prefetch={true}
           className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 flex items-center justify-center transition border border-slate-200 cursor-pointer shadow-2xs group"
           title="Keranjang Belanja"
-          type="button"
         >
           <ShoppingCart className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5 group-hover:scale-110 transition-transform" />
           {cartCount > 0 && (
@@ -293,7 +295,7 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
               {cartCount}
             </span>
           )}
-        </button>
+        </Link>
 
         {/* Profile Trigger Pill - Hanya di Desktop (>= lg), di mobile & tablet sudah ada di BottomNav */}
         <button
@@ -423,6 +425,31 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
 
             {/* Menu List - Tanpa Monitoring Pesanan (karena pesanan sudah ada di navbar), profil mengarah ke halaman sendiri /profile */}
             <div className="p-3.5 space-y-1">
+              {user.role === 'PETANI' && (
+                <button
+                  onClick={() => {
+                    setIsOpen(false);
+                    router.push('/dashboard');
+                  }}
+                  className="w-full p-2.5 rounded-2xl hover:bg-emerald-50/70 bg-emerald-50/30 flex items-center justify-between group transition cursor-pointer text-left border border-emerald-100"
+                  type="button"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-700 text-white flex items-center justify-center group-hover:scale-105 transition shadow-xs">
+                      <LayoutDashboard className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                        <span>Dashboard Petani</span>
+                        <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded-full">Mitra</span>
+                      </div>
+                      <div className="text-[11px] text-slate-400">Pantau stok panen & cash di kasir</div>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-emerald-600 group-hover:translate-x-0.5 transition-transform" />
+                </button>
+              )}
+
               <button
                 onClick={() => {
                   setIsOpen(false);

@@ -3,11 +3,12 @@ import fs from 'fs';
 import path from 'path';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
-import { delCachePattern } from '@/lib/redis';
+import { getCache, setCache, delCache, delCachePattern } from '@/lib/redis';
 
 export const dynamic = 'force-dynamic';
 
 const CATEGORIES_FILE = path.join(process.cwd(), 'data', 'categories.json');
+const CATEGORIES_CACHE_KEY = 'categories:list:with_count';
 
 export interface CategoryItem {
   id: string;
@@ -81,9 +82,15 @@ function writeCategoriesToFile(categories: CategoryItem[]) {
   }
 }
 
-// 1. GET: Ambil semua kategori komoditas beserta jumlah produk aktif
+// 1. GET: Ambil semua kategori komoditas beserta jumlah produk aktif (Di-cache di Redis)
 export async function GET() {
   try {
+    // Cek cache Redis terlebih dahulu untuk response super cepat (<2ms)
+    const cached = await getCache<any>(CATEGORIES_CACHE_KEY);
+    if (cached) {
+      return NextResponse.json(cached);
+    }
+
     const categories = readCategoriesFromFile();
 
     // Query jumlah produk per kategori dari database Postgres
@@ -107,18 +114,16 @@ export async function GET() {
       productCount: countMap[cat.name.toLowerCase()] || countMap[cat.slug.toLowerCase()] || 0,
     }));
 
-    return NextResponse.json(
-      {
-        success: true,
-        total: categoriesWithCount.length,
-        categories: categoriesWithCount,
-      },
-      {
-        headers: {
-          'Cache-Control': 'no-store, no-cache, must-revalidate',
-        },
-      }
-    );
+    const responsePayload = {
+      success: true,
+      total: categoriesWithCount.length,
+      categories: categoriesWithCount,
+    };
+
+    // Cache di Redis selama 10 menit (600 detik)
+    await setCache(CATEGORIES_CACHE_KEY, responsePayload, 600);
+
+    return NextResponse.json(responsePayload);
   } catch (error: any) {
     console.error('Error fetching categories:', error);
     return NextResponse.json({
