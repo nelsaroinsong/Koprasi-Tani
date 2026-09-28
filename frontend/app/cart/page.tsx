@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import AppHeader from '@/components/AppHeader';
+import SlideCommit from '@/components/ui/SlideCommit';
 import {
   ShoppingCart,
   ShoppingBag,
@@ -28,6 +29,9 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
+import { motion } from 'motion/react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { CheckmarkCircle02Icon, Cancel01Icon, ArrowRight02Icon } from '@hugeicons/core-free-icons';
 import {
   Dialog,
   DialogContent,
@@ -62,6 +66,7 @@ export default function ShoppingCartPage() {
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
   const [createdOrderResult, setCreatedOrderResult] = useState<any | null>(null);
+  const pendingOrderRef = useRef<any | null>(null);
 
   // Sync Cart from LocalStorage
   const syncCart = useCallback(() => {
@@ -162,10 +167,12 @@ export default function ShoppingCartPage() {
   const handleConfirmOrder = async () => {
     if (!user) {
       router.push(`/login?callbackUrl=${encodeURIComponent('/cart')}`);
-      return;
+      throw new Error('Silakan login terlebih dahulu untuk checkout');
     }
 
-    if (cartItems.length === 0) return;
+    if (cartItems.length === 0) {
+      throw new Error('Keranjang belanja kosong');
+    }
 
     try {
       setIsSubmittingOrder(true);
@@ -193,7 +200,8 @@ export default function ShoppingCartPage() {
         throw new Error(data.error || 'Gagal memproses pesanan ke sistem koperasi');
       }
 
-      setCreatedOrderResult(data.order);
+      // Simpan referensi order untuk ditransisikan setelah animasi slide selesai
+      pendingOrderRef.current = data.order;
       localStorage.removeItem('koperasi_cart');
       window.dispatchEvent(new CustomEvent('cart-updated'));
       setCartItems([]);
@@ -203,9 +211,12 @@ export default function ShoppingCartPage() {
         message: `No. Pesanan #${data.order.orderNumber} telah tercatat di sistem koperasi.`,
         type: 'success',
       });
+
+      return data.order;
     } catch (err: any) {
       console.error('Error submitting order:', err);
       setOrderError(err.message || 'Terjadi gangguan saat memproses pesanan.');
+      throw err;
     } finally {
       setIsSubmittingOrder(false);
     }
@@ -429,14 +440,21 @@ Mohon dipersiapkan komoditas tersebut. Terima kasih!`;
                 </div>
 
                 {/* Tombol Lanjut ke Checkout */}
-                <button
+                <motion.button
                   type="button"
+                  whileHover={{ scale: 1.015 }}
+                  whileTap={{ scale: 0.985 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 25 }}
                   onClick={() => setIsCheckoutModalOpen(true)}
-                  className="w-full py-3.5 px-4 bg-slate-900 hover:bg-slate-800 active:bg-black text-white rounded-xl font-bold text-xs sm:text-sm tracking-wide shadow-xs transition flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full py-3.5 px-4 bg-slate-900 hover:bg-slate-800 active:bg-black text-white rounded-xl font-bold text-xs sm:text-sm tracking-wide shadow-xs transition flex items-center justify-center gap-2 cursor-pointer group"
                 >
                   <span>Lanjut ke Checkout Pesanan</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
+                  <HugeiconsIcon
+                    icon={ArrowRight02Icon}
+                    size={16}
+                    className="text-slate-300 group-hover:translate-x-0.5 group-hover:text-white transition-all"
+                  />
+                </motion.button>
 
                 <p className="text-[10px] text-center text-slate-400">
                   Pengambilan komoditas fisik langsung di kantor/gudang koperasi
@@ -560,34 +578,50 @@ Mohon dipersiapkan komoditas tersebut. Terima kasih!`;
                 )}
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex items-center gap-2 mt-5 pt-3 border-t border-slate-100">
-                <button
+              {/* Action Buttons: Batal & Slide to Confirm */}
+              <div className="flex flex-col-reverse sm:flex-row items-center gap-3 mt-5 pt-3.5 border-t border-slate-100">
+                <motion.button
                   type="button"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.97 }}
                   onClick={() => setIsCheckoutModalOpen(false)}
                   disabled={isSubmittingOrder}
-                  className="py-2.5 px-4 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-semibold text-xs transition cursor-pointer"
+                  className="w-full sm:w-auto py-3 px-4 border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600 hover:text-slate-800 rounded-2xl font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                 >
-                  Batal
-                </button>
-                <button
-                  type="button"
-                  onClick={handleConfirmOrder}
-                  disabled={isSubmittingOrder}
-                  className="flex-1 py-2.5 bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 disabled:opacity-50 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition cursor-pointer"
-                >
-                  {isSubmittingOrder ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Memproses Pesanan...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Check className="w-4 h-4" />
-                      <span>Konfirmasi & Buat Pesanan Resmi</span>
-                    </>
-                  )}
-                </button>
+                  <HugeiconsIcon icon={Cancel01Icon} size={15} className="text-slate-400 group-hover:text-slate-600" />
+                  <span>Batal</span>
+                </motion.button>
+
+                <div className="w-full flex-1 min-w-0">
+                  <SlideCommit
+                    label="Geser untuk Konfirmasi Pesanan"
+                    doneLabel="Pesanan Resmi Dibuat"
+                    errorLabel="Gagal Memproses"
+                    onConfirm={handleConfirmOrder}
+                    onDone={() => {
+                      if (pendingOrderRef.current) {
+                        const orderData = pendingOrderRef.current;
+                        setTimeout(() => {
+                          setCreatedOrderResult(orderData);
+                        }, 800);
+                      }
+                    }}
+                    onError={(reason: any) => {
+                      console.error('Konfirmasi pesanan gagal:', reason);
+                    }}
+                    trackColor="#064e3b"
+                    handleColor="#ffffff"
+                    successColor="#10b981"
+                    dangerColor="#ef4444"
+                    height={52}
+                    radius={26}
+                    speed={50}
+                    returnBounce={0.38}
+                    landingDip={0.026}
+                    holdMs={1400}
+                    disabled={isSubmittingOrder || cartItems.length === 0}
+                  />
+                </div>
               </div>
             </div>
           ) : (
