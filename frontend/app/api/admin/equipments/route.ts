@@ -346,7 +346,7 @@ export async function PATCH(request: Request) {
   }
 }
 
-// DELETE: Hapus unit alat dari inventaris
+// DELETE: Hapus unit alat dari inventaris (Tunggal atau Banyak)
 export async function DELETE(request: Request) {
   try {
     const session = await auth();
@@ -356,25 +356,47 @@ export async function DELETE(request: Request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
+    const idParam = searchParams.get('id');
+    const idsParam = searchParams.get('ids');
 
-    if (!id) {
-      return NextResponse.json({ error: 'ID alat wajib disertakan' }, { status: 400 });
+    let idsToDelete: string[] = [];
+
+    if (idParam) {
+      idsToDelete.push(idParam);
+    } else if (idsParam) {
+      idsToDelete = idsParam.split(',').map((s) => s.trim()).filter(Boolean);
+    } else {
+      try {
+        const body = await request.json();
+        if (Array.isArray(body.ids)) {
+          idsToDelete = body.ids;
+        } else if (body.id) {
+          idsToDelete = [body.id];
+        }
+      } catch {}
     }
 
-    try {
-      await prisma.$executeRawUnsafe(`DELETE FROM equipments WHERE id = $1`, id);
-    } catch {}
+    if (idsToDelete.length === 0) {
+      return NextResponse.json({ error: 'ID unit alat wajib disertakan' }, { status: 400 });
+    }
+
+    for (const id of idsToDelete) {
+      try {
+        await prisma.$executeRawUnsafe(`DELETE FROM equipments WHERE id = $1`, id);
+      } catch {}
+    }
 
     const currentList = readEquipmentsFromFile();
-    const updated = currentList.filter((item) => item.id !== id);
+    const deleteSet = new Set(idsToDelete);
+    const updated = currentList.filter((item) => !deleteSet.has(item.id));
     writeEquipmentsToFile(updated);
 
     await delCachePattern('equipments:*').catch(() => {});
 
     return NextResponse.json({
       success: true,
-      message: 'Unit alat berhasil dihapus dari inventaris.',
+      message: `${idsToDelete.length} unit alat berhasil dihapus dari inventaris.`,
+      deletedIds: idsToDelete,
     });
   } catch (error: any) {
     console.error('Error saat admin menghapus alat:', error);

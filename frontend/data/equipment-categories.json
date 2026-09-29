@@ -1,0 +1,32 @@
+[
+  {
+    "id": "eqcat-1",
+    "name": "Traktor & Pengolah Lahan",
+    "emoji": "🚜",
+    "description": "Traktor roda empat, kultivator, bajak piringan, dan rotary tiller olah tanah."
+  },
+  {
+    "id": "eqcat-2",
+    "name": "Mesin Panen & Perontok",
+    "emoji": "🌽",
+    "description": "Mesin combine harvester, perontok jagung, dan pemotong batang."
+  },
+  {
+    "id": "eqcat-3",
+    "name": "Penyemprot & Pemupukan",
+    "emoji": "💧",
+    "description": "Drone pertanian semprot hama, power sprayer gendong, dan tabur pupuk."
+  },
+  {
+    "id": "eqcat-4",
+    "name": "Pascapanen & Pengolahan",
+    "emoji": "⚙️",
+    "description": "Pencacah pelepah, pengering jagung, dan pemipil biji-bijian."
+  },
+  {
+    "id": "eqcat-5",
+    "name": "Irigasi & Pompa Air",
+    "emoji": "🚰",
+    "description": "Pompa diesel alkon, selang induksi debit tinggi, dan sprayer siram."
+  }
+]

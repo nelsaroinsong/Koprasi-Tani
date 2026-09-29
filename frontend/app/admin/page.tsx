@@ -11,10 +11,41 @@ import { TickerSettingsPanel } from '@/components/admin/ticker-settings-panel';
 import { LogoSettingsPanel } from '@/components/admin/logo-settings-panel';
 import { CategoriesDataTable } from '@/components/admin/categories-data-table';
 import EquipmentsDataTable from '@/components/admin/equipments-data-table';
-import { Sprout, Users, ShoppingBag, ArrowRight, Package, ShoppingCart, HandCoins } from 'lucide-react';
+import { Sprout, Users, ShoppingBag, ArrowRight, Package, ShoppingCart, HandCoins, MapPin, CheckCircle2 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+
+const DEFAULT_WAREHOUSE_ADDRESS =
+  'Koperasi Sinar Pagi Sejahtera — Jl. Raya Kolongan, Kec. Kalawat, Kabupaten Minahasa Utara, Sulawesi Utara';
 
 export default function AdminPage() {
   const { activeTab, setActiveTab } = useAdmin();
+
+  // Alamat Gudang State
+  const [warehouseAddress, setWarehouseAddress] = React.useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('koperasi_warehouse_address') || DEFAULT_WAREHOUSE_ADDRESS;
+    }
+    return DEFAULT_WAREHOUSE_ADDRESS;
+  });
+  const [isEditAddressOpen, setIsEditAddressOpen] = React.useState(false);
+  const [tempAddress, setTempAddress] = React.useState('');
+
+  const handleSaveAddress = () => {
+    const clean = tempAddress.trim();
+    if (!clean) return;
+    setWarehouseAddress(clean);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('koperasi_warehouse_address', clean);
+      window.dispatchEvent(new Event('storage'));
+    }
+    setIsEditAddressOpen(false);
+  };
 
   // 0. Tampilan Pengaturan Web: Teks Berjalan & Logo Mitra
   if (activeTab.group === 'Pengaturan Web') {
@@ -74,6 +105,31 @@ export default function AdminPage() {
             Kelola data petani, verifikasi kemitraan petani, dan pantau aktivitas pembeli hasil panen di Minahasa Utara.
           </p>
         </div>
+      </div>
+
+      {/* Info Banner Alur Masuk Fisik Barang (Gambar 2 dipindah ke Dashboard) */}
+      <div className="p-4 sm:p-5 rounded-2xl bg-emerald-50/80 border border-emerald-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-2xs">
+        <div className="flex items-start gap-3">
+          <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 mt-0.5">
+            <Package className="w-4 h-4" />
+          </div>
+          <div className="text-slate-700 leading-relaxed text-xs">
+            <strong className="text-emerald-950 font-bold">Alur Masuk Fisik Barang:</strong> Petani membawa hasil panen ke gudang koperasi. Admin menimbang dan menginput data komoditas. Pembeli mengambil pesanan tunai di:{' '}
+            <span className="font-semibold text-emerald-900 underline">{warehouseAddress}</span>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setTempAddress(warehouseAddress);
+            setIsEditAddressOpen(true);
+          }}
+          className="shrink-0 px-3 py-2 rounded-xl border border-emerald-300 bg-white hover:bg-emerald-50 text-emerald-800 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-2xs self-start sm:self-center"
+          title="Ubah Alamat Pengambilan Barang"
+        >
+          <MapPin className="w-3.5 h-3.5 text-emerald-700" />
+          <span>Ubah Alamat Gudang</span>
+        </button>
       </div>
 
       {/* Quick Access Cards */}
@@ -193,6 +249,48 @@ export default function AdminPage() {
           </div>
         </div>
       </div>
+
+      {/* Modal Ubah Alamat Gudang */}
+      <Dialog open={isEditAddressOpen} onOpenChange={setIsEditAddressOpen}>
+        <DialogContent className="max-w-md p-5 sm:p-6 rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <MapPin className="w-5 h-5 text-emerald-600" />
+              <span>Ubah Alamat Pengambilan Gudang</span>
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3 pt-2">
+            <p className="text-xs text-slate-500">
+              Alamat ini akan ditampilkan kepada pembeli saat proses checkout dan instruksi pengambilan tunai hasil panen.
+            </p>
+            <textarea
+              rows={3}
+              value={tempAddress}
+              onChange={(e) => setTempAddress(e.target.value)}
+              placeholder="Masukkan alamat lengkap gudang koperasi..."
+              className="w-full p-3 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500 leading-relaxed font-medium"
+            />
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0 pt-2">
+            <button
+              type="button"
+              onClick={() => setIsEditAddressOpen(false)}
+              className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition cursor-pointer"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              onClick={handleSaveAddress}
+              className="px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-xs font-semibold text-white transition cursor-pointer shadow-xs"
+            >
+              Simpan Alamat
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -273,7 +273,7 @@ export async function PATCH(request: Request) {
   }
 }
 
-// 4. DELETE: Hapus kategori komoditas (Admin Only)
+// 4. DELETE: Hapus kategori komoditas tunggal atau massal (Admin Only)
 export async function DELETE(request: Request) {
   try {
     const session = await auth();
@@ -283,54 +283,69 @@ export async function DELETE(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
+    const idsQuery = searchParams.get('ids');
     const force = searchParams.get('force') === 'true';
 
-    if (!id) {
+    let idsToDelete: string[] = [];
+    if (idsQuery) {
+      idsToDelete = idsQuery.split(',').map((s) => s.trim()).filter(Boolean);
+    } else if (id) {
+      idsToDelete = [id];
+    } else {
+      try {
+        const body = await request.json();
+        if (Array.isArray(body?.ids)) {
+          idsToDelete = body.ids;
+        } else if (body?.id) {
+          idsToDelete = [body.id];
+        }
+      } catch {}
+    }
+
+    if (idsToDelete.length === 0) {
       return NextResponse.json({ error: 'ID kategori wajib disertakan.' }, { status: 400 });
     }
 
     const currentCategories = readCategoriesFromFile();
-    const target = currentCategories.find((c) => c.id === id);
 
-    if (!target) {
-      return NextResponse.json({ error: 'Kategori tidak ditemukan.' }, { status: 404 });
-    }
-
-    if (currentCategories.length <= 1) {
+    if (currentCategories.length <= idsToDelete.length) {
       return NextResponse.json(
         { error: 'Setidaknya harus tersisa minimal 1 kategori komoditas aktif.' },
         { status: 400 }
       );
     }
 
-    // Cek apakah ada komoditas aktif yang masih memakai kategori ini
-    const productCount = await prisma.product.count({
-      where: {
-        kategori: {
-          equals: target.name,
-          mode: 'insensitive',
-        },
-      },
-    });
+    // Cek produk yang terikat jika force bukan true
+    if (!force) {
+      const targetNames = currentCategories
+        .filter((c) => idsToDelete.includes(c.id))
+        .map((c) => c.name);
 
-    if (productCount > 0 && !force) {
-      return NextResponse.json(
-        {
-          error: `Kategori "${target.name}" masih digunakan oleh ${productCount} komoditas di Toko Online.`,
-          hasProducts: true,
-          productCount,
+      const productCount = await prisma.product.count({
+        where: {
+          kategori: { in: targetNames, mode: 'insensitive' },
         },
-        { status: 400 }
-      );
+      });
+
+      if (productCount > 0) {
+        return NextResponse.json(
+          {
+            error: `Beberapa kategori yang dipilih masih digunakan oleh ${productCount} produk komoditas.`,
+            hasProducts: true,
+            productCount,
+          },
+          { status: 400 }
+        );
+      }
     }
 
-    const updated = currentCategories.filter((c) => c.id !== id);
+    const updated = currentCategories.filter((c) => !idsToDelete.includes(c.id));
     writeCategoriesToFile(updated);
     await delCachePattern('categories:*').catch(() => {});
 
     return NextResponse.json({
       success: true,
-      message: `Kategori "${target.name}" berhasil dihapus.`,
+      message: `${idsToDelete.length} kategori berhasil dihapus.`,
       categories: updated,
     });
   } catch (error: any) {
@@ -338,3 +353,4 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: error.message || 'Gagal menghapus kategori' }, { status: 500 });
   }
 }
+

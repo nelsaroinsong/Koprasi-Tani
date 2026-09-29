@@ -26,6 +26,9 @@ import {
   RefreshCw,
   Loader2,
   CheckCircle2,
+  AlertTriangle,
+  Check,
+  Layers,
   EyeOff,
   Tag,
   ShoppingBag,
@@ -56,6 +59,8 @@ import {
 } from './product-form-modal';
 import { ProductDeleteDialog } from './product-delete-dialog';
 
+const PAGE_SIZE = 10;
+
 interface PaginationMeta {
   totalCount: number;
   totalPages: number;
@@ -82,17 +87,23 @@ export function TokoOnlineDataTable() {
 
   const [productList, setProductList] = useState<AdminProductData[]>([]);
   const [petaniOptions, setPetaniOptions] = useState<PetaniOption[]>([]);
+  const [stats, setStats] = useState({ total: 0, active: 0, inactive: 0 });
   const [pagination, setPagination] = useState<PaginationMeta>({
     totalCount: 0,
     totalPages: 1,
     currentPage: 1,
-    limit: 8,
+    limit: PAGE_SIZE,
   });
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterKategori, setFilterKategori] = useState<string>('SEMUA');
   const [filterStatus, setFilterStatus] = useState<'ALL' | 'AVAILABLE' | 'UNAVAILABLE'>('ALL');
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Checkbox Select & Bulk Delete States
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
   // Debounce search
   const debouncedSearch = useDebounce(searchQuery, 300);
@@ -293,7 +304,7 @@ export function TokoOnlineDataTable() {
       setIsLoading(true);
       const params = new URLSearchParams({
         page: String(currentPage),
-        limit: '8',
+        limit: String(PAGE_SIZE),
       });
 
       if (debouncedSearch) {
@@ -315,6 +326,9 @@ export function TokoOnlineDataTable() {
 
       if (data.success && Array.isArray(data.products)) {
         setProductList(data.products);
+        if (data.stats) {
+          setStats(data.stats);
+        }
         if (data.petaniOptions) {
           setPetaniOptions(data.petaniOptions);
         }
@@ -330,6 +344,66 @@ export function TokoOnlineDataTable() {
       setIsLoading(false);
     }
   }, [currentPage, debouncedSearch, filterKategori, filterStatus]);
+
+  // Bulk Selection Helpers
+  const isAllCurrentPageSelected =
+    productList.length > 0 &&
+    productList.every((p) => (p.id ? selectedIds.includes(p.id) : false));
+
+  const toggleSelectAllCurrentPage = () => {
+    if (isAllCurrentPageSelected) {
+      const pageIds = new Set(productList.map((p) => p.id).filter(Boolean) as string[]);
+      setSelectedIds((prev) => prev.filter((id) => !pageIds.has(id)));
+    } else {
+      const newSet = new Set(selectedIds);
+      productList.forEach((p) => {
+        if (p.id) newSet.add(p.id);
+      });
+      setSelectedIds(Array.from(newSet));
+    }
+  };
+
+  const toggleSelectRow = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  // Konfirmasi Hapus Massal Produk
+  const handleBulkDeleteConfirm = async () => {
+    if (selectedIds.length === 0) return;
+    try {
+      setIsBulkDeleting(true);
+      const res = await fetch('/api/admin/products', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: selectedIds }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Gagal menghapus produk terpilih');
+      }
+
+      showToast({
+        title: 'Penghapusan Massal Berhasil',
+        message: `${selectedIds.length} komoditas berhasil dihapus dari katalog toko online.`,
+        type: 'success',
+      });
+
+      setSelectedIds([]);
+      setIsBulkDeleteDialogOpen(false);
+      fetchProducts();
+    } catch (err: any) {
+      console.error(err);
+      showToast({
+        title: 'Gagal Menghapus Banyak',
+        message: err.message || 'Terjadi gangguan saat menghapus komoditas.',
+        type: 'error',
+      });
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
 
   useEffect(() => {
     fetchProducts();
@@ -466,91 +540,73 @@ export function TokoOnlineDataTable() {
 
   return (
     <div className="space-y-4">
-      {/* Header Info */}
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-lg font-bold text-slate-900">
-              Katalog & Stok Fisik Gudang Komoditas
-            </h1>
-            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 shrink-0">
-              {pagination.totalCount} Komoditas di Gudang
+      {/* 1. Stat Cards: Sesuai Desain Halaman Sewa Alat & Dashboard */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3.5">
+        <div className="p-4 bg-white border border-slate-200/90 rounded-2xl shadow-2xs flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+            <Package className="w-6 h-6" />
+          </div>
+          <div>
+            <div className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              {stats.total || pagination.totalCount}
+            </div>
+            <div className="text-[11px] text-slate-500 font-semibold mt-0.5">
+              Total Komoditas (Gudang)
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 bg-white border border-slate-200/90 rounded-2xl shadow-2xs flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+            <CheckCircle2 className="w-6 h-6" />
+          </div>
+          <div>
+            <div className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              {stats.active}
+            </div>
+            <div className="text-[11px] text-slate-500 font-semibold mt-0.5">
+              Stok Siap Jual / Aktif
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 bg-white border border-slate-200/90 rounded-2xl shadow-2xs flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0">
+            <EyeOff className="w-6 h-6" />
+          </div>
+          <div>
+            <div className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              {stats.inactive}
+            </div>
+            <div className="text-[11px] text-slate-500 font-semibold mt-0.5">
+              Nonaktif / Habis
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 bg-emerald-800 text-white rounded-2xl shadow-2xs flex flex-col justify-between">
+          <div className="text-[11px] text-emerald-200 font-medium">Layanan Toko Online</div>
+          <div className="text-sm font-bold flex items-center justify-between mt-1">
+            <span>Katalog Publik</span>
+            <span className="text-xs bg-emerald-700/80 px-2 py-0.5 rounded-full border border-emerald-500/40">
+              Aktif
             </span>
           </div>
-          <p className="text-xs text-slate-500 mt-1 max-w-2xl">
-            Pencatatan fisik hasil panen yang dibawa petani ke gudang koperasi. Produk yang didata admin otomatis tayang di Toko Online Koperasi.
-          </p>
-        </div>
-
-        {/* Header Action Buttons - Sejajar 1 Baris */}
-        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 overflow-x-auto no-scrollbar pb-1 xl:pb-0">
-          <button
-            onClick={() => setActiveTab('Produk dan Layanan', 'Kategori Komoditas')}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-emerald-200 bg-emerald-50/70 hover:bg-emerald-100 text-emerald-800 text-xs font-semibold transition cursor-pointer shadow-2xs whitespace-nowrap shrink-0"
-            title="Buka Manajemen Kategori Komoditas"
-          >
-            <Tag className="w-3.5 h-3.5 text-emerald-700" />
-            <span>Kelola Kategori</span>
-          </button>
-
-          <button
-            onClick={fetchProducts}
-            disabled={isLoading}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-emerald-50/50 hover:border-emerald-300 text-slate-600 hover:text-emerald-800 text-xs font-semibold transition cursor-pointer disabled:opacity-60 shadow-2xs whitespace-nowrap shrink-0"
-            title="Segarkan Data"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-emerald-700' : ''}`} />
-            <span>Segarkan Data</span>
-          </button>
-
-          {/* Button Input Komoditas Masuk Gudang */}
-          <button
-            onClick={() => {
-              setSelectedProduct(null);
-              setFormMode('CREATE');
-              setFormModalOpen(true);
-            }}
-            className="flex items-center px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold shadow-xs transition cursor-pointer whitespace-nowrap shrink-0"
-          >
-            <span>+ Input Komoditas Masuk Gudang</span>
-          </button>
         </div>
       </div>
 
-      {/* Info Banner Alur B Satu Pintu & Alamat Gudang */}
-      <div className="p-3.5 rounded-xl bg-emerald-50/80 border border-emerald-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-        <div className="flex items-start gap-2.5">
-          <Package className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
-          <div className="text-slate-700 leading-relaxed text-[11px]">
-            <strong className="text-emerald-900">Alur Masuk Fisik Barang:</strong> Petani membawa hasil panen ke gudang koperasi. Admin menimbang dan menginput data komoditas. Pembeli mengambil pesanan tunai di: <span className="font-semibold text-emerald-900 underline">{warehouseAddress}</span>
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={() => {
-            setTempAddress(warehouseAddress);
-            setIsEditAddressOpen(true);
-          }}
-          className="shrink-0 px-2.5 py-1.5 rounded-xl border border-emerald-300 bg-white hover:bg-emerald-50 text-emerald-800 text-[11px] font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
-          title="Ubah Alamat Pengambilan Barang"
-        >
-          <MapPin className="w-3.5 h-3.5 text-emerald-700" />
-          <span>Ubah Alamat Gudang</span>
-        </button>
-      </div>
-
-      {/* Toolbar: Search & Combobox Filtering */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1 max-w-2xl">
-          {/* Search Input */}
-          <div className="relative flex-1">
-            <Search className="absolute inset-y-0 left-3 my-auto w-4 h-4 text-slate-400" />
+      {/* 2. Action Toolbar: Search, Filter Kategori, Filter Status, Refresh, Kelola Kategori, Tambah */}
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-3 sm:p-4 shadow-2xs flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1">
+          {/* Search Box */}
+          <div className="relative flex-1 max-w-md">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Cari komoditas, kategori, atau nama petani..."
-              className="w-full pl-9 pr-4 py-2 text-xs bg-white border border-slate-200 rounded-xl placeholder-slate-400 text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 shadow-2xs transition"
+              className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:bg-white"
             />
           </div>
 
@@ -561,7 +617,7 @@ export function TokoOnlineDataTable() {
             onValueChange={(val) => setFilterKategori(val)}
             placeholder="Pilih Kategori..."
             searchPlaceholder="Cari kategori..."
-            className="w-full sm:w-40"
+            className="w-full sm:w-44"
           />
 
           {/* Combobox Filter Status */}
@@ -573,18 +629,88 @@ export function TokoOnlineDataTable() {
             searchPlaceholder="Cari status..."
             className="w-full sm:w-44"
           />
+
+          <button
+            onClick={fetchProducts}
+            disabled={isLoading}
+            title="Segarkan Data"
+            className="p-2 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl transition cursor-pointer shrink-0 self-center sm:self-auto shadow-2xs disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-emerald-700' : ''}`} />
+          </button>
         </div>
 
-        <div className="text-xs text-slate-500 hidden sm:block shrink-0">
-          Total Komoditas: <strong className="text-emerald-700 font-semibold">{pagination.totalCount}</strong>
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={() => setActiveTab('Produk dan Layanan', 'Kategori Komoditas')}
+            className="flex-1 sm:flex-none py-2 px-3.5 rounded-xl border border-emerald-200 bg-emerald-50/70 hover:bg-emerald-100 text-emerald-800 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-2xs whitespace-nowrap"
+            title="Buka Manajemen Kategori Komoditas"
+          >
+            <Tag className="w-3.5 h-3.5 text-emerald-700" />
+            <span>Kelola Kategori</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedProduct(null);
+              setFormMode('CREATE');
+              setFormModalOpen(true);
+            }}
+            className="flex-1 sm:flex-none py-2 px-4 bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition cursor-pointer whitespace-nowrap"
+          >
+            <Plus className="w-4 h-4" />
+            <span>+ Input Komoditas Masuk Gudang</span>
+          </button>
         </div>
       </div>
 
-      {/* Shadcn Data Table */}
+      {/* 3. Floating Bulk Action Bar (Saat Ada Komoditas Dipilih) */}
+      {selectedIds.length > 0 && (
+        <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between gap-3 text-xs shadow-2xs animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
+            <span className="font-bold text-emerald-900">
+              {selectedIds.length} komoditas dipilih
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setSelectedIds([])}
+              className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 text-[11px] font-semibold transition cursor-pointer"
+            >
+              Batal Pilihan
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsBulkDeleteDialogOpen(true)}
+              className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[11px] font-bold flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Hapus ({selectedIds.length}) Terpilih</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 4. Shadcn Data Table dengan Checkbox & Pagination Max 10 */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
         <Table>
           <TableHeader className="bg-emerald-50/70 border-b border-emerald-100">
             <TableRow className="hover:bg-transparent border-emerald-100">
+              <TableHead className="w-10 text-center py-3.5">
+                <input
+                  type="checkbox"
+                  checked={isAllCurrentPageSelected}
+                  onChange={toggleSelectAllCurrentPage}
+                  aria-label="Pilih semua di halaman ini"
+                  className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer accent-emerald-600"
+                />
+              </TableHead>
               <TableHead className="w-12 text-center text-emerald-950 font-bold text-xs py-3.5">
                 No
               </TableHead>
@@ -612,7 +738,7 @@ export function TokoOnlineDataTable() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-40 text-center text-slate-500">
+                <TableCell colSpan={8} className="h-40 text-center text-slate-500">
                   <div className="flex flex-col items-center justify-center gap-2">
                     <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
                     <span className="text-xs">Memuat katalog komoditas dari database...</span>
@@ -621,7 +747,7 @@ export function TokoOnlineDataTable() {
               </TableRow>
             ) : productList.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-44 text-center text-slate-500">
+                <TableCell colSpan={8} className="h-44 text-center text-slate-500">
                   <div className="flex flex-col items-center justify-center gap-2">
                     <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
                       <ShoppingBag className="w-5 h-5" />
@@ -661,6 +787,17 @@ export function TokoOnlineDataTable() {
                     key={prod.id}
                     className="hover:bg-emerald-50/30 transition-colors border-slate-100"
                   >
+                    {/* Checkbox Select Row */}
+                    <TableCell className="text-center">
+                      <input
+                        type="checkbox"
+                        checked={prod.id ? selectedIds.includes(prod.id) : false}
+                        onChange={() => prod.id && toggleSelectRow(prod.id)}
+                        aria-label={`Pilih ${prod.nama}`}
+                        className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer accent-emerald-600"
+                      />
+                    </TableCell>
+
                     {/* No */}
                     <TableCell className="text-center font-medium text-xs text-slate-400">
                       {rowNumber}
@@ -876,6 +1013,47 @@ export function TokoOnlineDataTable() {
         onSuccess={fetchProducts}
         product={productToDelete}
       />
+
+      {/* Modal 2.1: Bulk Delete Confirmation Dialog */}
+      <Dialog open={isBulkDeleteDialogOpen} onOpenChange={setIsBulkDeleteDialogOpen}>
+        <DialogContent className="max-w-md p-6 bg-white rounded-3xl border border-slate-200 shadow-xl">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-red-50 text-red-600 flex items-center justify-center">
+                <Trash2 className="w-4 h-4" />
+              </div>
+              <span>Konfirmasi Hapus Massal Komoditas</span>
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="py-2 text-xs text-slate-600 leading-relaxed">
+            Anda akan menghapus <strong className="text-red-600 font-bold">{selectedIds.length} komoditas</strong> yang dipilih dari katalog toko online koperasi.
+            <p className="mt-2 text-slate-500">
+              Tindakan ini tidak dapat dibatalkan. Riwayat ulasan dan rincian transaksi terkait komoditas ini akan dibersihkan secara aman.
+            </p>
+          </div>
+
+          <DialogFooter className="mt-4 flex gap-2 justify-end">
+            <button
+              type="button"
+              disabled={isBulkDeleting}
+              onClick={() => setIsBulkDeleteDialogOpen(false)}
+              className="px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 transition cursor-pointer"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              disabled={isBulkDeleting}
+              onClick={handleBulkDeleteConfirm}
+              className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition flex items-center gap-2 cursor-pointer shadow-xs"
+            >
+              {isBulkDeleting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              <span>Hapus {selectedIds.length} Komoditas</span>
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Modal 3: Edit Warehouse Address Dialog */}
       <Dialog open={isEditAddressOpen} onOpenChange={setIsEditAddressOpen}>

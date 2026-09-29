@@ -51,9 +51,12 @@ export async function GET(request: Request) {
       ];
     }
 
-    // Query data produk, total count, dan opsi petani secara paralel
-    const [totalCount, products, petaniUsers] = await Promise.all([
+    // Query data produk, total count, stats, dan opsi petani secara paralel
+    const [totalCount, totalAll, activeCount, inactiveCount, products, petaniUsers] = await Promise.all([
       prisma.product.count({ where: whereCondition }),
+      prisma.product.count(),
+      prisma.product.count({ where: { isTersedia: true, stok: { gt: 0 } } }),
+      prisma.product.count({ where: { OR: [{ isTersedia: false }, { stok: { lte: 0 } }] } }),
       prisma.product.findMany({
         where: whereCondition,
         include: {
@@ -93,6 +96,11 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       success: true,
+      stats: {
+        total: totalAll,
+        active: activeCount,
+        inactive: inactiveCount,
+      },
       products: products.map((p) => ({
         id: p.id,
         nama: p.nama,
@@ -213,5 +221,98 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Error create product by admin:', error);
     return NextResponse.json({ error: 'Gagal menambahkan komoditas baru' }, { status: 500 });
+  }
+}
+
+// 3. DELETE: Hapus komoditas tunggal atau massal oleh Admin
+export async function DELETE(request: Request) {
+  try {
+    const session = await auth();
+
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Tidak terotentikasi' }, { status: 401 });
+    }
+
+    if ((session.user as any).role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Akses khusus administrator' }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const idsQuery = searchParams.get('ids');
+    const singleId = searchParams.get('id');
+
+    let idsToDelete: string[] = [];
+
+    if (idsQuery) {
+      idsToDelete = idsQuery.split(',').map((s) => s.trim()).filter(Boolean);
+    } else if (singleId) {
+      idsToDelete = [singleId];
+    } else {
+      try {
+        const body = await request.json();
+        if (Array.isArray(body?.ids)) {
+          idsToDelete = body.ids;
+        } else if (body?.id) {
+          idsToDelete = [body.id];
+        }
+      } catch {}
+    }
+
+    if (idsToDelete.length === 0) {
+      return NextResponse.json({ error: 'ID produk tidak diberikan' }, { status: 400 });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      // 1. Hapus reviews terkait produk
+      await tx.review.deleteMany({
+        where: { productId: { in: idsToDelete } },
+      });
+
+      // 2. Ambil list order yang memuat item produk ini
+      const relatedItems = await tx.orderItem.findMany({
+        where: { productId: { in: idsToDelete } },
+        select: { orderId: true },
+      });
+      const orderIds = Array.from(new Set(relatedItems.map((item) => item.orderId)));
+
+      // 3. Hapus order_items terkait produk
+      await tx.orderItem.deleteMany({
+        where: { productId: { in: idsToDelete } },
+      });
+
+      // 4. Bersihkan data pesanan yang kosong jika seluruh itemnya telah dihapus
+      for (const orderId of orderIds) {
+        const remainingCount = await tx.orderItem.count({
+          where: { orderId },
+        });
+        if (remainingCount === 0) {
+          await tx.order.delete({
+            where: { id: orderId },
+          });
+        }
+      }
+
+      // 5. Hapus produk
+      await tx.product.deleteMany({
+        where: { id: { in: idsToDelete } },
+      });
+    });
+
+    // Invalidate caches
+    await Promise.all([
+      delCachePattern('products:*'),
+      delCachePattern('petani:*'),
+      delCachePattern('admin:orders:*'),
+      delCachePattern('admin:payouts:*'),
+      delCachePattern('user:orders:*'),
+    ]).catch(() => {});
+
+    return NextResponse.json({
+      success: true,
+      message: `${idsToDelete.length} produk berhasil dihapus`,
+    });
+  } catch (error) {
+    console.error('Error delete products by admin:', error);
+    return NextResponse.json({ error: 'Gagal menghapus produk' }, { status: 500 });
   }
 }
