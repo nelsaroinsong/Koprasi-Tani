@@ -467,7 +467,7 @@ export function EquipmentFormPage({
           <div className="p-5 sm:p-6 bg-white border border-slate-200/90 rounded-2xl shadow-2xs space-y-4">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
               <h2 className="text-sm font-bold text-slate-800">Dokumentasi Foto Alat</h2>
-              <span className="text-[10px] text-slate-400 font-medium">Rasio 1:1</span>
+              <span className="text-[10px] text-slate-400 font-medium">Bebas ukuran</span>
             </div>
 
             {/* Hidden Inputs */}
@@ -493,18 +493,15 @@ export function EquipmentFormPage({
               }}
             />
 
-            {/* Preview Box 1:1 Aspect Ratio */}
+            {/* Preview Box Fleksibel Bebas Ukuran */}
             {imageUrl ? (
               <div className="space-y-3">
-                <div
-                  className="relative aspect-square w-full rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shadow-2xs"
-                  style={{ aspectRatio: '1 / 1' }}
-                >
+                <div className="relative w-full rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shadow-2xs flex items-center justify-center p-2 min-h-[160px] max-h-[260px]">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={imageUrl}
                     alt="Foto Alat"
-                    className="w-full h-full object-cover"
+                    className="w-full h-auto max-h-[245px] object-contain rounded-xl"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src =
                         'https://picsum.photos/seed/sewa-alat-koperasi/600/600';
@@ -513,7 +510,7 @@ export function EquipmentFormPage({
                   <button
                     type="button"
                     onClick={() => setImageUrl('')}
-                    className="absolute top-2 right-2 p-1.5 rounded-xl bg-red-600 text-white shadow-md hover:bg-red-700 transition cursor-pointer"
+                    className="absolute top-2 right-2 p-1.5 rounded-xl bg-red-600/90 text-white shadow-md hover:bg-red-700 transition cursor-pointer"
                     title="Hapus Foto"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -551,16 +548,13 @@ export function EquipmentFormPage({
               </div>
             ) : (
               <div className="space-y-3">
-                <div
-                  className="aspect-square w-full rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/50 flex flex-col items-center justify-center p-4 text-center"
-                  style={{ aspectRatio: '1 / 1' }}
-                >
+                <div className="w-full py-8 px-4 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/50 flex flex-col items-center justify-center text-center">
                   <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center mb-2">
                     <Tractor className="w-6 h-6" />
                   </div>
                   <span className="text-xs font-bold text-slate-700">Belum Ada Foto Alat</span>
-                  <span className="text-[10px] text-slate-400 mt-1 max-w-[180px]">
-                    Ambil foto mesin langsung dari kamera atau pilih file galeri.
+                  <span className="text-[10px] text-slate-400 mt-1 max-w-[220px]">
+                    Bebas unggah foto ukuran apa saja melalui kamera HP atau file galeri.
                   </span>
                 </div>
 
