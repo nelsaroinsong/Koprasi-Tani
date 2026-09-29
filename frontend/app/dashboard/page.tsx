@@ -376,8 +376,11 @@ export default function DashboardPetaniPage() {
                     className="bg-white border border-slate-200/90 rounded-xl overflow-hidden shadow-2xs hover:shadow-md transition-all flex flex-col justify-between group"
                   >
                     <div>
-                      {/* Product Image */}
-                      <div className="relative aspect-square w-full bg-slate-100 overflow-hidden">
+                      {/* Product Image - Strict 1:1 Aspect Ratio */}
+                      <div
+                        className="relative aspect-square w-full shrink-0 bg-slate-100 overflow-hidden"
+                        style={{ aspectRatio: '1 / 1' }}
+                      >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={
@@ -392,19 +395,19 @@ export default function DashboardPetaniPage() {
                           }}
                         />
 
-                        {/* Kategori Badge */}
-                        <div className="absolute top-1.5 left-1.5 bg-emerald-700/95 backdrop-blur-xs text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded shadow-2xs">
-                          {prod.kategori}
-                        </div>
-
-                        {/* Status Tersedia */}
-                        <div className="absolute top-1.5 right-1.5 bg-white/95 backdrop-blur-xs text-emerald-800 text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded shadow-2xs flex items-center gap-1">
+                        {/* Status Tersedia di Kanan Atas */}
+                        <div className="absolute top-1.5 right-1.5 bg-white/95 backdrop-blur-xs text-emerald-800 text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded shadow-2xs flex items-center gap-1 z-10">
                           <span
                             className={`w-1.5 h-1.5 rounded-full ${
                               prod.isTersedia ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'
                             }`}
                           />
                           <span>{prod.isTersedia ? 'Aktif' : 'Off'}</span>
+                        </div>
+
+                        {/* Kategori Badge di Kiri Bawah */}
+                        <div className="absolute bottom-1.5 left-1.5 bg-emerald-700/95 backdrop-blur-xs text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded shadow-2xs max-w-[80%] truncate z-10">
+                          {prod.kategori}
                         </div>
                       </div>
 

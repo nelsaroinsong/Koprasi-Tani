@@ -458,8 +458,11 @@ export default function TokoOnlinePage() {
                   className="bg-white border border-slate-200/90 rounded-xl overflow-hidden shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between group cursor-pointer h-full"
                 >
                   <div>
-                    {/* Top Image Section with Badges (Square Aspect Ratio like Tokopedia) */}
-                    <div className="relative aspect-square w-full bg-slate-100 overflow-hidden">
+                    {/* Top Image Section with Badges - Strict 1:1 Aspect Ratio */}
+                    <div
+                      className="relative aspect-square w-full shrink-0 bg-slate-100 overflow-hidden"
+                      style={{ aspectRatio: '1 / 1' }}
+                    >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={
@@ -474,20 +477,15 @@ export default function TokoOnlinePage() {
                         }}
                       />
 
-                      {/* Kategori Badge di Kiri Atas */}
-                      <div className="absolute top-1.5 left-1.5 bg-emerald-700/95 backdrop-blur-xs text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded shadow-2xs">
-                        {prod.kategori}
-                      </div>
-
                       {/* Status Badge di Kanan Atas */}
-                      <div className="absolute top-1.5 right-1.5 bg-white/95 backdrop-blur-xs text-emerald-800 text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded shadow-2xs flex items-center gap-1">
+                      <div className="absolute top-1.5 right-1.5 bg-white/95 backdrop-blur-xs text-emerald-800 text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded shadow-2xs flex items-center gap-1 z-10">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                         <span>{prod.isTersedia ? 'Aktif' : 'Off'}</span>
                       </div>
 
-                      {/* Tokopedia-Style Bottom Badge: Panen Koperasi */}
-                      <div className="absolute bottom-1.5 left-1.5 bg-[#183d2e]/90 text-white text-[8px] sm:text-[9px] font-extrabold px-1.5 py-0.5 rounded shadow-xs flex items-center gap-1 backdrop-blur-xs">
-                        <span>Panen Koperasi</span>
+                      {/* Badge Kategori Pindah ke Kiri Bawah (Badge lama Panen Koperasi dihapus) */}
+                      <div className="absolute bottom-1.5 left-1.5 bg-emerald-700/95 backdrop-blur-xs text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded shadow-2xs max-w-[80%] truncate z-10">
+                        {prod.kategori}
                       </div>
                     </div>
 
