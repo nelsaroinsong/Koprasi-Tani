@@ -167,3 +167,23 @@ model Follow {
   @@map("follows")
 }
 
+model Equipment {
+  id              String      @id @default(uuid())
+  nama            String
+  kategori        String      // "Traktor & Pengolah Lahan", "Mesin Panen & Perontok", "Penyemprot & Pemupukan", "Pascapanen & Pengolahan"
+  deskripsi       String?
+  spesifikasi     String?     // e.g. "40 HP Diesel 4WD, Rotary Tiller"
+  hargaSewa       Decimal     @db.Decimal(12, 2)
+  satuanSewa      String      @default("hari") // "hari", "jam", "hektar"
+  biayaOperator   Decimal?    @db.Decimal(12, 2)
+  stokUnit        Int         @default(1)
+  kondisi         String      @default("Sangat Baik")
+  imageUrl        String?
+  isTersedia      Boolean     @default(true)
+  kontakPj        String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@map("equipments")
+}
+

@@ -10,6 +10,7 @@ import { PayoutsDataTable } from '@/components/admin/payouts-data-table';
 import { TickerSettingsPanel } from '@/components/admin/ticker-settings-panel';
 import { LogoSettingsPanel } from '@/components/admin/logo-settings-panel';
 import { CategoriesDataTable } from '@/components/admin/categories-data-table';
+import EquipmentsDataTable from '@/components/admin/equipments-data-table';
 import { Sprout, Users, ShoppingBag, ArrowRight, Package, ShoppingCart, HandCoins } from 'lucide-react';
 
 export default function AdminPage() {
@@ -40,19 +41,7 @@ export default function AdminPage() {
     }
 
     if (activeTab.item === 'Sewa Alat') {
-      return (
-        <div className="flex-1 w-full min-h-[calc(100vh-8rem)] rounded-3xl border border-dashed border-emerald-200 bg-white/60 backdrop-blur-xs p-8 flex flex-col items-center justify-center text-center">
-          <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center mb-4 border border-emerald-100 shadow-xs">
-            <Package className="w-7 h-7 text-emerald-600" />
-          </div>
-          <h2 className="text-base font-bold text-slate-800">
-            Layanan Sewa Alat & Mesin Pertanian (Alsintan)
-          </h2>
-          <p className="text-xs text-slate-500 max-w-md mt-1.5 leading-relaxed">
-            Manajemen inventaris alsintan, ketersediaan traktor dan mesin panen Koperasi Sinar Pagi Sejahtera.
-          </p>
-        </div>
-      );
+      return <EquipmentsDataTable />;
     }
 
     // Default untuk 'Toko Online'
