@@ -10,7 +10,6 @@ import {
   MapPin,
   CheckCircle2,
   Receipt,
-  CreditCard,
   LogOut,
   ChevronRight,
   ShoppingCart,
@@ -462,25 +461,6 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
                 <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-600 transition" />
               </button>
 
-              <button
-                onClick={() => {
-                  setIsOpen(false);
-                  setActiveModal('pembayaran');
-                }}
-                className="w-full p-2.5 rounded-2xl hover:bg-slate-50 flex items-center justify-between group transition cursor-pointer text-left"
-                type="button"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center group-hover:scale-105 transition">
-                    <CreditCard className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-slate-800">Metode Pembayaran</div>
-                    <div className="text-[11px] text-slate-400">Kas Koperasi & Rekening Resmi</div>
-                  </div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-600 transition" />
-              </button>
 
               <div className="pt-2 border-t border-slate-100">
                 <button
@@ -879,88 +859,6 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
             </div>
           )}
 
-          {/* MODAL 3: METODE PEMBAYARAN KOPERASI                     */}
-          {/* ======================================================== */}
-          {activeModal === 'pembayaran' && (
-            <div>
-              <DialogHeader className="text-left mb-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center border border-amber-100 shrink-0">
-                    <CreditCard className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <DialogTitle className="text-base font-bold text-slate-900 leading-snug">
-                      Metode Pembayaran Koperasi
-                    </DialogTitle>
-                    <DialogDescription className="text-xs text-slate-500 mt-0.5">
-                      Pilihan kanal pembayaran resmi Koperasi Sinar Pagi Sejahtera.
-                    </DialogDescription>
-                  </div>
-                </div>
-              </DialogHeader>
-
-              <div className="space-y-3 my-3 text-xs">
-                {/* 1. Kas Tunai */}
-                <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-slate-900 flex items-center gap-1.5">
-                      <span>💵 Pembayaran Tunai (Cash di Koperasi)</span>
-                    </span>
-                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                      Aktif
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-500 leading-relaxed">
-                    Pembeli menyerahkan uang tunai langsung ke kasir/admin di kantor koperasi pada saat serah terima barang.
-                  </p>
-                </div>
-
-                {/* 2. Transfer Bank BRI */}
-                <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-slate-900">
-                      💳 Transfer Bank BRI (Rekening Resmi)
-                    </span>
-                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                      Aktif
-                    </span>
-                  </div>
-                  <div className="p-2.5 bg-white border border-slate-200 rounded-xl space-y-1">
-                    <div className="text-[11px] text-slate-500">Bank Rakyat Indonesia (BRI)</div>
-                    <div className="font-mono text-sm font-bold text-slate-900">
-                      0012-01-002891-53-0
-                    </div>
-                    <div className="text-[11px] font-medium text-slate-700">
-                      a/n Koperasi Sinar Pagi Sejahtera
-                    </div>
-                  </div>
-                </div>
-
-                {/* 3. QRIS Koperasi */}
-                <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-slate-900">
-                      📱 QRIS Koperasi Sinar Pagi Sejahtera
-                    </span>
-                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                      Aktif
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-500 leading-relaxed">
-                    Dapat dipindai menggunakan seluruh aplikasi mobile banking (BCA, Mandiri, BRI, BNI) dan dompet digital (GoPay, OVO, Dana).
-                  </p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setActiveModal(null)}
-                className="w-full py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-semibold text-xs transition cursor-pointer mt-2"
-              >
-                Tutup
-              </button>
-            </div>
-          )}
 
           </DialogContent>
       </Dialog>

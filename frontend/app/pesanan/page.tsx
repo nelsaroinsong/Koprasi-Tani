@@ -325,10 +325,6 @@ Mohon info kesiapan fisik komoditas di gudang koperasi. Terima kasih.`;
         {/* Page Title & Refresh */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4 bg-white p-3 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-2xs">
           <div>
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-emerald-50 text-emerald-800 text-[10px] sm:text-xs font-bold border border-emerald-200 mb-1 sm:mb-2">
-              <Store className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-700" />
-              <span>Portal Pembeli & Petani Koperasi</span>
-            </div>
             <h1 className="text-base sm:text-2xl font-black text-slate-900 tracking-tight leading-snug">
               Daftar Pesanan & Monitoring Transaksi
             </h1>
