@@ -26,6 +26,7 @@ import {
   Layers,
   ChevronRight,
   Info,
+  LayoutGrid,
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
@@ -40,11 +41,41 @@ import type { EquipmentItem } from '@/lib/equipments';
 import initialEquipmentsData from '@/data/equipments.json';
 
 const KATEGORI_TABS = [
-  { key: 'SEMUA', label: 'Semua Alat', emoji: '🌾' },
-  { key: 'Traktor & Pengolah Lahan', label: 'Traktor & Olah Lahan', emoji: '🚜' },
-  { key: 'Mesin Panen & Perontok', label: 'Mesin Panen', emoji: '🌽' },
-  { key: 'Penyemprot & Pemupukan', label: 'Drone & Semprot', emoji: '💧' },
-  { key: 'Pascapanen & Pengolahan', label: 'Pascapanen', emoji: '⚙️' },
+  {
+    key: 'SEMUA',
+    label: 'Semua',
+    pillLabel: 'Semua Alat',
+    emoji: '🌾',
+    mobileBg: 'bg-gradient-to-br from-emerald-600 to-[#183d2e] text-white',
+  },
+  {
+    key: 'Traktor & Pengolah Lahan',
+    label: 'Traktor',
+    pillLabel: 'Traktor & Lahan',
+    emoji: '🚜',
+    mobileBg: 'bg-gradient-to-br from-amber-100 to-amber-200 text-amber-900 border border-amber-300/60',
+  },
+  {
+    key: 'Mesin Panen & Perontok',
+    label: 'Panen',
+    pillLabel: 'Mesin Panen',
+    emoji: '🌽',
+    mobileBg: 'bg-gradient-to-br from-amber-100 to-amber-200 text-amber-900 border border-amber-300/60',
+  },
+  {
+    key: 'Penyemprot & Pemupukan',
+    label: 'Semprot',
+    pillLabel: 'Drone & Semprot',
+    emoji: '💧',
+    mobileBg: 'bg-gradient-to-br from-blue-100 to-blue-200 text-blue-900 border border-blue-300/60',
+  },
+  {
+    key: 'Pascapanen & Pengolahan',
+    label: 'Pascapanen',
+    pillLabel: 'Pascapanen',
+    emoji: '⚙️',
+    mobileBg: 'bg-gradient-to-br from-emerald-100 to-emerald-200 text-emerald-900 border border-emerald-300/60',
+  },
 ];
 
 export default function SewaAlatPage() {
@@ -225,104 +256,138 @@ export default function SewaAlatPage() {
       <AppHeader activePage="sewa-alat" />
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8">
-        {/* Hero Banner Agritech Compact & Premium */}
-        <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-[#123625] via-[#1b4d36] to-[#0f2e1f] text-white p-5 sm:p-8 shadow-sm mb-6 border border-emerald-800/40">
-          <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="relative z-10 max-w-2xl">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] sm:text-xs font-bold border border-emerald-400/30 mb-3 backdrop-blur-xs">
-              <Sparkles className="w-3.5 h-3.5 text-emerald-300" />
-              <span>Fasilitas Alsintan Koperasi Sinar Pagi Sejahtera</span>
-            </div>
-            <h1 className="text-xl sm:text-3xl font-black text-white tracking-tight leading-tight">
-              Peminjaman & Sewa Alat Mesin Pertanian (Alsintan)
+      <main className="flex-1 max-w-7xl w-full mx-auto px-2.5 sm:px-6 lg:px-8 py-2.5 sm:py-6">
+        {/* Header Title & Intro - Compact seperti Toko Online */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-1.5 sm:gap-4 mb-2.5 sm:mb-5">
+          <div>
+            <h1 className="text-base sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-1.5 sm:gap-2">
+              <Tractor className="w-5 h-5 sm:w-7 sm:h-7 text-emerald-700 shrink-0" />
+              <span>Sewa Alat Mesin Pertanian (Alsintan)</span>
             </h1>
-            <p className="text-xs sm:text-sm text-emerald-100/90 mt-2 leading-relaxed">
-              Tingkatkan produktivitas pengolahan tanah, pemupukan presisi, dan panen dengan unit mesin modern bersubsidi khusus anggota koperasi Minahasa Utara.
+            <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5">
+              Penyewaan mesin pertanian modern bersubsidi untuk pengolahan lahan dan panen anggota koperasi Minahasa Utara.
             </p>
-
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-4 pt-3 border-t border-emerald-700/40 text-[10px] sm:text-xs text-emerald-200">
-              <span className="flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span>Tarif Subsidi Anggota</span>
-              </span>
-              <span className="flex items-center gap-1">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span>Operator Bersertifikat</span>
-              </span>
-              <span className="flex items-center gap-1">
-                <Wrench className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span>Unit Terawat & Siap Kerja</span>
-              </span>
-            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] sm:text-xs text-emerald-800 font-semibold bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+              🌾 Tarif Subsidi Anggota
+            </span>
           </div>
         </div>
 
-        {/* Filter Category Tabs (Horizontal Scroll on Mobile) */}
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2 mb-4">
-          {KATEGORI_TABS.map((tab) => {
-            const isActive = selectedKategori === tab.key;
-            return (
-              <button
-                key={tab.key}
-                onClick={() => setSelectedKategori(tab.key)}
-                className={`py-2 px-3.5 rounded-xl font-bold text-xs whitespace-nowrap flex items-center gap-1.5 transition cursor-pointer shrink-0 shadow-2xs border ${
-                  isActive
-                    ? 'bg-emerald-700 text-white border-emerald-800 shadow-xs'
-                    : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200/90'
-                }`}
-              >
-                <span>{tab.emoji}</span>
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
-        </div>
-
         {/* Search, Filter Bar, & Quick Stats */}
-        <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 sm:p-4 mb-6 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div className="bg-white border border-slate-200/90 rounded-xl sm:rounded-2xl p-2.5 sm:p-4 mb-3 sm:mb-5 shadow-2xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3">
           <div className="relative flex-1 max-w-md">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Cari traktor, kultivator, drone, pemipil..."
-              className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:bg-white"
+              className="w-full pl-8 sm:pl-9 pr-3 py-1.5 sm:py-2 text-[11px] sm:text-xs bg-slate-50 border border-slate-200 rounded-lg sm:rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:bg-white"
             />
           </div>
 
           <div className="flex items-center justify-between sm:justify-end gap-3 text-xs">
-            <label className="flex items-center gap-2 text-slate-700 font-semibold cursor-pointer select-none">
+            <label className="flex items-center gap-1.5 text-slate-700 font-semibold cursor-pointer select-none text-[11px] sm:text-xs">
               <input
                 type="checkbox"
                 checked={onlyAvailable}
                 onChange={(e) => setOnlyAvailable(e.target.checked)}
-                className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 cursor-pointer"
+                className="w-3.5 h-3.5 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 cursor-pointer"
               />
-              <span>Hanya yang Tersedia</span>
+              <span>Hanya yang Siap Pakai</span>
             </label>
 
-            <span className="text-[11px] text-slate-400 font-medium">
+            <span className="text-[10px] sm:text-[11px] text-slate-400 font-medium">
               Menampilkan <strong className="text-slate-800">{filteredEquipments.length}</strong> unit alat
             </span>
           </div>
         </div>
 
-        {/* Grid Catalog Cards */}
+        {/* 1. Category Navigation - Mobile Mode (Lingkaran Tokopedia-Style) */}
+        <div className="block sm:hidden mb-3">
+          <div className="flex items-start gap-1 overflow-x-auto pb-1 no-scrollbar">
+            {KATEGORI_TABS.map((cat) => {
+              const isSelected = selectedKategori === cat.key;
+              return (
+                <button
+                  key={cat.key}
+                  type="button"
+                  onClick={() => setSelectedKategori(cat.key)}
+                  className="flex flex-col items-center gap-1 shrink-0 w-16 group cursor-pointer focus:outline-none transition active:scale-95 py-0.5"
+                >
+                  <div
+                    className={`w-10 h-10 rounded-full flex items-center justify-center shadow-2xs transition-all ${
+                      cat.mobileBg
+                    } ${
+                      isSelected
+                        ? 'ring-2 ring-emerald-600 ring-offset-2 scale-105 shadow-md'
+                        : 'opacity-90 hover:opacity-100'
+                    }`}
+                  >
+                    {cat.key === 'SEMUA' ? (
+                      <LayoutGrid className="w-4 h-4 text-white" />
+                    ) : (
+                      <span className="text-base leading-none">{cat.emoji}</span>
+                    )}
+                  </div>
+                  <span
+                    className={`text-[9px] text-center leading-tight w-full truncate transition-colors ${
+                      isSelected
+                        ? 'font-bold text-emerald-800'
+                        : 'font-medium text-slate-700 group-hover:text-slate-900'
+                    }`}
+                  >
+                    {cat.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 2. Category Navigation - Tablet & Desktop Mode (Pill Rounded-lg) */}
+        <div className="hidden sm:flex items-center gap-2 overflow-x-auto pb-2 mb-4 no-scrollbar">
+          {KATEGORI_TABS.map((cat) => {
+            const isSelected = selectedKategori === cat.key;
+            return (
+              <button
+                key={cat.key}
+                type="button"
+                onClick={() => setSelectedKategori(cat.key)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 border shadow-2xs ${
+                  isSelected
+                    ? 'bg-emerald-700 text-white border-emerald-700 font-bold shadow-xs'
+                    : 'bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-900 border-slate-200'
+                }`}
+              >
+                {cat.key === 'SEMUA' ? (
+                  <LayoutGrid className={`w-3.5 h-3.5 ${isSelected ? 'text-white' : 'text-emerald-700'}`} />
+                ) : (
+                  <span className="text-sm leading-none">{cat.emoji}</span>
+                )}
+                <span>{cat.pillLabel}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Loading State */}
         {isLoading ? (
-          <div className="py-24 flex flex-col items-center justify-center gap-3">
-            <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
-            <span className="text-xs text-slate-500 font-medium">Memuat katalog alsintan...</span>
+          <div className="py-12 sm:py-20 flex flex-col items-center justify-center gap-2 sm:gap-3">
+            <Loader2 className="w-6 h-6 sm:w-8 sm:h-8 text-emerald-700 animate-spin" />
+            <span className="text-[11px] sm:text-xs text-slate-500 font-medium">Memuat katalog alsintan...</span>
           </div>
         ) : filteredEquipments.length === 0 ? (
-          <div className="bg-white border border-slate-200 rounded-2xl p-10 sm:p-14 text-center flex flex-col items-center justify-center">
-            <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-3">
-              <Tractor className="w-7 h-7" />
+          /* Empty State */
+          <div className="bg-white border border-slate-200 rounded-2xl sm:rounded-3xl p-6 sm:p-12 text-center flex flex-col items-center justify-center min-h-[220px] sm:min-h-[320px] shadow-2xs">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center mb-3 border border-emerald-100">
+              <Tractor className="w-6 h-6 sm:w-7 sm:h-7 text-emerald-600" />
             </div>
-            <h3 className="text-sm font-bold text-slate-800">Tidak ada alat pertanian yang cocok</h3>
-            <p className="text-xs text-slate-500 mt-1 max-w-sm mb-4">
-              Silakan coba gunakan kata kunci lain atau ubah kategori pilihan untuk melihat unit mesin lainnya.
+            <h3 className="text-xs sm:text-sm font-bold text-slate-800">Tidak ada alat pertanian yang cocok</h3>
+            <p className="text-[10px] sm:text-xs text-slate-500 mt-1 max-w-sm mb-3">
+              Silakan coba gunakan kata kunci lain atau pilih filter kategori lainnya.
             </p>
             <button
               onClick={() => {
@@ -330,131 +395,125 @@ export default function SewaAlatPage() {
                 setSelectedKategori('SEMUA');
                 setOnlyAvailable(false);
               }}
-              className="py-2 px-4 rounded-xl bg-emerald-700 text-white font-bold text-xs hover:bg-emerald-800 transition cursor-pointer"
+              className="py-1.5 px-3.5 rounded-lg bg-emerald-700 text-white font-bold text-xs hover:bg-emerald-800 transition cursor-pointer"
             >
               Reset Filter
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+          /* Tokopedia-Style Compact Alsintan Grid (2 cols mobile, up to 6 cols desktop) */
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-1.5 sm:gap-2.5 md:gap-3">
             {filteredEquipments.map((item) => (
               <div
                 key={item.id}
-                className="bg-white border border-slate-200/90 rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col justify-between group"
+                onClick={() => handleOpenBooking(item)}
+                className="bg-white border border-slate-200/90 rounded-lg sm:rounded-xl overflow-hidden shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between group cursor-pointer h-full"
               >
                 <div>
-                  {/* Image Container with Badges */}
-                  <div className="relative aspect-16/10 bg-slate-100 overflow-hidden">
-                    {item.imageUrl ? (
-                      <img
-                        src={item.imageUrl}
-                        alt={item.nama}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-slate-400">
-                        <Tractor className="w-12 h-12" />
-                      </div>
-                    )}
+                  {/* Top Image Section with Badges (Square Aspect Ratio like Toko Online) */}
+                  <div className="relative aspect-square w-full bg-slate-100 overflow-hidden">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={
+                        item.imageUrl ||
+                        'https://picsum.photos/seed/alsintan-koperasi/600/600'
+                      }
+                      alt={item.nama}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src =
+                          'https://picsum.photos/seed/alsintan-koperasi/600/600';
+                      }}
+                    />
 
-                    {/* Availability Badge */}
-                    <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
-                      <span
-                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold shadow-xs backdrop-blur-md ${
-                          item.isTersedia
-                            ? 'bg-emerald-600/90 text-white border border-emerald-400/40'
-                            : 'bg-amber-600/90 text-white border border-amber-400/40'
-                        }`}
-                      >
-                        <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                        <span>{item.isTersedia ? 'Tersedia' : 'Dalam Perawatan'}</span>
-                      </span>
+                    {/* Kategori Badge di Kiri Atas */}
+                    <div className="absolute top-1 left-1 sm:top-1.5 sm:left-1.5 bg-emerald-700/95 backdrop-blur-xs text-white text-[8px] sm:text-[9px] font-bold px-1 sm:px-1.5 py-0.5 rounded shadow-2xs max-w-[70%] truncate">
+                      {item.kategori}
                     </div>
 
-                    {/* Kondisi Badge */}
-                    <div className="absolute top-2.5 right-2.5">
-                      <span className="px-2 py-0.5 rounded-md bg-black/60 text-white text-[9px] font-semibold backdrop-blur-md">
-                        {item.kondisi}
-                      </span>
+                    {/* Status Badge di Kanan Atas */}
+                    <div className="absolute top-1 right-1 sm:top-1.5 sm:right-1.5 bg-white/95 backdrop-blur-xs text-emerald-800 text-[8px] sm:text-[9px] font-bold px-1 sm:px-1.5 py-0.5 rounded shadow-2xs flex items-center gap-1">
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full ${
+                          item.isTersedia ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
+                        }`}
+                      />
+                      <span>{item.isTersedia ? 'Ready' : 'Dipakai'}</span>
+                    </div>
+
+                    {/* Bottom Badge: Alsintan Koperasi */}
+                    <div className="absolute bottom-1 left-1 bg-[#183d2e]/90 text-white text-[8px] sm:text-[9px] font-extrabold px-1 sm:px-1.5 py-0.5 rounded shadow-xs flex items-center gap-1 backdrop-blur-xs">
+                      <span>Alsintan Koperasi</span>
                     </div>
                   </div>
 
-                  {/* Card Content */}
-                  <div className="p-4">
-                    <div className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider mb-1 flex items-center gap-1">
-                      <span>{item.kategori}</span>
+                  {/* Body Content - Ultra Compact like Toko Online */}
+                  <div className="p-1.5 sm:p-2 flex flex-col justify-between gap-0.5">
+                    {/* Judul Alat */}
+                    <h3
+                      className="text-[11px] sm:text-xs font-semibold text-slate-800 tracking-tight leading-tight line-clamp-2 h-[2.5em] group-hover:text-emerald-700 transition-colors"
+                      title={item.nama}
+                    >
+                      {item.nama}
+                    </h3>
+
+                    {/* Harga Sewa */}
+                    <div className="flex items-baseline gap-1 mt-0.5">
+                      <span className="text-xs sm:text-sm font-extrabold text-slate-900 tracking-tight">
+                        Rp {Number(item.hargaSewa).toLocaleString('id-ID')}
+                      </span>
+                      <span className="text-[8px] sm:text-[9px] text-slate-400 font-normal">
+                        /{item.satuanSewa || 'hari'}
+                      </span>
                     </div>
 
-                    <h2 className="text-sm sm:text-base font-bold text-slate-900 group-hover:text-emerald-700 transition leading-snug">
-                      {item.nama}
-                    </h2>
+                    {/* Stok & Kondisi Unit */}
+                    <div className="text-[9px] sm:text-[11px] text-slate-500 font-medium truncate">
+                      Stok {item.stokUnit || 1} unit • {item.kondisi || 'Sangat Baik'}
+                    </div>
 
-                    {item.spesifikasi && (
-                      <div className="mt-2 p-2 rounded-xl bg-slate-50 border border-slate-100 text-[10px] sm:text-[11px] text-slate-600 flex items-start gap-1.5">
-                        <Wrench className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
-                        <span className="font-medium leading-relaxed">{item.spesifikasi}</span>
-                      </div>
-                    )}
-
-                    <p className="text-[11px] text-slate-500 mt-2 line-clamp-2 leading-relaxed">
-                      {item.deskripsi || 'Unit alat mesin pertanian modern Koperasi Sinar Pagi Sejahtera siap pakai.'}
-                    </p>
+                    {/* Operator Info */}
+                    <div className="text-[10px] sm:text-xs font-bold text-slate-800 truncate">
+                      {item.biayaOperator
+                        ? `+Rp ${Number(item.biayaOperator).toLocaleString('id-ID')} operator`
+                        : 'Operator mandiri / bebas'}
+                    </div>
                   </div>
                 </div>
 
-                {/* Price & Action Area */}
-                <div className="p-4 pt-3 border-t border-slate-100 bg-slate-50/50">
-                  <div className="flex items-baseline justify-between mb-3">
-                    <div>
-                      <span className="text-[10px] text-slate-400 font-semibold block">
-                        Tarif Sewa Subsidi:
-                      </span>
-                      <span className="text-base sm:text-lg font-black text-emerald-800">
-                        Rp {item.hargaSewa.toLocaleString('id-ID')}
-                      </span>
-                      <span className="text-[10px] text-slate-500 font-medium">
-                        {' '}/ {item.satuanSewa}
-                      </span>
-                    </div>
+                {/* Footer Action - Compact Toko Online Style */}
+                <div className="p-1.5 pt-0 sm:p-2 sm:pt-0 flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleOpenBooking(item);
+                    }}
+                    disabled={!item.isTersedia}
+                    className={`flex-1 py-1 px-1.5 sm:py-1.5 sm:px-2 rounded-md sm:rounded-lg text-[9px] sm:text-[10px] font-bold flex items-center justify-center gap-1 transition cursor-pointer shadow-2xs ${
+                      item.isTersedia
+                        ? 'bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white'
+                        : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                    }`}
+                  >
+                    <Calendar className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                    <span>{item.isTersedia ? '+ Sewa Alat' : 'Sedang Dipakai'}</span>
+                  </button>
 
-                    <div className="text-right">
-                      <span className="text-[10px] text-slate-400 font-semibold block">Operator:</span>
-                      <span className="text-[11px] font-bold text-slate-700">
-                        {item.biayaOperator
-                          ? `+ Rp ${item.biayaOperator.toLocaleString('id-ID')}`
-                          : 'Mandiri / Gratis'}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => handleOpenBooking(item)}
-                      disabled={!item.isTersedia}
-                      className={`flex-1 py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs ${
-                        item.isTersedia
-                          ? 'bg-emerald-700 hover:bg-emerald-800 text-white active:bg-emerald-900'
-                          : 'bg-slate-200 text-slate-500 cursor-not-allowed'
-                      }`}
+                  {item.kontakPj && (
+                    <a
+                      href={`https://wa.me/${item.kontakPj.replace(/\D/g, '').replace(/^0/, '62')}?text=${encodeURIComponent(
+                        `Halo Pengurus Koperasi Sinar Pagi Sejahtera, saya ingin bertanya tentang ketersediaan sewa alat "${item.nama}".`
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="p-1 sm:p-1.5 rounded-md sm:rounded-lg border border-slate-200 hover:bg-emerald-50 text-emerald-700 transition flex items-center justify-center"
+                      title="Tanya Pengurus via WhatsApp"
                     >
-                      <Calendar className="w-3.5 h-3.5" />
-                      <span>{item.isTersedia ? 'Ajukan Sewa Unit' : 'Unit Sedang Dipakai'}</span>
-                    </button>
-
-                    {item.kontakPj && (
-                      <a
-                        href={`https://wa.me/${item.kontakPj.replace(/\D/g, '').replace(/^0/, '62')}?text=${encodeURIComponent(
-                          `Halo Pengurus Koperasi Sinar Pagi Sejahtera, saya ingin bertanya tentang ketersediaan sewa alat "${item.nama}".`
-                        )}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-2 border border-slate-200 hover:bg-white text-emerald-700 rounded-xl transition cursor-pointer shadow-2xs hover:border-emerald-300"
-                        title="Tanya Pengurus via WhatsApp"
-                      >
-                        <MessageCircle className="w-4 h-4" />
-                      </a>
-                    )}
-                  </div>
+                      <MessageCircle className="w-3 h-3 text-emerald-600" />
+                    </a>
+                  )}
                 </div>
               </div>
             ))}
