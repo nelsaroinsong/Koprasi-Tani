@@ -256,23 +256,15 @@ export default function SewaAlatPage() {
       <AppHeader activePage="sewa-alat" />
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-2.5 sm:px-6 lg:px-8 py-2.5 sm:py-6">
-        {/* Header Title & Intro - Compact seperti Toko Online */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-1.5 sm:gap-4 mb-2.5 sm:mb-5">
-          <div>
-            <h1 className="text-base sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-1.5 sm:gap-2">
-              <Tractor className="w-5 h-5 sm:w-7 sm:h-7 text-emerald-700 shrink-0" />
-              <span>Sewa Alat Mesin Pertanian (Alsintan)</span>
-            </h1>
-            <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5">
-              Penyewaan mesin pertanian modern bersubsidi untuk pengolahan lahan dan panen anggota koperasi Minahasa Utara.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] sm:text-xs text-emerald-800 font-semibold bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
-              🌾 Tarif Subsidi Anggota
-            </span>
-          </div>
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-3.5 sm:py-6">
+        {/* Header Title & Intro - Bersih tanpa ikon dan tanpa badge subsidi */}
+        <div className="mb-3.5 sm:mb-5">
+          <h1 className="text-lg sm:text-2xl md:text-3xl font-black text-slate-900 tracking-tight leading-snug">
+            Sewa Alat Mesin Pertanian
+          </h1>
+          <p className="text-[11px] sm:text-xs text-slate-500 mt-1">
+            Penyewaan mesin dan alat pertanian modern untuk pengolahan lahan dan panen anggota koperasi Minahasa Utara.
+          </p>
         </div>
 
         {/* Search, Filter Bar, & Quick Stats */}
@@ -377,7 +369,7 @@ export default function SewaAlatPage() {
         {isLoading ? (
           <div className="py-12 sm:py-20 flex flex-col items-center justify-center gap-2 sm:gap-3">
             <Loader2 className="w-6 h-6 sm:w-8 sm:h-8 text-emerald-700 animate-spin" />
-            <span className="text-[11px] sm:text-xs text-slate-500 font-medium">Memuat katalog alsintan...</span>
+            <span className="text-[11px] sm:text-xs text-slate-500 font-medium">Memuat katalog sewa alat...</span>
           </div>
         ) : filteredEquipments.length === 0 ? (
           /* Empty State */
@@ -401,38 +393,38 @@ export default function SewaAlatPage() {
             </button>
           </div>
         ) : (
-          /* Tokopedia-Style Compact Alsintan Grid (2 cols mobile, up to 6 cols desktop) */
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-1.5 sm:gap-2.5 md:gap-3">
+          /* Grid Sewa Alat dengan Jarak Rapi dan Tidak Mepet di Mobile */
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-3.5 md:gap-4">
             {filteredEquipments.map((item) => (
               <div
                 key={item.id}
                 onClick={() => handleOpenBooking(item)}
-                className="bg-white border border-slate-200/90 rounded-lg sm:rounded-xl overflow-hidden shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between group cursor-pointer h-full"
+                className="bg-white border border-slate-200/90 rounded-xl overflow-hidden shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between group cursor-pointer h-full"
               >
                 <div>
-                  {/* Top Image Section with Badges (Square Aspect Ratio like Toko Online) */}
+                  {/* Top Image Section with Badges */}
                   <div className="relative aspect-square w-full bg-slate-100 overflow-hidden">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={
                         item.imageUrl ||
-                        'https://picsum.photos/seed/alsintan-koperasi/600/600'
+                        'https://picsum.photos/seed/sewa-alat-koperasi/600/600'
                       }
                       alt={item.nama}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       onError={(e) => {
                         (e.target as HTMLImageElement).src =
-                          'https://picsum.photos/seed/alsintan-koperasi/600/600';
+                          'https://picsum.photos/seed/sewa-alat-koperasi/600/600';
                       }}
                     />
 
                     {/* Kategori Badge di Kiri Atas */}
-                    <div className="absolute top-1 left-1 sm:top-1.5 sm:left-1.5 bg-emerald-700/95 backdrop-blur-xs text-white text-[8px] sm:text-[9px] font-bold px-1 sm:px-1.5 py-0.5 rounded shadow-2xs max-w-[70%] truncate">
+                    <div className="absolute top-1.5 left-1.5 bg-emerald-700/95 backdrop-blur-xs text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded shadow-2xs max-w-[70%] truncate">
                       {item.kategori}
                     </div>
 
                     {/* Status Badge di Kanan Atas */}
-                    <div className="absolute top-1 right-1 sm:top-1.5 sm:right-1.5 bg-white/95 backdrop-blur-xs text-emerald-800 text-[8px] sm:text-[9px] font-bold px-1 sm:px-1.5 py-0.5 rounded shadow-2xs flex items-center gap-1">
+                    <div className="absolute top-1.5 right-1.5 bg-white/95 backdrop-blur-xs text-emerald-800 text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded shadow-2xs flex items-center gap-1">
                       <span
                         className={`w-1.5 h-1.5 rounded-full ${
                           item.isTersedia ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
@@ -441,17 +433,17 @@ export default function SewaAlatPage() {
                       <span>{item.isTersedia ? 'Ready' : 'Dipakai'}</span>
                     </div>
 
-                    {/* Bottom Badge: Alsintan Koperasi */}
-                    <div className="absolute bottom-1 left-1 bg-[#183d2e]/90 text-white text-[8px] sm:text-[9px] font-extrabold px-1 sm:px-1.5 py-0.5 rounded shadow-xs flex items-center gap-1 backdrop-blur-xs">
-                      <span>Alsintan Koperasi</span>
+                    {/* Bottom Badge: Alat Koperasi */}
+                    <div className="absolute bottom-1.5 left-1.5 bg-[#183d2e]/90 text-white text-[8px] sm:text-[9px] font-extrabold px-1.5 py-0.5 rounded shadow-xs flex items-center gap-1 backdrop-blur-xs">
+                      <span>Alat Koperasi</span>
                     </div>
                   </div>
 
-                  {/* Body Content - Ultra Compact like Toko Online */}
-                  <div className="p-1.5 sm:p-2 flex flex-col justify-between gap-0.5">
+                  {/* Body Content - Berjarak Nyaman dan Rapi */}
+                  <div className="p-2.5 sm:p-3 flex flex-col justify-between gap-1 sm:gap-1.5">
                     {/* Judul Alat */}
                     <h3
-                      className="text-[11px] sm:text-xs font-semibold text-slate-800 tracking-tight leading-tight line-clamp-2 h-[2.5em] group-hover:text-emerald-700 transition-colors"
+                      className="text-xs sm:text-xs font-semibold text-slate-800 tracking-tight leading-tight line-clamp-2 h-[2.6em] group-hover:text-emerald-700 transition-colors"
                       title={item.nama}
                     >
                       {item.nama}
@@ -726,7 +718,7 @@ export default function SewaAlatPage() {
               </div>
 
               <div className="p-3 bg-amber-50 rounded-xl border border-amber-200/80 text-[11px] text-amber-800 text-left">
-                💡 Silakan klik tombol di bawah untuk mengirim pesan otomatis ke WhatsApp Pengurus/PJ Alsintan Koperasi guna konfirmasi jadwal unit dan lokasi pengantaran.
+                💡 Silakan klik tombol di bawah untuk mengirim pesan otomatis ke WhatsApp Pengurus/PJ Sewa Alat Koperasi guna konfirmasi jadwal unit dan lokasi pengantaran.
               </div>
 
               <div className="flex flex-col gap-2 pt-2">

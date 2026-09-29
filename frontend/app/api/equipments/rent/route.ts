@@ -52,11 +52,11 @@ export async function POST(request: Request) {
 
     const rentalCode = `SEWA-${Date.now().toString(36).toUpperCase()}`;
 
-    // Format nomor WhatsApp Admin / PJ Alsintan
+    // Format nomor WhatsApp Admin / PJ Sewa Alat
     const rawPhone = equipment.kontakPj || '081944078924';
     const cleanPhone = rawPhone.replace(/\D/g, '').replace(/^0/, '62');
 
-    const waMessage = `Halo Pengurus/PJ Alsintan Koperasi Sinar Pagi Sejahtera,
+    const waMessage = `Halo Pengurus/PJ Sewa Alat Koperasi Sinar Pagi Sejahtera,
 Saya ingin mengajukan peminjaman/sewa alat pertanian:
 
 *Kode Pengajuan:* #${rentalCode}

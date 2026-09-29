@@ -39,7 +39,7 @@ export default function Home() {
     if (type === 'toko') {
       alert('Layanan Toko Online Komoditas sedang dalam penyesuaian.');
     } else if (type === 'alsintan') {
-      alert('Layanan Sewa Alsintan & Traktor sedang dalam penyesuaian.');
+      alert('Layanan Sewa Alat & Mesin Pertanian sedang dalam penyesuaian.');
     }
   };
 

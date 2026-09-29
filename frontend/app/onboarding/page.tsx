@@ -779,7 +779,7 @@ export default function OnboardingPage() {
                       Verifikasi Admin
                     </div>
                     <p className="text-[10px] text-slate-500 leading-snug">
-                      Menyetor komoditas panen, sewa alsintan, dan pencairan uang tunai.
+                      Menyetor komoditas panen, sewa alat pertanian, dan pencairan uang tunai.
                     </p>
                   </div>
                 </div>

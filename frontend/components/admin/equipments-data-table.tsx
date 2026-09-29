@@ -760,7 +760,7 @@ export default function EquipmentsDataTable() {
         {isLoading ? (
           <div className="py-20 flex flex-col items-center justify-center gap-3">
             <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
-            <span className="text-xs text-slate-500 font-medium">Memuat data alsintan...</span>
+            <span className="text-xs text-slate-500 font-medium">Memuat data sewa alat...</span>
           </div>
         ) : filteredEquipments.length === 0 ? (
           <div className="py-16 px-4 text-center flex flex-col items-center justify-center">
@@ -1139,7 +1139,7 @@ export default function EquipmentsDataTable() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                   <div>
                     <label className="block font-bold text-slate-700 mb-1">
-                      Kontak WhatsApp PJ Alsintan
+                      Kontak WhatsApp PJ Sewa Alat
                     </label>
                     <div className="relative">
                       <Phone className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />

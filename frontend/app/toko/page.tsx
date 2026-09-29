@@ -334,40 +334,29 @@ export default function TokoOnlinePage() {
       <AppHeader activePage="toko" />
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-2.5 sm:px-6 lg:px-8 py-2.5 sm:py-6">
-        {/* Header Title & Intro */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-1.5 sm:gap-4 mb-2.5 sm:mb-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-3.5 sm:py-6">
+        {/* Header Title & Search Toolbar (Rapi sejajar tanpa ruang kosong & tanpa tombol refresh) */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 mb-3.5 sm:mb-5">
           <div>
             <h1 className="text-base sm:text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight leading-snug">
               Katalog Komoditas & Hasil Tani Koperasi
             </h1>
-            <p className="text-[10px] sm:text-xs md:text-sm text-slate-500 mt-0.5 max-w-2xl line-clamp-1 sm:line-clamp-none">
+            <p className="text-[11px] sm:text-xs text-slate-500 mt-1 max-w-2xl">
               Beli komoditas agribisnis segar langsung dari petani binaan Koperasi Sinar Pagi Sejahtera, Minahasa Utara.
             </p>
           </div>
-        </div>
 
-        {/* Search Toolbar */}
-        <div className="flex items-center justify-end gap-1.5 sm:gap-2.5 mb-2.5 sm:mb-6 pb-2.5 sm:pb-5 border-b border-slate-200">
-          <div className="relative w-full sm:max-w-xs">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Cari kelapa, jagung, kopra..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-2.5 py-1.5 sm:py-2 text-[11px] sm:text-xs bg-white border border-slate-200 rounded-lg sm:rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600 shadow-2xs"
-              />
-            </div>
-
-            <button
-              onClick={() => fetchProducts(false)}
-              className="p-1.5 sm:p-2 bg-white border border-slate-200 text-slate-600 hover:text-emerald-700 hover:bg-slate-50 rounded-lg sm:rounded-xl transition cursor-pointer shadow-2xs shrink-0"
-              title="Segarkan Produk"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isLoadingProducts ? 'animate-spin' : ''}`} />
-            </button>
+          <div className="relative w-full md:w-72 lg:w-80 shrink-0">
+            <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Cari kelapa, jagung, kopra..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-3 py-1.5 sm:py-2 text-[11px] sm:text-xs bg-white border border-slate-200 rounded-lg sm:rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600 shadow-2xs"
+            />
           </div>
+        </div>
 
         {/* 1. Category Navigation - Mobile Mode (Scrollable fleksibel jika kategori bertambah) */}
         <div className="block sm:hidden mt-3 mb-4 px-0.5">
@@ -458,15 +447,15 @@ export default function TokoOnlinePage() {
           </div>
         ) : (
           <>
-            {/* Tokopedia-Style Compact Product Grid (2 cols mobile, up to 6 cols desktop) */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-1.5 sm:gap-2.5 md:gap-3">
+            {/* Grid Komoditas dengan Jarak Rapi dan Tidak Mepet di Mobile */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-3.5 md:gap-4">
               {products.map((prod) => (
                 <div
                   key={prod.id}
                   onClick={() => {
                     router.push(`/toko/${prod.id}`);
                   }}
-                  className="bg-white border border-slate-200/90 rounded-lg sm:rounded-xl overflow-hidden shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between group cursor-pointer h-full"
+                  className="bg-white border border-slate-200/90 rounded-xl overflow-hidden shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between group cursor-pointer h-full"
                 >
                   <div>
                     {/* Top Image Section with Badges (Square Aspect Ratio like Tokopedia) */}
@@ -486,26 +475,26 @@ export default function TokoOnlinePage() {
                       />
 
                       {/* Kategori Badge di Kiri Atas */}
-                      <div className="absolute top-1 left-1 sm:top-1.5 sm:left-1.5 bg-emerald-700/95 backdrop-blur-xs text-white text-[8px] sm:text-[9px] font-bold px-1 sm:px-1.5 py-0.5 rounded shadow-2xs">
+                      <div className="absolute top-1.5 left-1.5 bg-emerald-700/95 backdrop-blur-xs text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded shadow-2xs">
                         {prod.kategori}
                       </div>
 
                       {/* Status Badge di Kanan Atas */}
-                      <div className="absolute top-1 right-1 sm:top-1.5 sm:right-1.5 bg-white/95 backdrop-blur-xs text-emerald-800 text-[8px] sm:text-[9px] font-bold px-1 sm:px-1.5 py-0.5 rounded shadow-2xs flex items-center gap-1">
+                      <div className="absolute top-1.5 right-1.5 bg-white/95 backdrop-blur-xs text-emerald-800 text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded shadow-2xs flex items-center gap-1">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                         <span>{prod.isTersedia ? 'Aktif' : 'Off'}</span>
                       </div>
 
                       {/* Tokopedia-Style Bottom Badge: Panen Koperasi */}
-                      <div className="absolute bottom-1 left-1 bg-[#183d2e]/90 text-white text-[8px] sm:text-[9px] font-extrabold px-1 sm:px-1.5 py-0.5 rounded shadow-xs flex items-center gap-1 backdrop-blur-xs">
+                      <div className="absolute bottom-1.5 left-1.5 bg-[#183d2e]/90 text-white text-[8px] sm:text-[9px] font-extrabold px-1.5 py-0.5 rounded shadow-xs flex items-center gap-1 backdrop-blur-xs">
                         <span>Panen Koperasi</span>
                       </div>
                     </div>
 
-                    {/* Body Content - Ultra Compact like Tokopedia */}
-                    <div className="p-1.5 sm:p-2 flex flex-col justify-between gap-0.5">
+                    {/* Body Content - Berjarak Nyaman dan Rapi */}
+                    <div className="p-2.5 sm:p-3 flex flex-col justify-between gap-1 sm:gap-1.5">
                       {/* Judul Komoditas */}
-                      <h3 className="text-[11px] sm:text-xs font-semibold text-slate-800 tracking-tight leading-tight line-clamp-2 h-[2.5em] group-hover:text-emerald-700 transition-colors" title={prod.nama}>
+                      <h3 className="text-xs sm:text-xs font-semibold text-slate-800 tracking-tight leading-tight line-clamp-2 h-[2.6em] group-hover:text-emerald-700 transition-colors" title={prod.nama}>
                         {prod.nama}
                       </h3>
 

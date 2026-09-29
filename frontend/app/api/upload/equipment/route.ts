@@ -50,7 +50,7 @@ export async function POST(request: Request) {
     const randomHex = Math.random().toString(36).substring(2, 8);
 
     // Simpan ke folder sewa-alat/ di Cloudflare R2
-    const key = `sewa-alat/alsintan-${timestamp}-${randomHex}.${fileExt}`;
+    const key = `sewa-alat/alat-${timestamp}-${randomHex}.${fileExt}`;
 
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
@@ -74,7 +74,7 @@ export async function POST(request: Request) {
       message: 'Foto alat pertanian berhasil diunggah ke Cloudflare R2 folder sewa-alat/',
     });
   } catch (error: any) {
-    console.error('Error saat upload foto alsintan ke Cloudflare R2:', error);
+    console.error('Error saat upload foto alat ke Cloudflare R2:', error);
     return NextResponse.json(
       { error: error?.message || 'Gagal mengunggah foto ke folder sewa-alat R2' },
       { status: 500 }
