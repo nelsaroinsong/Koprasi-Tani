@@ -73,6 +73,10 @@ const data = {
           title: "Sewa Alat",
           url: "/admin",
         },
+        {
+          title: "Kategori Sewa Alat",
+          url: "/admin",
+        },
       ],
     },
     {

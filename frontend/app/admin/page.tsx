@@ -10,6 +10,9 @@ import { PayoutsDataTable } from '@/components/admin/payouts-data-table';
 import { TickerSettingsPanel } from '@/components/admin/ticker-settings-panel';
 import { LogoSettingsPanel } from '@/components/admin/logo-settings-panel';
 import { CategoriesDataTable } from '@/components/admin/categories-data-table';
+import { EquipmentCategoriesDataTable } from '@/components/admin/equipment-categories-data-table';
+import { EquipmentFormPage } from '@/components/admin/equipment-form-page';
+import { TokoProductFormPage } from '@/components/admin/toko-product-form-page';
 import EquipmentsDataTable from '@/components/admin/equipments-data-table';
 import { Sprout, Users, ShoppingBag, ArrowRight, Package, ShoppingCart, HandCoins, MapPin, CheckCircle2 } from 'lucide-react';
 import {
@@ -69,6 +72,30 @@ export default function AdminPage() {
   if (activeTab.group === 'Produk dan Layanan') {
     if (activeTab.item === 'Kategori Komoditas' || activeTab.item === 'Kategori') {
       return <CategoriesDataTable />;
+    }
+
+    if (activeTab.item === 'Kategori Sewa Alat' || activeTab.item === 'Kategori Alat') {
+      return <EquipmentCategoriesDataTable />;
+    }
+
+    if (activeTab.item === 'Tambah Alat') {
+      return (
+        <EquipmentFormPage
+          initialData={activeTab.payload}
+          onCancel={() => setActiveTab('Produk dan Layanan', 'Sewa Alat')}
+          onSuccess={() => setActiveTab('Produk dan Layanan', 'Sewa Alat')}
+        />
+      );
+    }
+
+    if (activeTab.item === 'Tambah Komoditas') {
+      return (
+        <TokoProductFormPage
+          initialData={activeTab.payload}
+          onCancel={() => setActiveTab('Produk dan Layanan', 'Toko Online')}
+          onSuccess={() => setActiveTab('Produk dan Layanan', 'Toko Online')}
+        />
+      );
     }
 
     if (activeTab.item === 'Sewa Alat') {

@@ -5,11 +5,12 @@ import * as React from "react"
 export type AdminTab = {
   group: string
   item: string
+  payload?: any
 }
 
 type AdminContextType = {
   activeTab: AdminTab
-  setActiveTab: (group: string, item: string) => void
+  setActiveTab: (group: string, item: string, payload?: any) => void
 }
 
 const AdminContext = React.createContext<AdminContextType>({
@@ -23,8 +24,8 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     item: "Ringkasan",
   })
 
-  const setActiveTab = React.useCallback((group: string, item: string) => {
-    setActiveTabState({ group, item })
+  const setActiveTab = React.useCallback((group: string, item: string, payload?: any) => {
+    setActiveTabState({ group, item, payload })
   }, [])
 
   return (

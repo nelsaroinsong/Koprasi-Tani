@@ -358,50 +358,8 @@ export default function TokoOnlinePage() {
           </div>
         </div>
 
-        {/* 1. Category Navigation - Mobile Mode (Scrollable fleksibel jika kategori bertambah) */}
-        <div className="block sm:hidden mt-3 mb-4 px-0.5">
-          <div className="flex items-start gap-2.5 overflow-x-auto pt-2.5 pb-2.5 px-2 no-scrollbar">
-            {dynamicKategoriConfig.map((cat) => {
-              const isSelected = selectedKategori === cat.key;
-              return (
-                <button
-                  key={cat.key}
-                  type="button"
-                  onClick={() => setSelectedKategori(cat.key)}
-                  className="flex flex-col items-center gap-1.5 shrink-0 w-16 group cursor-pointer focus:outline-none transition active:scale-95 py-0.5"
-                >
-                  <div
-                    className={`w-11 h-11 rounded-full flex items-center justify-center shadow-2xs transition-all ${
-                      cat.mobileBg
-                    } ${
-                      isSelected
-                        ? 'ring-2 ring-emerald-600 ring-offset-2 scale-105 shadow-md'
-                        : 'opacity-90 hover:opacity-100'
-                    }`}
-                  >
-                    {cat.key === 'SEMUA' ? (
-                      <LayoutGrid className="w-5 h-5 text-white" />
-                    ) : (
-                      <span className="text-lg leading-none">{cat.emoji}</span>
-                    )}
-                  </div>
-                  <span
-                    className={`text-[10px] text-center leading-tight w-full truncate transition-colors ${
-                      isSelected
-                        ? 'font-bold text-emerald-800'
-                        : 'font-medium text-slate-700 group-hover:text-slate-900'
-                    }`}
-                  >
-                    {cat.label}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* 2. Category Navigation - Tablet & Desktop Mode (Rounded-lg: Agak Kotak Bersudut Halus, Tidak Lancip) */}
-        <div className="hidden sm:flex items-center gap-2 overflow-x-auto pb-2 mb-5 no-scrollbar">
+        {/* Category Navigation - Desktop & Mobile (Teks Murni Tanpa Ikon, Scrollable Horizontal) */}
+        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-2 mb-4 sm:mb-5 no-scrollbar">
           {dynamicKategoriConfig.map((cat) => {
             const isSelected = selectedKategori === cat.key;
             return (
@@ -409,18 +367,13 @@ export default function TokoOnlinePage() {
                 key={cat.key}
                 type="button"
                 onClick={() => setSelectedKategori(cat.key)}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-2 border shadow-2xs ${
+                className={`px-3 sm:px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer border shadow-2xs shrink-0 ${
                   isSelected
                     ? 'bg-emerald-700 text-white border-emerald-700 font-bold shadow-xs'
                     : 'bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-900 border-slate-200'
                 }`}
               >
-                {cat.key === 'SEMUA' ? (
-                  <LayoutGrid className={`w-3.5 h-3.5 ${isSelected ? 'text-white' : 'text-emerald-700'}`} />
-                ) : (
-                  <span className="text-sm leading-none">{cat.emoji}</span>
-                )}
-                <span>{cat.pillLabel}</span>
+                {cat.pillLabel || cat.label}
               </button>
             );
           })}

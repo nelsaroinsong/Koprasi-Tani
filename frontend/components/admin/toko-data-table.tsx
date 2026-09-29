@@ -654,15 +654,11 @@ export function TokoOnlineDataTable() {
 
           <button
             type="button"
-            onClick={() => {
-              setSelectedProduct(null);
-              setFormMode('CREATE');
-              setFormModalOpen(true);
-            }}
+            onClick={() => setActiveTab('Produk dan Layanan', 'Tambah Komoditas')}
             className="flex-1 sm:flex-none py-2 px-4 bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition cursor-pointer whitespace-nowrap"
           >
             <Plus className="w-4 h-4" />
-            <span>+ Input Komoditas Masuk Gudang</span>
+            <span>Input Komoditas Masuk Gudang</span>
           </button>
         </div>
       </div>
@@ -919,9 +915,7 @@ export function TokoOnlineDataTable() {
 
                         <button
                           onClick={() => {
-                            setSelectedProduct(prod);
-                            setFormMode('EDIT');
-                            setFormModalOpen(true);
+                            setActiveTab('Produk dan Layanan', 'Tambah Komoditas', prod);
                           }}
                           className="p-1.5 rounded-lg border border-slate-200 hover:bg-emerald-50 hover:border-emerald-300 text-slate-600 hover:text-emerald-800 transition cursor-pointer"
                           title="Edit Data Komoditas Lengkap"

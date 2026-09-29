@@ -31,6 +31,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
+import { useAdmin } from '@/components/admin/admin-context';
 import type { EquipmentItem } from '@/lib/equipments';
 
 const KONDISI_PRESETS = ['Sangat Baik', 'Siap Pakai', 'Dalam Perawatan'];
@@ -45,6 +46,7 @@ interface EquipmentCategoryItem {
 
 export default function EquipmentsDataTable() {
   const { showToast } = useToast();
+  const { setActiveTab } = useAdmin();
   const [equipments, setEquipments] = useState<EquipmentItem[]>([]);
   const [categoriesList, setCategoriesList] = useState<EquipmentCategoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -706,7 +708,7 @@ export default function EquipmentsDataTable() {
         <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
-            onClick={handleOpenCategoryManager}
+            onClick={() => setActiveTab('Produk dan Layanan', 'Kategori Sewa Alat')}
             className="flex-1 sm:flex-none py-2 px-3.5 rounded-xl border border-emerald-200 bg-emerald-50/70 hover:bg-emerald-100 text-emerald-800 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-2xs"
             title="Kelola Kategori Alat Pertanian"
           >
@@ -716,7 +718,7 @@ export default function EquipmentsDataTable() {
 
           <button
             type="button"
-            onClick={handleOpenAdd}
+            onClick={() => setActiveTab('Produk dan Layanan', 'Tambah Alat')}
             className="flex-1 sm:flex-none py-2 px-4 bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition cursor-pointer"
           >
             <Plus className="w-4 h-4" />
@@ -919,7 +921,7 @@ export default function EquipmentsDataTable() {
                           <div className="flex items-center justify-end gap-1.5">
                             <button
                               type="button"
-                              onClick={() => handleOpenEdit(item)}
+                              onClick={() => setActiveTab('Produk dan Layanan', 'Tambah Alat', item)}
                               title="Edit Alat"
                               className="p-1.5 text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition cursor-pointer"
                             >

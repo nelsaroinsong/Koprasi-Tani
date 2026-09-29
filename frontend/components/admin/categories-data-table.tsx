@@ -639,24 +639,15 @@ export function CategoriesDataTable() {
                       {rowNumber}
                     </TableCell>
 
-                    {/* Kategori: Icon & Name */}
+                    {/* Kategori: Name */}
                     <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0 shadow-2xs ${
-                            cat.mobileBg || COLOR_PRESETS[0].class
-                          }`}
-                        >
-                          <span>{cat.emoji}</span>
+                      <div>
+                        <div className="text-xs font-bold text-slate-900">
+                          {cat.name}
                         </div>
-                        <div>
-                          <div className="text-xs font-bold text-slate-900">
-                            {cat.name}
-                          </div>
-                          <span className="text-[10px] text-slate-400 font-mono">
-                            slug: {cat.slug}
-                          </span>
-                        </div>
+                        <span className="text-[10px] text-slate-400 font-mono">
+                          slug: {cat.slug}
+                        </span>
                       </div>
                     </TableCell>
 
@@ -801,79 +792,17 @@ export function CategoriesDataTable() {
               />
             </div>
 
-            {/* Pilihan Emoji Ikon */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Ikon Emoji Kategori
-              </label>
-              <div className="flex items-center gap-2 mb-2">
-                <input
-                  type="text"
-                  maxLength={4}
-                  value={formData.emoji}
-                  onChange={(e) => setFormData({ ...formData, emoji: e.target.value })}
-                  className="w-14 text-center text-lg py-1.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600"
-                />
-                <span className="text-[11px] text-slate-400">Pilih dari tombol di bawah atau ketik emoji bebas:</span>
-              </div>
-
-              {/* Emoji Quick Picker */}
-              <div className="flex flex-wrap gap-1.5 p-2 rounded-xl bg-slate-50 border border-slate-200">
-                {COMMON_EMOJIS.map((em) => (
-                  <button
-                    key={em}
-                    type="button"
-                    onClick={() => setFormData({ ...formData, emoji: em })}
-                    className={`w-8 h-8 rounded-lg text-base flex items-center justify-center transition cursor-pointer ${
-                      formData.emoji === em
-                        ? 'bg-emerald-600 text-white shadow-xs scale-105'
-                        : 'bg-white hover:bg-slate-200 border border-slate-200'
-                    }`}
-                  >
-                    {em}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Pilihan Warna / Gradient Mobile */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                Tema Warna Tombol Mobile
-              </label>
-              <div className="grid grid-cols-3 gap-2">
-                {COLOR_PRESETS.map((preset) => {
-                  const isSelected = formData.mobileBg === preset.class;
-                  return (
-                    <button
-                      key={preset.id}
-                      type="button"
-                      onClick={() => setFormData({ ...formData, mobileBg: preset.class })}
-                      className={`p-2 rounded-xl text-left border text-xs font-semibold transition cursor-pointer flex items-center gap-2 ${
-                        isSelected
-                          ? 'border-emerald-600 ring-2 ring-emerald-500/20 bg-emerald-50/50'
-                          : 'border-slate-200 hover:border-slate-300 bg-white'
-                      }`}
-                    >
-                      <div className={`w-4 h-4 rounded-full shrink-0 ${preset.class}`} />
-                      <span className="truncate text-[11px] text-slate-700">{preset.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
             {/* Deskripsi */}
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
                 Deskripsi Singkat (Opsional)
               </label>
               <textarea
-                rows={2}
+                rows={3}
                 placeholder="Penjelasan singkat komoditas apa saja yang termasuk dalam kategori ini..."
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full text-xs px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600 focus:bg-white transition"
+                className="w-full text-xs px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600 focus:bg-white transition resize-none"
               />
             </div>
 
