@@ -24,6 +24,7 @@ interface AuthContextType {
   loginWithGoogle: (customData?: Partial<User>) => Promise<void>;
   selectRole: (role: 'PETANI' | 'PEMBELI') => Promise<void>;
   updateProfile: (data: Partial<User>) => void;
+  refreshUser: () => Promise<User | null>;
   logout: () => void;
 }
 
@@ -33,6 +34,7 @@ const AuthContext = createContext<AuthContextType>({
   loginWithGoogle: async () => {},
   selectRole: async () => {},
   updateProfile: () => {},
+  refreshUser: async () => null,
   logout: () => {},
 });
 
@@ -69,7 +71,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .then((data) => {
           if (data?.user) {
             setLocalUser((prev) => {
-              // Only update if data actually changed to avoid re-renders
               if (
                 prev &&
                 prev.name === data.user.name &&
@@ -83,7 +84,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 return prev;
               }
               const merged = { ...prev, ...data.user };
-              localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+              try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+                window.dispatchEvent(new CustomEvent('user-updated'));
+              } catch {}
+              if (updateSession && data.user.isVerified !== (session?.user as any)?.isVerified) {
+                updateSession({ user: data.user }).catch(() => {});
+              }
               return merged;
             });
           }
@@ -94,7 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       window.removeEventListener('pageshow', handlePageShow);
     };
-  }, [status, session?.user?.email]);
+  }, [status, session?.user?.email, updateSession]);
 
   // Bersihkan data lokal ketika status sesi menjadi unauthenticated
   useEffect(() => {
@@ -104,6 +111,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.removeItem('koperasi_last_activity_time');
     }
   }, [status]);
+
+  // Dengarkan event sinkronisasi profil instan antar-halaman
+  useEffect(() => {
+    const handleUserUpdated = () => {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          setLocalUser(JSON.parse(saved));
+        }
+      } catch {}
+    };
+
+    window.addEventListener('user-updated', handleUserUpdated);
+    window.addEventListener('storage', handleUserUpdated);
+
+    return () => {
+      window.removeEventListener('user-updated', handleUserUpdated);
+      window.removeEventListener('storage', handleUserUpdated);
+    };
+  }, []);
 
   // Sesi pengguna hanya aktif jika NextAuth berstatus authenticated atau ada sesi valid
   const isSessionActive = status === 'authenticated' && Boolean(session?.user);
@@ -132,15 +159,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         (session?.user?.role as UserRole) ||
         null,
       isVerified:
-        localUser?.isVerified ??
-        // @ts-ignore
-        session?.user?.isVerified ??
-        false,
+        Boolean(localUser?.isVerified) ||
+        Boolean((session?.user as any)?.isVerified),
       isOnboarded:
-        localUser?.isOnboarded ??
-        // @ts-ignore
-        session?.user?.isOnboarded ??
-        false,
+        Boolean(localUser?.isOnboarded) ||
+        Boolean((session?.user as any)?.isOnboarded),
       address:
         localUser?.address ||
         // @ts-ignore
@@ -174,6 +197,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
     } else {
       localStorage.removeItem(STORAGE_KEY);
+    }
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('user-updated'));
     }
   };
 
@@ -274,6 +300,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Muat ulang data profil terbaru dari backend database
+  const refreshUser = async (): Promise<User | null> => {
+    try {
+      const res = await fetch('/api/user/profile');
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.user) {
+          saveUser(data.user);
+          if (updateSession) {
+            await updateSession({ user: data.user });
+          }
+          return data.user;
+        }
+      }
+    } catch (e) {
+      console.error('Error saat refreshUser:', e);
+    }
+    return null;
+  };
+
   // Logout Handler
   const logout = async () => {
     saveUser(null);
@@ -303,6 +349,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         loginWithGoogle,
         selectRole,
         updateProfile,
+        refreshUser,
         logout,
       }}
     >

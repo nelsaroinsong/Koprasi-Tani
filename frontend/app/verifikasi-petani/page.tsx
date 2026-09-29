@@ -19,10 +19,11 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export default function VerifikasiPetaniPage() {
-  const { data: session, status } = useSession();
+  const { data: session, status, update: updateSession } = useSession();
   const router = useRouter();
   const [adminPhone, setAdminPhone] = useState<string | null>(null);
   const [isChecking, setIsChecking] = useState(false);
+  const [isEnteringToko, setIsEnteringToko] = useState(false);
   const [profileData, setProfileData] = useState<{
     name: string;
     email: string;
@@ -45,6 +46,17 @@ export default function VerifikasiPetaniPage() {
         if (data?.adminContact?.phone) {
           setAdminPhone(data.adminContact.phone);
         }
+
+        // Sinkronisasi status profil terbaru ke local storage dan session
+        try {
+          localStorage.setItem('koperasi_auth_user', JSON.stringify(data.user));
+          window.dispatchEvent(new CustomEvent('user-updated'));
+        } catch {}
+
+        if (updateSession) {
+          await updateSession({ user: data.user });
+        }
+
         // Jika belum onboarding, harus lengkapi identitas dulu
         if (!data.user.isOnboarded) {
           router.replace('/onboarding');
@@ -57,12 +69,12 @@ export default function VerifikasiPetaniPage() {
         }
         // Jika pembeli, langsung ke toko online
         if (data.user.role === 'PEMBELI') {
-          router.replace('/toko');
+          window.location.replace('/toko');
           return;
         }
         // Jika petani sudah di-ACC oleh admin, langsung masuk ke portal toko/sewa alat
         if (data.user.role === 'PETANI' && data.user.isVerified) {
-          router.replace('/toko');
+          window.location.replace('/toko');
           return;
         }
       }
@@ -94,6 +106,20 @@ export default function VerifikasiPetaniPage() {
 
   // Jika sudah terverifikasi
   if (profileData.role === 'PETANI' && profileData.isVerified) {
+    const handleMasukToko = async () => {
+      setIsEnteringToko(true);
+      try {
+        localStorage.setItem('koperasi_auth_user', JSON.stringify(profileData));
+        window.dispatchEvent(new CustomEvent('user-updated'));
+      } catch {}
+      if (updateSession) {
+        try {
+          await updateSession({ user: profileData });
+        } catch {}
+      }
+      window.location.replace('/toko');
+    };
+
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center px-3 sm:px-4 py-6 sm:py-10">
         <div className="max-w-sm w-full bg-white border border-emerald-200 rounded-2xl p-5 sm:p-6 shadow-xs text-center">
@@ -107,10 +133,18 @@ export default function VerifikasiPetaniPage() {
             Selamat, permohonan kemitraan Petani Anda telah resmi disetujui oleh pengurus Koperasi Sinar Pagi Sejahtera.
           </p>
           <button
-            onClick={() => router.push('/toko')}
-            className="w-full py-2 px-3.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[11px] sm:text-xs transition cursor-pointer shadow-2xs"
+            onClick={handleMasukToko}
+            disabled={isEnteringToko}
+            className="w-full py-2 px-3.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[11px] sm:text-xs transition cursor-pointer shadow-2xs flex items-center justify-center gap-2 disabled:opacity-75"
           >
-            Masuk ke Toko & Layanan Petani
+            {isEnteringToko ? (
+              <>
+                <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span>Membuka Toko...</span>
+              </>
+            ) : (
+              <span>Masuk ke Toko & Layanan Petani</span>
+            )}
           </button>
         </div>
       </div>

@@ -151,7 +151,33 @@ export default function TokoOnlinePage() {
       } else if (!user.isOnboarded) {
         router.replace('/onboarding');
       } else if (user.role === 'PETANI' && !user.isVerified) {
-        router.replace('/verifikasi-petani');
+        // Cek apakah di localStorage user sebenarnya sudah diverifikasi
+        try {
+          const stored = localStorage.getItem('koperasi_auth_user');
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            if (parsed.role === 'PETANI' && parsed.isVerified) {
+              return; // Di storage lokal sudah terverifikasi resmi, jangan lempar balik
+            }
+          }
+        } catch {}
+
+        // Verifikasi ke backend secara langsung jika user di state memori belum verified
+        fetch('/api/user/profile')
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data) => {
+            if (data?.user?.role === 'PETANI' && data.user.isVerified) {
+              try {
+                localStorage.setItem('koperasi_auth_user', JSON.stringify(data.user));
+                window.dispatchEvent(new CustomEvent('user-updated'));
+              } catch {}
+              return;
+            }
+            router.replace('/verifikasi-petani');
+          })
+          .catch(() => {
+            router.replace('/verifikasi-petani');
+          });
       }
     }
   }, [user, authLoading, router]);
