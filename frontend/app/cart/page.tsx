@@ -31,7 +31,9 @@ import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
 import { motion } from 'motion/react';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { CheckmarkCircle02Icon, Cancel01Icon, ArrowRight02Icon } from '@hugeicons/core-free-icons';
+import CheckmarkCircle02Icon from '@hugeicons/core-free-icons/CheckmarkCircle02Icon';
+import Cancel01Icon from '@hugeicons/core-free-icons/Cancel01Icon';
+import ArrowRight02Icon from '@hugeicons/core-free-icons/ArrowRight02Icon';
 import {
   Dialog,
   DialogContent,

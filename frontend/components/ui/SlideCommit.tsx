@@ -3,7 +3,8 @@
 import React, { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { animate, motion, useMotionValue, useMotionValueEvent, useReducedMotion, useTransform } from 'motion/react';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { ArrowRight02Icon, Tick02Icon } from '@hugeicons/core-free-icons';
+import ArrowRight02Icon from '@hugeicons/core-free-icons/ArrowRight02Icon';
+import Tick02Icon from '@hugeicons/core-free-icons/Tick02Icon';
 
 export type SlideCommitPhase = 'idle' | 'pending' | 'done' | 'error';
 
