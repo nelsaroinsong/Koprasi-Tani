@@ -196,8 +196,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // Google OAuth resmi NextAuth
-    await nextAuthSignIn('google', { callbackUrl: '/onboarding' });
+    // Google OAuth resmi NextAuth - diarahkan ke /auth-callback untuk auto-dispatch (ke toko atau onboarding stepper)
+    await nextAuthSignIn('google', { callbackUrl: '/auth-callback' });
   };
 
   // Onboarding Role Selection Handler

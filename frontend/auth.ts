@@ -87,7 +87,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return '/login?error=AdminBlocked';
         }
 
-        if (!existingUser) {
+        if (existingUser) {
+          if (!existingUser.googleId && account?.providerAccountId) {
+            // Hubungkan googleId jika user sebelumnya belum ada googleId
+            await prisma.user.update({
+              where: { email: userEmail },
+              data: {
+                googleId: account.providerAccountId,
+                avatarUrl: user.image || existingUser.avatarUrl,
+              },
+            });
+          }
+        } else {
           // Buat akun baru dari Google Login
           await prisma.user.create({
             data: {
@@ -101,22 +112,20 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               isActive: true,
             },
           });
-        } else if (!existingUser.googleId && account?.providerAccountId) {
-          // Hubungkan googleId jika user sebelumnya belum ada googleId
-          await prisma.user.update({
-            where: { email: userEmail },
-            data: {
-              googleId: account.providerAccountId,
-              avatarUrl: user.image || existingUser.avatarUrl,
-            },
-          });
         }
 
+        // Return true agar NextAuth mengizinkan login dan menerbitkan session token resmi
         return true;
       } catch (error) {
-        console.error('Error saat menyimpan user Google ke database:', error);
-        return true; // tetap izinkan login sesi NextAuth
+        console.error('Error saat memproses user Google ke database:', error);
+        return true;
       }
+    },
+
+    async redirect({ url, baseUrl }) {
+      if (url.startsWith('/')) return `${baseUrl}${url}`;
+      if (new URL(url).origin === baseUrl) return url;
+      return `${baseUrl}/auth-callback`;
     },
 
     async jwt({ token, user, trigger, session }) {
