@@ -28,6 +28,7 @@ import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
+import { getCart, saveCart } from '@/lib/cart';
 
 export default function PetaniStorePage({
   params,
@@ -158,8 +159,7 @@ export default function PetaniStorePage({
   const handleAddToCart = (product: any, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      const saved = localStorage.getItem('koperasi_cart');
-      const existingCart: any[] = saved ? JSON.parse(saved) : [];
+      const existingCart = getCart(user);
       const itemIdx = existingCart.findIndex((i) => i.id === product.id);
 
       if (itemIdx > -1) {
@@ -177,8 +177,7 @@ export default function PetaniStorePage({
         });
       }
 
-      localStorage.setItem('koperasi_cart', JSON.stringify(existingCart));
-      window.dispatchEvent(new CustomEvent('cart-updated'));
+      saveCart(existingCart, user);
 
       showToast({
         title: 'Ditambahkan',

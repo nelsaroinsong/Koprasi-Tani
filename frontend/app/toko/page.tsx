@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
+import { getCart, saveCart } from '@/lib/cart';
 
 import defaultCategoriesData from '@/data/categories.json';
 
@@ -289,8 +290,7 @@ export default function TokoOnlinePage() {
 
   const handleAddToCart = (product: any, quantity: number) => {
     try {
-      const saved = localStorage.getItem('koperasi_cart');
-      const existingCart: any[] = saved ? JSON.parse(saved) : [];
+      const existingCart = getCart(user);
       const itemIdx = existingCart.findIndex((i) => i.id === product.id);
 
       if (itemIdx > -1) {
@@ -308,8 +308,7 @@ export default function TokoOnlinePage() {
         });
       }
 
-      localStorage.setItem('koperasi_cart', JSON.stringify(existingCart));
-      window.dispatchEvent(new CustomEvent('cart-updated'));
+      saveCart(existingCart, user);
 
       showToast({
         title: 'Dimasukkan ke Keranjang',

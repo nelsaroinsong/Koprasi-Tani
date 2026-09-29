@@ -40,16 +40,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 
-interface CartItem {
-  id: string;
-  nama: string;
-  kategori: string;
-  hargaPerSatuan: number;
-  satuan: string;
-  imageUrl?: string | null;
-  quantity: number;
-  petaniName?: string;
-}
+import { getCart, saveCart, clearCart, type CartItem } from '@/lib/cart';
 
 export default function ShoppingCartPage() {
   const { user } = useAuth();
@@ -68,27 +59,18 @@ export default function ShoppingCartPage() {
   const [createdOrderResult, setCreatedOrderResult] = useState<any | null>(null);
   const pendingOrderRef = useRef<any | null>(null);
 
-  // Sync Cart from LocalStorage
+  // Sync Cart from LocalStorage (terisolasi per akun pengguna)
   const syncCart = useCallback(() => {
     try {
-      const saved = localStorage.getItem('koperasi_cart');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          setCartItems(parsed);
-        } else {
-          setCartItems([]);
-        }
-      } else {
-        setCartItems([]);
-      }
+      const items = getCart(user);
+      setCartItems(items);
     } catch (e) {
       console.error('Error loading cart:', e);
       setCartItems([]);
     } finally {
       setIsLoaded(true);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     syncCart();
@@ -119,16 +101,14 @@ export default function ShoppingCartPage() {
       .filter(Boolean) as CartItem[];
 
     setCartItems(updated);
-    localStorage.setItem('koperasi_cart', JSON.stringify(updated));
-    window.dispatchEvent(new CustomEvent('cart-updated'));
+    saveCart(updated, user);
   };
 
   // Remove Item
   const handleRemoveItem = (id: string, nama: string) => {
     const updated = cartItems.filter((item) => item.id !== id);
     setCartItems(updated);
-    localStorage.setItem('koperasi_cart', JSON.stringify(updated));
-    window.dispatchEvent(new CustomEvent('cart-updated'));
+    saveCart(updated, user);
 
     showToast({
       title: 'Item Dihapus',
@@ -140,8 +120,7 @@ export default function ShoppingCartPage() {
   // Clear Entire Cart
   const handleClearCart = () => {
     setCartItems([]);
-    localStorage.removeItem('koperasi_cart');
-    window.dispatchEvent(new CustomEvent('cart-updated'));
+    clearCart(user);
 
     showToast({
       title: 'Keranjang Dikosongkan',
@@ -202,8 +181,7 @@ export default function ShoppingCartPage() {
 
       // Simpan referensi order untuk ditransisikan setelah animasi slide selesai
       pendingOrderRef.current = data.order;
-      localStorage.removeItem('koperasi_cart');
-      window.dispatchEvent(new CustomEvent('cart-updated'));
+      clearCart(user);
       setCartItems([]);
 
       showToast({

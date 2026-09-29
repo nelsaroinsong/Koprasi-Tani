@@ -37,6 +37,7 @@ import {
   LayoutDashboard,
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
+import { getCart, saveCart, clearCart } from '@/lib/cart';
 import {
   Dialog,
   DialogContent,
@@ -112,26 +113,18 @@ export default function UserProfileDropdown() {
       .catch(() => {});
   }, [activeModal]);
 
-  // Sync cart from localStorage
+  // Sync cart from localStorage (terisolasi per akun pengguna)
   const syncCart = useCallback(() => {
     try {
-      const saved = localStorage.getItem('koperasi_cart');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          setCartItems(parsed);
-          const totalQty = parsed.reduce((sum: number, item: any) => sum + (Number(item.quantity) || 1), 0);
-          setCartCount(totalQty);
-          return;
-        }
-      }
-      setCartItems([]);
-      setCartCount(0);
+      const items = getCart(user);
+      setCartItems(items);
+      const totalQty = items.reduce((sum: number, item: any) => sum + (Number(item.quantity) || 1), 0);
+      setCartCount(totalQty);
     } catch {
       setCartItems([]);
       setCartCount(0);
     }
-  }, []);
+  }, [user]);
 
   const [adminPhone, setAdminPhone] = useState<string>('081944078924');
 
@@ -171,7 +164,7 @@ export default function UserProfileDropdown() {
     } else {
       updated[idx].quantity = newQty;
     }
-    localStorage.setItem('koperasi_cart', JSON.stringify(updated));
+    saveCart(updated, user);
     syncCart();
   };
 
@@ -206,10 +199,9 @@ export default function UserProfileDropdown() {
       setCreatedOrderResult(data.order);
       setCartStep('SUCCESS');
 
-      // Bersihkan keranjang
-      localStorage.removeItem('koperasi_cart');
+      // Bersihkan keranjang belanja akun ini
+      clearCart(user);
       syncCart();
-      window.dispatchEvent(new CustomEvent('cart-updated'));
     } catch (err: any) {
       console.error(err);
       setOrderError(err.message || 'Terjadi gangguan saat memproses pesanan.');
@@ -601,7 +593,7 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
                                 type="button"
                                 onClick={() => {
                                   const updated = cartItems.filter((_, i) => i !== idx);
-                                  localStorage.setItem('koperasi_cart', JSON.stringify(updated));
+                                  saveCart(updated, user);
                                   syncCart();
                                 }}
                                 className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition cursor-pointer shrink-0"
@@ -641,7 +633,7 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
                         <button
                           type="button"
                           onClick={() => {
-                            localStorage.removeItem('koperasi_cart');
+                            clearCart(user);
                             syncCart();
                           }}
                           className="py-2 px-3 border border-slate-200 hover:bg-slate-50 text-slate-500 hover:text-red-600 rounded-xl font-semibold text-xs transition cursor-pointer"

@@ -31,6 +31,7 @@ import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
+import { getCart, saveCart } from '@/lib/cart';
 
 export default function ProductDetailPage({
   params,
@@ -142,8 +143,7 @@ export default function ProductDetailPage({
     const prod = productData.product;
 
     try {
-      const saved = localStorage.getItem('koperasi_cart');
-      const existingCart: any[] = saved ? JSON.parse(saved) : [];
+      const existingCart = getCart(user);
       const itemIdx = existingCart.findIndex((i) => i.id === prod.id);
 
       if (itemIdx > -1) {
@@ -161,8 +161,7 @@ export default function ProductDetailPage({
         });
       }
 
-      localStorage.setItem('koperasi_cart', JSON.stringify(existingCart));
-      window.dispatchEvent(new CustomEvent('cart-updated'));
+      saveCart(existingCart, user);
 
       showToast({
         title: 'Dimasukkan ke Keranjang',
