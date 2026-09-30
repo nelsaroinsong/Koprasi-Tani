@@ -192,3 +192,47 @@
   height: 0;
 }
 
+/* 404 Illustration Micro-Animations */
+@keyframes leaf-float {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-5px) rotate(2deg);
+  }
+}
+
+@keyframes leaf-slow {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-3px) rotate(-1.5deg);
+  }
+}
+
+@keyframes bubble-float {
+  0%, 100% {
+    transform: translateY(0px) scale(1);
+  }
+  50% {
+    transform: translateY(-6px) scale(1.03);
+  }
+}
+
+.animate-leaf-float {
+  animation: leaf-float 4s ease-in-out infinite;
+  transform-origin: center;
+}
+
+.animate-leaf-slow {
+  animation: leaf-slow 6s ease-in-out infinite;
+  transform-origin: center;
+}
+
+.animate-bubble-float {
+  animation: bubble-float 3.5s ease-in-out infinite;
+  transform-origin: 425px 115px;
+}
+
+
