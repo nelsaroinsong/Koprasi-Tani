@@ -14,6 +14,7 @@ import { EquipmentCategoriesDataTable } from '@/components/admin/equipment-categ
 import { EquipmentFormPage } from '@/components/admin/equipment-form-page';
 import { TokoProductFormPage } from '@/components/admin/toko-product-form-page';
 import EquipmentsDataTable from '@/components/admin/equipments-data-table';
+import { EquipmentRentalsTable } from '@/components/admin/equipment-rentals-table';
 import { Sprout, Users, ShoppingBag, ArrowRight, Package, ShoppingCart, HandCoins, MapPin, CheckCircle2 } from 'lucide-react';
 import {
   Dialog,
@@ -106,10 +107,13 @@ export default function AdminPage() {
     return <TokoOnlineDataTable />;
   }
 
-  // 4. Tampilan Halaman Transaksi Koperasi: Pesanan Masuk & Bagi Hasil Petani
+  // 4. Tampilan Halaman Transaksi Koperasi: Pesanan Masuk, Sewa Alat, & Bagi Hasil Petani
   if (activeTab.group === 'Transaksi Koperasi') {
     if (activeTab.item === 'Bagi Hasil Petani') {
       return <PayoutsDataTable />;
+    }
+    if (activeTab.item === 'Pengajuan Sewa Alat' || activeTab.item === 'Sewa Alat') {
+      return <EquipmentRentalsTable />;
     }
     // Default untuk 'Pesanan Masuk'
     return <OrdersDataTable />;

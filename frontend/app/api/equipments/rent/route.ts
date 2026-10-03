@@ -2,9 +2,46 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { readEquipmentsFromFile, type EquipmentItem } from '@/lib/equipments';
+import {
+  readEquipmentRentals,
+  writeEquipmentRentals,
+  type EquipmentRentalOrder,
+  type EquipmentRentalOrderItem,
+} from '@/lib/equipment-rentals';
 
 export const dynamic = 'force-dynamic';
 
+// GET: Ambil riwayat pengajuan sewa alat milik pengguna saat ini
+export async function GET() {
+  try {
+    const session = await auth();
+    if (!session?.user?.email) {
+      return NextResponse.json(
+        { error: 'Silakan login terlebih dahulu' },
+        { status: 401 }
+      );
+    }
+
+    const allRentals = readEquipmentRentals();
+    // Filter pengajuan yang diajukan oleh email pengguna ini
+    const userRentals = allRentals
+      .filter((r) => r.userEmail === session.user?.email)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    return NextResponse.json({
+      success: true,
+      rentals: userRentals,
+    });
+  } catch (error: any) {
+    console.error('Error fetching user rentals:', error);
+    return NextResponse.json(
+      { error: error?.message || 'Gagal memuat daftar pengajuan sewa' },
+      { status: 500 }
+    );
+  }
+}
+
+// POST: Buat Pengajuan Sewa Alat Baru (Status: MENUNGGU_PERSETUJUAN_ADMIN)
 export async function POST(request: Request) {
   try {
     const session = await auth();
@@ -14,6 +51,11 @@ export async function POST(request: Request) {
         { status: 401 }
       );
     }
+
+    const dbUser = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: { id: true, name: true, phone: true, role: true, email: true },
+    });
 
     const body = await request.json();
     const {
@@ -37,19 +79,10 @@ export async function POST(request: Request) {
       );
     }
 
-    // Ambil semua data alat
+    // Ambil semua data master alat
     const allEquipments = readEquipmentsFromFile();
 
-    // Normalisasi daftar item yang disewa
-    interface ProcessedItem {
-      equipment: EquipmentItem;
-      durasi: number;
-      jumlahUnit: number;
-      includeOperator: boolean;
-      subtotal: number;
-    }
-
-    const processedItems: ProcessedItem[] = [];
+    const processedItems: EquipmentRentalOrderItem[] = [];
 
     if (Array.isArray(items) && items.length > 0) {
       for (const it of items) {
@@ -61,11 +94,17 @@ export async function POST(request: Request) {
         const dasar = eq.hargaSewa * dur * qty;
         const op = withOp && eq.biayaOperator ? eq.biayaOperator * dur * qty : 0;
         processedItems.push({
-          equipment: eq,
-          durasi: dur,
+          equipmentId: eq.id,
+          nama: eq.nama,
+          kategori: eq.kategori,
+          hargaSewa: eq.hargaSewa,
+          satuanSewa: eq.satuanSewa,
           jumlahUnit: qty,
+          durasi: dur,
           includeOperator: withOp,
+          biayaOperator: eq.biayaOperator,
           subtotal: dasar + op,
+          imageUrl: eq.imageUrl,
         });
       }
     } else if (equipmentId) {
@@ -77,11 +116,17 @@ export async function POST(request: Request) {
         const dasar = eq.hargaSewa * dur * qty;
         const op = withOp && eq.biayaOperator ? eq.biayaOperator * dur * qty : 0;
         processedItems.push({
-          equipment: eq,
-          durasi: dur,
+          equipmentId: eq.id,
+          nama: eq.nama,
+          kategori: eq.kategori,
+          hargaSewa: eq.hargaSewa,
+          satuanSewa: eq.satuanSewa,
           jumlahUnit: qty,
+          durasi: dur,
           includeOperator: withOp,
+          biayaOperator: eq.biayaOperator,
           subtotal: dasar + op,
+          imageUrl: eq.imageUrl,
         });
       }
     }
@@ -96,52 +141,82 @@ export async function POST(request: Request) {
     const totalEstimasi = processedItems.reduce((acc, curr) => acc + curr.subtotal, 0);
     const rentalCode = `SEWA-${Date.now().toString(36).toUpperCase()}`;
 
-    // Kontak WhatsApp PJ Koperasi (ambil kontak pertama yang ada atau kontak default)
+    // Kontak WhatsApp PJ Koperasi (ambil kontak pertama yang ada atau default)
     const pjContact =
-      processedItems.find((it) => it.equipment.kontakPj)?.equipment.kontakPj ||
-      '081944078924';
+      allEquipments.find((it) => it.kontakPj)?.kontakPj || '081944078924';
     const cleanPhone = pjContact.replace(/\D/g, '').replace(/^0/, '62');
+
+    // Buat Objek Pengajuan Sewa Resmi (Status: MENUNGGU_PERSETUJUAN_ADMIN)
+    const newRentalOrder: EquipmentRentalOrder = {
+      id: `rent-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      rentalCode,
+      userId: dbUser?.id || session.user.id || session.user.email,
+      userName: dbUser?.name || session.user.name || 'Anggota Koperasi',
+      userEmail: session.user.email,
+      userPhone: dbUser?.phone || (session.user as any).phone || '',
+      userRole: dbUser?.role || (session.user as any).role || 'PEMBELI',
+      status: 'MENUNGGU_PERSETUJUAN_ADMIN',
+      startDate,
+      endDate: endDate || undefined,
+      lokasiLahan: lokasiLahan || '',
+      catatan: catatan || '',
+      totalEstimasi,
+      paymentMethod: 'CASH_KOPERASI',
+      isPaid: false,
+      items: processedItems,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      approvedAt: null,
+    };
+
+    // Simpan ke database / file
+    const existingRentals = readEquipmentRentals();
+    existingRentals.unshift(newRentalOrder);
+    writeEquipmentRentals(existingRentals);
 
     // Rincian alat dalam pesan WhatsApp
     const itemLines = processedItems.map((it, idx) => {
-      const eq = it.equipment;
       const opInfo = it.includeOperator
-        ? `+ Operator Koperasi (Rp ${Number(eq.biayaOperator || 0).toLocaleString('id-ID')}/${eq.satuanSewa})`
+        ? `+ Operator Koperasi (Rp ${Number(it.biayaOperator || 0).toLocaleString('id-ID')}/${it.satuanSewa})`
         : 'Operator Mandiri';
-      return `${idx + 1}. *${eq.nama}*
+      return `${idx + 1}. *${it.nama}*
    • Jumlah: ${it.jumlahUnit} unit
-   • Durasi: ${it.durasi} ${eq.satuanSewa}
-   • Tarif: Rp ${eq.hargaSewa.toLocaleString('id-ID')}/${eq.satuanSewa}
+   • Durasi: ${it.durasi} ${it.satuanSewa}
+   • Tarif: Rp ${it.hargaSewa.toLocaleString('id-ID')}/${it.satuanSewa}
    • Layanan Operator: ${opInfo}
    • Subtotal: Rp ${it.subtotal.toLocaleString('id-ID')}`;
     }).join('\n\n');
 
     const waMessage = `Halo Pengurus/PJ Sewa Alat Koperasi Sinar Pagi Sejahtera,
-Saya ingin mengajukan permohonan sewa alat pertanian:
+Saya telah membuat *Pengajuan Sewa Alat Pertanian* melalui website koperasi:
 
-*Kode Pengajuan:* #${rentalCode}
-*Nama Pemohon:* ${session.user.name || 'Anggota Koperasi'}
-*Email/Kontak:* ${session.user.email}
-*Mulai Tanggal:* ${startDate} ${endDate ? `s/d ${endDate}` : ''}
+*No. Pengajuan:* #${rentalCode}
+*Status:* ⏳ Menunggu Persetujuan Admin Koperasi
+*Nama Pemohon:* ${newRentalOrder.userName}
+*Email:* ${newRentalOrder.userEmail}
+*No. HP:* ${newRentalOrder.userPhone || '-'}
+*Mulai Tanggal:* ${startDate}
 *Lokasi Lahan Kebun:* ${lokasiLahan || '-'}
 *Catatan Tambahan:* ${catatan || '-'}
 
-📋 *Daftar Alat yang Disewa (${processedItems.length} jenis alat):*
+📋 *Daftar Alat yang Diajukan (${processedItems.length} jenis alat):*
 ${itemLines}
 
-💰 *TOTAL ESTIMASI SEWA:* Rp ${totalEstimasi.toLocaleString('id-ID')}
+💰 *TOTAL ESTIMASI TAGIHAN:* Rp ${totalEstimasi.toLocaleString('id-ID')}
+*Metode Pembayaran:* Tunai Kasir Koperasi
 
-Mohon konfirmasi ketersediaan unit dan jadwal operasionalnya di kantor koperasi. Terima kasih.`;
+Mohon konfirmasi ketersediaan unit dan persetujuan jadwal operasionalnya. Terima kasih.`;
 
     const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(waMessage)}`;
 
     return NextResponse.json({
       success: true,
       rentalCode,
+      rentalOrder: newRentalOrder,
       totalEstimasi,
       itemsCount: processedItems.length,
       waUrl,
-      message: 'Pengajuan sewa alat berhasil disiapkan.',
+      message: 'Pengajuan sewa alat berhasil dikirim dan menunggu persetujuan admin koperasi.',
     });
   } catch (error: any) {
     console.error('Error saat pengajuan sewa alat:', error);

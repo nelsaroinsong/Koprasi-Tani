@@ -4,6 +4,7 @@ import React, { useState, useEffect, use, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import AppHeader from '@/components/AppHeader';
+import LocationMapPreview from '@/components/LocationMapPreview';
 import {
   Tractor,
   Calendar,
@@ -741,21 +742,12 @@ export default function EquipmentDetailPage({
               />
             </div>
 
-            <div>
-              <label className="block font-bold text-slate-700 mb-1">
-                Lokasi Lahan Kebun (Minahasa Utara)
-              </label>
-              <div className="relative">
-                <MapPin className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
-                <input
-                  type="text"
-                  value={lokasiLahan}
-                  onChange={(e) => setLokasiLahan(e.target.value)}
-                  placeholder="Contoh: Desa Kolongan, Kec. Kalawat"
-                  className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600"
-                />
-              </div>
-            </div>
+            {/* Lokasi Lahan Kebun dengan Preview Maps & Deteksi GPS */}
+            <LocationMapPreview
+              value={lokasiLahan}
+              onChange={setLokasiLahan}
+              required={false}
+            />
 
             <div>
               <label className="block font-bold text-slate-700 mb-1">

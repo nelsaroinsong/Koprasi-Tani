@@ -89,6 +89,10 @@ const data = {
           url: "/admin",
         },
         {
+          title: "Pengajuan Sewa Alat",
+          url: "/admin",
+        },
+        {
           title: "Bagi Hasil Petani",
           url: "/admin",
         },

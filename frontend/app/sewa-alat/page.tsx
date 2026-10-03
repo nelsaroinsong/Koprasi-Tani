@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import AppHeader from '@/components/AppHeader';
+import LocationMapPreview from '@/components/LocationMapPreview';
 import {
   Tractor,
   ArrowRight,
@@ -54,43 +55,7 @@ import {
   type RentalCartItem,
 } from '@/lib/rental-cart';
 
-const KATEGORI_TABS = [
-  {
-    key: 'SEMUA',
-    label: 'Semua Alat',
-    pillLabel: 'Semua Alat',
-    emoji: '🚜',
-    mobileBg: 'bg-emerald-700 text-white shadow-xs',
-  },
-  {
-    key: 'Traktor & Pengolah Lahan',
-    label: 'Traktor',
-    pillLabel: 'Traktor & Lahan',
-    emoji: '🚜',
-    mobileBg: 'bg-gradient-to-br from-amber-100 to-amber-200 text-amber-900 border border-amber-300/60',
-  },
-  {
-    key: 'Mesin Panen & Perontok',
-    label: 'Panen',
-    pillLabel: 'Mesin Panen',
-    emoji: '🌽',
-    mobileBg: 'bg-gradient-to-br from-amber-100 to-amber-200 text-amber-900 border border-amber-300/60',
-  },
-  {
-    key: 'Penyemprot & Pemupukan',
-    label: 'Semprot',
-    pillLabel: 'Drone & Semprot',
-    emoji: '💧',
-    mobileBg: 'bg-gradient-to-br from-blue-100 to-blue-200 text-blue-900 border border-blue-300/60',
-  },
-  {
-    key: 'Pascapanen & Pengolahan',
-    label: 'Pascapanen',
-    pillLabel: 'Pascapanen',
-    emoji: '⚙️',
-    mobileBg: 'bg-gradient-to-br from-emerald-100 to-emerald-200 text-emerald-900 border border-emerald-300/60',
-  },
-];
+// Kategori akan dimuat dinamis dari data admin kelola kategori
 
 export default function SewaAlatPage() {
   const { user } = useAuth();
@@ -105,6 +70,39 @@ export default function SewaAlatPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedKategori, setSelectedKategori] = useState('SEMUA');
   const [onlyAvailable, setOnlyAvailable] = useState(false);
+
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+
+  // Fetch Kategori Sewa Alat dari Data Kelola Kategori Admin
+  useEffect(() => {
+    fetch('/api/admin/equipment-categories')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && Array.isArray(data.categories)) {
+          setCategories(data.categories);
+        }
+      })
+      .catch((err) => console.error('Error fetching equipment categories:', err));
+  }, []);
+
+  // Daftar Tabs Kategori Dinamis sesuai Admin
+  const dynamicKategoriTabs = useMemo(() => {
+    const tabs = [{ key: 'SEMUA', label: 'Semua Alat' }];
+    if (categories.length > 0) {
+      categories.forEach((cat) => {
+        tabs.push({
+          key: cat.name,
+          label: cat.name,
+        });
+      });
+    } else {
+      const unique = Array.from(new Set(equipments.map((e) => e.kategori).filter(Boolean)));
+      unique.forEach((cat) => {
+        tabs.push({ key: cat, label: cat });
+      });
+    }
+    return tabs;
+  }, [categories, equipments]);
 
   // Quick Booking Modal State (Shortcut dari card)
   const [selectedEquipment, setSelectedEquipment] = useState<EquipmentItem | null>(null);
@@ -151,7 +149,9 @@ export default function SewaAlatPage() {
   // Filter Data
   const filteredEquipments = useMemo(() => {
     return equipments.filter((item) => {
-      const matchKategori = selectedKategori === 'SEMUA' || item.kategori === selectedKategori;
+      const matchKategori =
+        selectedKategori === 'SEMUA' ||
+        (item.kategori && item.kategori.toLowerCase().trim() === selectedKategori.toLowerCase().trim());
       const matchAvailable = !onlyAvailable || item.isTersedia;
       const matchSearch =
         !searchQuery.trim() ||
@@ -161,6 +161,31 @@ export default function SewaAlatPage() {
       return matchKategori && matchAvailable && matchSearch;
     });
   }, [equipments, selectedKategori, onlyAvailable, searchQuery]);
+
+  // Masukkan langsung ke keranjang sewa multi-alat saat tombol '+ Sewa Alat' ditekan
+  const handleAddToCartDirectly = (item: EquipmentItem, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!item.isTersedia) return;
+    addToRentalCart({
+      equipmentId: item.id,
+      nama: item.nama,
+      kategori: item.kategori,
+      hargaSewa: item.hargaSewa,
+      satuanSewa: item.satuanSewa,
+      biayaOperator: item.biayaOperator,
+      includeOperator: false,
+      stokUnit: item.stokUnit || 1,
+      jumlahUnit: 1,
+      durasi: 1,
+      imageUrl: item.imageUrl,
+      kontakPj: item.kontakPj,
+    });
+    showToast({
+      title: 'Masuk Keranjang Sewa',
+      message: `${item.nama} berhasil ditambahkan ke keranjang sewa alat!`,
+      type: 'success',
+    });
+  };
 
   // Buka Modal Booking Cepat (Dengan Validasi Auth)
   const handleOpenBooking = (item: EquipmentItem) => {
@@ -319,8 +344,8 @@ export default function SewaAlatPage() {
         <div className="space-y-3 mb-6">
           {/* Scrollable Kategori Horizontal */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-            {KATEGORI_TABS.map((tab) => {
-              const active = selectedKategori === tab.key;
+            {dynamicKategoriTabs.map((tab) => {
+              const active = selectedKategori.toLowerCase().trim() === tab.key.toLowerCase().trim();
               return (
                 <button
                   key={tab.key}
@@ -471,22 +496,20 @@ export default function SewaAlatPage() {
                   </div>
                 </div>
 
-                {/* Footer Action - Opsi Sewa Cepat & WhatsApp */}
+                {/* Footer Action - Tambah ke Keranjang Sewa & WhatsApp */}
                 <div className="p-1.5 pt-0 sm:p-2 sm:pt-0 flex items-center gap-1">
                   <button
                     type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleOpenBooking(item);
-                    }}
+                    onClick={(e) => handleAddToCartDirectly(item, e)}
                     disabled={!item.isTersedia}
                     className={`flex-1 py-1 px-1.5 sm:py-1.5 sm:px-2 rounded-lg text-[9px] sm:text-[10px] font-bold flex items-center justify-center gap-1 transition cursor-pointer shadow-2xs ${
                       item.isTersedia
                         ? 'bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white'
                         : 'bg-slate-100 text-slate-400 cursor-not-allowed'
                     }`}
+                    title={item.isTersedia ? 'Tambahkan alat ke keranjang sewa' : 'Unit sedang dipakai'}
                   >
-                    <Calendar className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                    <ShoppingCart className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                     <span>{item.isTersedia ? '+ Sewa Alat' : 'Sedang Dipakai'}</span>
                   </button>
 
@@ -648,22 +671,12 @@ export default function SewaAlatPage() {
                 </div>
               ) : null}
 
-              {/* Lokasi Lahan Kebun */}
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">
-                  Lokasi Lahan Kebun (Minahasa Utara)
-                </label>
-                <div className="relative">
-                  <MapPin className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
-                  <input
-                    type="text"
-                    value={lokasiLahan}
-                    onChange={(e) => setLokasiLahan(e.target.value)}
-                    placeholder="Contoh: Desa Kolongan, Kec. Kalawat"
-                    className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600"
-                  />
-                </div>
-              </div>
+              {/* Lokasi Lahan Kebun dengan Preview Maps & Deteksi GPS */}
+              <LocationMapPreview
+                value={lokasiLahan}
+                onChange={setLokasiLahan}
+                required={false}
+              />
 
               {/* Catatan Tambahan */}
               <div>
