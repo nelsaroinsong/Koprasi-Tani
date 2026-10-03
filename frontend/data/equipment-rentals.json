@@ -1,0 +1,36 @@
+[
+  {
+    "id": "rent-1791051246589-3x2x",
+    "rentalCode": "SEWA-MUSPO2KD",
+    "userId": "2e7e01ad-8f9b-4f5f-bcbb-cd00950a3753",
+    "userName": "Lionel Kisra Injili",
+    "userEmail": "lionelkisrainjili01@gmail.com",
+    "userPhone": "081200000000",
+    "userRole": "PETANI",
+    "status": "SELESAI",
+    "startDate": "2026-10-03",
+    "lokasiLahan": "Jalan 14 Pebruari, Teling Bawah, Wenang, Manado, Sulawesi Utara, 95113, Indonesia",
+    "catatan": "",
+    "totalEstimasi": 150000,
+    "paymentMethod": "CASH_KOPERASI",
+    "isPaid": false,
+    "items": [
+      {
+        "equipmentId": "alst-musanrfk-t7fs",
+        "nama": "Traktor Roda 4",
+        "kategori": "Roda 4",
+        "hargaSewa": 150000,
+        "satuanSewa": "hari",
+        "jumlahUnit": 1,
+        "durasi": 1,
+        "includeOperator": false,
+        "biayaOperator": 0,
+        "subtotal": 150000,
+        "imageUrl": "/api/images/sewa-alat/alat-1791026033854-6h8bmr.jpg"
+      }
+    ],
+    "createdAt": "2026-10-03T18:14:06.589Z",
+    "updatedAt": "2026-10-03T18:16:23.250Z",
+    "approvedAt": "2026-10-03T18:15:40.790Z"
+  }
+]
