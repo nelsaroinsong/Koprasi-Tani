@@ -667,19 +667,7 @@ export function TokoProductFormPage({
               </div>
             )}
 
-            {/* Input URL Alternatif */}
-            <div className="pt-2">
-              <label className="block text-[11px] font-semibold text-slate-500 mb-1">
-                Atau tempel Link URL Foto:
-              </label>
-              <input
-                type="url"
-                placeholder="https://images.unsplash.com/..."
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600 focus:bg-white transition"
-              />
-            </div>
+
           </div>
 
           {/* Card Status Publik */}

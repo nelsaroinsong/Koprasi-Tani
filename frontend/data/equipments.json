@@ -1,1 +1,19 @@
-[]
+[
+  {
+    "id": "alst-musanrfk-t7fs",
+    "nama": "Traktor Roda 4",
+    "kategori": "Roda 4",
+    "deskripsi": null,
+    "spesifikasi": "Bahan Bakar Solar, Kapasistas 20L Solar",
+    "hargaSewa": 150000,
+    "satuanSewa": "hari",
+    "biayaOperator": 0,
+    "stokUnit": 1,
+    "kondisi": "Sangat Baik",
+    "imageUrl": "/api/images/sewa-alat/alat-1791026033854-6h8bmr.jpg",
+    "isTersedia": true,
+    "kontakPj": "081944078924",
+    "createdAt": "2026-10-03T11:13:57.920Z",
+    "updatedAt": "2026-10-03T11:13:57.920Z"
+  }
+]

@@ -1307,13 +1307,7 @@ export default function EquipmentsDataTable() {
                     </div>
                   )}
 
-                  <input
-                    type="url"
-                    value={formImageUrl}
-                    onChange={(e) => setFormImageUrl(e.target.value)}
-                    placeholder="Atau tempel URL gambar (/api/images/sewa-alat/... atau https://...)"
-                    className="w-full mt-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500 text-[11px] font-mono text-slate-600"
-                  />
+
                 </div>
 
                 {/* Spesifikasi Teknis */}
