@@ -1,51 +1,20 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo, useRef, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import AppHeader from '@/components/AppHeader';
-import SlideCommit from '@/components/ui/SlideCommit';
-import LocationMapPreview from '@/components/LocationMapPreview';
 import {
-  ShoppingCart,
   ShoppingBag,
   Tractor,
   Trash2,
   Plus,
   Minus,
-  ArrowLeft,
   ArrowRight,
-  Check,
-  CheckCircle2,
-  ShieldCheck,
-  Truck,
-  RotateCcw,
-  Tag,
-  Building2,
-  Banknote,
-  MapPin,
-  AlertCircle,
-  PackageCheck,
   Loader2,
-  MessageCircle,
-  Calendar,
-  Clock,
-  UserCheck,
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
-import { motion } from 'motion/react';
-import { HugeiconsIcon } from '@hugeicons/react';
-import CheckmarkCircle02Icon from '@hugeicons/core-free-icons/CheckmarkCircle02Icon';
-import Cancel01Icon from '@hugeicons/core-free-icons/Cancel01Icon';
-import ArrowRight02Icon from '@hugeicons/core-free-icons/ArrowRight02Icon';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
 
 import { getCart, saveCart, clearCart, type CartItem } from '@/lib/cart';
 import {
@@ -83,14 +52,6 @@ function CartContent() {
   // ==========================================
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isLoadedToko, setIsLoadedToko] = useState(false);
-
-  // State Checkout Modal Toko Online
-  const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
-  const [orderNotes, setOrderNotes] = useState('');
-  const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
-  const [orderError, setOrderError] = useState<string | null>(null);
-  const [createdOrderResult, setCreatedOrderResult] = useState<any | null>(null);
-  const pendingOrderRef = useRef<any | null>(null);
 
   // Sync Cart Toko Online from LocalStorage
   const syncCart = useCallback(() => {
@@ -178,92 +139,11 @@ function CartContent() {
     return subtotalAmount;
   }, [subtotalAmount]);
 
-  // Submit Official Order to API (Toko Online)
-  const handleConfirmOrder = async () => {
-    if (!user) {
-      router.push(`/login?callbackUrl=${encodeURIComponent('/cart')}`);
-      throw new Error('Silakan login terlebih dahulu untuk checkout');
-    }
-
-    if (cartItems.length === 0) {
-      throw new Error('Keranjang belanja kosong');
-    }
-
-    try {
-      setIsSubmittingOrder(true);
-      setOrderError(null);
-
-      const itemsPayload = cartItems.map((item) => ({
-        productId: item.id,
-        quantity: item.quantity,
-      }));
-
-      const res = await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          items: itemsPayload,
-          paymentMethod: 'TUNAI_DI_KOPERASI',
-          pickupMethod: 'AMBIL_DI_KOPERASI',
-          notes: orderNotes.trim() ? orderNotes.trim() : null,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Gagal memproses pesanan ke sistem koperasi');
-      }
-
-      pendingOrderRef.current = data.order;
-      clearCart(user);
-      setCartItems([]);
-
-      showToast({
-        title: 'Pesanan Resmi Dibuat',
-        message: `No. Pesanan #${data.order.orderNumber} telah tercatat di sistem koperasi.`,
-        type: 'success',
-      });
-
-      return data.order;
-    } catch (err: any) {
-      console.error('Error submitting order:', err);
-      setOrderError(err.message || 'Terjadi gangguan saat memproses pesanan.');
-      throw err;
-    } finally {
-      setIsSubmittingOrder(false);
-    }
-  };
-
-  const handleSendWhatsAppConfirmation = (orderData: any) => {
-    const adminPhone = '6281234567890';
-    const message = `Halo Admin Koperasi Sinar Pagi Sejahtera,
-Saya telah membuat *Pesanan Resmi* melalui Toko Online Koperasi:
-
-*No. Pesanan:* #${orderData.orderNumber}
-*Nama Pemesan:* ${user?.name || 'Pelanggan'}
-*Total Pembayaran:* Rp ${Number(orderData.totalAmount).toLocaleString('id-ID')}
-*Metode:* Bayar Tunai saat Pengambilan di Gudang Koperasi
-
-Mohon dipersiapkan komoditas tersebut. Terima kasih!`;
-
-    window.open(`https://wa.me/${adminPhone}?text=${encodeURIComponent(message)}`, '_blank');
-  };
-
   // ==========================================
   // 2. STATE & HANDLERS: SEWA ALAT PERTANIAN
   // ==========================================
   const [rentalCartItems, setRentalCartItems] = useState<RentalCartItem[]>([]);
   const [isLoadedRental, setIsLoadedRental] = useState(false);
-  const [rentalStartDate, setRentalStartDate] = useState(
-    new Date().toISOString().split('T')[0]
-  );
-  const [rentalLokasiLahan, setRentalLokasiLahan] = useState(user?.address || '');
-  const [rentalCatatan, setRentalCatatan] = useState('');
-  const [isSubmittingRental, setIsSubmittingRental] = useState(false);
-  const [isRentalCheckoutModalOpen, setIsRentalCheckoutModalOpen] = useState(false);
-  const [rentalOrderError, setRentalOrderError] = useState<string | null>(null);
-  const [createdRentalResult, setCreatedRentalResult] = useState<any | null>(null);
 
   // Sync Rental Cart from LocalStorage
   const syncRentalCart = useCallback(() => {
@@ -294,11 +174,7 @@ Mohon dipersiapkan komoditas tersebut. Terima kasih!`;
     };
   }, [syncRentalCart]);
 
-  useEffect(() => {
-    if (user?.address) {
-      setRentalLokasiLahan(user.address);
-    }
-  }, [user]);
+
 
   // Update Quantity Unit Alat
   const handleUpdateRentalQty = (id: string, delta: number) => {
@@ -354,65 +230,7 @@ Mohon dipersiapkan komoditas tersebut. Terima kasih!`;
     return rentalCartItems.reduce((acc, curr) => acc + (curr.jumlahUnit || 1), 0);
   }, [rentalCartItems]);
 
-  // Submit Pengajuan Sewa Multi-Alat (Menunggu Persetujuan Admin Koperasi)
-  const handleConfirmRentalOrder = async () => {
-    if (!user) {
-      router.push(`/login?callbackUrl=${encodeURIComponent('/cart?tab=sewa-alat')}`);
-      throw new Error('Silakan masuk akun terlebih dahulu');
-    }
 
-    if (rentalCartItems.length === 0) {
-      throw new Error('Keranjang sewa alat masih kosong.');
-    }
-
-    if (!rentalStartDate) {
-      throw new Error('Tentukan tanggal mulai pemakaian sewa.');
-    }
-
-    try {
-      setIsSubmittingRental(true);
-      setRentalOrderError(null);
-      const res = await fetch('/api/equipments/rent', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          startDate: rentalStartDate,
-          lokasiLahan: rentalLokasiLahan,
-          catatan: rentalCatatan,
-          items: rentalCartItems.map((it) => ({
-            equipmentId: it.equipmentId,
-            durasi: it.durasi,
-            jumlahUnit: it.jumlahUnit,
-            includeOperator: it.includeOperator,
-          })),
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Gagal mengirim pengajuan sewa ke koperasi');
-      }
-
-      clearRentalCart();
-      setRentalCartItems([]);
-      setIsRentalCheckoutModalOpen(false);
-      setCreatedRentalResult(data);
-
-      showToast({
-        title: 'Pengajuan Sewa Terkirim',
-        message: `Pengajuan sewa #${data.rentalCode} berhasil diajukan dan menunggu persetujuan admin.`,
-        type: 'success',
-      });
-
-      return data;
-    } catch (err: any) {
-      console.error('Error submitting rental cart:', err);
-      setRentalOrderError(err.message || 'Terjadi gangguan saat memproses sewa alat.');
-      throw err;
-    } finally {
-      setIsSubmittingRental(false);
-    }
-  };
 
   const isLoaded = activeTab === 'toko' ? isLoadedToko : isLoadedRental;
 
@@ -668,7 +486,13 @@ Mohon dipersiapkan komoditas tersebut. Terima kasih!`;
 
                   <button
                     type="button"
-                    onClick={() => setIsCheckoutModalOpen(true)}
+                    onClick={() => {
+                      if (!user) {
+                        router.push(`/login?callbackUrl=${encodeURIComponent('/checkout/toko')}`);
+                        return;
+                      }
+                      router.push('/checkout/toko');
+                    }}
                     className="w-full py-3 px-4 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs transition cursor-pointer"
                   >
                     <span>Lanjut ke Konfirmasi Pengambilan</span>
@@ -892,10 +716,10 @@ Mohon dipersiapkan komoditas tersebut. Terima kasih!`;
                     type="button"
                     onClick={() => {
                       if (!user) {
-                        router.push(`/login?callbackUrl=${encodeURIComponent('/cart?tab=sewa-alat')}`);
+                        router.push(`/login?callbackUrl=${encodeURIComponent('/checkout/sewa-alat')}`);
                         return;
                       }
-                      setIsRentalCheckoutModalOpen(true);
+                      router.push('/checkout/sewa-alat');
                     }}
                     className="w-full py-3 px-4 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs transition cursor-pointer"
                   >
@@ -908,246 +732,6 @@ Mohon dipersiapkan komoditas tersebut. Terima kasih!`;
           )
         )}
       </main>
-
-      {/* MODAL CHECKOUT TOKO ONLINE: AMBIL DI KASIR GUDANG TUNAI */}
-      <Dialog open={isCheckoutModalOpen} onOpenChange={setIsCheckoutModalOpen}>
-        <DialogContent className="max-w-md p-5 sm:p-6 rounded-3xl">
-          <DialogHeader>
-            <DialogTitle className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
-              <PackageCheck className="w-5 h-5 text-emerald-700" />
-              <span>Konfirmasi Pengambilan & Kas Tunai</span>
-            </DialogTitle>
-            <DialogDescription className="text-xs text-slate-500 mt-1">
-              Komoditas diambil langsung di kantor & gudang Koperasi Sinar Pagi Sejahtera.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 my-2 text-xs">
-            {/* Lokasi Gudang */}
-            <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-1">
-              <div className="font-bold text-slate-900 flex items-center gap-1.5">
-                <Building2 className="w-4 h-4 text-emerald-700" />
-                <span>Titik Pengambilan Resmi Koperasi:</span>
-              </div>
-              <p className="text-[11px] text-slate-600 leading-relaxed pl-5.5">
-                Koperasi Sinar Pagi Sejahtera — Jl. Raya Kolongan, Kec. Kalawat, Kabupaten Minahasa Utara, Sulawesi Utara.
-              </p>
-            </div>
-
-            {/* Metode Bayar Tunai */}
-            <div className="p-3.5 bg-emerald-50/60 border border-emerald-200 rounded-2xl flex items-start gap-3">
-              <Banknote className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
-              <div>
-                <div className="font-bold text-emerald-950">Pembayaran Tunai di Kasir Koperasi</div>
-                <div className="text-[11px] text-emerald-800/90 mt-0.5 leading-relaxed">
-                  Serahkan uang tunai pas kepada kasir koperasi pada saat serah terima barang fisik di gudang.
-                </div>
-              </div>
-            </div>
-
-            {/* Catatan Tambahan Pembeli */}
-            <div>
-              <label className="block font-bold text-slate-700 mb-1">
-                Catatan Pengambilan (Opsional)
-              </label>
-              <textarea
-                rows={2}
-                value={orderNotes}
-                onChange={(e) => setOrderNotes(e.target.value)}
-                placeholder="Contoh: Diambil sore hari sekitar jam 15:00 WITA..."
-                className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600 resize-none font-medium"
-              />
-            </div>
-
-            {/* Error Message */}
-            {orderError && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-600 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{orderError}</span>
-              </div>
-            )}
-
-            {/* Total Pembayaran & Slide to Commit */}
-            <div className="p-3.5 bg-slate-100 rounded-2xl flex justify-between items-baseline font-black">
-              <span className="text-slate-700">Total Tagihan Tunai:</span>
-              <span className="text-base text-emerald-900">
-                Rp {finalTotalAmount.toLocaleString('id-ID')}
-              </span>
-            </div>
-
-            <div className="pt-2">
-              <SlideCommit
-                label="Geser untuk Buat Pesanan Resmi"
-                onConfirm={handleConfirmOrder}
-                disabled={isSubmittingOrder}
-                className="w-full"
-              />
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* ======================================================== */}
-      {/* MODAL 2: CHECKOUT SEWA ALAT (APPROVAL ADMIN KOPERASI)    */}
-      {/* ======================================================== */}
-      <Dialog open={isRentalCheckoutModalOpen} onOpenChange={setIsRentalCheckoutModalOpen}>
-        <DialogContent className="max-w-md p-5 sm:p-6 rounded-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
-              <Tractor className="w-5 h-5 text-emerald-700" />
-              <span>Konfirmasi Pengajuan Sewa Alat</span>
-            </DialogTitle>
-            <DialogDescription className="text-xs text-slate-500 mt-1">
-              Pengajuan sewa memerlukan persetujuan admin koperasi terlebih dahulu untuk pengecekan unit.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 my-2 text-xs">
-            {/* Banner Informasi Persetujuan Admin Koperasi */}
-            <div className="p-3 bg-amber-50/80 border border-amber-200/90 rounded-2xl flex items-start gap-2.5">
-              <Clock className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
-              <div className="text-[11px] text-amber-900 leading-relaxed">
-                <span className="font-bold">Verifikasi & Approval Admin:</span> Setelah diajukan, Admin Koperasi akan memeriksa ketersediaan teknis dan jadwal mesin sebelum unit diserahkan.
-              </div>
-            </div>
-
-            {/* Input Mulai Tanggal Sewa */}
-            <div>
-              <label className="block font-bold text-slate-700 mb-1">
-                Mulai Tanggal Penggunaan <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="date"
-                required
-                value={rentalStartDate}
-                onChange={(e) => setRentalStartDate(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600 font-semibold text-xs text-slate-800"
-              />
-            </div>
-
-            {/* Input Lokasi Lahan Kebun dengan Preview Maps & Deteksi GPS */}
-            <LocationMapPreview
-              value={rentalLokasiLahan}
-              onChange={setRentalLokasiLahan}
-              required={false}
-            />
-
-            {/* Catatan Kebutuhan Tambahan */}
-            <div>
-              <label className="block font-bold text-slate-700 mb-1">
-                Catatan Tambahan (Opsional)
-              </label>
-              <textarea
-                rows={2}
-                value={rentalCatatan}
-                onChange={(e) => setRentalCatatan(e.target.value)}
-                placeholder="Instruksi tambahan, implemen traktor rotary, jam pemakaian..."
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600 resize-none font-medium text-xs text-slate-800"
-              />
-            </div>
-
-            {/* Error Message */}
-            {rentalOrderError && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-600 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{rentalOrderError}</span>
-              </div>
-            )}
-
-            {/* Total Pembayaran & Slide to Commit */}
-            <div className="p-3.5 bg-slate-100 rounded-2xl flex justify-between items-baseline font-black">
-              <span className="text-slate-700">Total Estimasi Sewa:</span>
-              <span className="text-base text-emerald-900">
-                Rp {totalRentalAmount.toLocaleString('id-ID')}
-              </span>
-            </div>
-
-            <div className="pt-2">
-              <SlideCommit
-                label="Geser untuk Ajukan Sewa Alat"
-                onConfirm={handleConfirmRentalOrder}
-                disabled={isSubmittingRental}
-                className="w-full"
-              />
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* ======================================================== */}
-      {/* MODAL 3: SUKSES PENGAJUAN SEWA ALAT (APPROVAL PENDING)   */}
-      {/* ======================================================== */}
-      <Dialog
-        open={Boolean(createdRentalResult)}
-        onOpenChange={(open) => !open && setCreatedRentalResult(null)}
-      >
-        <DialogContent className="max-w-md p-5 sm:p-6 rounded-3xl text-center">
-          <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto mb-3">
-            <PackageCheck className="w-7 h-7" />
-          </div>
-
-          <DialogTitle className="text-lg font-extrabold text-slate-900">
-            Pengajuan Sewa Berhasil Dikirim!
-          </DialogTitle>
-
-          <div className="inline-flex items-center gap-1.5 mt-1.5 px-3 py-1 bg-amber-50 border border-amber-200 rounded-full text-xs font-bold text-amber-800 mx-auto">
-            <Clock className="w-3.5 h-3.5 text-amber-600" />
-            <span>Menunggu Persetujuan Admin Koperasi</span>
-          </div>
-
-          <DialogDescription className="text-xs text-slate-500 max-w-sm mx-auto mt-2 leading-relaxed">
-            Pengajuan sewa alat dengan kode <strong className="text-slate-800">#{createdRentalResult?.rentalCode}</strong> telah masuk ke antrean verifikasi pengurus koperasi.
-          </DialogDescription>
-
-          <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl my-4 text-left text-xs space-y-2">
-            <div className="flex justify-between">
-              <span className="text-slate-500">Mulai Tanggal:</span>
-              <span className="font-semibold text-slate-800">{rentalStartDate}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-500">Metode Bayar:</span>
-              <span className="font-semibold text-slate-800">Tunai Kasir Koperasi</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-500">Lokasi Kebun:</span>
-              <span className="font-semibold text-slate-800 truncate max-w-[200px]">
-                {rentalLokasiLahan || 'Kantor Koperasi'}
-              </span>
-            </div>
-            <div className="flex justify-between border-t border-slate-200 pt-2 font-black">
-              <span className="text-slate-700">Total Estimasi:</span>
-              <span className="text-emerald-800 text-sm">
-                Rp {Number(createdRentalResult?.totalEstimasi || 0).toLocaleString('id-ID')}
-              </span>
-            </div>
-          </div>
-
-          <div className="space-y-2 pt-1">
-            {createdRentalResult?.waUrl && (
-              <a
-                href={createdRentalResult.waUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full py-2.5 px-4 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition cursor-pointer"
-              >
-                <MessageCircle className="w-4 h-4 text-emerald-200" />
-                <span>Konfirmasi via WhatsApp Pengurus</span>
-              </a>
-            )}
-
-            <button
-              type="button"
-              onClick={() => {
-                setCreatedRentalResult(null);
-                router.push('/pesanan');
-              }}
-              className="w-full py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs transition cursor-pointer"
-            >
-              Lihat Status di Halaman Pesanan
-            </button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
