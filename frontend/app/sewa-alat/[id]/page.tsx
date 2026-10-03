@@ -317,7 +317,7 @@ export default function EquipmentDetailPage({
 
           {/* Quick Cart Button */}
           <Link
-            href="/sewa-alat#keranjang-sewa"
+            href="/cart?tab=sewa-alat"
             className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition shadow-xs"
           >
             <ShoppingCart className="w-4 h-4" />

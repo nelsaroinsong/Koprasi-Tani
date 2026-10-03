@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import {
   User as UserIcon,
   ChevronDown,
@@ -37,6 +37,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { getCart, saveCart, clearCart } from '@/lib/cart';
+import { getRentalCart } from '@/lib/rental-cart';
 import {
   Dialog,
   DialogContent,
@@ -47,6 +48,8 @@ import {
 
 export default function UserProfileDropdown() {
   const router = useRouter();
+  const pathname = usePathname();
+  const isCartActive = pathname === '/cart' || pathname.startsWith('/cart');
   const { user, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [activeModal, setActiveModal] = useState<string | null>(null);
@@ -117,8 +120,10 @@ export default function UserProfileDropdown() {
     try {
       const items = getCart(user);
       setCartItems(items);
-      const totalQty = items.reduce((sum: number, item: any) => sum + (Number(item.quantity) || 1), 0);
-      setCartCount(totalQty);
+      const totalToko = items.reduce((sum: number, item: any) => sum + (Number(item.quantity) || 1), 0);
+      const rentalItems = getRentalCart();
+      const totalRental = rentalItems.reduce((sum: number, item: any) => sum + (Number(item.jumlahUnit) || 1), 0);
+      setCartCount(totalToko + totalRental);
     } catch {
       setCartItems([]);
       setCartCount(0);
@@ -143,7 +148,11 @@ export default function UserProfileDropdown() {
     syncCart();
     const handleCartEvent = () => syncCart();
     window.addEventListener('cart-updated', handleCartEvent);
-    return () => window.removeEventListener('cart-updated', handleCartEvent);
+    window.addEventListener('rental-cart-updated', handleCartEvent);
+    return () => {
+      window.removeEventListener('cart-updated', handleCartEvent);
+      window.removeEventListener('rental-cart-updated', handleCartEvent);
+    };
   }, [syncCart]);
 
   useEffect(() => {
@@ -277,12 +286,20 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
         <Link
           href="/cart"
           prefetch={true}
-          className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 flex items-center justify-center transition border border-slate-200 cursor-pointer shadow-2xs group"
+          className={`relative w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition border cursor-pointer shadow-2xs group ${
+            isCartActive
+              ? 'bg-emerald-700 text-white border-emerald-700 shadow-xs'
+              : 'bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border-slate-200'
+          }`}
           title="Keranjang Belanja"
         >
-          <ShoppingCart className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5 group-hover:scale-110 transition-transform" />
+          <ShoppingCart className={`w-3.5 h-3.5 sm:w-4.5 sm:h-4.5 group-hover:scale-110 transition-transform ${isCartActive ? 'text-white' : ''}`} />
           {cartCount > 0 && (
-            <span className="absolute -top-1 -right-1 w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-amber-500 text-white font-bold text-[8px] sm:text-[10px] flex items-center justify-center shadow-xs ring-2 ring-white">
+            <span
+              className={`absolute -top-1 -right-1 w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full font-bold text-[8px] sm:text-[10px] flex items-center justify-center shadow-xs ring-2 ${
+                isCartActive ? 'bg-amber-400 text-slate-900 ring-emerald-700' : 'bg-amber-500 text-white ring-white'
+              }`}
+            >
               {cartCount}
             </span>
           )}

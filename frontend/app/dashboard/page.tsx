@@ -99,7 +99,7 @@ export default function DashboardPetaniPage() {
         router.replace('/profile');
       }
     }
-  }, [user, authLoading, router]);
+  }, [user?.role, user?.isVerified, user?.isOnboarded, Boolean(user), authLoading, router]);
 
   // Fetch Dashboard Stats & Recent Sales
   const fetchDashboardStats = useCallback(async () => {

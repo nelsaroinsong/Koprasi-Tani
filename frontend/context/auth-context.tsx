@@ -65,43 +65,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Fetch fresh profile from database via API jika session aktif
+    let isCancelled = false;
     if (status === 'authenticated' && session?.user?.email) {
       fetch('/api/user/profile')
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
-          if (data?.user) {
-            setLocalUser((prev) => {
-              if (
-                prev &&
-                prev.name === data.user.name &&
-                prev.role === data.user.role &&
-                prev.isVerified === data.user.isVerified &&
-                prev.isOnboarded === data.user.isOnboarded &&
-                prev.avatarUrl === data.user.avatarUrl &&
-                prev.phone === data.user.phone &&
-                prev.address === data.user.address
-              ) {
-                return prev;
-              }
-              const merged = { ...prev, ...data.user };
-              try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
-                window.dispatchEvent(new CustomEvent('user-updated'));
-              } catch {}
-              if (updateSession && data.user.isVerified !== (session?.user as any)?.isVerified) {
-                updateSession({ user: data.user }).catch(() => {});
-              }
-              return merged;
-            });
-          }
+          if (isCancelled || !data?.user) return;
+          setLocalUser((prev) => {
+            if (
+              prev &&
+              prev.name === data.user.name &&
+              prev.role === data.user.role &&
+              prev.isVerified === data.user.isVerified &&
+              prev.isOnboarded === data.user.isOnboarded &&
+              prev.avatarUrl === data.user.avatarUrl &&
+              prev.phone === data.user.phone &&
+              prev.address === data.user.address
+            ) {
+              return prev;
+            }
+            const merged = { ...prev, ...data.user };
+            try {
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+            } catch {}
+            return merged;
+          });
         })
         .catch(() => {});
     }
 
     return () => {
+      isCancelled = true;
       window.removeEventListener('pageshow', handlePageShow);
     };
-  }, [status, session?.user?.email, updateSession]);
+  }, [status, session?.user?.email]);
 
   // Bersihkan data lokal ketika status sesi menjadi unauthenticated
   useEffect(() => {
@@ -118,7 +115,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
-          setLocalUser(JSON.parse(saved));
+          const parsed = JSON.parse(saved);
+          setLocalUser((prev) => {
+            if (!prev) return parsed;
+            // Cegah loop re-render jika data identik
+            if (
+              prev.id === parsed.id &&
+              prev.name === parsed.name &&
+              prev.email === parsed.email &&
+              prev.role === parsed.role &&
+              prev.isVerified === parsed.isVerified &&
+              prev.isOnboarded === parsed.isOnboarded &&
+              prev.avatarUrl === parsed.avatarUrl &&
+              prev.phone === parsed.phone &&
+              prev.address === parsed.address
+            ) {
+              return prev;
+            }
+            return parsed;
+          });
         }
       } catch {}
     };

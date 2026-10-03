@@ -13,7 +13,7 @@ import {
 import { useAuth } from '@/context/auth-context';
 
 interface BottomNavProps {
-  activePage?: 'toko' | 'sewa-alat' | 'pesanan' | 'dashboard' | 'profile' | 'beranda';
+  activePage?: 'toko' | 'sewa-alat' | 'pesanan' | 'dashboard' | 'profile' | 'beranda' | 'cart';
 }
 
 export default function BottomNav({ activePage }: BottomNavProps) {

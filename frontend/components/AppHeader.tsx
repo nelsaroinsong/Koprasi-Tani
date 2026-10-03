@@ -9,7 +9,7 @@ import { useAuth } from '@/context/auth-context';
 import BottomNav from '@/components/BottomNav';
 
 interface AppHeaderProps {
-  activePage?: 'toko' | 'sewa-alat' | 'pesanan' | 'dashboard' | 'profile' | 'beranda';
+  activePage?: 'toko' | 'sewa-alat' | 'pesanan' | 'dashboard' | 'profile' | 'beranda' | 'cart';
 }
 
 export default function AppHeader({ activePage }: AppHeaderProps) {
@@ -19,6 +19,7 @@ export default function AppHeader({ activePage }: AppHeaderProps) {
   // Deteksi halaman aktif secara otomatis berdasarkan pathname jika props tidak spesifik
   const currentActive = useMemo(() => {
     if (activePage && activePage !== 'beranda') return activePage;
+    if (pathname === '/cart' || pathname.startsWith('/cart')) return 'cart';
     if (pathname.startsWith('/dashboard')) return 'dashboard';
     if (pathname.startsWith('/pesanan')) return 'pesanan';
     if (pathname.startsWith('/profile') || pathname.startsWith('/profil')) return 'profile';
@@ -128,10 +129,14 @@ export default function AppHeader({ activePage }: AppHeaderProps) {
             <Link
               href="/cart"
               prefetch={true}
-              className="relative w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 flex items-center justify-center transition border border-slate-200 cursor-pointer shadow-2xs group"
+              className={`relative w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition border cursor-pointer shadow-2xs group ${
+                currentActive === 'cart'
+                  ? 'bg-emerald-700 text-white border-emerald-700 shadow-xs'
+                  : 'bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border-slate-200'
+              }`}
               title="Keranjang Belanja"
             >
-              <ShoppingCart className="w-3.5 h-3.5 sm:w-4 sm:h-4 group-hover:scale-110 transition-transform" />
+              <ShoppingCart className={`w-3.5 h-3.5 sm:w-4 sm:h-4 group-hover:scale-110 transition-transform ${currentActive === 'cart' ? 'text-white' : ''}`} />
             </Link>
           )}
 

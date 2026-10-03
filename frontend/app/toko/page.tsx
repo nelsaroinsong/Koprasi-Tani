@@ -181,7 +181,7 @@ export default function TokoOnlinePage() {
           });
       }
     }
-  }, [user, authLoading, router]);
+  }, [user?.role, user?.isVerified, user?.isOnboarded, Boolean(user), authLoading, router]);
 
   // Fetch Products (Halaman 1 / Reset - 30 item pertama)
   const fetchProducts = useCallback(async (silent = false) => {
