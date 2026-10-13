@@ -28,7 +28,7 @@ export async function GET(request: Request) {
       });
     }
 
-    const cacheKey = `search:v2:${query.toLowerCase()}:${limit}`;
+    const cacheKey = `search:v4:${query.toLowerCase()}:${limit}`;
     const cached = await getCache<any>(cacheKey);
     if (cached) {
       return NextResponse.json(cached);
@@ -126,15 +126,18 @@ export async function GET(request: Request) {
       return list;
     })();
 
-    // 3. Search Users (Petani Mitra & Anggota Pembeli)
+    // 3. Search Users (Hanya Petani Mitra & Anggota Pembeli, HANYA MENGGUNAKAN NAMA, TIDAK BOLEH ADMIN)
     const usersPromise = prisma.user.findMany({
       where: {
         isActive: true,
-        OR: [
-          { name: { contains: query, mode: 'insensitive' } },
-          { email: { contains: query, mode: 'insensitive' } },
-          { address: { contains: query, mode: 'insensitive' } },
+        role: { in: ['PETANI', 'PEMBELI'] },
+        NOT: [
+          { role: 'ADMIN' },
+          { email: { contains: 'admin', mode: 'insensitive' } },
+          { name: { contains: 'Administrator', mode: 'insensitive' } },
+          { name: { contains: 'admin', mode: 'insensitive' } },
         ],
+        name: { contains: query, mode: 'insensitive' },
       },
       select: {
         id: true,
@@ -171,17 +174,26 @@ export async function GET(request: Request) {
       hargaSewa: Number(e.hargaSewa),
     }));
 
-    const formattedUsers = users.map((u: any) => ({
-      id: u.id,
-      name: u.name,
-      email: u.email,
-      role: u.role,
-      address: u.address,
-      avatarUrl: u.avatarUrl,
-      isVerified: u.isVerified,
-      totalProduk: u._count.products,
-      followersCount: u._count.followers,
-    }));
+    // Filter ketat memastikan tidak ada akun admin sama sekali
+    const formattedUsers = users
+      .filter((u: any) => {
+        if (u.role === 'ADMIN') return false;
+        const nameLower = (u.name || '').toLowerCase();
+        const emailLower = (u.email || '').toLowerCase();
+        if (nameLower.includes('admin') || emailLower.includes('admin')) return false;
+        return true;
+      })
+      .map((u: any) => ({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        role: u.role,
+        address: u.address,
+        avatarUrl: u.avatarUrl,
+        isVerified: u.isVerified,
+        totalProduk: u._count.products,
+        followersCount: u._count.followers,
+      }));
 
     const responseData = {
       success: true,
