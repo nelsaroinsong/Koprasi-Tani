@@ -256,7 +256,7 @@ function SearchPageContent() {
         {isLoading && (
           <div className="py-20 flex flex-col items-center justify-center gap-2">
             <Loader2 className="w-8 h-8 text-emerald-700 animate-spin" />
-            <span className="text-xs text-slate-500 font-semibold">Mencari di seluruh database...</span>
+            <span className="text-xs text-slate-500 font-semibold">Loading...</span>
           </div>
         )}
 

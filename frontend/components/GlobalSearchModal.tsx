@@ -33,17 +33,6 @@ interface FlattenedSearchItem {
 
 const SEARCH_HISTORY_KEY = 'koperasi_search_history';
 
-// Daftar Populer Search (Sesuai Referensi Tokopedia Gambar 2)
-const POPULAR_SEARCHES = [
-  'Jagung Manis',
-  'Kelapa Butir',
-  'Traktor Roda 4',
-  'Pupuk Organik',
-  'Mesin Perontok Padi',
-  'Kopra Kering',
-  'Bibit Jagung Hibrida',
-];
-
 function getStoredSearchHistory(): string[] {
   if (typeof window === 'undefined') return [];
   try {
@@ -74,13 +63,29 @@ export default function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModal
   const [query, setQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [users, setUsers] = useState<any[]>([]);
+  const [popularSearches, setPopularSearches] = useState<string[]>([]);
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const [selectedIndex, setSelectedIndex] = useState<number>(-1);
 
-  // Load search history dan focus input saat modal dibuka
+  // Load search history, popular searches riil dari API, dan focus input saat modal dibuka
   useEffect(() => {
     if (isOpen) {
       setSearchHistory(getStoredSearchHistory());
+
+      // Ambil data pencarian populer riil (berdasarkan seberapa sering dicari)
+      fetch('/api/search/popular')
+        .then((r) => r.json())
+        .then((data) => {
+          if (data && Array.isArray(data.terms)) {
+            setPopularSearches(data.terms);
+          } else {
+            setPopularSearches([]);
+          }
+        })
+        .catch(() => {
+          setPopularSearches([]);
+        });
+
       setTimeout(() => {
         inputRef.current?.focus();
       }, 50);
@@ -138,16 +143,16 @@ export default function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModal
     );
   }, [users, query]);
 
-  // Saran kata kunci populer yang cocok dengan huruf yang diketik (Gaya Gambar 1 Tokopedia)
+  // Saran kata kunci populer yang cocok dengan huruf yang diketik
   const matchingPopularSuggestions = useMemo(() => {
     const qLower = query.toLowerCase().trim();
-    if (!qLower) return [];
-    return POPULAR_SEARCHES.filter(
+    if (!qLower || popularSearches.length === 0) return [];
+    return popularSearches.filter(
       (term) =>
         term.toLowerCase().includes(qLower) &&
         term.toLowerCase() !== qLower
     ).slice(0, 3);
-  }, [query]);
+  }, [query, popularSearches]);
 
   // Flattened item list untuk navigasi keyboard
   const flattenedItems: FlattenedSearchItem[] = useMemo(() => {
@@ -162,7 +167,7 @@ export default function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModal
         url: `/search?q=${encodeURIComponent(query.trim())}`,
       });
 
-      // 2. Saran Populer yang Cocok (seperti Gambar 1)
+      // 2. Saran Populer yang Cocok (hanya jika ada data pencarian riil)
       matchingPopularSuggestions.forEach((term) => {
         list.push({
           id: `query-pop-${term}`,
@@ -186,7 +191,7 @@ export default function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModal
         });
       });
     } else {
-      // Saat belum mengetik: item riwayat + item populer
+      // Saat belum mengetik: item riwayat + item populer riil (jika ada)
       searchHistory.forEach((h) => {
         list.push({
           id: `hist-${h}`,
@@ -196,7 +201,7 @@ export default function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModal
         });
       });
 
-      POPULAR_SEARCHES.forEach((p) => {
+      popularSearches.forEach((p) => {
         list.push({
           id: `pop-${p}`,
           type: 'query',
@@ -207,15 +212,23 @@ export default function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModal
     }
 
     return list;
-  }, [safeUsers, query, matchingPopularSuggestions, searchHistory]);
+  }, [safeUsers, query, matchingPopularSuggestions, searchHistory, popularSearches]);
 
-  // Menangani submit pencarian menuju halaman /search?q=... dan menyimpan ke history
+  // Menangani submit pencarian menuju halaman /search?q=... dan menyimpan ke history serta mencatat frekuensi
   const handleGoToSearchPage = useCallback(
     (customQuery?: string) => {
       const q = customQuery !== undefined ? customQuery : query;
       if (!q.trim()) return;
       saveStoredSearchHistory(q.trim());
       setSearchHistory(getStoredSearchHistory());
+
+      // Catat pencarian ke API untuk mengukur kepopuleran
+      fetch('/api/search/popular', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: q.trim() }),
+      }).catch(() => {});
+
       onClose();
       router.push(`/search?q=${encodeURIComponent(q.trim())}`);
     },
@@ -326,7 +339,7 @@ export default function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModal
 
         {/* Search Content Body (Gaya Asli Tokopedia Gambar 1 & Gambar 2) */}
         <div className="max-h-[70vh] sm:max-h-[60vh] overflow-y-auto p-1.5 sm:p-2 divide-y divide-slate-100">
-          {/* 1. STATE BELUM MENGETIK: RIWAYAT PENCARIAN (🕒) & PENCARIAN POPULER (📈) PERSIS GAMBAR 2 */}
+          {/* 1. STATE BELUM MENGETIK: RIWAYAT PENCARIAN (🕒) & PENCARIAN POPULER RIIL (📈) */}
           {query.trim().length === 0 && (
             <div className="space-y-0.5">
               {/* Item Riwayat Terakhir (Clock Icon 🕒) */}
@@ -366,30 +379,31 @@ export default function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModal
                 );
               })}
 
-              {/* Item Pencarian Populer / Trending (TrendingUp Icon 📈) Persis Gambar 2 */}
-              {POPULAR_SEARCHES.map((popItem) => {
-                const itemIndex = flattenedItems.findIndex((it) => it.id === `pop-${popItem}`);
-                const isSelected = itemIndex === selectedIndex;
+              {/* Item Pencarian Populer / Trending Riil (HANYA DITAMPILKAN JIKA SUDAH ADA DATA PENCARIAN) */}
+              {popularSearches.length > 0 &&
+                popularSearches.map((popItem) => {
+                  const itemIndex = flattenedItems.findIndex((it) => it.id === `pop-${popItem}`);
+                  const isSelected = itemIndex === selectedIndex;
 
-                return (
-                  <div
-                    key={popItem}
-                    onClick={() => handleGoToSearchPage(popItem)}
-                    className={`group flex items-center px-3 py-2.5 rounded-xl transition cursor-pointer ${
-                      isSelected
-                        ? 'bg-emerald-50/90 text-emerald-900'
-                        : 'hover:bg-slate-50 text-slate-800'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3.5 min-w-0 flex-1">
-                      <TrendingUp className="w-4 h-4 text-slate-400 group-hover:text-emerald-600 transition shrink-0" />
-                      <span className="text-xs sm:text-sm font-medium group-hover:text-emerald-700 truncate transition">
-                        {popItem}
-                      </span>
+                  return (
+                    <div
+                      key={popItem}
+                      onClick={() => handleGoToSearchPage(popItem)}
+                      className={`group flex items-center px-3 py-2.5 rounded-xl transition cursor-pointer ${
+                        isSelected
+                          ? 'bg-emerald-50/90 text-emerald-900'
+                          : 'hover:bg-slate-50 text-slate-800'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                        <TrendingUp className="w-4 h-4 text-slate-400 group-hover:text-emerald-600 transition shrink-0" />
+                        <span className="text-xs sm:text-sm font-medium group-hover:text-emerald-700 truncate transition">
+                          {popItem}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
             </div>
           )}
 
@@ -420,7 +434,7 @@ export default function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModal
                 );
               })()}
 
-              {/* Saran Kata Kunci Populer yang Cocok (Ikon Search 🔍) */}
+              {/* Saran Kata Kunci Populer Riil yang Cocok (Ikon Search 🔍) */}
               {matchingPopularSuggestions.map((term) => {
                 const itemIndex = flattenedItems.findIndex((it) => it.id === `query-pop-${term}`);
                 const isSelected = itemIndex === selectedIndex;

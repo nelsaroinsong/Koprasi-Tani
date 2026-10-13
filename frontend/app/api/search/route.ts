@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCache, setCache } from '@/lib/redis';
 import { readEquipmentsFromFile, type EquipmentItem } from '@/lib/equipments';
+import { recordSearchTerm } from '@/lib/popular-searches';
 
 export async function GET(request: Request) {
   try {
@@ -27,6 +28,9 @@ export async function GET(request: Request) {
         },
       });
     }
+
+    // Catat statistik pencarian untuk menghitung kata kunci populer secara riil
+    recordSearchTerm(query).catch(() => {});
 
     const cacheKey = `search:v4:${query.toLowerCase()}:${limit}`;
     const cached = await getCache<any>(cacheKey);
