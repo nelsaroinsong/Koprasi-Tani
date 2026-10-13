@@ -172,176 +172,195 @@ export default function DashboardPetaniPage() {
       <AppHeader activePage="dashboard" />
 
       {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-2.5 sm:px-6 lg:px-8 py-3 sm:py-6">
-        {/* Top Header Title & Actions */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-6">
-          <div>
-            <h1 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-2.5 sm:py-6">
+        {/* Top Header Title & Actions (Refresh diatur sejajar di kanan atas) */}
+        <div className="flex items-start justify-between gap-2.5 mb-3 sm:mb-5">
+          <div className="min-w-0">
+            <h1 className="text-base sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-1.5 sm:gap-2 flex-wrap">
               <span>Dashboard Mitra Petani</span>
-              <span className="text-[10px] sm:text-xs font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
+              <span className="text-[9px] sm:text-xs font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full truncate max-w-[140px] sm:max-w-none">
                 {user.name}
               </span>
             </h1>
-            <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5">
+            <p className="text-[10px] sm:text-xs text-slate-500 mt-0.5 line-clamp-1 sm:line-clamp-none">
               Pantau stok panen Anda di gudang koperasi, komoditas terjual, dan pencairan tunai di kasir.
             </p>
           </div>
 
-          <div className="flex items-center gap-2 self-start sm:self-auto">
-            <button
-              onClick={() => {
-                fetchDashboardStats();
-                fetchMyProducts();
-              }}
-              className="p-2 sm:px-3 sm:py-2 bg-white border border-slate-200 text-slate-600 hover:text-emerald-700 hover:bg-slate-50 rounded-xl transition cursor-pointer shadow-2xs flex items-center gap-1.5 text-xs font-semibold"
-              title="Segarkan data dashboard"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isLoadingStats || isLoadingProducts ? 'animate-spin' : ''}`} />
-              <span className="hidden sm:inline">Segarkan</span>
-            </button>
-          </div>
+          <button
+            onClick={() => {
+              fetchDashboardStats();
+              fetchMyProducts();
+            }}
+            className="p-1.5 sm:px-3 sm:py-2 bg-white border border-slate-200 text-slate-600 hover:text-emerald-700 hover:bg-slate-50 rounded-lg sm:rounded-xl transition cursor-pointer shadow-2xs flex items-center gap-1.5 text-[10px] sm:text-xs font-semibold shrink-0"
+            title="Segarkan data dashboard"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoadingStats || isLoadingProducts ? 'animate-spin text-emerald-600' : ''}`} />
+            <span className="hidden sm:inline">Segarkan</span>
+          </button>
         </div>
 
-        {/* 4 KPI Summary Cards (Persis Gambar 1, Sangat Rapi & Responsif) */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-6">
+        {/* 4 KPI Summary Cards (Compact, Rapi & Tidak Mengambil Banyak Ruang di Layar HP) */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-1.5 sm:gap-4 mb-3 sm:mb-5">
           {/* Card 1: Stok di Gudang */}
-          <div className="p-3 sm:p-4 bg-white border border-slate-200/90 rounded-xl sm:rounded-2xl shadow-2xs flex flex-col justify-between">
-            <div className="flex items-center justify-between text-slate-500 mb-1.5 sm:mb-2">
-              <span className="text-[9px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate">
+          <div className="p-2 sm:p-4 bg-white border border-slate-200/90 rounded-xl sm:rounded-2xl shadow-2xs flex flex-col justify-between">
+            <div className="flex items-center justify-between text-slate-500 mb-1 sm:mb-2">
+              <span className="text-[8.5px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate">
                 Stok di Gudang
               </span>
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-                <Warehouse className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <div className="w-5.5 h-5.5 sm:w-8 sm:h-8 rounded-md sm:rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                <Warehouse className="w-3 h-3 sm:w-4 sm:h-4" />
               </div>
             </div>
             <div>
-              <div className="text-base sm:text-2xl font-black text-slate-900 leading-tight">
+              <div className="text-sm sm:text-2xl font-black text-slate-900 leading-tight">
                 {isLoadingStats ? (
                   <span className="text-slate-300 animate-pulse">...</span>
                 ) : (
                   stats.totalStokGudang.toLocaleString('id-ID')
                 )}
-                <span className="text-[10px] sm:text-xs font-semibold text-slate-400 ml-1">unit/kg</span>
+                <span className="text-[9px] sm:text-xs font-semibold text-slate-400 ml-1">unit/kg</span>
               </div>
-              <div className="text-[9px] sm:text-[10px] text-slate-400 mt-1 truncate">
+              <div className="text-[8px] sm:text-[10px] text-slate-400 mt-0.5 truncate">
                 Hasil panen fisik di gudang
               </div>
             </div>
           </div>
 
           {/* Card 2: Komoditas Terjual */}
-          <div className="p-3 sm:p-4 bg-white border border-slate-200/90 rounded-xl sm:rounded-2xl shadow-2xs flex flex-col justify-between">
-            <div className="flex items-center justify-between text-slate-500 mb-1.5 sm:mb-2">
-              <span className="text-[9px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate">
+          <div className="p-2 sm:p-4 bg-white border border-slate-200/90 rounded-xl sm:rounded-2xl shadow-2xs flex flex-col justify-between">
+            <div className="flex items-center justify-between text-slate-500 mb-1 sm:mb-2">
+              <span className="text-[8.5px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate">
                 Komoditas Terjual
               </span>
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <div className="w-5.5 h-5.5 sm:w-8 sm:h-8 rounded-md sm:rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                <ShoppingBag className="w-3 h-3 sm:w-4 sm:h-4" />
               </div>
             </div>
             <div>
-              <div className="text-base sm:text-2xl font-black text-slate-900 leading-tight">
+              <div className="text-sm sm:text-2xl font-black text-slate-900 leading-tight">
                 {isLoadingStats ? (
                   <span className="text-slate-300 animate-pulse">...</span>
                 ) : (
                   stats.totalKuantitasTerjual.toLocaleString('id-ID')
                 )}
-                <span className="text-[10px] sm:text-xs font-semibold text-slate-400 ml-1">terjual</span>
+                <span className="text-[9px] sm:text-xs font-semibold text-slate-400 ml-1">terjual</span>
               </div>
-              <div className="text-[9px] sm:text-[10px] text-slate-400 mt-1 truncate">
+              <div className="text-[8px] sm:text-[10px] text-slate-400 mt-0.5 truncate">
                 Telah laku dibeli pelanggan
               </div>
             </div>
           </div>
 
-          {/* Card 3: Cash Siap Diambil (Highlighted Border Hijau Segar) */}
-          <div className="p-3 sm:p-4 bg-gradient-to-br from-emerald-50 to-emerald-100/50 border-2 border-emerald-500/80 rounded-xl sm:rounded-2xl shadow-xs relative overflow-hidden flex flex-col justify-between">
-            <div className="flex items-center justify-between text-emerald-800 mb-1.5 sm:mb-2">
-              <span className="text-[9px] sm:text-[11px] font-extrabold uppercase tracking-wider text-emerald-800 truncate">
+          {/* Card 3: Cash Siap Diambil */}
+          <div className="p-2 sm:p-4 bg-gradient-to-br from-emerald-50 to-emerald-100/50 border border-emerald-500/80 sm:border-2 rounded-xl sm:rounded-2xl shadow-xs relative overflow-hidden flex flex-col justify-between">
+            <div className="flex items-center justify-between text-emerald-800 mb-1 sm:mb-2">
+              <span className="text-[8.5px] sm:text-[11px] font-extrabold uppercase tracking-wider text-emerald-800 truncate">
                 Cash Siap Diambil
               </span>
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs shrink-0">
-                <Coins className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <div className="w-5.5 h-5.5 sm:w-8 sm:h-8 rounded-md sm:rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs shrink-0">
+                <Coins className="w-3 h-3 sm:w-4 sm:h-4" />
               </div>
             </div>
             <div>
-              <div className="text-base sm:text-2xl font-black text-emerald-900 leading-tight">
+              <div className="text-sm sm:text-2xl font-black text-emerald-900 leading-tight">
                 {isLoadingStats ? (
                   <span className="text-slate-300 animate-pulse">...</span>
                 ) : (
                   `Rp ${stats.cashSiapDiambil.toLocaleString('id-ID')}`
                 )}
               </div>
-              <div className="text-[9px] sm:text-[10px] font-bold text-emerald-700 mt-1 flex items-center gap-1 truncate">
-                <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+              <div className="text-[8px] sm:text-[10px] font-bold text-emerald-700 mt-0.5 flex items-center gap-1 truncate">
+                <CheckCircle2 className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-emerald-600 shrink-0" />
                 <span className="truncate">Ambil di kasir koperasi</span>
               </div>
             </div>
           </div>
 
           {/* Card 4: Riwayat Cash Diterima */}
-          <div className="p-3 sm:p-4 bg-white border border-slate-200/90 rounded-xl sm:rounded-2xl shadow-2xs flex flex-col justify-between">
-            <div className="flex items-center justify-between text-slate-500 mb-1.5 sm:mb-2">
-              <span className="text-[9px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate">
+          <div className="p-2 sm:p-4 bg-white border border-slate-200/90 rounded-xl sm:rounded-2xl shadow-2xs flex flex-col justify-between">
+            <div className="flex items-center justify-between text-slate-500 mb-1 sm:mb-2">
+              <span className="text-[8.5px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate">
                 Riwayat Cash Diterima
               </span>
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
-                <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <div className="w-5.5 h-5.5 sm:w-8 sm:h-8 rounded-md sm:rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
+                <Check className="w-3 h-3 sm:w-4 sm:h-4" />
               </div>
             </div>
             <div>
-              <div className="text-base sm:text-2xl font-black text-slate-900 leading-tight">
+              <div className="text-sm sm:text-2xl font-black text-slate-900 leading-tight">
                 {isLoadingStats ? (
                   <span className="text-slate-300 animate-pulse">...</span>
                 ) : (
                   `Rp ${stats.cashSudahDiterima.toLocaleString('id-ID')}`
                 )}
               </div>
-              <div className="text-[9px] sm:text-[10px] text-slate-400 mt-1 truncate">
+              <div className="text-[8px] sm:text-[10px] text-slate-400 mt-0.5 truncate">
                 Total keuntungan cair
               </div>
             </div>
           </div>
         </div>
 
-        {/* Section Navigation Tabs: Komoditas di Gudang vs Riwayat Penjualan */}
-        <div className="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
-          <div className="inline-flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200/80">
+        {/* Section Navigation Tabs & Search: Hasil Panen vs Riwayat Penjualan */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 mb-3 sm:mb-4 border-b border-slate-200">
+          <div className="grid grid-cols-2 sm:inline-flex p-1 bg-slate-200/50 sm:bg-slate-100 rounded-xl sm:border sm:border-slate-200/80 shrink-0">
             <button
+              type="button"
               onClick={() => setActiveSection('PANEN')}
-              className={`inline-flex items-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+              className={`inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-4 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition cursor-pointer ${
                 activeSection === 'PANEN'
                   ? 'bg-emerald-700 text-white shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <Warehouse className="w-3.5 h-3.5" />
-              <span>Hasil Panen di Gudang ({myProducts.length})</span>
+              <span><span className="hidden xs:inline sm:inline">Hasil </span>Panen</span>
+              <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-black ${
+                activeSection === 'PANEN' ? 'bg-white/20 text-white' : 'bg-slate-300/80 sm:bg-slate-200 text-slate-700'
+              }`}>
+                {myProducts.length}
+              </span>
             </button>
 
             <button
+              type="button"
               onClick={() => setActiveSection('PENJUALAN')}
-              className={`inline-flex items-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+              className={`inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-4 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition cursor-pointer ${
                 activeSection === 'PENJUALAN'
                   ? 'bg-emerald-700 text-white shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <Receipt className="w-3.5 h-3.5" />
-              <span>Riwayat Penjualan ({recentSales.length})</span>
+              <span>Penjualan</span>
+              <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-black ${
+                activeSection === 'PENJUALAN' ? 'bg-white/20 text-white' : 'bg-slate-300/80 sm:bg-slate-200 text-slate-700'
+              }`}>
+                {recentSales.length}
+              </span>
             </button>
           </div>
 
           {activeSection === 'PANEN' && (
-            <div className="relative max-w-xs hidden sm:block">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <div className="relative w-full sm:w-60 md:w-72 shrink-0">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 placeholder="Cari panen saya..."
                 value={searchProductQuery}
                 onChange={(e) => setSearchProductQuery(e.target.value)}
-                className="pl-8 pr-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-600 shadow-2xs w-48"
+                className="w-full pl-8 pr-7 py-1.5 text-[11px] sm:text-xs bg-white border border-slate-200 rounded-lg sm:rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600 shadow-2xs"
               />
+              {searchProductQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchProductQuery('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-[10px] sm:text-xs font-bold"
+                >
+                  ✕
+                </button>
+              )}
             </div>
           )}
         </div>
