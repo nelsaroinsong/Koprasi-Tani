@@ -30,6 +30,9 @@ import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
 import { getCart, saveCart } from '@/lib/cart';
 
+// Cache instan client-side untuk navigasi cepat (0ms buka halaman saat sudah pernah dibuka)
+const farmerStoreCache = new Map<string, any>();
+
 export default function PetaniStorePage({
   params,
 }: {
@@ -41,8 +44,9 @@ export default function PetaniStorePage({
   const { user } = useAuth();
   const { showToast } = useToast();
 
-  const [storeData, setStoreData] = useState<any | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const cached = farmerStoreCache.get(petaniId);
+  const [storeData, setStoreData] = useState<any | null>(cached || null);
+  const [isLoading, setIsLoading] = useState(!cached);
   const [error, setError] = useState<string | null>(null);
 
   // Tabs: 'PRODUK' | 'ULASAN'
@@ -54,13 +58,15 @@ export default function PetaniStorePage({
   const [searchQuery, setSearchQuery] = useState('');
 
   // Follow State
-  const [isFollowed, setIsFollowed] = useState(false);
-  const [followersCount, setFollowersCount] = useState(0);
+  const [isFollowed, setIsFollowed] = useState(Boolean(cached?.petani?.isFollowed));
+  const [followersCount, setFollowersCount] = useState(cached?.petani?.followersCount || 0);
   const [isFollowLoading, setIsFollowLoading] = useState(false);
 
-  const fetchStoreData = useCallback(async () => {
+  const fetchStoreData = useCallback(async (isSilent = false) => {
     try {
-      setIsLoading(true);
+      if (!isSilent && !farmerStoreCache.has(petaniId)) {
+        setIsLoading(true);
+      }
       setError(null);
       const res = await fetch(`/api/petani/${petaniId}`);
       if (!res.ok) {
@@ -72,20 +78,33 @@ export default function PetaniStorePage({
         return;
       }
       const data = await res.json();
+      farmerStoreCache.set(petaniId, data);
       setStoreData(data);
       setIsFollowed(Boolean(data.petani?.isFollowed));
       setFollowersCount(data.petani?.followersCount || 0);
     } catch (err) {
       console.error('Error fetching farmer profile:', err);
-      setError('Terjadi kendala saat memuat data petani.');
+      if (!farmerStoreCache.has(petaniId)) {
+        setError('Terjadi kendala saat memuat data petani.');
+      }
     } finally {
       setIsLoading(false);
     }
   }, [petaniId]);
 
   useEffect(() => {
-    fetchStoreData();
-  }, [fetchStoreData]);
+    if (farmerStoreCache.has(petaniId)) {
+      const cachedData = farmerStoreCache.get(petaniId);
+      setStoreData(cachedData);
+      setIsFollowed(Boolean(cachedData?.petani?.isFollowed));
+      setFollowersCount(cachedData?.petani?.followersCount || 0);
+      setIsLoading(false);
+      // Revalidasi di latar belakang tanpa menghambat UI
+      fetchStoreData(true);
+    } else {
+      fetchStoreData(false);
+    }
+  }, [petaniId, fetchStoreData]);
 
   const handleToggleFollow = async () => {
     if (!user) {
@@ -191,12 +210,74 @@ export default function PetaniStorePage({
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col">
-        <AppHeader activePage="toko" />
-        <div className="flex-1 flex flex-col items-center justify-center gap-3">
-          <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
-          <p className="text-xs text-slate-500 font-medium">Memuat etalase petani...</p>
+      <div className="min-h-screen bg-[#f8faf9] flex flex-col">
+        <AppHeader activePage="none" />
+
+        {/* Top Breadcrumb Skeleton */}
+        <div className="bg-white border-b border-slate-200/80 sticky top-16 z-30 shadow-2xs">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-24 h-4 bg-slate-200/80 rounded animate-pulse" />
+              <div className="w-3 h-3 bg-slate-200/80 rounded animate-pulse" />
+              <div className="w-20 h-4 bg-slate-200/80 rounded animate-pulse" />
+            </div>
+            <div className="w-16 h-4 bg-slate-200/80 rounded animate-pulse" />
+          </div>
         </div>
+
+        {/* Main Content Skeleton */}
+        <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+          {/* Header Card Skeleton */}
+          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-5 sm:p-6 lg:p-7">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-slate-200/80 animate-pulse shrink-0" />
+                <div className="space-y-2">
+                  <div className="w-40 h-6 bg-slate-200/80 rounded-md animate-pulse" />
+                  <div className="w-48 h-4 bg-slate-200/80 rounded-md animate-pulse" />
+                  <div className="flex gap-2 pt-1">
+                    <div className="w-24 h-8 bg-slate-200/80 rounded-xl animate-pulse" />
+                    <div className="w-28 h-8 bg-slate-200/80 rounded-xl animate-pulse" />
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-6">
+                <div className="w-24 h-12 bg-slate-100 rounded-xl animate-pulse" />
+                <div className="w-24 h-12 bg-slate-100 rounded-xl animate-pulse" />
+              </div>
+            </div>
+          </div>
+
+          {/* Grid Layout Skeleton */}
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
+            {/* Sidebar Skeleton */}
+            <div className="bg-white rounded-2xl border border-slate-200/90 p-4 space-y-3">
+              <div className="w-28 h-5 bg-slate-200/80 rounded animate-pulse" />
+              <div className="space-y-2">
+                <div className="w-full h-8 bg-slate-100 rounded-xl animate-pulse" />
+                <div className="w-full h-8 bg-slate-100 rounded-xl animate-pulse" />
+                <div className="w-full h-8 bg-slate-100 rounded-xl animate-pulse" />
+              </div>
+            </div>
+
+            {/* Products Grid Skeleton */}
+            <div className="lg:col-span-3 space-y-4">
+              <div className="flex justify-between items-center bg-white p-3 rounded-2xl border border-slate-200/80">
+                <div className="w-32 h-5 bg-slate-200/80 rounded animate-pulse" />
+                <div className="w-28 h-8 bg-slate-100 rounded-xl animate-pulse" />
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <div key={i} className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden space-y-2 p-2.5">
+                    <div className="w-full aspect-square bg-slate-100 rounded-xl animate-pulse" />
+                    <div className="w-3/4 h-4 bg-slate-200/80 rounded animate-pulse" />
+                    <div className="w-1/2 h-4 bg-slate-200/80 rounded animate-pulse" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </main>
       </div>
     );
   }
@@ -204,7 +285,7 @@ export default function PetaniStorePage({
   if (error || !storeData) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col">
-        <AppHeader activePage="toko" />
+        <AppHeader activePage="none" />
         <div className="flex-1 max-w-md mx-auto px-4 py-16 flex flex-col items-center text-center">
           <div className="w-16 h-16 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-4 border border-amber-200">
             <Package className="w-8 h-8" />
@@ -246,7 +327,7 @@ export default function PetaniStorePage({
 
   return (
     <div className="min-h-screen bg-[#f8faf9] flex flex-col">
-      <AppHeader activePage="toko" />
+      <AppHeader activePage="none" />
 
       {/* Top Breadcrumb */}
       <div className="bg-white border-b border-slate-200/80 sticky top-16 z-30 shadow-2xs">

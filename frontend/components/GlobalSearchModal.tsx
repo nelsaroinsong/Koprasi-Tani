@@ -472,6 +472,13 @@ export default function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModal
                         ? `/toko/petani/${userItem.id}`
                         : `/profile`
                     }
+                    prefetch={true}
+                    onMouseEnter={() => {
+                      if (userItem.role === 'PETANI') {
+                        router.prefetch(`/toko/petani/${userItem.id}`);
+                        fetch(`/api/petani/${userItem.id}`).catch(() => {});
+                      }
+                    }}
                     onClick={() => {
                       saveStoredSearchHistory(userItem.name);
                       onClose();

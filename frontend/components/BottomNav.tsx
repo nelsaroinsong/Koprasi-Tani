@@ -13,7 +13,7 @@ import {
 import { useAuth } from '@/context/auth-context';
 
 interface BottomNavProps {
-  activePage?: 'toko' | 'sewa-alat' | 'pesanan' | 'dashboard' | 'profile' | 'beranda' | 'cart';
+  activePage?: 'toko' | 'sewa-alat' | 'pesanan' | 'dashboard' | 'profile' | 'beranda' | 'cart' | 'none';
 }
 
 export default function BottomNav({ activePage }: BottomNavProps) {
@@ -22,9 +22,12 @@ export default function BottomNav({ activePage }: BottomNavProps) {
   const isPetani = user?.role === 'PETANI';
 
   // Deteksi status active page secara otomatis jika tidak dipassing dari props
-  const isToko = activePage
-    ? activePage === 'toko'
-    : pathname.startsWith('/toko') && !pathname.startsWith('/toko/mengikuti');
+  const isToko =
+    activePage === 'none' || pathname.startsWith('/toko/petani')
+      ? false
+      : activePage
+      ? activePage === 'toko'
+      : pathname.startsWith('/toko') && !pathname.startsWith('/toko/mengikuti');
   const isSewaAlat = activePage
     ? activePage === 'sewa-alat'
     : pathname.startsWith('/sewa-alat');

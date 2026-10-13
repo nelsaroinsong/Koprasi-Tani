@@ -19,7 +19,7 @@ import BottomNav from '@/components/BottomNav';
 import GlobalSearchModal from '@/components/GlobalSearchModal';
 
 interface AppHeaderProps {
-  activePage?: 'toko' | 'sewa-alat' | 'pesanan' | 'dashboard' | 'profile' | 'beranda' | 'cart';
+  activePage?: 'toko' | 'sewa-alat' | 'pesanan' | 'dashboard' | 'profile' | 'beranda' | 'cart' | 'none';
 }
 
 export default function AppHeader({ activePage }: AppHeaderProps) {
@@ -41,6 +41,9 @@ export default function AppHeader({ activePage }: AppHeaderProps) {
 
   // Deteksi halaman aktif secara otomatis berdasarkan pathname jika props tidak spesifik
   const currentActive = useMemo(() => {
+    if (activePage === 'none') return 'none';
+    // Halaman akun profil petani/user tidak boleh mengaktifkan tab toko online di navbar
+    if (pathname.startsWith('/toko/petani')) return 'none';
     if (activePage && activePage !== 'beranda') return activePage;
     if (pathname === '/cart' || pathname.startsWith('/cart')) return 'cart';
     if (pathname.startsWith('/dashboard')) return 'dashboard';

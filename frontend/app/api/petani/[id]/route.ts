@@ -200,16 +200,23 @@ export async function GET(
       }
     }
 
-    return NextResponse.json({
-      success: true,
-      petani: {
-        ...baseData.petani,
-        isFollowed,
+    return NextResponse.json(
+      {
+        success: true,
+        petani: {
+          ...baseData.petani,
+          isFollowed,
+        },
+        products: baseData.products,
+        reviews: baseData.reviews,
+        etalase: baseData.etalase,
       },
-      products: baseData.products,
-      reviews: baseData.reviews,
-      etalase: baseData.etalase,
-    });
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120',
+        },
+      }
+    );
   } catch (error: any) {
     console.error('Error fetching farmer profile:', error);
     return NextResponse.json({ error: error.message || 'Gagal memuat profil petani' }, { status: 500 });
