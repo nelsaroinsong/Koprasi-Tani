@@ -112,11 +112,12 @@ export default function ProfilePage() {
     }
   };
 
-  // Follow stats
+  // Follow stats & registration date
   const [followStats, setFollowStats] = useState({
     followingCount: 0,
     followersCount: 0,
   });
+  const [userCreatedAt, setUserCreatedAt] = useState<string | null>(null);
 
   // Auth protection guard
   useEffect(() => {
@@ -135,7 +136,7 @@ export default function ProfilePage() {
     }
   }, [user]);
 
-  // Fetch follow statistics
+  // Fetch follow statistics & profile details from database
   useEffect(() => {
     if (user) {
       fetch('/api/user/profile')
@@ -146,6 +147,9 @@ export default function ProfilePage() {
               followingCount: data.user.followingCount || 0,
               followersCount: data.user.followersCount || 0,
             });
+            if (data.user.createdAt) {
+              setUserCreatedAt(data.user.createdAt);
+            }
           }
         })
         .catch(() => {});
@@ -287,14 +291,19 @@ export default function ProfilePage() {
   const isPetani = user.role === 'PETANI';
   const isAdmin = user.role === 'ADMIN';
 
-  // Format tanggal bergabung
-  const registeredDate = (user as any)?.createdAt
-    ? new Date((user as any).createdAt).toLocaleDateString('id-ID', {
+  // Format tanggal bergabung sesuai database (atau tanggal hari ini)
+  const rawCreatedAt = userCreatedAt || (user as any)?.createdAt;
+  const registeredDate = rawCreatedAt
+    ? new Date(rawCreatedAt).toLocaleDateString('id-ID', {
         day: 'numeric',
         month: 'short',
         year: 'numeric',
       })
-    : '22 Sep 2026';
+    : new Date().toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      });
 
   return (
     <div className="min-h-screen bg-[#f3f5f6] pb-24 lg:pb-14">

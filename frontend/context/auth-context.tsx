@@ -16,6 +16,7 @@ export interface User {
   avatarUrl?: string;
   phone?: string;
   address?: string;
+  createdAt?: string;
 }
 
 interface AuthContextType {
@@ -80,7 +81,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               prev.isOnboarded === data.user.isOnboarded &&
               prev.avatarUrl === data.user.avatarUrl &&
               prev.phone === data.user.phone &&
-              prev.address === data.user.address
+              prev.address === data.user.address &&
+              prev.createdAt === data.user.createdAt
             ) {
               return prev;
             }

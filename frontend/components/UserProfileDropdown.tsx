@@ -63,6 +63,7 @@ export default function UserProfileDropdown() {
     followingCount: 0,
     followersCount: 0,
   });
+  const [userCreatedAt, setUserCreatedAt] = useState<string | null>(null);
 
   const fetchFollowStats = useCallback(async () => {
     try {
@@ -74,6 +75,9 @@ export default function UserProfileDropdown() {
             followingCount: data.user.followingCount || 0,
             followersCount: data.user.followersCount || 0,
           });
+          if (data.user.createdAt) {
+            setUserCreatedAt(data.user.createdAt);
+          }
         }
       }
     } catch (e) {
@@ -273,7 +277,17 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
 
   const userInitial = user.name ? user.name.charAt(0).toUpperCase() : 'U';
   const displayRole = user.role === 'PETANI' ? 'PETANI' : 'PEMBELI';
-  const registeredDate = '22 September 2026';
+  const registeredDate = (userCreatedAt || user.createdAt)
+    ? new Date(userCreatedAt || user.createdAt!).toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      })
+    : new Date().toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      });
 
   const cartTotalAmount = cartItems.reduce(
     (sum, item) => sum + Number(item.hargaPerSatuan) * Number(item.quantity),
@@ -369,8 +383,14 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
                     </span>
                   )}
                 </div>
-                <div className="absolute bottom-0 right-0 w-4.5 h-4.5 rounded-full bg-amber-500 text-white flex items-center justify-center shadow-xs ring-2 ring-white">
-                  <CheckCircle2 className="w-3 h-3 fill-amber-500 text-white" />
+                <div className="absolute bottom-0 right-0 w-4.5 h-4.5 rounded-full bg-blue-500 text-white flex items-center justify-center shadow-xs ring-2 ring-white" title="Akun Terverifikasi">
+                  <svg className="w-2.5 h-2.5 fill-current" viewBox="0 0 20 20">
+                    <path
+                      fillRule="evenodd"
+                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
                 </div>
               </div>
 
