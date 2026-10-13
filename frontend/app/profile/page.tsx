@@ -20,6 +20,7 @@ import {
   ArrowLeft,
   Mail,
   LocateFixed,
+  ExternalLink,
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
@@ -84,7 +85,6 @@ export default function ProfilePage() {
         });
       }
     } catch (err: any) {
-      // Jika pengguna membatalkan (cancel / block) izin akses lokasi browser
       if (err?.code === 1) {
         showToast({
           title: 'Akses Lokasi Dibatalkan',
@@ -287,299 +287,411 @@ export default function ProfilePage() {
   const isPetani = user.role === 'PETANI';
   const isAdmin = user.role === 'ADMIN';
 
+  // Format tanggal bergabung
+  const registeredDate = (user as any)?.createdAt
+    ? new Date((user as any).createdAt).toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      })
+    : '22 Sep 2026';
+
   return (
-    <div className="min-h-screen bg-slate-50/70 pb-20 lg:pb-10">
+    <div className="min-h-screen bg-[#f3f5f6] pb-24 lg:pb-14">
       <AppHeader activePage="profile" />
 
-      <main className="max-w-2xl mx-auto px-3 sm:px-6 pt-4 sm:pt-8">
-        {/* Back Link */}
-        <div className="mb-3">
+      <main className="max-w-4xl mx-auto px-2.5 sm:px-6 pt-2.5 sm:pt-6">
+        {/* Tombol Navigasi Kembali */}
+        <div className="mb-2 sm:mb-3.5">
           <button
             type="button"
             onClick={() => router.back()}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-emerald-800 transition cursor-pointer"
+            className="inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold text-slate-500 hover:text-slate-900 transition cursor-pointer"
           >
-            <ArrowLeft className="w-3.5 h-3.5" />
+            <ArrowLeft className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
             <span>Kembali</span>
           </button>
         </div>
 
-        {/* Profile Card Header */}
-        <div className="bg-gradient-to-br from-[#183d2e] via-[#143527] to-[#0f281e] text-white rounded-2xl sm:rounded-3xl p-5 sm:p-7 shadow-sm border border-emerald-900/40 relative overflow-hidden mb-5">
-          {/* Background Decorative Blur */}
-          <div className="absolute top-0 right-0 -mr-16 -mt-16 w-56 h-56 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none" />
+        {/* Master Profile Container Card (Mirip Gambar 1) */}
+        <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-xs overflow-hidden">
+          {/* 1. Header Banner Landscape Gradient */}
+          <div className="h-24 sm:h-44 bg-gradient-to-tr from-emerald-600 via-emerald-500 to-teal-400 relative overflow-hidden shadow-inner">
+            <div className="absolute -top-10 -right-10 w-36 sm:w-48 h-36 sm:h-48 rounded-full bg-emerald-300/30 blur-2xl pointer-events-none" />
+            <div className="absolute -bottom-10 -left-10 w-36 sm:w-48 h-36 sm:h-48 rounded-full bg-teal-300/30 blur-2xl pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/15 to-transparent pointer-events-none" />
+          </div>
 
-          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 relative z-10 text-center sm:text-left">
-            {/* Avatar Section with Change Trigger */}
-            <div className="relative group shrink-0">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-white/10 border-2 border-white/20 text-white flex items-center justify-center font-black text-3xl overflow-hidden shadow-md">
-                {currentAvatar ? (
-                  <img
-                    src={currentAvatar}
-                    alt={user.name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span>{userInitial}</span>
+          {/* 2. Avatar & Header Profile Details */}
+          <div className="px-3.5 sm:px-8 pb-4 sm:pb-6 border-b border-slate-100">
+            <div className="flex items-end justify-between gap-3 -mt-9 sm:-mt-16 mb-3 sm:mb-5">
+              {/* Avatar dengan border putih tebal & Camera trigger */}
+              <div className="relative group self-start shrink-0">
+                <div className="w-18 h-18 sm:w-28 sm:h-28 rounded-full bg-slate-100 border-3 sm:border-4 border-white shadow-md text-emerald-800 flex items-center justify-center font-black text-2xl sm:text-4xl overflow-hidden">
+                  {currentAvatar ? (
+                    <img
+                      src={currentAvatar}
+                      alt={user.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span>{userInitial}</span>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="absolute bottom-0 right-0 sm:bottom-1 sm:right-1 w-6.5 h-6.5 sm:w-8 sm:h-8 rounded-full bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 shadow-sm flex items-center justify-center transition cursor-pointer hover:scale-105"
+                  title="Ganti Foto Profil"
+                >
+                  <Camera className="w-3 h-3 sm:w-4 sm:h-4 text-slate-600" />
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+              </div>
+
+              {/* Action Button di Kanan (Mirip View profile di Gambar 1) */}
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <Link
+                  href="/profile/mengikuti"
+                  className="px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-lg sm:rounded-xl border border-slate-200/90 hover:bg-slate-50 text-[11px] sm:text-xs font-semibold text-slate-700 transition shadow-2xs inline-flex items-center gap-1 sm:gap-1.5"
+                >
+                  <Users className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-500" />
+                  <span>Petani Diikuti</span>
+                </Link>
+                {isPetani && (
+                  <Link
+                    href="/dashboard"
+                    className="px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-lg sm:rounded-xl bg-emerald-700 hover:bg-emerald-800 text-[11px] sm:text-xs font-semibold text-white transition shadow-2xs inline-flex items-center gap-1 sm:gap-1.5"
+                  >
+                    <Store className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                    <span>Dashboard</span>
+                  </Link>
                 )}
+              </div>
+            </div>
+
+            {/* Nama & Email User */}
+            <div>
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                <h1 className="text-base sm:text-2xl font-black text-slate-900 tracking-tight">
+                  {user.name}
+                </h1>
+                {/* Verified Badge Biru (Persis Gambar 1) */}
+                <div
+                  className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-blue-500 text-white flex items-center justify-center shadow-2xs shrink-0"
+                  title="Akun Terverifikasi"
+                >
+                  <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 fill-current" viewBox="0 0 20 20">
+                    <path
+                      fillRule="evenodd"
+                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+              </div>
+              <p className="text-[11px] sm:text-sm text-slate-500 mt-0.5 truncate">
+                {user.email}
+              </p>
+            </div>
+
+            {/* 3. Stats Row 4 Kolom (Persis Gambar 1, fit dalam 1 baris di mobile) */}
+            <div className="grid grid-cols-4 gap-2 sm:gap-6 pt-3 sm:pt-5 mt-3 sm:mt-5 border-t border-slate-100">
+              {/* Kolom 1: Terdaftar */}
+              <div className="min-w-0">
+                <div className="text-[9.5px] sm:text-xs text-slate-400 font-medium">
+                  Terdaftar
+                </div>
+                <div className="text-[11px] sm:text-base font-extrabold text-slate-900 mt-0.5 truncate">
+                  {registeredDate.split(' ')[0]} {registeredDate.split(' ')[1]?.slice(0, 3)}
+                </div>
+              </div>
+
+              {/* Kolom 2: Mengikuti */}
+              <div className="min-w-0">
+                <div className="text-[9.5px] sm:text-xs text-slate-400 font-medium">
+                  Mengikuti
+                </div>
+                <Link
+                  href="/profile/mengikuti"
+                  className="text-[11px] sm:text-base font-extrabold text-slate-900 hover:text-emerald-700 transition mt-0.5 block truncate"
+                >
+                  {followStats.followingCount} Petani
+                </Link>
+              </div>
+
+              {/* Kolom 3: Pengikut */}
+              <div className="min-w-0">
+                <div className="text-[9.5px] sm:text-xs text-slate-400 font-medium">
+                  Pengikut
+                </div>
+                <div className="text-[11px] sm:text-base font-extrabold text-slate-900 mt-0.5 truncate">
+                  {followStats.followersCount} Pengguna
+                </div>
+              </div>
+
+              {/* Kolom 4: Status / Peran */}
+              <div className="min-w-0">
+                <div className="text-[9.5px] sm:text-xs text-slate-400 font-medium">
+                  Peran Akun
+                </div>
+                <div className="text-[11px] sm:text-base font-extrabold text-emerald-700 mt-0.5 truncate">
+                  {isPetani ? 'Petani' : isAdmin ? 'Admin' : 'Anggota'}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 4. Form Bagian Public Profile / Informasi Pribadi (Mirip Gambar 1) */}
+          <div className="px-3.5 sm:px-8 py-4 sm:py-7 border-b border-slate-100">
+            <form onSubmit={handleSubmit} className="space-y-3.5 sm:space-y-6">
+              {/* Row 1: Nama Lengkap */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-1 md:gap-6 items-start">
+                <div>
+                  <label className="block text-xs sm:text-sm font-bold text-slate-900">
+                    Nama Lengkap
+                  </label>
+                  <p className="text-[10px] sm:text-xs text-slate-400 mt-0.5 hidden sm:block">
+                    Nama resmi yang ditampilkan pada profil dan transaksi Anda.
+                  </p>
+                </div>
+                <div className="md:col-span-2">
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Masukkan nama lengkap Anda"
+                    className="w-full px-3 py-2 sm:px-3.5 sm:py-2.5 text-xs sm:text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition shadow-2xs font-medium text-slate-800"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Row 2: Email Google Akun */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-1 md:gap-6 items-start">
+                <div>
+                  <label className="block text-xs sm:text-sm font-bold text-slate-900">
+                    Alamat Email
+                  </label>
+                  <p className="text-[10px] sm:text-xs text-slate-400 mt-0.5 hidden sm:block">
+                    Akun Google utama yang tertaut secara permanen.
+                  </p>
+                </div>
+                <div className="md:col-span-2">
+                  <input
+                    type="email"
+                    value={user.email}
+                    disabled
+                    className="w-full px-3 py-2 sm:px-3.5 sm:py-2.5 text-xs sm:text-sm bg-slate-50 text-slate-500 border border-slate-200 rounded-xl cursor-not-allowed font-medium shadow-2xs"
+                  />
+                </div>
+              </div>
+
+              {/* Row 3: Nomor Telepon / WhatsApp */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-1 md:gap-6 items-start">
+                <div>
+                  <label className="block text-xs sm:text-sm font-bold text-slate-900">
+                    Nomor WhatsApp / Kontak
+                  </label>
+                  <p className="text-[10px] sm:text-xs text-slate-400 mt-0.5 hidden sm:block">
+                    Digunakan untuk konfirmasi pesanan dan koordinasi penjemputan hasil tani.
+                  </p>
+                </div>
+                <div className="md:col-span-2">
+                  <div className="relative">
+                    <Phone className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="Contoh: 081234567890"
+                      className="w-full pl-8 sm:pl-10 pr-3 py-2 sm:px-3.5 sm:py-2.5 text-xs sm:text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition shadow-2xs font-medium text-slate-800"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Row 4: Alamat Domisili & Deteksi GPS */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-1 md:gap-6 items-start">
+                <div>
+                  <label className="block text-xs sm:text-sm font-bold text-slate-900">
+                    Alamat Lengkap Domisili
+                  </label>
+                  <p className="text-[10px] sm:text-xs text-slate-400 mt-0.5 hidden sm:block">
+                    Alamat pengiriman belanja atau lokasi lahan kebun mitra.
+                  </p>
+                </div>
+                <div className="md:col-span-2 space-y-1.5">
+                  <div className="flex items-center justify-end">
+                    <button
+                      type="button"
+                      onClick={handleUseCurrentLocation}
+                      disabled={isLocating || isSaving}
+                      className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100/80 active:bg-emerald-200/70 border border-emerald-200/90 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg transition cursor-pointer shadow-2xs disabled:opacity-50"
+                    >
+                      {isLocating ? (
+                        <>
+                          <Loader2 className="w-3 h-3 animate-spin text-emerald-700" />
+                          <span>Mendeteksi...</span>
+                        </>
+                      ) : (
+                        <>
+                          <LocateFixed className="w-3 h-3 text-emerald-700" />
+                          <span>Gunakan Lokasi Sekarang</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <MapPin className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+                    <textarea
+                      rows={2}
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      placeholder="Tuliskan nama jalan, kelurahan/desa, kecamatan..."
+                      className="w-full pl-8 sm:pl-10 pr-3 py-2 sm:px-3.5 sm:py-2.5 text-xs sm:text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition shadow-2xs font-medium text-slate-800 resize-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Submit Button (Lebar penuh sampai kiri sekali di atas Akses Layanan & Ekosistem) */}
+              <div className="pt-3 border-t border-slate-100/80 space-y-2">
+                <button
+                  type="submit"
+                  disabled={isSaving}
+                  className="w-full py-2.5 sm:py-3.5 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white font-bold text-xs sm:text-sm transition flex items-center justify-center gap-2 cursor-pointer shadow-xs disabled:opacity-60"
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Menyimpan Perubahan...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      <span>Simpan Perubahan</span>
+                    </>
+                  )}
+                </button>
+
+                {saveSuccess && (
+                  <div className="flex items-center justify-center gap-1.5 text-xs font-semibold text-emerald-700 animate-in fade-in">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <span>Perubahan profil berhasil disimpan!</span>
+                  </div>
+                )}
+              </div>
+            </form>
+          </div>
+
+          {/* 5. Bagian Akses Layanan Koperasi (Mirip Section Support access di Gambar 1) */}
+          <div className="px-3.5 sm:px-8 py-3.5 sm:py-6 border-b border-slate-100">
+            <div className="mb-2.5 sm:mb-4">
+              <h2 className="text-xs sm:text-sm font-bold text-slate-900">
+                Akses Layanan & Ekosistem
+              </h2>
+              <p className="text-[10px] sm:text-xs text-slate-400 mt-0.5">
+                Kelola jejaring mitra tani dan pengelolaan panen mandiri.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Link
+                href="/profile/mengikuti"
+                className="p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl border border-slate-200/90 hover:border-emerald-300 hover:bg-slate-50/70 flex items-center justify-between transition shadow-2xs group"
+              >
+                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-100">
+                    <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs sm:text-sm font-bold text-slate-800 group-hover:text-emerald-700 transition truncate">
+                      Daftar Petani yang Diikuti
+                    </div>
+                    <div className="text-[10px] sm:text-[11px] text-slate-400 truncate">
+                      Pantau ketersediaan komoditas dari petani-petani langganan Anda
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform shrink-0 ml-2" />
+              </Link>
+
+              {isPetani && (
+                <Link
+                  href="/dashboard"
+                  className="p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl border border-slate-200/90 hover:border-emerald-300 hover:bg-slate-50/70 flex items-center justify-between transition shadow-2xs group"
+                >
+                  <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0 border border-amber-100">
+                      <Store className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-xs sm:text-sm font-bold text-slate-800 group-hover:text-emerald-700 transition truncate">
+                        Kelola Komoditas Panen Saya
+                      </div>
+                      <div className="text-[10px] sm:text-[11px] text-slate-400 truncate">
+                        Pantau stok panen di gudang koperasi dan pencairan tunai
+                      </div>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform shrink-0 ml-2" />
+                </Link>
+              )}
+
+              {isAdmin && (
+                <Link
+                  href="/admin-koperasi-sinar-pagi-sejahtera"
+                  className="p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl border border-emerald-200 bg-emerald-50/50 hover:bg-emerald-100/60 flex items-center justify-between transition shadow-2xs group"
+                >
+                  <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                      <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-xs sm:text-sm font-bold text-emerald-900 truncate">
+                        Panel Administrator
+                      </div>
+                      <div className="text-[10px] sm:text-[11px] text-emerald-700/80 truncate">
+                        Kelola produk, pesanan, dan kas koperasi
+                      </div>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 group-hover:translate-x-0.5 transition-transform shrink-0 ml-2" />
+                </Link>
+              )}
+            </div>
+          </div>
+
+          {/* 6. Logout Section (Persis "Log out of all devices" di Gambar 1) */}
+          <div className="px-3.5 sm:px-8 py-3.5 sm:py-6 bg-slate-50/40">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-xs sm:text-sm font-bold text-slate-900">
+                  Keluar dari Akun Koperasi
+                </h3>
+                <p className="text-[10px] sm:text-xs text-slate-400 mt-0.5 hidden sm:block">
+                  Akhiri sesi aktif Anda saat ini pada perangkat peramban ini.
+                </p>
               </div>
 
               <button
                 type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="absolute -bottom-1.5 -right-1.5 w-8 h-8 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center shadow-md ring-2 ring-[#183d2e] transition cursor-pointer"
-                title="Ganti Foto Profil"
+                onClick={logout}
+                className="px-3.5 py-1.5 sm:px-5 sm:py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-red-50 hover:border-red-200 text-slate-700 hover:text-red-700 text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs shrink-0"
               >
-                <Camera className="w-4 h-4" />
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                className="hidden"
-              />
-            </div>
-
-            {/* Profile Info */}
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap mb-1">
-                <h1 className="text-lg sm:text-2xl font-black text-white tracking-tight">
-                  {user.name}
-                </h1>
-                <span className="text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-700/90 text-emerald-100 border border-emerald-500/40 inline-flex items-center gap-1">
-                  <CheckCircle2 className="w-3 h-3 text-emerald-300" />
-                  <span>{isPetani ? 'Petani Mitra' : isAdmin ? 'Administrator' : 'Pembeli Terdaftar'}</span>
-                </span>
-              </div>
-
-              <div className="flex items-center justify-center sm:justify-start gap-1.5 text-xs text-emerald-200/90 mt-1">
-                <Mail className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
-                <span className="truncate">{user.email}</span>
-              </div>
-
-              {/* Status Mengikuti / Pengikut */}
-              <div className="mt-3.5 pt-3 border-t border-emerald-800/60 flex items-center justify-center sm:justify-start gap-4 text-xs text-emerald-100">
-                <Link
-                  href="/toko/mengikuti"
-                  className="hover:underline flex items-center gap-1.5 font-medium"
-                >
-                  <Users className="w-3.5 h-3.5 text-emerald-300" />
-                  <span>Mengikuti: <strong className="font-bold text-white">{followStats.followingCount}</strong> Petani</span>
-                </Link>
-
-                {isPetani && (
-                  <>
-                    <span className="text-emerald-600">•</span>
-                    <div className="flex items-center gap-1 font-medium">
-                      <span>Pengikut: <strong className="font-bold text-white">{followStats.followersCount}</strong></span>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Form Edit Profil */}
-        <div className="bg-white border border-slate-200/90 rounded-2xl sm:rounded-3xl p-4 sm:p-7 shadow-2xs mb-5">
-          <div className="border-b border-slate-100 pb-3 mb-4">
-            <h2 className="text-sm sm:text-base font-bold text-slate-800">
-              Informasi Pribadi & Kontak
-            </h2>
-            <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5">
-              Perbarui identitas, nomor telepon WhatsApp, dan alamat domisili Anda.
-            </p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Input Nama Lengkap */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Nama Lengkap
-              </label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Masukkan nama lengkap Anda"
-                className="w-full px-3 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600/30 focus:border-emerald-600 transition"
-                required
-              />
-            </div>
-
-            {/* Input Email (Readonly) */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Alamat Email (Google Akun)
-              </label>
-              <input
-                type="email"
-                value={user.email}
-                disabled
-                className="w-full px-3 py-2 text-xs sm:text-sm bg-slate-100 text-slate-500 border border-slate-200 rounded-xl cursor-not-allowed"
-              />
-              <span className="text-[10px] text-slate-400 mt-1 block">
-                Email tertaut secara permanen dengan akun Google Anda.
-              </span>
-            </div>
-
-            {/* Input Nomor Telepon / WA */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Nomor Telepon / WhatsApp
-              </label>
-              <div className="relative">
-                <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="Contoh: 081234567890"
-                  className="w-full pl-9 pr-3 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600/30 focus:border-emerald-600 transition"
-                />
-              </div>
-            </div>
-
-            {/* Input Alamat Lengkap */}
-            <div>
-              <div className="flex items-center justify-between gap-2 mb-1">
-                <label className="block text-xs font-bold text-slate-700">
-                  Alamat Lengkap Domisili
-                </label>
-                <button
-                  type="button"
-                  onClick={handleUseCurrentLocation}
-                  disabled={isLocating || isSaving}
-                  className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100/80 active:bg-emerald-200/70 border border-emerald-200/80 px-2.5 py-1 rounded-lg transition cursor-pointer shadow-2xs disabled:opacity-50"
-                  title="Deteksi alamat secara otomatis dari GPS saat ini"
-                >
-                  {isLocating ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-700" />
-                      <span>Mendeteksi Lokasi...</span>
-                    </>
-                  ) : (
-                    <>
-                      <LocateFixed className="w-3.5 h-3.5 text-emerald-700" />
-                      <span>Gunakan Lokasi Sekarang</span>
-                    </>
-                  )}
-                </button>
-              </div>
-              <div className="relative">
-                <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                <textarea
-                  rows={3}
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  placeholder="Tuliskan nama jalan, kelurahan/desa, kecamatan, dan patokan alamat..."
-                  className="w-full pl-9 pr-3 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600/30 focus:border-emerald-600 transition resize-none font-medium"
-                />
-              </div>
-            </div>
-
-            {/* Save Button */}
-            <div className="pt-2 flex items-center justify-end gap-2.5">
-              {saveSuccess && (
-                <span className="text-xs font-semibold text-emerald-700 flex items-center gap-1 animate-in fade-in">
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>Tersimpan!</span>
-                </span>
-              )}
-
-              <button
-                type="submit"
-                disabled={isSaving}
-                className="px-5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs sm:text-sm transition flex items-center gap-2 cursor-pointer shadow-xs disabled:opacity-60"
-              >
-                {isSaving ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Menyimpan...</span>
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-4 h-4" />
-                    <span>Simpan Perubahan</span>
-                  </>
-                )}
+                <LogOut className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span>Log out</span>
               </button>
             </div>
-          </form>
-        </div>
-
-        {/* Menu Navigasi Layanan Terkait */}
-        <div className="space-y-2 mb-6">
-          <Link
-            href="/toko/mengikuti"
-            className="w-full p-3.5 bg-white border border-slate-200/90 rounded-2xl hover:bg-slate-50 flex items-center justify-between text-xs font-bold text-slate-800 transition shadow-2xs group"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
-                <Users className="w-4 h-4" />
-              </div>
-              <div>
-                <div>Daftar Petani yang Diikuti</div>
-                <div className="text-[10px] text-slate-400 font-normal">
-                  Lihat hasil panen dari petani-petani binaan langganan Anda
-                </div>
-              </div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
-          </Link>
-
-          {isPetani && (
-            <Link
-              href="/dashboard"
-              className="w-full p-3.5 bg-white border border-slate-200/90 rounded-2xl hover:bg-slate-50 flex items-center justify-between text-xs font-bold text-slate-800 transition shadow-2xs group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0">
-                  <Store className="w-4 h-4" />
-                </div>
-                <div>
-                  <div>Kelola Komoditas Panen Saya</div>
-                  <div className="text-[10px] text-slate-400 font-normal">
-                    Lihat stok fisik di gudang koperasi dan pencairan tunai
-                  </div>
-                </div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
-            </Link>
-          )}
-
-          {isAdmin && (
-            <Link
-              href="/admin-koperasi-sinar-pagi-sejahtera"
-              className="w-full p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl hover:bg-emerald-100/70 flex items-center justify-between text-xs font-bold text-emerald-900 transition shadow-2xs group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-                  <Shield className="w-4 h-4" />
-                </div>
-                <div>
-                  <div>Masuk ke Panel Administrator</div>
-                  <div className="text-[10px] text-emerald-700/80 font-normal">
-                    Kelola seluruh produk, pesanan anggota, dan pencairan tunai
-                  </div>
-                </div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-emerald-600 group-hover:translate-x-0.5 transition-transform" />
-            </Link>
-          )}
-        </div>
-
-        {/* Logout Button */}
-        <div className="border-t border-slate-200 pt-4">
-          <button
-            type="button"
-            onClick={logout}
-            className="w-full py-3 px-4 rounded-2xl bg-red-50 hover:bg-red-100 text-red-700 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition cursor-pointer border border-red-200/60 shadow-2xs"
-          >
-            <LogOut className="w-4 h-4" />
-            <span>Keluar dari Akun Koperasi</span>
-          </button>
+          </div>
         </div>
       </main>
     </div>
