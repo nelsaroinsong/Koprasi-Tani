@@ -325,25 +325,36 @@ export default function SewaAlatPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/60 pb-16">
-      <AppHeader />
+    <div className="min-h-screen bg-slate-50 flex flex-col">
+      <AppHeader activePage="sewa-alat" />
 
-      <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
-        {/* Banner Hero / Title Bersih Rapi */}
-        <div className="mb-4 sm:mb-6 bg-white p-4 sm:p-6 rounded-2xl border border-slate-200/90 shadow-2xs">
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Tractor className="w-6 h-6 text-emerald-700" />
-            <span>Sewa Alat Pertanian</span>
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-xl">
-            Penyewaan mesin dan alat pertanian modern untuk pengolahan lahan dan panen anggota Koperasi Sinar Pagi Sejahtera.
-          </p>
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-3.5 sm:py-6">
+        {/* Header Title & Search Toolbar (Mirip dengan Toko Online) */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 mb-3.5 sm:mb-5">
+          <div>
+            <h1 className="text-base sm:text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight leading-snug">
+              Sewa Alat Pertanian
+            </h1>
+            <p className="text-[11px] sm:text-xs text-slate-500 mt-1 max-w-2xl">
+              Penyewaan mesin dan alat pertanian modern untuk pengolahan lahan dan panen anggota Koperasi Sinar Pagi Sejahtera.
+            </p>
+          </div>
+
+          <div className="relative w-full md:w-72 lg:w-80 shrink-0">
+            <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Cari traktor, kultivator, drone, pemipil..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-3 py-1.5 sm:py-2 text-[11px] sm:text-xs bg-white border border-slate-200 rounded-lg sm:rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600 shadow-2xs"
+            />
+          </div>
         </div>
 
-        {/* Filter Toolbar (Kategori, Search, Filter Ketersediaan) */}
-        <div className="space-y-3 mb-6">
-          {/* Scrollable Kategori Horizontal */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+        {/* Kategori Navigation & Filter Status (Tepat di bawah title seperti Toko Online) */}
+        <div className="flex items-center justify-between gap-2 overflow-x-auto pb-2 mb-4 sm:mb-5 no-scrollbar">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {dynamicKategoriTabs.map((tab) => {
               const active = selectedKategori.toLowerCase().trim() === tab.key.toLowerCase().trim();
               return (
@@ -351,44 +362,27 @@ export default function SewaAlatPage() {
                   key={tab.key}
                   type="button"
                   onClick={() => setSelectedKategori(tab.key)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer shrink-0 border ${
+                  className={`px-3 sm:px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer border shadow-2xs shrink-0 ${
                     active
-                      ? 'bg-emerald-700 text-white border-emerald-700 shadow-2xs'
-                      : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200'
+                      ? 'bg-emerald-700 text-white border-emerald-700 font-bold shadow-xs'
+                      : 'bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-900 border-slate-200'
                   }`}
                 >
-                  <span>{tab.label}</span>
+                  {tab.label}
                 </button>
               );
             })}
           </div>
 
-          {/* Search bar & Toggle Ketersediaan */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="relative flex-1 max-w-md">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Cari traktor, kultivator, drone, pemipil..."
-                className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600 shadow-2xs"
-              />
-            </div>
-
-            <label className="flex items-center gap-2 text-xs font-medium text-slate-700 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={onlyAvailable}
-                onChange={(e) => setOnlyAvailable(e.target.checked)}
-                className="w-4 h-4 rounded text-emerald-700 focus:ring-emerald-600 border-slate-300 cursor-pointer"
-              />
-              <span>Hanya yang Siap Pakai</span>
-              <span className="text-[11px] text-slate-400">
-                (Menampilkan {filteredEquipments.length} unit alat)
-              </span>
-            </label>
-          </div>
+          <label className="flex items-center gap-1.5 sm:gap-2 text-xs font-medium text-slate-600 hover:text-slate-900 cursor-pointer select-none shrink-0 ml-auto pl-2">
+            <input
+              type="checkbox"
+              checked={onlyAvailable}
+              onChange={(e) => setOnlyAvailable(e.target.checked)}
+              className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded text-emerald-700 focus:ring-emerald-600 border-slate-300 cursor-pointer"
+            />
+            <span className="text-[11px] sm:text-xs">Hanya yang Siap Pakai</span>
+          </label>
         </div>
 
         {/* State Kosong / Grid Alat */}
