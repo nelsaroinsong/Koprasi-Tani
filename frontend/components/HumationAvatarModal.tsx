@@ -107,7 +107,7 @@ export default function HumationAvatarModal({
         if (grouped[part.selectionSlot]) {
           grouped[part.selectionSlot].push({
             id: part.id,
-            name: part.name,
+            name: part.name || part.id,
           });
         }
       }

@@ -46,8 +46,13 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { Search } from 'lucide-react';
 
-export default function UserProfileDropdown() {
+interface UserProfileDropdownProps {
+  onOpenSearch?: () => void;
+}
+
+export default function UserProfileDropdown({ onOpenSearch }: UserProfileDropdownProps = {}) {
   const router = useRouter();
   const pathname = usePathname();
   const isCartActive = pathname === '/cart' || pathname.startsWith('/cart');
@@ -297,6 +302,18 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
   return (
     <>
       <div className="flex items-center gap-1.5 sm:gap-2.5" ref={dropdownRef}>
+        {/* Tombol Pencarian Cepat (di samping Keranjang Belanja) */}
+        {onOpenSearch && (
+          <button
+            type="button"
+            onClick={onOpenSearch}
+            className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition border cursor-pointer shadow-2xs bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border-slate-200 group"
+            title="Pencarian Cepat (Ctrl+K)"
+          >
+            <Search className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5 group-hover:scale-110 transition-transform" />
+          </button>
+        )}
+
         {/* Tombol Keranjang Belanja */}
         <Link
           href="/cart"
