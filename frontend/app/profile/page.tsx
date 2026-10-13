@@ -445,7 +445,7 @@ export default function ProfilePage() {
             <div>
               <div className="flex items-center justify-between gap-2 mb-1">
                 <label className="block text-xs font-bold text-slate-700">
-                  Alamat Lengkap Domisili / Lokasi Kirim
+                  Alamat Lengkap Domisili
                 </label>
                 <button
                   type="button"
@@ -531,7 +531,7 @@ export default function ProfilePage() {
 
           {isPetani && (
             <Link
-              href="/toko"
+              href="/dashboard"
               className="w-full p-3.5 bg-white border border-slate-200/90 rounded-2xl hover:bg-slate-50 flex items-center justify-between text-xs font-bold text-slate-800 transition shadow-2xs group"
             >
               <div className="flex items-center gap-3">

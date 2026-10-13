@@ -38,6 +38,7 @@ import {
 import { useAuth } from '@/context/auth-context';
 import { getCart, saveCart, clearCart } from '@/lib/cart';
 import { getRentalCart } from '@/lib/rental-cart';
+import SlideCommit from '@/components/ui/SlideCommit';
 import {
   Dialog,
   DialogContent,
@@ -333,165 +334,140 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
           </div>
         </button>
 
-        {/* Dropdown Card */}
+        {/* Dropdown Card - Style Gambar 1 (Modern Fluid Green Banner + White Card) */}
         {isOpen && (
-          <div className="absolute right-3 sm:right-6 top-16 sm:top-20 z-50 w-[320px] sm:w-[350px] bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in-50 zoom-in-95 duration-200">
-            {/* Dark Forest Green Header - Klik mengarah langsung ke halaman /profile */}
+          <div className="absolute right-3 sm:right-6 top-16 sm:top-20 z-50 w-[320px] sm:w-[340px] bg-white rounded-[28px] shadow-2xl border border-slate-100 p-3 overflow-hidden animate-in fade-in-50 zoom-in-95 duration-200">
+            {/* 1. Fluid Aurora Green Banner */}
             <div
               onClick={() => {
                 setIsOpen(false);
                 router.push('/profile');
               }}
-              className="bg-[#1b4332] hover:bg-[#16382a] text-white p-5 relative overflow-hidden cursor-pointer transition"
+              className="h-24 w-full rounded-2xl relative overflow-hidden bg-gradient-to-tr from-emerald-600 via-emerald-500 to-teal-400 cursor-pointer shadow-inner group"
               title="Buka Halaman Profil Saya"
             >
-              <div className="absolute -top-12 -right-12 w-32 h-32 rounded-full bg-emerald-500/20 blur-2xl" />
-
-              <div className="flex justify-between items-start mb-4 relative z-10">
-                <div className="relative">
-                  <div className="w-14 h-14 rounded-2xl bg-white text-slate-900 flex items-center justify-center font-extrabold text-xl shadow-md overflow-hidden">
-                    {user.avatarUrl ? (
-                      <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <span>{userInitial}</span>
-                    )}
-                  </div>
-                  <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-amber-500 text-white flex items-center justify-center shadow-xs ring-2 ring-[#1b4332]">
-                    <CheckCircle2 className="w-3.5 h-3.5 fill-amber-500 text-white" />
-                  </div>
-                </div>
-
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-700/80 backdrop-blur-xs text-[11px] font-bold text-emerald-100 border border-emerald-500/30">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span>{displayRole}</span>
-                </div>
-              </div>
-
-              <div className="relative z-10 mb-4">
-                <h3 className="text-base font-bold tracking-tight text-white leading-tight flex items-center gap-1.5">
-                  <span>{user.name}</span>
-                  <ChevronRight className="w-4 h-4 text-emerald-400 opacity-80" />
-                </h3>
-                <div className="flex items-center gap-1.5 text-xs text-emerald-200 mt-1">
-                  <Phone className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
-                  <span>{user.phone || '+62 812-4455-6677'}</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-[11px] text-emerald-300/90 mt-1 max-w-[270px]">
-                  <MapPin className="w-3.5 h-3.5 shrink-0 text-emerald-300" />
-                  <span className="truncate" title={user.address || 'Minahasa Utara, Sulawesi Utara'}>
-                    {user.address || 'Minahasa Utara, Sulawesi Utara'}
-                  </span>
-                </div>
-              </div>
-
-              <div className="mt-4 pt-2.5 border-t border-emerald-700/60 flex items-center justify-between text-xs text-emerald-100/90 relative z-10">
-                <span className="text-[11px] text-emerald-300/80 font-medium">Terdaftar</span>
-                <span className="font-bold text-xs text-emerald-100">{registeredDate}</span>
-              </div>
-
-              {/* Status Mengikuti & Pengikut */}
-              {user.role === 'PETANI' ? (
-                <div className="mt-2 pt-2 border-t border-emerald-700/40 flex items-center justify-between text-xs text-emerald-100/90 relative z-10">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsOpen(false);
-                      router.push('/toko/mengikuti');
-                    }}
-                    className="flex items-center gap-1.5 hover:text-white transition group cursor-pointer"
-                    title="Lihat daftar petani yang diikuti"
-                  >
-                    <span className="text-[11px] text-emerald-300/80 group-hover:text-emerald-200 font-medium">Mengikuti:</span>
-                    <span className="font-bold text-xs text-emerald-100 group-hover:underline">{followStats.followingCount}</span>
-                  </button>
-                  <span className="text-emerald-500/60">•</span>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[11px] text-emerald-300/80 font-medium">Pengikut:</span>
-                    <span className="font-bold text-xs text-emerald-100">{followStats.followersCount}</span>
-                  </div>
-                </div>
-              ) : (
-                <div className="mt-2 pt-2 border-t border-emerald-700/40 flex items-center justify-between text-xs text-emerald-100/90 relative z-10">
-                  <span className="text-[11px] text-emerald-300/80 font-medium">Mengikuti:</span>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsOpen(false);
-                      router.push('/toko/mengikuti');
-                    }}
-                    className="font-bold text-xs text-emerald-100 hover:text-white hover:underline transition cursor-pointer flex items-center gap-1 group"
-                    title="Lihat daftar petani yang Anda ikuti"
-                  >
-                    <span>{followStats.followingCount} Petani</span>
-                    <ChevronRight className="w-3 h-3 text-emerald-400 group-hover:translate-x-0.5 transition-transform" />
-                  </button>
-                </div>
-              )}
+              <div className="absolute -top-6 -right-6 w-28 h-28 rounded-full bg-emerald-300/30 blur-xl" />
+              <div className="absolute -bottom-6 -left-6 w-28 h-28 rounded-full bg-teal-300/30 blur-xl" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent" />
             </div>
 
-            {/* Menu List - Tanpa Monitoring Pesanan (karena pesanan sudah ada di navbar), profil mengarah ke halaman sendiri /profile */}
-            <div className="p-3.5 space-y-1">
-              {user.role === 'PETANI' && (
-                <button
-                  onClick={() => {
-                    setIsOpen(false);
-                    router.push('/dashboard');
-                  }}
-                  className="w-full p-2.5 rounded-2xl hover:bg-emerald-50/70 bg-emerald-50/30 flex items-center justify-between group transition cursor-pointer text-left border border-emerald-100"
-                  type="button"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-700 text-white flex items-center justify-center group-hover:scale-105 transition shadow-xs">
-                      <LayoutDashboard className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                        <span>Dashboard Petani</span>
-                        <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded-full">Mitra</span>
-                      </div>
-                      <div className="text-[11px] text-slate-400">Pantau stok panen & cash di kasir</div>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-emerald-600 group-hover:translate-x-0.5 transition-transform" />
-                </button>
-              )}
-
-              <button
+            {/* 2. Avatar Overlapping & Role Badge */}
+            <div className="flex items-end justify-between px-2 -mt-8 mb-2 relative z-10">
+              <div
                 onClick={() => {
                   setIsOpen(false);
                   router.push('/profile');
                 }}
-                className="w-full p-2.5 rounded-2xl hover:bg-slate-50 flex items-center justify-between group transition cursor-pointer text-left"
-                type="button"
+                className="relative cursor-pointer group"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center group-hover:scale-105 transition">
-                    <UserIcon className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-slate-800">Halaman Profil Saya</div>
-                    <div className="text-[11px] text-slate-400">Kelola identitas, foto profil & kontak domisili</div>
-                  </div>
+                <div className="w-16 h-16 rounded-full bg-white ring-4 ring-white text-slate-900 flex items-center justify-center font-extrabold text-xl shadow-md overflow-hidden group-hover:scale-105 transition-transform">
+                  {user.avatarUrl ? (
+                    <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="bg-emerald-100 text-emerald-800 w-full h-full flex items-center justify-center">
+                      {userInitial}
+                    </span>
+                  )}
                 </div>
-                <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-600 transition" />
+                <div className="absolute bottom-0 right-0 w-4.5 h-4.5 rounded-full bg-amber-500 text-white flex items-center justify-center shadow-xs ring-2 ring-white">
+                  <CheckCircle2 className="w-3 h-3 fill-amber-500 text-white" />
+                </div>
+              </div>
+
+              {/* Role Badge (Pill Style seperti Gambar 1) */}
+              <div className="flex items-center gap-1.5 mb-1">
+                <span className="px-3 py-1 rounded-full bg-neutral-900 text-white text-[10px] font-bold tracking-wider uppercase shadow-xs">
+                  {displayRole}
+                </span>
+              </div>
+            </div>
+
+            {/* 3. User Identity: Name, Phone, Address */}
+            <div className="px-2 mb-2.5">
+              <h3
+                onClick={() => {
+                  setIsOpen(false);
+                  router.push('/profile');
+                }}
+                className="text-base font-extrabold text-slate-900 tracking-tight leading-snug flex items-center gap-1.5 cursor-pointer hover:text-emerald-700 transition"
+              >
+                <span>{user.name}</span>
+                <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+              </h3>
+
+              <div className="flex items-center gap-1.5 text-xs text-slate-600 mt-1">
+                <Phone className="w-3 h-3 text-emerald-600 shrink-0" />
+                <span className="font-medium">{user.phone || '+62 812-4455-6677'}</span>
+              </div>
+
+              <div className="flex items-center gap-1.5 text-[11px] text-slate-500 mt-0.5">
+                <MapPin className="w-3 h-3 text-emerald-600 shrink-0" />
+                <span className="truncate" title={user.address || 'Minahasa Utara, Sulawesi Utara'}>
+                  {user.address || 'Minahasa Utara, Sulawesi Utara'}
+                </span>
+              </div>
+            </div>
+
+            {/* Divider Line (Persis Gambar 1) */}
+            <div className="border-t border-slate-100 my-2" />
+
+            {/* 4. Stats Row 3 Kolom (Persis Rating / Posts / Followers di Gambar 1) */}
+            <div className="grid grid-cols-3 divide-x divide-slate-100 py-1 mb-2.5">
+              {/* Stat 1: Terdaftar */}
+              <div className="text-center px-1">
+                <div className="text-xs sm:text-[13px] font-extrabold text-slate-900 flex items-center justify-center">
+                  <span className="truncate">{registeredDate.split(' ')[0]} {registeredDate.split(' ')[1]?.slice(0, 3)}</span>
+                </div>
+                <div className="text-[9.5px] text-slate-400 font-medium mt-0.5 uppercase tracking-wider">
+                  Terdaftar
+                </div>
+              </div>
+
+              {/* Stat 2: Mengikuti */}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsOpen(false);
+                  router.push('/profile/mengikuti');
+                }}
+                className="text-center px-1 hover:bg-slate-50 rounded-lg transition cursor-pointer"
+                title="Lihat yang diikuti"
+              >
+                <div className="text-xs sm:text-[13px] font-extrabold text-slate-900 flex items-center justify-center">
+                  <span>{followStats.followingCount}</span>
+                </div>
+                <div className="text-[9.5px] text-slate-400 font-medium mt-0.5 uppercase tracking-wider">
+                  Mengikuti
+                </div>
               </button>
 
-
-              <div className="pt-2 border-t border-slate-100">
-                <button
-                  onClick={() => {
-                    setIsOpen(false);
-                    logout();
-                  }}
-                  className="w-full p-2.5 rounded-2xl hover:bg-red-50 text-red-600 flex items-center justify-center gap-2 font-semibold text-xs transition cursor-pointer"
-                  type="button"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span>Keluar dari Akun</span>
-                </button>
+              {/* Stat 3: Pengikut */}
+              <div className="text-center px-1">
+                <div className="text-xs sm:text-[13px] font-extrabold text-slate-900 flex items-center justify-center">
+                  <span>{followStats.followersCount}</span>
+                </div>
+                <div className="text-[9.5px] text-slate-400 font-medium mt-0.5 uppercase tracking-wider">
+                  Pengikut
+                </div>
               </div>
+            </div>
+
+            {/* 5. Slide Button Keluar dari Akun (Seperti di Pesanan Resmi / Gambar 2) */}
+            <div className="pt-1">
+              <SlideCommit
+                label="Geser untuk Keluar dari Akun"
+                doneLabel="Berhasil Keluar"
+                onConfirm={async () => {
+                  await new Promise((r) => setTimeout(r, 350));
+                  setIsOpen(false);
+                  logout();
+                }}
+                height={46}
+                radius={23}
+                trackColor="#171717"
+                successColor="#dc2626"
+                className="w-full"
+              />
             </div>
           </div>
         )}
