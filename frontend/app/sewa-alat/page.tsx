@@ -411,121 +411,145 @@ export default function SewaAlatPage() {
         ) : (
           /* Grid Sewa Alat - Klik Card Masuk ke Halaman Info Detail /sewa-alat/[id] */
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-3.5 md:gap-4">
-            {filteredEquipments.map((item) => (
-              <div
-                key={item.id}
-                onClick={() => router.push(`/sewa-alat/${item.id}`)}
-                className="bg-white border border-slate-200/90 rounded-2xl overflow-hidden shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between group cursor-pointer h-full"
-                title={`Klik untuk melihat detail lengkap unit "${item.nama}"`}
-              >
-                <div>
-                  {/* Top Image Section with Badges - Strict 1:1 Aspect Ratio */}
-                  <div
-                    className="relative aspect-square w-full shrink-0 bg-slate-100 overflow-hidden"
-                    style={{ aspectRatio: '1 / 1' }}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={
-                        item.imageUrl ||
-                        'https://picsum.photos/seed/sewa-alat-koperasi/600/600'
-                      }
-                      alt={item.nama}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src =
-                          'https://picsum.photos/seed/sewa-alat-koperasi/600/600';
-                      }}
-                    />
+            {filteredEquipments.map((item) => {
+              const isOutOfStock = !item.isTersedia || (item.stokTersedia !== undefined && item.stokTersedia <= 0);
+              const remainingStock = item.stokTersedia !== undefined ? item.stokTersedia : (item.isTersedia ? (item.stokUnit || 1) : 0);
 
-                    {/* Status Badge di Kanan Atas */}
-                    <div className="absolute top-1.5 right-1.5 bg-white/95 backdrop-blur-xs text-emerald-800 text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded shadow-2xs flex items-center gap-1 z-10">
-                      <span
-                        className={`w-1.5 h-1.5 rounded-full ${
-                          item.isTersedia
-                            ? 'bg-emerald-500 animate-pulse'
-                            : 'bg-amber-500'
+              return (
+                <div
+                  key={item.id}
+                  onClick={() => router.push(`/sewa-alat/${item.id}`)}
+                  className={`border rounded-2xl overflow-hidden shadow-2xs transition-all duration-200 flex flex-col justify-between group cursor-pointer h-full ${
+                    isOutOfStock
+                      ? 'bg-slate-100/90 border-slate-300/80 opacity-75'
+                      : 'bg-white border-slate-200/90 hover:shadow-md hover:-translate-y-0.5'
+                  }`}
+                  title={
+                    isOutOfStock
+                      ? `Unit "${item.nama}" sedang disewa / stok kosong di koperasi`
+                      : `Klik untuk melihat detail lengkap unit "${item.nama}"`
+                  }
+                >
+                  <div>
+                    {/* Top Image Section with Badges - Strict 1:1 Aspect Ratio */}
+                    <div
+                      className="relative aspect-square w-full shrink-0 bg-slate-100 overflow-hidden"
+                      style={{ aspectRatio: '1 / 1' }}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={
+                          item.imageUrl ||
+                          'https://picsum.photos/seed/sewa-alat-koperasi/600/600'
+                        }
+                        alt={item.nama}
+                        className={`w-full h-full object-cover transition-transform duration-300 ${
+                          isOutOfStock ? 'grayscale contrast-90' : 'group-hover:scale-105'
                         }`}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src =
+                            'https://picsum.photos/seed/sewa-alat-koperasi/600/600';
+                        }}
                       />
-                      <span>{item.isTersedia ? 'Ready' : 'Dipakai'}</span>
+
+                      {/* Status Badge di Kanan Atas */}
+                      {isOutOfStock ? (
+                        <div className="absolute top-1.5 right-1.5 bg-slate-900/90 backdrop-blur-xs text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded shadow-2xs flex items-center gap-1 z-10 border border-slate-700">
+                          <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+                          <span>Sedang Disewa</span>
+                        </div>
+                      ) : (
+                        <div className="absolute top-1.5 right-1.5 bg-white/95 backdrop-blur-xs text-emerald-800 text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded shadow-2xs flex items-center gap-1 z-10 border border-emerald-100">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          <span>Ready ({remainingStock} unit)</span>
+                        </div>
+                      )}
+
+                      {/* Badge Kategori di Kiri Bawah */}
+                      <div className="absolute bottom-1.5 left-1.5 bg-emerald-700/95 backdrop-blur-xs text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded shadow-2xs max-w-[80%] truncate z-10">
+                        {item.kategori}
+                      </div>
                     </div>
 
-                    {/* Badge Kategori di Kiri Bawah */}
-                    <div className="absolute bottom-1.5 left-1.5 bg-emerald-700/95 backdrop-blur-xs text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded shadow-2xs max-w-[80%] truncate z-10">
-                      {item.kategori}
+                    {/* Body Content */}
+                    <div className="p-2.5 sm:p-3 flex flex-col justify-between gap-1 sm:gap-1.5">
+                      {/* Judul Alat */}
+                      <h3
+                        className={`text-xs font-semibold tracking-tight leading-tight line-clamp-2 h-[2.6em] transition-colors ${
+                          isOutOfStock ? 'text-slate-600' : 'text-slate-800 group-hover:text-emerald-700'
+                        }`}
+                        title={item.nama}
+                      >
+                        {item.nama}
+                      </h3>
+
+                      {/* Harga Sewa */}
+                      <div className="flex items-baseline gap-1 mt-0.5">
+                        <span className={`text-xs sm:text-sm font-extrabold tracking-tight ${isOutOfStock ? 'text-slate-500' : 'text-slate-900'}`}>
+                          Rp {Number(item.hargaSewa).toLocaleString('id-ID')}
+                        </span>
+                        <span className="text-[8px] sm:text-[9px] text-slate-400 font-normal">
+                          /{item.satuanSewa || 'hari'}
+                        </span>
+                      </div>
+
+                      {/* Stok & Kondisi Unit */}
+                      {isOutOfStock ? (
+                        <div className="text-[9px] sm:text-[11px] font-bold text-red-600 truncate">
+                          Stok Kosong • Sedang Disewa
+                        </div>
+                      ) : (
+                        <div className="text-[9px] sm:text-[11px] text-slate-500 font-medium truncate">
+                          Sisa {remainingStock} unit • {item.kondisi || 'Sangat Baik'}
+                        </div>
+                      )}
+
+                      {/* Operator Info */}
+                      <div className="text-[10px] sm:text-xs font-bold text-slate-700 truncate">
+                        {item.biayaOperator
+                          ? `+Rp ${Number(item.biayaOperator).toLocaleString('id-ID')} operator`
+                          : 'Operator mandiri / bebas'}
+                      </div>
                     </div>
                   </div>
 
-                  {/* Body Content */}
-                  <div className="p-2.5 sm:p-3 flex flex-col justify-between gap-1 sm:gap-1.5">
-                    {/* Judul Alat */}
-                    <h3
-                      className="text-xs font-semibold text-slate-800 tracking-tight leading-tight line-clamp-2 h-[2.6em] group-hover:text-emerald-700 transition-colors"
-                      title={item.nama}
+                  {/* Footer Action - Tambah ke Keranjang Sewa & WhatsApp */}
+                  <div className="p-1.5 pt-0 sm:p-2 sm:pt-0 flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={(e) => handleAddToCartDirectly(item, e)}
+                      disabled={isOutOfStock}
+                      className={`flex-1 py-1 px-1.5 sm:py-1.5 sm:px-2 rounded-lg text-[9px] sm:text-[10px] font-bold flex items-center justify-center gap-1 transition shadow-2xs ${
+                        isOutOfStock
+                          ? 'bg-slate-200/90 text-slate-500 border border-slate-300/80 cursor-not-allowed'
+                          : 'bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white cursor-pointer'
+                      }`}
+                      title={isOutOfStock ? 'Unit alat saat ini sedang disewa anggota lain' : 'Tambahkan alat ke keranjang sewa'}
                     >
-                      {item.nama}
-                    </h3>
+                      <ShoppingCart className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                      <span>{isOutOfStock ? 'Sedang Disewa' : '+ Sewa Alat'}</span>
+                    </button>
 
-                    {/* Harga Sewa */}
-                    <div className="flex items-baseline gap-1 mt-0.5">
-                      <span className="text-xs sm:text-sm font-extrabold text-slate-900 tracking-tight">
-                        Rp {Number(item.hargaSewa).toLocaleString('id-ID')}
-                      </span>
-                      <span className="text-[8px] sm:text-[9px] text-slate-400 font-normal">
-                        /{item.satuanSewa || 'hari'}
-                      </span>
-                    </div>
-
-                    {/* Stok & Kondisi Unit */}
-                    <div className="text-[9px] sm:text-[11px] text-slate-500 font-medium truncate">
-                      Stok {item.stokUnit || 1} unit • {item.kondisi || 'Sangat Baik'}
-                    </div>
-
-                    {/* Operator Info */}
-                    <div className="text-[10px] sm:text-xs font-bold text-slate-800 truncate">
-                      {item.biayaOperator
-                        ? `+Rp ${Number(item.biayaOperator).toLocaleString('id-ID')} operator`
-                        : 'Operator mandiri / bebas'}
-                    </div>
+                    {item.kontakPj && (
+                      <a
+                        href={`https://wa.me/${item.kontakPj
+                          .replace(/\D/g, '')
+                          .replace(/^0/, '62')}?text=${encodeURIComponent(
+                          `Halo Pengurus Koperasi Sinar Pagi Sejahtera, saya ingin bertanya tentang ketersediaan sewa alat "${item.nama}".`
+                        )}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="p-1 sm:p-1.5 rounded-lg border border-slate-200 hover:bg-emerald-50 text-emerald-700 transition flex items-center justify-center"
+                        title="Tanya Pengurus via WhatsApp"
+                      >
+                        <MessageCircle className="w-3 h-3 text-emerald-600" />
+                      </a>
+                    )}
                   </div>
                 </div>
-
-                {/* Footer Action - Tambah ke Keranjang Sewa & WhatsApp */}
-                <div className="p-1.5 pt-0 sm:p-2 sm:pt-0 flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={(e) => handleAddToCartDirectly(item, e)}
-                    disabled={!item.isTersedia}
-                    className={`flex-1 py-1 px-1.5 sm:py-1.5 sm:px-2 rounded-lg text-[9px] sm:text-[10px] font-bold flex items-center justify-center gap-1 transition cursor-pointer shadow-2xs ${
-                      item.isTersedia
-                        ? 'bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white'
-                        : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                    }`}
-                    title={item.isTersedia ? 'Tambahkan alat ke keranjang sewa' : 'Unit sedang dipakai'}
-                  >
-                    <ShoppingCart className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                    <span>{item.isTersedia ? '+ Sewa Alat' : 'Sedang Dipakai'}</span>
-                  </button>
-
-                  {item.kontakPj && (
-                    <a
-                      href={`https://wa.me/${item.kontakPj
-                        .replace(/\D/g, '')
-                        .replace(/^0/, '62')}?text=${encodeURIComponent(
-                        `Halo Pengurus Koperasi Sinar Pagi Sejahtera, saya ingin bertanya tentang ketersediaan sewa alat "${item.nama}".`
-                      )}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="p-1 sm:p-1.5 rounded-lg border border-slate-200 hover:bg-emerald-50 text-emerald-700 transition flex items-center justify-center"
-                      title="Tanya Pengurus via WhatsApp"
-                    >
-                      <MessageCircle className="w-3 h-3 text-emerald-600" />
-                    </a>
-                  )}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </main>

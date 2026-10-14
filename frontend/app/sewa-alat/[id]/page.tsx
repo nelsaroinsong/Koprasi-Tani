@@ -52,6 +52,8 @@ interface EquipmentDetail {
   satuanSewa: string;
   biayaOperator: number | null;
   stokUnit: number;
+  stokTersedia?: number;
+  unitDisewa?: number;
   kondisi: string;
   imageUrl: string | null;
   isTersedia: boolean;
@@ -158,10 +160,13 @@ export default function EquipmentDetailPage({
   // Aksi: Masukkan ke Keranjang Sewa Multi-Alat
   const handleAddToCart = () => {
     if (!equipment) return;
-    if (!equipment.isTersedia) {
+    const isOutOfStock =
+      !equipment.isTersedia ||
+      (equipment.stokTersedia !== undefined && equipment.stokTersedia <= 0);
+    if (isOutOfStock) {
       showToast({
-        title: 'Unit Sedang Dipakai',
-        message: 'Alat ini saat ini sedang tidak dapat disewa.',
+        title: 'Stok Unit Habis',
+        message: 'Semua unit alat ini saat ini sedang disewa.',
         type: 'warning',
       });
       return;
@@ -292,6 +297,16 @@ export default function EquipmentDetailPage({
     .replace(/\D/g, '')
     .replace(/^0/, '62');
 
+  const isOutOfStock =
+    !equipment.isTersedia ||
+    (equipment.stokTersedia !== undefined && equipment.stokTersedia <= 0);
+  const maxUnits = Math.max(
+    0,
+    equipment.stokTersedia !== undefined
+      ? equipment.stokTersedia
+      : equipment.stokUnit || 1
+  );
+
   return (
     <div className="min-h-screen bg-slate-50/70 pb-16">
       <AppHeader />
@@ -353,16 +368,24 @@ export default function EquipmentDetailPage({
                 />
 
                 {/* Badge Ketersediaan */}
-                <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-xs text-emerald-800 text-xs font-bold px-2.5 py-1 rounded-lg shadow-2xs flex items-center gap-1.5 border border-emerald-100">
+                <div
+                  className={`absolute top-3 left-3 bg-white/95 backdrop-blur-xs text-xs font-bold px-2.5 py-1 rounded-lg shadow-2xs flex items-center gap-1.5 border ${
+                    !equipment.isTersedia || (equipment.stokTersedia !== undefined && equipment.stokTersedia <= 0)
+                      ? 'text-amber-800 border-amber-200'
+                      : 'text-emerald-800 border-emerald-100'
+                  }`}
+                >
                   <span
                     className={`w-2 h-2 rounded-full ${
-                      equipment.isTersedia
-                        ? 'bg-emerald-500 animate-pulse'
-                        : 'bg-amber-500'
+                      !equipment.isTersedia || (equipment.stokTersedia !== undefined && equipment.stokTersedia <= 0)
+                        ? 'bg-amber-500'
+                        : 'bg-emerald-500 animate-pulse'
                     }`}
                   />
                   <span>
-                    {equipment.isTersedia ? 'Ready Disewakan' : 'Sedang Dipakai'}
+                    {!equipment.isTersedia || (equipment.stokTersedia !== undefined && equipment.stokTersedia <= 0)
+                      ? 'Sedang Disewa (Stok Kosong)'
+                      : 'Ready Disewakan'}
                   </span>
                 </div>
 
@@ -440,9 +463,21 @@ export default function EquipmentDetailPage({
                   <div className="text-[10px] text-slate-400 font-medium">
                     Stok Tersedia
                   </div>
-                  <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                    <Package className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>{equipment.stokUnit || 1} Unit Siap Pakai</span>
+                  <div className={`text-xs font-bold flex items-center gap-1.5 ${
+                    !equipment.isTersedia || (equipment.stokTersedia !== undefined && equipment.stokTersedia <= 0)
+                      ? 'text-rose-600'
+                      : 'text-slate-800'
+                  }`}>
+                    <Package className={`w-3.5 h-3.5 ${
+                      !equipment.isTersedia || (equipment.stokTersedia !== undefined && equipment.stokTersedia <= 0)
+                        ? 'text-rose-500'
+                        : 'text-emerald-600'
+                    }`} />
+                    <span>
+                      {!equipment.isTersedia || (equipment.stokTersedia !== undefined && equipment.stokTersedia <= 0)
+                        ? '0 Unit (Sedang Disewa)'
+                        : `${equipment.stokTersedia ?? equipment.stokUnit ?? 1} Unit Siap Pakai`}
+                    </span>
                   </div>
                 </div>
 
@@ -489,11 +524,34 @@ export default function EquipmentDetailPage({
             </div>
 
             {/* Card Opsi Sewa & Tombol Aksi */}
-            <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/90 shadow-2xs space-y-4">
-              <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-emerald-700" />
-                <span>Rencana Penggunaan Sewa</span>
-              </h2>
+            <div className={`rounded-3xl p-5 sm:p-6 border shadow-2xs space-y-4 transition ${
+              isOutOfStock
+                ? 'bg-slate-100/80 border-slate-300'
+                : 'bg-white border-slate-200/90'
+            }`}>
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-emerald-700" />
+                  <span>Rencana Penggunaan Sewa</span>
+                </h2>
+                {isOutOfStock && (
+                  <span className="px-2.5 py-1 rounded-lg bg-rose-100 text-rose-700 text-[11px] font-bold border border-rose-200">
+                    Sedang Disewa
+                  </span>
+                )}
+              </div>
+
+              {isOutOfStock && (
+                <div className="p-3.5 bg-amber-50/90 border border-amber-200/80 rounded-2xl flex items-start gap-2.5 text-xs text-amber-900">
+                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-bold">Unit Sedang Disewa Koperasi</p>
+                    <p className="text-[11px] text-amber-800 mt-0.5 leading-relaxed">
+                      Seluruh unit alat ini saat ini sedang disewa anggota lain. Anda dapat menanyakan jadwal sewa berikutnya ke pengurus koperasi via WhatsApp di bawah.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Atur Jumlah Unit & Durasi */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
@@ -502,48 +560,51 @@ export default function EquipmentDetailPage({
                   <label className="block font-bold text-slate-700 mb-1">
                     Jumlah Unit
                   </label>
-                  <div className="flex items-center border border-slate-200 rounded-xl bg-slate-50/60 overflow-hidden">
+                  <div className="flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden">
                     <button
                       type="button"
                       onClick={() => setJumlahUnit((prev) => Math.max(1, prev - 1))}
-                      disabled={jumlahUnit <= 1}
-                      className="p-2.5 hover:bg-slate-200/60 text-slate-700 transition disabled:opacity-30 cursor-pointer"
+                      disabled={isOutOfStock || jumlahUnit <= 1}
+                      className="p-2.5 hover:bg-slate-200/60 text-slate-700 transition disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
                     >
                       <Minus className="w-3.5 h-3.5" />
                     </button>
                     <input
                       type="number"
                       min={1}
-                      max={equipment.stokUnit || 99}
+                      max={maxUnits || 1}
+                      disabled={isOutOfStock}
                       value={jumlahUnit}
                       onChange={(e) =>
                         setJumlahUnit(
                           Math.max(
                             1,
                             Math.min(
-                              equipment.stokUnit || 99,
+                              maxUnits || 1,
                               Number(e.target.value) || 1
                             )
                           )
                         )
                       }
-                      className="w-full text-center font-bold text-slate-900 bg-transparent focus:outline-none"
+                      className="w-full text-center font-bold text-slate-900 bg-transparent focus:outline-none disabled:text-slate-400"
                     />
                     <button
                       type="button"
                       onClick={() =>
                         setJumlahUnit((prev) =>
-                          Math.min(equipment.stokUnit || 99, prev + 1)
+                          Math.min(maxUnits || 1, prev + 1)
                         )
                       }
-                      disabled={jumlahUnit >= (equipment.stokUnit || 1)}
-                      className="p-2.5 hover:bg-slate-200/60 text-slate-700 transition disabled:opacity-30 cursor-pointer"
+                      disabled={isOutOfStock || jumlahUnit >= maxUnits}
+                      className="p-2.5 hover:bg-slate-200/60 text-slate-700 transition disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
                     >
                       <Plus className="w-3.5 h-3.5" />
                     </button>
                   </div>
-                  <span className="text-[10px] text-slate-400 mt-1 block">
-                    Maksimal {equipment.stokUnit || 1} unit tersedia
+                  <span className={`text-[10px] mt-1 block font-medium ${isOutOfStock ? 'text-rose-600 font-bold' : 'text-slate-400'}`}>
+                    {isOutOfStock
+                      ? 'Stok kosong di koperasi'
+                      : `Maksimal ${maxUnits} unit tersedia`}
                   </span>
                 </div>
 
@@ -552,28 +613,30 @@ export default function EquipmentDetailPage({
                   <label className="block font-bold text-slate-700 mb-1">
                     Durasi ({equipment.satuanSewa || 'hari'})
                   </label>
-                  <div className="flex items-center border border-slate-200 rounded-xl bg-slate-50/60 overflow-hidden">
+                  <div className="flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden">
                     <button
                       type="button"
                       onClick={() => setDurasi((prev) => Math.max(1, prev - 1))}
-                      disabled={durasi <= 1}
-                      className="p-2.5 hover:bg-slate-200/60 text-slate-700 transition disabled:opacity-30 cursor-pointer"
+                      disabled={isOutOfStock || durasi <= 1}
+                      className="p-2.5 hover:bg-slate-200/60 text-slate-700 transition disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
                     >
                       <Minus className="w-3.5 h-3.5" />
                     </button>
                     <input
                       type="number"
                       min={1}
+                      disabled={isOutOfStock}
                       value={durasi}
                       onChange={(e) =>
                         setDurasi(Math.max(1, Number(e.target.value) || 1))
                       }
-                      className="w-full text-center font-bold text-slate-900 bg-transparent focus:outline-none"
+                      className="w-full text-center font-bold text-slate-900 bg-transparent focus:outline-none disabled:text-slate-400"
                     />
                     <button
                       type="button"
                       onClick={() => setDurasi((prev) => prev + 1)}
-                      className="p-2.5 hover:bg-slate-200/60 text-slate-700 transition cursor-pointer"
+                      disabled={isOutOfStock}
+                      className="p-2.5 hover:bg-slate-200/60 text-slate-700 transition disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
                     >
                       <Plus className="w-3.5 h-3.5" />
                     </button>
@@ -586,13 +649,14 @@ export default function EquipmentDetailPage({
 
               {/* Opsi Layanan Operator */}
               {equipment.biayaOperator ? (
-                <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl">
+                <div className="p-3 bg-white border border-slate-200/80 rounded-xl">
                   <label className="flex items-start gap-2.5 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={includeOperator}
+                      disabled={isOutOfStock}
                       onChange={(e) => setIncludeOperator(e.target.checked)}
-                      className="w-4 h-4 rounded text-emerald-700 focus:ring-emerald-600 border-slate-300 mt-0.5 cursor-pointer"
+                      className="w-4 h-4 rounded text-emerald-700 focus:ring-emerald-600 border-slate-300 mt-0.5 cursor-pointer disabled:cursor-not-allowed"
                     />
                     <div className="text-xs">
                       <div className="font-bold text-slate-800">
@@ -609,7 +673,7 @@ export default function EquipmentDetailPage({
               ) : null}
 
               {/* Rincian Estimasi Biaya */}
-              <div className="p-3.5 bg-slate-100/70 border border-slate-200 rounded-xl space-y-1.5 text-xs">
+              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5 text-xs">
                 <div className="flex justify-between text-slate-600 text-[11px]">
                   <span>
                     Tarif Pokok ({jumlahUnit} unit × {durasi} {equipment.satuanSewa}):
@@ -651,21 +715,21 @@ export default function EquipmentDetailPage({
                 <button
                   type="button"
                   onClick={handleAddToCart}
-                  disabled={!equipment.isTersedia}
-                  className="w-full py-3 px-3 rounded-xl border border-emerald-600 bg-emerald-50/80 hover:bg-emerald-100/80 text-emerald-800 font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-2xs disabled:opacity-50"
+                  disabled={isOutOfStock}
+                  className="w-full py-3 px-3 rounded-xl border border-emerald-600 bg-emerald-50/80 hover:bg-emerald-100/80 text-emerald-800 font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:border-slate-300 disabled:text-slate-400"
                 >
                   <ShoppingCart className="w-4 h-4" />
-                  <span>+ Keranjang Sewa (Banyak)</span>
+                  <span>{isOutOfStock ? 'Stok Sewa Kosong' : '+ Keranjang Sewa (Banyak)'}</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setIsDirectCheckoutOpen(true)}
-                  disabled={!equipment.isTersedia}
-                  className="w-full py-3 px-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-xs disabled:opacity-50"
+                  disabled={isOutOfStock}
+                  className="w-full py-3 px-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-xs disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"
                 >
                   <Calendar className="w-4 h-4" />
-                  <span>Sewa Alat Ini Sekarang</span>
+                  <span>{isOutOfStock ? 'Sedang Disewa (Habis)' : 'Sewa Alat Ini Sekarang'}</span>
                 </button>
               </div>
 
