@@ -105,6 +105,12 @@ export async function PATCH(request: Request) {
     rentals[targetIdx] = updated;
     writeEquipmentRentals(rentals);
 
+    // Hapus cache katalog sewa alat agar ketersediaan stok langsung sinkron
+    try {
+      const { delCache } = await import('@/lib/redis');
+      await delCache('equipments:list:public');
+    } catch {}
+
     return NextResponse.json({
       success: true,
       rental: updated,

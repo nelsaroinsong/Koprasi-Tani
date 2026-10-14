@@ -74,3 +74,22 @@ export function writeEquipmentRentals(rentals: EquipmentRentalOrder[]): boolean 
     return false;
   }
 }
+
+// Menghitung jumlah unit yang sedang aktif disewa (status belum selesai dan tidak ditolak)
+export function getActiveRentedUnitsMap(): Record<string, number> {
+  const allRentals = readEquipmentRentals();
+  const activeRentals = allRentals.filter((r) =>
+    ['MENUNGGU_PERSETUJUAN_ADMIN', 'DISETUJUI', 'SIAP_DIAMBIL', 'SEDANG_DISEWA'].includes(r.status)
+  );
+
+  const rentedMap: Record<string, number> = {};
+  for (const rental of activeRentals) {
+    for (const item of rental.items || []) {
+      if (item.equipmentId) {
+        rentedMap[item.equipmentId] = (rentedMap[item.equipmentId] || 0) + (Number(item.jumlahUnit) || 1);
+      }
+    }
+  }
+  return rentedMap;
+}
+

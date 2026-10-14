@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCache, setCache } from '@/lib/redis';
 import { readEquipmentsFromFile, type EquipmentItem } from '@/lib/equipments';
+import { getActiveRentedUnitsMap } from '@/lib/equipment-rentals';
 
 export const dynamic = 'force-dynamic';
 
@@ -79,6 +80,22 @@ export async function GET(request: Request) {
       } catch {}
     }
 
+    // Hitung stok tersedia secara dinamis berdasarkan unit yang sedang aktif disewa
+    const rentedMap = getActiveRentedUnitsMap();
+    list = list.map((eq) => {
+      const rented = rentedMap[eq.id] || 0;
+      const totalStok = Number(eq.stokUnit) || 0;
+      const stokTersedia = Math.max(0, totalStok - rented);
+      const isAvailable = Boolean(eq.isTersedia) && stokTersedia > 0;
+      return {
+        ...eq,
+        stokUnit: totalStok,
+        stokTersedia,
+        unitDisewa: rented,
+        isTersedia: isAvailable,
+      };
+    });
+
     // Terapkan filter kategori jika ada
     if (kategori && kategori !== 'SEMUA') {
       list = list.filter((eq) => eq.kategori === kategori);
@@ -94,9 +111,9 @@ export async function GET(request: Request) {
       );
     }
 
-    // Cache hasil selama 60 detik jika tanpa filter
+    // Cache hasil selama 15 detik jika tanpa filter
     if (!kategori && !search) {
-      await setCache(CACHE_KEY, list, 60);
+      await setCache(CACHE_KEY, list, 15);
     }
 
     return NextResponse.json({

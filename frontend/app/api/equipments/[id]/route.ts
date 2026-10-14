@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { readEquipmentsFromFile, type EquipmentItem } from '@/lib/equipments';
+import { getActiveRentedUnitsMap } from '@/lib/equipment-rentals';
 
 export const dynamic = 'force-dynamic';
 
@@ -61,7 +62,22 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ success: true, equipment });
+    // Hitung sisa stok tersedia secara dinamis
+    const rentedMap = getActiveRentedUnitsMap();
+    const rented = rentedMap[equipment.id] || 0;
+    const totalStok = Number(equipment.stokUnit) || 0;
+    const stokTersedia = Math.max(0, totalStok - rented);
+    const isAvailable = Boolean(equipment.isTersedia) && stokTersedia > 0;
+
+    const enrichedEquipment: EquipmentItem = {
+      ...equipment,
+      stokUnit: totalStok,
+      stokTersedia,
+      unitDisewa: rented,
+      isTersedia: isAvailable,
+    };
+
+    return NextResponse.json({ success: true, equipment: enrichedEquipment });
   } catch (error: any) {
     console.error('Error fetching equipment detail:', error);
     return NextResponse.json(

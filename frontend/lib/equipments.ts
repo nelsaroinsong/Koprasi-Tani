@@ -11,6 +11,8 @@ export interface EquipmentItem {
   satuanSewa: string;
   biayaOperator: number | null;
   stokUnit: number;
+  stokTersedia?: number;
+  unitDisewa?: number;
   kondisi: string;
   imageUrl: string | null;
   isTersedia: boolean;

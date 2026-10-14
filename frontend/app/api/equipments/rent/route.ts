@@ -174,6 +174,12 @@ export async function POST(request: Request) {
     existingRentals.unshift(newRentalOrder);
     writeEquipmentRentals(existingRentals);
 
+    // Hapus cache katalog sewa alat agar ketersediaan stok langsung terbarui
+    try {
+      const { delCache } = await import('@/lib/redis');
+      await delCache('equipments:list:public');
+    } catch {}
+
     // Rincian alat dalam pesan WhatsApp
     const itemLines = processedItems.map((it, idx) => {
       const opInfo = it.includeOperator

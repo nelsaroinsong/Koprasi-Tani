@@ -416,28 +416,39 @@ Mohon info kesiapan fisik komoditas di gudang koperasi. Terima kasih.`;
       cleanPhone = '62' + cleanPhone.slice(1);
     }
 
+    const rentalCode = rental.rentalCode || rental.rentalNumber || rental.id;
+    const durationDays = rental.durationDays || rental.durasi || rental.items?.[0]?.durasi || 1;
+    const totalAmount = rental.totalEstimasi ?? rental.totalAmount ?? 0;
+    const location = rental.lokasiLahan || rental.farmLocationAddress || rental.location || '-';
+    const notes = rental.catatan || rental.notes;
+
     const itemsSummary = rental.items
-      ?.map((i: any) => `- ${i.equipmentName} (${i.quantity} unit x ${i.rentalDays || rental.durationDays} hari)`)
+      ?.map((i: any) => {
+        const name = i.nama || i.equipmentName || 'Alat Pertanian';
+        const qty = i.jumlahUnit || i.quantity || 1;
+        const dur = i.durasi || i.rentalDays || durationDays;
+        return `- ${name} (${qty} unit x ${dur} hari)`;
+      })
       .join('\n');
 
     const message = `Halo Admin Koperasi Sinar Pagi Sejahtera, saya ingin konfirmasi pengajuan sewa alat pertanian saya:
 
-Nomor Pengajuan: #${rental.rentalNumber}
+Nomor Pengajuan: #${rentalCode}
 Nama Pemohon: ${rental.userName} (${rental.userPhone || '-'})
 Tanggal Mulai: ${rental.startDate}
-Durasi Sewa: ${rental.durationDays} hari
-Lokasi Lahan Kebun: ${rental.farmLocationAddress || rental.location || '-'}
+Durasi Sewa: ${durationDays} hari
+Lokasi Lahan Kebun: ${location}
 ${
   rental.farmLocationGps
     ? `Titik GPS Lahan: ${rental.farmLocationGps.lat}, ${rental.farmLocationGps.lng}\nMaps: https://www.google.com/maps?q=${rental.farmLocationGps.lat},${rental.farmLocationGps.lng}\n`
     : ''
-}Total Biaya Sewa: Rp ${Number(rental.totalAmount).toLocaleString('id-ID')}
+}Total Biaya Sewa: Rp ${Number(totalAmount).toLocaleString('id-ID')}
 Status: ${rental.status}
 
 Daftar Alat:
-${itemsSummary}
+${itemsSummary || '-'}
 
-${rental.notes ? `Catatan: ${rental.notes}\n` : ''}
+${notes ? `Catatan: ${notes}\n` : ''}
 Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
 
     const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
@@ -1074,7 +1085,7 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
                           </div>
                           <span className="text-slate-300 hidden sm:inline">•</span>
                           <span className="font-mono text-[10px] sm:text-[11px] text-emerald-800 font-bold">
-                            #{rental.rentalNumber}
+                            #{rental.rentalCode || rental.rentalNumber || rental.id}
                           </span>
                         </div>
 
@@ -1094,50 +1105,64 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
                       {/* Items Alat Yang Disewa */}
                       <div className="p-3 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-6 border-b border-slate-100">
                         <div className="space-y-3 flex-1 min-w-0">
-                          {rental.items?.map((item: any, idx: number) => (
-                            <div key={idx} className="flex items-start gap-3">
-                              {item.imageUrl ? (
-                                <img
-                                  src={item.imageUrl}
-                                  alt={item.equipmentName}
-                                  className="w-14 h-14 rounded-2xl object-cover border border-slate-200 shrink-0 shadow-2xs"
-                                />
-                              ) : (
-                                <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-800 flex items-center justify-center shrink-0 border border-emerald-100 text-xl font-bold shadow-2xs">
-                                  🚜
-                                </div>
-                              )}
+                          {rental.items?.map((item: any, idx: number) => {
+                            const itemName = item.nama || item.equipmentName || 'Alat Pertanian';
+                            const itemQty = Number(item.jumlahUnit || item.quantity) || 1;
+                            const itemPrice = Number(item.hargaSewa ?? item.pricePerDay) || 0;
+                            const itemDuration = Number(item.durasi || item.rentalDays || rental.durationDays || rental.durasi) || 1;
+                            const itemUnit = item.satuanSewa || 'hari';
+                            const itemSubtotal = item.subtotal !== undefined && !isNaN(Number(item.subtotal))
+                              ? Number(item.subtotal)
+                              : itemPrice * itemQty * itemDuration;
 
-                              <div className="min-w-0 flex-1">
-                                <h4 className="text-xs sm:text-sm font-bold text-slate-900 leading-snug">
-                                  {item.equipmentName}
-                                </h4>
-                                <div className="text-[10px] sm:text-xs text-slate-500 mt-0.5">
-                                  {item.quantity} unit × Rp {Number(item.pricePerDay).toLocaleString('id-ID')} / hari
+                            return (
+                              <div key={idx} className="flex items-start gap-3">
+                                {item.imageUrl ? (
+                                  <img
+                                    src={item.imageUrl}
+                                    alt={itemName}
+                                    className="w-14 h-14 rounded-2xl object-cover border border-slate-200 shrink-0 shadow-2xs"
+                                  />
+                                ) : (
+                                  <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-800 flex items-center justify-center shrink-0 border border-emerald-100 text-xl font-bold shadow-2xs">
+                                    🚜
+                                  </div>
+                                )}
+
+                                <div className="min-w-0 flex-1">
+                                  <h4 className="text-xs sm:text-sm font-bold text-slate-900 leading-snug">
+                                    {itemName}
+                                  </h4>
+                                  <div className="text-[10px] sm:text-xs text-slate-500 mt-0.5">
+                                    {itemQty} unit × Rp {itemPrice.toLocaleString('id-ID')} / {itemUnit}
+                                  </div>
+                                  <div className="text-[10px] sm:text-xs text-emerald-700 font-semibold mt-0.5">
+                                    Durasi sewa: {itemDuration} {itemUnit} (Mulai {rental.startDate})
+                                  </div>
                                 </div>
-                                <div className="text-[10px] sm:text-xs text-emerald-700 font-semibold mt-0.5">
-                                  Durasi sewa: {item.rentalDays || rental.durationDays} hari (Mulai {rental.startDate})
+
+                                <div className="text-right shrink-0">
+                                  <div className="text-[10px] sm:text-xs text-slate-400 font-medium">Subtotal</div>
+                                  <div className="text-xs sm:text-sm font-black text-slate-900 mt-0.5">
+                                    Rp {itemSubtotal.toLocaleString('id-ID')}
+                                  </div>
                                 </div>
                               </div>
-
-                              <div className="text-right shrink-0">
-                                <div className="text-[10px] sm:text-xs text-slate-400 font-medium">Subtotal</div>
-                                <div className="text-xs sm:text-sm font-black text-slate-900 mt-0.5">
-                                  Rp {Number(item.subtotal).toLocaleString('id-ID')}
-                                </div>
-                              </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
 
                         {/* Total Biaya Sewa */}
                         <div className="pt-2 sm:pt-0 border-t sm:border-t-0 md:border-l md:border-slate-200 md:pl-6 shrink-0 flex flex-col justify-center min-w-[190px]">
                           <div className="text-[10px] sm:text-xs text-slate-400 font-medium">Total Biaya Sewa:</div>
                           <div className="text-base sm:text-xl font-black text-emerald-800 tracking-tight mt-0.5">
-                            Rp {Number(rental.totalAmount).toLocaleString('id-ID')}
+                            Rp {Number(rental.totalEstimasi ?? rental.totalAmount ?? 0).toLocaleString('id-ID')}
                           </div>
                           <div className="text-[10px] sm:text-[11px] text-slate-500 font-semibold mt-0.5">
-                            Durasi Total: <span className="text-slate-800 font-bold">{rental.durationDays} Hari</span>
+                            Durasi Total:{' '}
+                            <span className="text-slate-800 font-bold">
+                              {rental.durationDays || rental.durasi || rental.items?.[0]?.durasi || 1} Hari
+                            </span>
                           </div>
                           <div className="text-[10px] sm:text-[11px] text-slate-500 font-semibold">
                             Mulai: <span className="text-slate-800 font-bold">{rental.startDate}</span>
@@ -1154,7 +1179,7 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
                               <span>Lokasi Lahan Kebun Pertanian</span>
                             </div>
                             <div className="text-slate-800 font-semibold text-xs leading-relaxed">
-                              {rental.farmLocationAddress || rental.location || 'Wilayah Minahasa Utara'}
+                              {rental.lokasiLahan || rental.farmLocationAddress || rental.location || 'Wilayah Minahasa Utara'}
                             </div>
                             {rental.farmLocationGps && (
                               <div className="pt-1 flex items-center justify-between">
@@ -1179,7 +1204,7 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
                               Catatan Kebutuhan Tambahan:
                             </div>
                             <div className="text-slate-700 text-xs italic">
-                              {rental.notes || 'Tidak ada catatan tambahan untuk pengajuan ini.'}
+                              {rental.catatan || rental.notes || 'Tidak ada catatan tambahan untuk pengajuan ini.'}
                             </div>
                             <div className="text-[10px] text-slate-400 pt-1">
                               Metode Pembayaran: <strong className="text-slate-700">Tunai Kasir Koperasi</strong>

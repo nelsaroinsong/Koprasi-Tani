@@ -170,11 +170,17 @@ export default function CheckoutSewaAlatPage() {
       cleanPhone = '62' + cleanPhone.slice(1);
     }
 
+    const rentalCode = rental.rentalCode || rental.rentalNumber || rental.id;
+    const durationDays = rental.durationDays || rental.durasi || rental.items?.[0]?.durasi || 1;
+    const totalAmount = rental.totalEstimasi ?? rental.totalAmount ?? 0;
+    const location = rental.lokasiLahan || rental.farmLocationAddress || rental.location || '-';
+    const notes = rental.catatan || rental.notes;
+
     const itemsSummary = rental.items
       ?.map(
         (i: any) =>
-          `- ${i.equipmentName} (${i.quantity} unit x ${
-            i.rentalDays || rental.durationDays
+          `- ${i.nama || i.equipmentName || 'Alat Pertanian'} (${i.jumlahUnit || i.quantity || 1} unit x ${
+            i.durasi || i.rentalDays || durationDays
           } hari)`
       )
       .join('\n');
@@ -182,22 +188,22 @@ export default function CheckoutSewaAlatPage() {
     const message = `Halo Admin Koperasi Sinar Pagi Sejahtera,
 Saya ingin konfirmasi *Pengajuan Sewa Alat Pertanian*:
 
-*Nomor Pengajuan:* #${rental.rentalNumber}
+*Nomor Pengajuan:* #${rentalCode}
 *Nama Pemohon:* ${rental.userName} (${rental.userPhone || user?.phone || '-'})
 *Mulai Tanggal:* ${rental.startDate}
-*Durasi Sewa:* ${rental.durationDays} hari
-*Lokasi Lahan Kebun:* ${rental.farmLocationAddress || rental.location || '-'}
+*Durasi Sewa:* ${durationDays} hari
+*Lokasi Lahan Kebun:* ${location}
 ${
   rental.farmLocationGps
     ? `*Titik GPS Lahan:* ${rental.farmLocationGps.lat}, ${rental.farmLocationGps.lng}\nMaps: https://www.google.com/maps?q=${rental.farmLocationGps.lat},${rental.farmLocationGps.lng}\n`
     : ''
-}*Total Biaya Estimasi:* Rp ${Number(rental.totalAmount).toLocaleString('id-ID')}
+}*Total Biaya Estimasi:* Rp ${Number(totalAmount).toLocaleString('id-ID')}
 *Status:* Menunggu Persetujuan Admin Koperasi
 
 Daftar Alat Mesin:
 ${itemsSummary || '-'}
 
-${rental.notes ? `*Catatan Kebutuhan:* ${rental.notes}\n` : ''}
+${notes ? `*Catatan Kebutuhan:* ${notes}\n` : ''}
 Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
 
     window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank');

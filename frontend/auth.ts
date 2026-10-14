@@ -64,6 +64,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   ],
   pages: {
     signIn: '/login',
+    error: '/login',
   },
   callbacks: {
     async signIn({ user, account }) {
@@ -123,8 +124,29 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
 
     async redirect({ url, baseUrl }) {
-      if (url.startsWith('/')) return `${baseUrl}${url}`;
-      if (new URL(url).origin === baseUrl) return url;
+      try {
+        if (!url) return `${baseUrl}/auth-callback`;
+        // Cegah redirect loop balik ke endpoint internal NextAuth
+        if (url.includes('/api/auth')) return `${baseUrl}/auth-callback`;
+        // Cegah redirect ke halaman 404 / not found
+        if (url.includes('not-found') || url.includes('404')) {
+          return `${baseUrl}/auth-callback`;
+        }
+        // Izinkan callback URL relatif
+        if (url.startsWith('/')) {
+          return `${baseUrl}${url}`;
+        }
+        // Izinkan callback URL dari origin yang sama
+        const parsedUrl = new URL(url, baseUrl);
+        if (parsedUrl.origin === baseUrl) {
+          if (parsedUrl.pathname.includes('/api/auth') || parsedUrl.pathname.includes('not-found') || parsedUrl.pathname.includes('404')) {
+            return `${baseUrl}/auth-callback`;
+          }
+          return url;
+        }
+      } catch (err) {
+        console.warn('[Auth Redirect Callback] Error:', err);
+      }
       return `${baseUrl}/auth-callback`;
     },
 
