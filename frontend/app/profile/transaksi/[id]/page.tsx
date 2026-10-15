@@ -1,0 +1,504 @@
+'use client';
+
+import React, { useState, useEffect, useMemo, use } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import AppHeader from '@/components/AppHeader';
+import {
+  ChevronLeft,
+  ChevronDown,
+  ChevronUp,
+  Receipt,
+  Building2,
+  Tractor,
+  TrendingUp,
+  ShoppingBag,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  MessageCircle,
+  ArrowRight,
+  ExternalLink,
+  Store,
+  MapPin,
+  Calendar,
+  Phone,
+  Loader2,
+  FileText,
+  Share2,
+} from 'lucide-react';
+import { useAuth } from '@/context/auth-context';
+
+interface TransactionDetailData {
+  id: string;
+  type: 'TOKO_BELANJA' | 'SEWA_ALAT' | 'PENCAIRAN_PANEN';
+  title: string;
+  categoryLabel: string;
+  refNumber: string;
+  amount: number;
+  isIncome: boolean;
+  status: string;
+  statusLabel: string;
+  paymentMethod: string;
+  date: Date;
+  dateLabel: string;
+  timeLabel: string;
+  itemsList: Array<{ name: string; qty: number; unit: string; price: number; subtotal: number }>;
+  locationInfo?: string;
+  notes?: string;
+  raw: any;
+}
+
+export default function TransactionDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const unwrappedParams = use(params);
+  const targetId = decodeURIComponent(unwrappedParams.id);
+
+  const { user } = useAuth();
+  const router = useRouter();
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [txData, setTxData] = useState<TransactionDetailData | null>(null);
+
+  // Accordion open/collapse states matching Gambar 2
+  const [isOverviewOpen, setIsOverviewOpen] = useState(true);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(true);
+
+  // Koperasi info for WhatsApp & pickup address
+  const [adminPhone, setAdminPhone] = useState('081944078924');
+  const [warehouseAddress, setWarehouseAddress] = useState(
+    'Koperasi Sinar Pagi Sejahtera — Jl. Raya Kolongan, Kec. Kalawat, Minahasa Utara'
+  );
+
+  useEffect(() => {
+    fetch('/api/koperasi/info')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.telepon) setAdminPhone(data.telepon);
+        if (data?.alamat) setWarehouseAddress(data.alamat);
+      })
+      .catch(() => {});
+  }, []);
+
+  // Fetch data & find matching transaction
+  useEffect(() => {
+    async function loadData() {
+      try {
+        setIsLoading(true);
+
+        const fetchOrdersPromise = fetch('/api/orders')
+          .then((res) => (res.ok ? res.json() : null))
+          .catch(() => null);
+
+        const fetchRentalsPromise = fetch('/api/equipments/rent')
+          .then((res) => (res.ok ? res.json() : null))
+          .catch(() => null);
+
+        const fetchPetaniPromise =
+          user?.role === 'PETANI'
+            ? fetch('/api/petani/dashboard')
+                .then((res) => (res.ok ? res.json() : null))
+                .catch(() => null)
+            : Promise.resolve(null);
+
+        const [ordersData, rentalsData, petaniData] = await Promise.all([
+          fetchOrdersPromise,
+          fetchRentalsPromise,
+          fetchPetaniPromise,
+        ]);
+
+        let matched: TransactionDetailData | null = null;
+
+        // 1. Search in Toko Orders
+        if (ordersData?.orders && Array.isArray(ordersData.orders)) {
+          const found = ordersData.orders.find(
+            (o: any) =>
+              `order-${o.id}` === targetId ||
+              o.id === targetId ||
+              o.orderNumber === targetId ||
+              `#${o.orderNumber}` === targetId
+          );
+
+          if (found) {
+            const d = new Date(found.createdAt || Date.now());
+            const itemsList = (found.items || []).map((i: any) => ({
+              name: i.namaProduk || i.product?.nama || 'Komoditas',
+              qty: i.quantity || 1,
+              unit: i.satuan || i.product?.satuan || 'unit',
+              price: Number(i.hargaPerSatuan || 0),
+              subtotal: Number(i.subtotal || 0),
+            }));
+
+            let statusLabel = 'Menunggu Pembayaran Kasir Koperasi';
+            if (found.status === 'SELESAI') statusLabel = 'Selesai & Sah';
+            else if (found.status === 'DIPROSES') statusLabel = 'Sedang Diproses Gudang';
+            else if (found.status === 'SIAP_DIAMBIL') statusLabel = 'Siap Diambil di Kantor Kasir';
+            else if (found.status === 'DIBATALKAN') statusLabel = 'Dibatalkan';
+
+            matched = {
+              id: `order-${found.id}`,
+              type: 'TOKO_BELANJA',
+              title: 'Koperasi Sinar Pagi Sejahtera',
+              categoryLabel: 'Pesanan Toko Online',
+              refNumber: `#${found.orderNumber}`,
+              amount: Number(found.totalAmount || 0),
+              isIncome: false,
+              status: found.status,
+              statusLabel,
+              paymentMethod:
+                found.paymentMethod === 'CASH_KOPERASI'
+                  ? 'Bayar Tunai di Kasir Koperasi'
+                  : 'Transfer Bank Koperasi',
+              date: d,
+              dateLabel: d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+              timeLabel: d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+              itemsList,
+              locationInfo: warehouseAddress,
+              notes: found.catatan || undefined,
+              raw: found,
+            };
+          }
+        }
+
+        // 2. Search in Rentals
+        if (!matched && rentalsData?.rentals && Array.isArray(rentalsData.rentals)) {
+          const found = rentalsData.rentals.find(
+            (r: any) =>
+              `rental-${r.id}` === targetId ||
+              r.id === targetId ||
+              r.rentalNumber === targetId ||
+              `#${r.rentalNumber}` === targetId
+          );
+
+          if (found) {
+            const d = new Date(found.createdAt || Date.now());
+            const equipName = found.items?.[0]?.equipmentName || 'Sewa Alat Pertanian';
+            const duration = found.durationDays || found.durasi || 1;
+
+            let statusLabel = 'Menunggu Persetujuan Admin';
+            if (found.status === 'DISETUJUI') statusLabel = 'Disetujui Admin Koperasi';
+            else if (found.status === 'SIAP_DIAMBIL') statusLabel = 'Siap Diambil di Gudang Koperasi';
+            else if (found.status === 'SEDANG_DISEWA') statusLabel = 'Sedang Disewa di Lahan';
+            else if (found.status === 'SELESAI') statusLabel = 'Sewa Selesai';
+            else if (found.status === 'DITOLAK') statusLabel = 'Pengajuan Ditolak';
+
+            matched = {
+              id: `rental-${found.id}`,
+              type: 'SEWA_ALAT',
+              title: equipName,
+              categoryLabel: 'Pengajuan Sewa Alat Tani',
+              refNumber: `#${found.rentalNumber || found.id.slice(0, 8)}`,
+              amount: Number(found.totalAmount || found.totalEstimasi || 0),
+              isIncome: false,
+              status: found.status,
+              statusLabel,
+              paymentMethod: 'Bayar Tunai di Kasir Koperasi',
+              date: d,
+              dateLabel: d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+              timeLabel: d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+              itemsList: [
+                {
+                  name: equipName,
+                  qty: duration,
+                  unit: 'Hari',
+                  price: Number(found.totalAmount || found.totalEstimasi || 0) / duration,
+                  subtotal: Number(found.totalAmount || found.totalEstimasi || 0),
+                },
+              ],
+              locationInfo: found.lokasiLahan || found.farmLocationAddress || 'Minahasa Utara',
+              notes: found.catatan || found.notes || undefined,
+              raw: found,
+            };
+          }
+        }
+
+        // 3. Search in Farmer Sales
+        if (!matched && petaniData?.recentSales && Array.isArray(petaniData.recentSales)) {
+          const found = petaniData.recentSales.find(
+            (s: any) =>
+              `sale-${s.id}` === targetId ||
+              s.id === targetId ||
+              s.orderNumber === targetId ||
+              `#${s.orderNumber}` === targetId
+          );
+
+          if (found) {
+            const d = new Date(found.orderDate || found.createdAt || Date.now());
+            const isPaid = found.payoutStatus === 'SUDAH_DICAIRKAN';
+
+            matched = {
+              id: `sale-${found.id}`,
+              type: 'PENCAIRAN_PANEN',
+              title: `Hasil Panen: ${found.namaProduk}`,
+              categoryLabel: 'Pencairan Dana Penjualan Panen',
+              refNumber: `#${found.orderNumber}`,
+              amount: Number(found.subtotal || 0),
+              isIncome: true,
+              status: found.payoutStatus,
+              statusLabel: isPaid ? 'Dana Sudah Dicairkan Cash' : 'Siap Diambil di Kasir Koperasi',
+              paymentMethod: 'Pencairan Kasir Koperasi',
+              date: d,
+              dateLabel: d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+              timeLabel: d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+              itemsList: [
+                {
+                  name: found.namaProduk,
+                  qty: found.quantity || 1,
+                  unit: found.satuan || 'kg',
+                  price: Number(found.subtotal || 0) / (found.quantity || 1),
+                  subtotal: Number(found.subtotal || 0),
+                },
+              ],
+              locationInfo: warehouseAddress,
+              raw: found,
+            };
+          }
+        }
+
+        setTxData(matched);
+      } catch (err) {
+        console.error('Error loading transaction detail:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadData();
+  }, [targetId, user?.role, warehouseAddress]);
+
+  return (
+    <div className="min-h-screen bg-[#F6F8FA] flex flex-col font-sans pb-28 sm:pb-16">
+      <AppHeader />
+
+      <main className="flex-1 w-full max-w-xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
+        {isLoading ? (
+          <div className="p-10 bg-white rounded-3xl border border-slate-200/90 text-center space-y-3">
+            <Loader2 className="w-8 h-8 text-emerald-700 animate-spin mx-auto" />
+            <p className="text-xs font-semibold text-slate-500">Memuat rincian transaksi...</p>
+          </div>
+        ) : !txData ? (
+          <div className="p-10 bg-white rounded-3xl border border-slate-200/90 text-center space-y-4">
+            <div className="w-14 h-14 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+              <Receipt className="w-7 h-7" />
+            </div>
+            <h2 className="text-base font-bold text-slate-800">Transaksi Tidak Ditemukan</h2>
+            <p className="text-xs text-slate-400 max-w-xs mx-auto">
+              Nomor transaksi ini tidak ditemukan pada akun Anda atau sudah tidak tersedia.
+            </p>
+            <Link
+              href="/profile/transaksi"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition"
+            >
+              <span>Buka Daftar Transaksi</span>
+            </Link>
+          </div>
+        ) : (
+          /* Card Frame Mirip UI Gambar 2 dengan Tombol Kembali di Samping Kiri */
+          <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm overflow-hidden flex flex-col divide-y divide-slate-100">
+            {/* Header Card dengan Tombol Kembali di Samping Kiri (Sesuai Gambar 1 & Gambar 2) */}
+            <div className="p-4 sm:p-6 flex items-center justify-between gap-3 sm:gap-4">
+              <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
+                {/* Tombol Kembali Berbentuk Bulat Sesuai Gambar 1 */}
+                <button
+                  type="button"
+                  onClick={() => router.push('/profile/transaksi')}
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 flex items-center justify-center transition cursor-pointer shrink-0"
+                  title="Kembali ke Riwayat Transaksi"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+
+                {/* Judul & Kategori Transaksi */}
+                <div className="min-w-0">
+                  <h1 className="text-sm sm:text-lg font-black text-slate-900 tracking-tight leading-snug truncate">
+                    {txData.title}
+                  </h1>
+                  <p className="text-[11px] sm:text-xs text-slate-400 font-semibold mt-0.5 truncate">
+                    {txData.categoryLabel}
+                  </p>
+                </div>
+              </div>
+
+              {/* Icon Badge Top-Right */}
+              <div
+                className={`w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs ${
+                  txData.type === 'PENCAIRAN_PANEN'
+                    ? 'bg-emerald-100 text-emerald-800'
+                    : txData.type === 'SEWA_ALAT'
+                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                    : 'bg-emerald-700 text-white'
+                }`}
+              >
+                {txData.type === 'PENCAIRAN_PANEN' ? (
+                  <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-700" />
+                ) : txData.type === 'SEWA_ALAT' ? (
+                  <Tractor className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-700" />
+                ) : (
+                  <Store className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                )}
+              </div>
+            </div>
+
+            {/* 1. OVERVIEW Section (Mirip Accordion OVERVIEW di Gambar 2) */}
+            <div className="p-5 sm:p-6 space-y-4">
+              <button
+                type="button"
+                onClick={() => setIsOverviewOpen((prev) => !prev)}
+                className="w-full flex items-center justify-between text-xs font-black tracking-wider text-slate-500 uppercase hover:text-slate-900 transition cursor-pointer"
+              >
+                <span>OVERVIEW</span>
+                {isOverviewOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </button>
+
+              {isOverviewOpen && (
+                <div className="space-y-3 pt-1 text-xs sm:text-sm animate-in fade-in duration-200">
+                  {/* Total Transaksi */}
+                  <div className="flex justify-between items-center py-1">
+                    <span className="text-slate-500 font-medium">Total Nominal</span>
+                    <span
+                      className={`font-black text-base sm:text-lg ${
+                        txData.isIncome ? 'text-emerald-700' : 'text-rose-600'
+                      }`}
+                    >
+                      {txData.isIncome ? '+' : '-'}Rp {txData.amount.toLocaleString('id-ID')}
+                    </span>
+                  </div>
+
+                  {/* Nomor Referensi / Ticket ID */}
+                  <div className="flex justify-between items-center py-1 border-t border-slate-100/80">
+                    <span className="text-slate-500 font-medium">Nomor Referensi</span>
+                    <span className="font-bold text-slate-900 font-mono text-xs">{txData.refNumber}</span>
+                  </div>
+
+                  {/* Status Transaksi */}
+                  <div className="flex justify-between items-center py-1 border-t border-slate-100/80">
+                    <span className="text-slate-500 font-medium">Status</span>
+                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                      {txData.statusLabel}
+                    </span>
+                  </div>
+
+                  {/* Metode Bayar */}
+                  <div className="flex justify-between items-center py-1 border-t border-slate-100/80">
+                    <span className="text-slate-500 font-medium">Metode Pembayaran</span>
+                    <span className="font-semibold text-slate-800 text-right">{txData.paymentMethod}</span>
+                  </div>
+
+                  {/* Waktu Transaksi */}
+                  <div className="flex justify-between items-center py-1 border-t border-slate-100/80">
+                    <span className="text-slate-500 font-medium">Waktu Transaksi</span>
+                    <span className="font-semibold text-slate-800 text-right">
+                      {txData.dateLabel}, {txData.timeLabel} WITA
+                    </span>
+                  </div>
+
+                  {/* Item / Komoditas Breakdown */}
+                  {txData.itemsList.length > 0 && (
+                    <div className="py-2 border-t border-slate-100/80 space-y-1.5">
+                      <div className="text-slate-500 font-medium text-xs">Rincian Komoditas:</div>
+                      <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-2">
+                        {txData.itemsList.map((item, idx) => (
+                          <div key={idx} className="flex justify-between items-center text-xs">
+                            <span className="text-slate-700 font-semibold">
+                              {item.name} ({item.qty} {item.unit})
+                            </span>
+                            <span className="text-slate-900 font-bold">
+                              Rp {item.subtotal.toLocaleString('id-ID')}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Lokasi Serah Terima */}
+                  {txData.locationInfo && (
+                    <div className="flex justify-between items-start py-1 border-t border-slate-100/80 gap-3">
+                      <span className="text-slate-500 font-medium shrink-0">Lokasi Ambil</span>
+                      <span className="font-medium text-slate-800 text-right text-xs">
+                        {txData.locationInfo}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Catatan Transaksi */}
+                  {txData.notes && (
+                    <div className="flex justify-between items-start py-1 border-t border-slate-100/80 gap-3">
+                      <span className="text-slate-500 font-medium shrink-0">Catatan</span>
+                      <span className="font-medium text-slate-800 text-right text-xs italic">
+                        {txData.notes}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* 2. HISTORY Section (Mirip Accordion HISTORY di Gambar 2 dengan Timeline Dots) */}
+            <div className="p-5 sm:p-6 space-y-4">
+              <button
+                type="button"
+                onClick={() => setIsHistoryOpen((prev) => !prev)}
+                className="w-full flex items-center justify-between text-xs font-black tracking-wider text-slate-500 uppercase hover:text-slate-900 transition cursor-pointer"
+              >
+                <span>HISTORY</span>
+                {isHistoryOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </button>
+
+              {isHistoryOpen && (
+                <div className="space-y-4 pt-1 animate-in fade-in duration-200">
+                  {/* Vertical Timeline with Dots (Persis Gambar 2) */}
+                  <div className="relative pl-5 border-l-2 border-slate-200 space-y-4 ml-1.5 py-1">
+                    {/* Node 1: Saat Transaksi Dibuat */}
+                    <div className="relative">
+                      <div className="absolute -left-[27px] top-1 w-3 h-3 rounded-full bg-emerald-600 ring-4 ring-white" />
+                      <div className="text-[11px] font-bold text-slate-400">
+                        {txData.dateLabel}, {txData.timeLabel} WITA
+                      </div>
+                      <div className="text-xs sm:text-sm font-bold text-slate-900 mt-0.5">
+                        Transaksi Berhasil Dicatat Sistem
+                      </div>
+                      <div className="text-[11px] text-slate-400 mt-0.5">
+                        Tiket referensi {txData.refNumber} resmi diterbitkan Koperasi Sinar Pagi Sejahtera.
+                      </div>
+                    </div>
+
+                    {/* Node 2: Status Terkini */}
+                    <div className="relative">
+                      <div className="absolute -left-[27px] top-1 w-3 h-3 rounded-full bg-emerald-700 ring-4 ring-white animate-pulse" />
+                      <div className="text-[11px] font-bold text-slate-400">Status Saat Ini</div>
+                      <div className="text-xs sm:text-sm font-bold text-emerald-800 mt-0.5">
+                        {txData.statusLabel}
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-0.5">
+                        {txData.type === 'TOKO_BELANJA'
+                          ? 'Pengambilan komoditas dan serah terima dilakukan langsung di kantor kasir koperasi.'
+                          : txData.type === 'SEWA_ALAT'
+                          ? 'Silakan pantau berkala jadwal unit atau hubungi admin untuk percepatan.'
+                          : 'Uang cash hasil penjualan dapat dicairkan melalui loket kasir koperasi.'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Tombol See all transactions (Mirip Pill Button di Gambar 2) */}
+                  <div className="pt-2">
+                    <Link
+                      href="/pesanan"
+                      className="w-full py-2.5 px-4 rounded-xl border border-slate-200 hover:border-emerald-300 hover:bg-slate-50 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-2xs"
+                    >
+                      <span>Lihat Status Pesanan di Tab Pesanan</span>
+                      <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}

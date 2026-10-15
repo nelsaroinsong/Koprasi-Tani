@@ -21,6 +21,7 @@ import {
   Mail,
   LocateFixed,
   ExternalLink,
+  Receipt,
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
@@ -627,6 +628,27 @@ export default function ProfilePage() {
                     </div>
                     <div className="text-[10px] sm:text-[11px] text-slate-400 truncate">
                       Pantau ketersediaan komoditas dari petani-petani langganan Anda
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform shrink-0 ml-2" />
+              </Link>
+
+              {/* Riwayat Transaksi */}
+              <Link
+                href="/profile/transaksi"
+                className="p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl border border-slate-200/90 hover:border-emerald-300 hover:bg-slate-50/70 flex items-center justify-between transition shadow-2xs group"
+              >
+                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-100">
+                    <Receipt className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs sm:text-sm font-bold text-slate-800 group-hover:text-emerald-700 transition truncate">
+                      Riwayat Transaksi
+                    </div>
+                    <div className="text-[10px] sm:text-[11px] text-slate-400 truncate">
+                      Pantau catatan pengeluaran belanja, sewa alat, dan arus transaksi
                     </div>
                   </div>
                 </div>
