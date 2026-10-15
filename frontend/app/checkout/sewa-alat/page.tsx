@@ -223,97 +223,235 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
     );
   }
 
-  // Tampilan Sukses Pengajuan Sewa
+  // Tampilan Sukses Pengajuan Sewa (Ticket / Receipt Style sesuai Gambar 2)
   if (createdRentalResult) {
-    return (
-      <div className="min-h-screen bg-[#f8fafc] flex flex-col font-sans">
-        <AppHeader activePage="sewa-alat" />
-        <main className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 py-8 sm:py-12">
-          <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-6 sm:p-10 text-center space-y-6">
-            <div className="w-20 h-20 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto shadow-inner">
-              <PackageCheck className="w-10 h-10" />
-            </div>
+    const rentalDate = createdRentalResult.createdAt
+      ? new Date(createdRentalResult.createdAt)
+      : new Date();
+    const formattedDate = rentalDate
+      .toLocaleDateString('id-ID', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      })
+      .toUpperCase();
+    const formattedTime = rentalDate
+      .toLocaleTimeString('id-ID', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      })
+      .replace('.', ':');
 
-            <div>
-              <span className="px-3 py-1 bg-amber-50 text-amber-800 border border-amber-300 rounded-full text-xs font-black uppercase tracking-wider inline-flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-amber-600" />
-                <span>Menunggu Persetujuan Admin Koperasi</span>
-              </span>
-              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 mt-3 tracking-tight">
-                Pengajuan Sewa Berhasil Dikirim!
+    return (
+      <div className="min-h-screen bg-[#E7EAEE] flex flex-col font-sans">
+        <AppHeader activePage="sewa-alat" />
+
+        <main className="flex-1 flex flex-col items-center justify-center px-4 py-6 sm:py-10">
+          {/* Ticket / Receipt Card */}
+          <div className="w-full max-w-[340px] sm:max-w-[370px] bg-white rounded-3xl shadow-xl shadow-slate-300/60 border border-slate-200/60 overflow-hidden relative">
+            {/* Top Section: Party Popper & Heading */}
+            <div className="pt-7 pb-4 px-6 text-center">
+              {/* Party Popper SVG matching Gambar 2 */}
+              <div className="w-16 h-16 mx-auto mb-3 flex items-center justify-center">
+                <svg
+                  className="w-16 h-16"
+                  viewBox="0 0 100 100"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M38 18C44 12 56 22 62 14"
+                    stroke="#EF4444"
+                    strokeWidth="3.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M26 22C32 16 38 24 45 18"
+                    stroke="#10B981"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M48 28C54 22 64 30 70 24"
+                    stroke="#3B82F6"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <circle cx="34" cy="12" r="3" fill="#F59E0B" />
+                  <circle cx="58" cy="22" r="3.5" fill="#10B981" />
+                  <circle cx="68" cy="14" r="2.5" fill="#EC4899" />
+                  <circle cx="48" cy="8" r="2" fill="#6366F1" />
+                  <rect
+                    x="54"
+                    y="26"
+                    width="4.5"
+                    height="4.5"
+                    rx="1"
+                    transform="rotate(25 54 26)"
+                    fill="#F97316"
+                  />
+                  <rect
+                    x="28"
+                    y="18"
+                    width="4"
+                    height="4"
+                    rx="1"
+                    transform="rotate(-15 28 18)"
+                    fill="#EF4444"
+                  />
+                  <path
+                    d="M12 68L48 24C49 25 51 27 52 29L16 73C14 74 12 72 12 68Z"
+                    fill="#F97316"
+                  />
+                  <path
+                    d="M18 61L30 46L36 51L24 66L18 61Z"
+                    fill="#EF4444"
+                  />
+                  <path
+                    d="M29 47L41 32L47 37L35 52L29 47Z"
+                    fill="#FBBF24"
+                  />
+                  <path
+                    d="M40 33L48 24C49 25 51 27 52 29L44 38L40 33Z"
+                    fill="#EF4444"
+                  />
+                  <path
+                    d="M12 68C10 70 9 75 14 76C16 76 16 73 16 73L12 68Z"
+                    fill="#DC2626"
+                  />
+                </svg>
+              </div>
+
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                Thank you
               </h1>
-              <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto mt-2 leading-relaxed">
-                Nomor pengajuan resmi Anda adalah{' '}
-                <strong className="text-emerald-900 font-mono text-sm sm:text-base">
-                  #{createdRentalResult.rentalCode}
-                </strong>
-                . Admin Koperasi akan meninjau ketersediaan unit mesin sebelum serah terima.
+              <p className="text-xs text-slate-500 mt-1 max-w-[260px] mx-auto leading-relaxed">
+                Pengajuan sewa alat resmi Anda telah berhasil dikirim ke pengurus koperasi.
               </p>
             </div>
 
-            {/* Rincian Singkat Sewa */}
-            <div className="max-w-lg mx-auto bg-slate-50 rounded-2xl border border-slate-200 p-4 sm:p-5 text-left text-xs space-y-3">
-              <div className="flex justify-between items-center pb-2 border-b border-slate-200">
-                <span className="text-slate-500">Total Estimasi Biaya</span>
-                <span className="text-base font-black text-emerald-900">
-                  Rp {Number(createdRentalResult.totalEstimasi).toLocaleString('id-ID')}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-slate-500">Mulai Tanggal:</span>
-                <span className="font-semibold text-slate-800">
-                  {createdRentalResult.startDate}
-                </span>
-              </div>
+            {/* Ticket Cutout Notches & Perforated Line */}
+            <div className="relative my-2 flex items-center">
+              <div className="absolute -left-3.5 w-7 h-7 rounded-full bg-[#E7EAEE] shadow-inner" />
+              <div className="w-full border-t-2 border-dashed border-slate-200 mx-5" />
+              <div className="absolute -right-3.5 w-7 h-7 rounded-full bg-[#E7EAEE] shadow-inner" />
+            </div>
+
+            {/* Ticket Body / Metadata Grid */}
+            <div className="px-6 py-4 space-y-4 text-left">
+              {/* Row 1: Ticket ID & Amount */}
               <div className="flex justify-between items-start gap-2">
-                <span className="text-slate-500 shrink-0">Lokasi Lahan Kebun:</span>
-                <span className="font-semibold text-slate-800 text-right">
-                  {rentalLokasiLahan || 'Minahasa Utara'}
-                </span>
+                <div>
+                  <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                    TICKET ID / NO. SEWA
+                  </div>
+                  <div className="text-xs sm:text-sm font-black text-slate-900 font-mono tracking-tight mt-0.5">
+                    #{createdRentalResult.rentalCode}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                    ESTIMASI BIAYA
+                  </div>
+                  <div className="text-xs sm:text-sm font-black text-slate-900 mt-0.5">
+                    Rp {Number(createdRentalResult.totalEstimasi).toLocaleString('id-ID')}
+                  </div>
+                </div>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-slate-500">Metode Pembayaran:</span>
-                <span className="font-semibold text-emerald-800">
-                  Tunai di Kasir Koperasi
+
+              {/* Row 2: Date & Time + Start Date */}
+              <div className="flex justify-between items-start gap-2">
+                <div>
+                  <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                    DATE & TIME
+                  </div>
+                  <div className="text-[11px] sm:text-xs font-bold text-slate-800 mt-0.5">
+                    {formattedDate} | {formattedTime}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                    MULAI SEWA
+                  </div>
+                  <div className="text-[11px] sm:text-xs font-bold text-emerald-800 mt-0.5">
+                    {createdRentalResult.startDate}
+                  </div>
+                </div>
+              </div>
+
+              {/* Location Pill Box */}
+              <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl flex items-center gap-2.5 text-left">
+                <div className="w-9 h-9 rounded-xl bg-emerald-100/90 text-emerald-800 flex items-center justify-center shrink-0 shadow-2xs">
+                  <MapPin className="w-4 h-4 text-emerald-700" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-xs font-bold text-slate-900 truncate">
+                    Lokasi Lahan Kebun
+                  </div>
+                  <div className="text-[10px] text-slate-500 line-clamp-1 mt-0.5">
+                    {rentalLokasiLahan || 'Minahasa Utara, Sulawesi Utara'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Status Badge */}
+              <div className="flex items-center justify-center pt-0.5 pb-2">
+                <span className="px-2.5 py-0.5 bg-amber-50 text-amber-800 border border-amber-200/90 rounded-full text-[10px] font-black uppercase tracking-wider inline-flex items-center gap-1">
+                  <Clock className="w-3 h-3 text-amber-600" />
+                  <span>Menunggu Persetujuan Admin Koperasi</span>
                 </span>
               </div>
             </div>
 
-            {/* Tombol Aksi */}
-            <div className="max-w-lg mx-auto flex flex-col sm:flex-row items-center gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() =>
-                  handleOpenRentalWhatsApp({
-                    rentalNumber: createdRentalResult.rentalCode,
-                    userName: user?.name,
-                    userPhone: user?.phone,
-                    startDate: createdRentalResult.startDate,
-                    durationDays: 1,
-                    farmLocationAddress: rentalLokasiLahan,
-                    totalAmount: createdRentalResult.totalEstimasi,
-                    notes: rentalCatatan,
-                  })
-                }
-                className="w-full sm:flex-1 py-3 px-5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs transition cursor-pointer"
-              >
-                <MessageCircle className="w-4 h-4 text-emerald-100" />
-                <span>Konfirmasi ke WhatsApp Admin</span>
-              </button>
-
-              <Link
-                href="/pesanan"
-                className="w-full sm:flex-1 py-3 px-5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition"
-              >
-                <span>Pantau Status di Pesanan</span>
-                <ArrowRight className="w-4 h-4" />
-              </Link>
+            {/* Scalloped / Perforated Receipt Bottom Edge matching Gambar 2 */}
+            <div className="relative w-full overflow-hidden flex justify-between px-2 pt-2 -mb-2.5">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="w-5 h-5 rounded-full bg-[#E7EAEE] shrink-0"
+                />
+              ))}
             </div>
+          </div>
 
-            <div className="pt-2">
+          {/* Action Buttons Below Ticket */}
+          <div className="w-full max-w-[340px] sm:max-w-[370px] space-y-2 mt-5 px-1">
+            <button
+              type="button"
+              onClick={() =>
+                handleOpenRentalWhatsApp({
+                  rentalNumber: createdRentalResult.rentalCode,
+                  userName: user?.name,
+                  userPhone: user?.phone,
+                  startDate: createdRentalResult.startDate,
+                  durationDays: 1,
+                  farmLocationAddress: rentalLokasiLahan,
+                  totalAmount: createdRentalResult.totalEstimasi,
+                  notes: rentalCatatan,
+                })
+              }
+              className="w-full py-3 px-4 rounded-2xl bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs transition cursor-pointer"
+            >
+              <MessageCircle className="w-4 h-4 text-emerald-100" />
+              <span>Konfirmasi ke WhatsApp Admin</span>
+            </button>
+
+            <Link
+              href="/pesanan"
+              className="w-full py-3 px-4 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition"
+            >
+              <span>Pantau Status di Pesanan</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+
+            <div className="text-center pt-1">
               <Link
                 href="/sewa-alat"
-                className="text-xs font-semibold text-emerald-700 hover:underline inline-flex items-center gap-1"
+                className="text-xs font-semibold text-slate-600 hover:text-emerald-800 hover:underline inline-flex items-center gap-1 transition"
               >
                 <span>← Buka Katalog Sewa Alat Lagi</span>
               </Link>

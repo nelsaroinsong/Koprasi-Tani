@@ -290,6 +290,15 @@ export default function TokoOnlinePage() {
 
   const handleAddToCart = (product: any, quantity: number) => {
     try {
+      if (!product.isTersedia || Number(product.stok || 0) <= 0) {
+        showToast({
+          title: 'Stok Habis',
+          message: `Komoditas "${product.nama}" saat ini sedang kosong/habis.`,
+          type: 'warning',
+        });
+        return;
+      }
+
       const existingCart = getCart(user);
       const itemIdx = existingCart.findIndex((i) => i.id === product.id);
 
@@ -402,98 +411,170 @@ export default function TokoOnlinePage() {
           <>
             {/* Grid Komoditas dengan Jarak Rapi dan Tidak Mepet di Mobile */}
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-3.5 md:gap-4">
-              {products.map((prod) => (
-                <div
-                  key={prod.id}
-                  onClick={() => {
-                    router.push(`/toko/${prod.id}`);
-                  }}
-                  className="bg-white border border-slate-200/90 rounded-xl overflow-hidden shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between group cursor-pointer h-full"
-                >
-                  <div>
-                    {/* Top Image Section with Badges - Strict 1:1 Aspect Ratio */}
-                    <div
-                      className="relative aspect-square w-full shrink-0 bg-slate-100 overflow-hidden"
-                      style={{ aspectRatio: '1 / 1' }}
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={
-                          prod.imageUrl ||
-                          'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=400&q=80'
-                        }
-                        alt={prod.nama}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src =
-                            'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=400&q=80';
-                        }}
-                      />
+              {products.map((prod) => {
+                const isOutOfStock =
+                  !prod.isTersedia || Number(prod.stok || 0) <= 0;
 
-                      {/* Status Badge di Kanan Atas */}
-                      <div className="absolute top-1.5 right-1.5 bg-white/95 backdrop-blur-xs text-emerald-800 text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded shadow-2xs flex items-center gap-1 z-10">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        <span>{prod.isTersedia ? 'Aktif' : 'Off'}</span>
-                      </div>
-
-                      {/* Badge Kategori Pindah ke Kiri Bawah (Badge lama Panen Koperasi dihapus) */}
-                      <div className="absolute bottom-1.5 left-1.5 bg-emerald-700/95 backdrop-blur-xs text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded shadow-2xs max-w-[80%] truncate z-10">
-                        {prod.kategori}
-                      </div>
-                    </div>
-
-                    {/* Body Content - Berjarak Nyaman dan Rapi */}
-                    <div className="p-2.5 sm:p-3 flex flex-col justify-between gap-1 sm:gap-1.5">
-                      {/* Judul Komoditas */}
-                      <h3 className="text-xs sm:text-xs font-semibold text-slate-800 tracking-tight leading-tight line-clamp-2 h-[2.6em] group-hover:text-emerald-700 transition-colors" title={prod.nama}>
-                        {prod.nama}
-                      </h3>
-
-                      {/* Harga Satuan */}
-                      <div className="flex items-baseline gap-1 mt-0.5">
-                        <span className="text-xs sm:text-sm font-extrabold text-slate-900 tracking-tight">
-                          Rp {Number(prod.hargaPerSatuan).toLocaleString('id-ID')}
-                        </span>
-                        <span className="text-[8px] sm:text-[9px] text-slate-400 font-normal">/{prod.satuan}</span>
-                      </div>
-
-                      {/* Stok */}
-                      <div className="text-[9px] sm:text-[11px] text-slate-500 font-medium">
-                        Stok {Number(prod.stok).toLocaleString('id-ID')}
-                      </div>
-
-                      {/* Nama Akun Petani (Di bawah stok dengan ukuran text proporsional) */}
+                return (
+                  <div
+                    key={prod.id}
+                    onClick={() => {
+                      if (isOutOfStock) {
+                        showToast({
+                          title: 'Stok Habis',
+                          message: `Komoditas "${prod.nama}" saat ini sedang kosong/habis.`,
+                          type: 'warning',
+                        });
+                        return;
+                      }
+                      router.push(`/toko/${prod.id}`);
+                    }}
+                    className={`border rounded-xl overflow-hidden transition-all duration-200 flex flex-col justify-between h-full ${
+                      isOutOfStock
+                        ? 'bg-slate-100/90 border-slate-300/80 opacity-75 cursor-not-allowed shadow-none'
+                        : 'bg-white border-slate-200/90 shadow-2xs hover:shadow-md hover:-translate-y-0.5 cursor-pointer group'
+                    }`}
+                  >
+                    <div>
+                      {/* Top Image Section with Badges - Strict 1:1 Aspect Ratio */}
                       <div
-                        onClick={(e) => {
-                          const targetId = prod.petani?.id || prod.petaniId || (isPetani ? user?.id : null);
-                          if (targetId) {
-                            e.stopPropagation();
-                            router.push(`/toko/petani/${targetId}`);
-                          }
-                        }}
-                        className="text-[10px] sm:text-xs font-bold text-slate-800 hover:text-emerald-700 hover:underline transition-colors truncate"
-                        title={`Kunjungi Toko ${prod.petani?.name || (isPetani ? user?.name : 'Petani Koperasi') || 'Petani Koperasi'}`}
+                        className="relative aspect-square w-full shrink-0 bg-slate-100 overflow-hidden"
+                        style={{ aspectRatio: '1 / 1' }}
                       >
-                        {prod.petani?.name || (isPetani ? user?.name : 'Petani Koperasi') || 'Petani Koperasi'}
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={
+                            prod.imageUrl ||
+                            'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=400&q=80'
+                          }
+                          alt={prod.nama}
+                          className={`w-full h-full object-cover transition-transform duration-300 ${
+                            isOutOfStock
+                              ? 'grayscale contrast-90'
+                              : 'group-hover:scale-105'
+                          }`}
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src =
+                              'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=400&q=80';
+                          }}
+                        />
+
+                        {/* Status Badge di Kanan Atas */}
+                        <div
+                          className={`absolute top-1.5 right-1.5 backdrop-blur-xs text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded shadow-2xs flex items-center gap-1 z-10 ${
+                            isOutOfStock
+                              ? 'bg-white/95 text-rose-700 border border-rose-200'
+                              : 'bg-white/95 text-emerald-800'
+                          }`}
+                        >
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              isOutOfStock
+                                ? 'bg-rose-500'
+                                : 'bg-emerald-500 animate-pulse'
+                            }`}
+                          />
+                          <span>
+                            {isOutOfStock
+                              ? 'Stok Habis'
+                              : prod.isTersedia
+                              ? 'Aktif'
+                              : 'Off'}
+                          </span>
+                        </div>
+
+                        {/* Badge Kategori Pindah ke Kiri Bawah */}
+                        <div className="absolute bottom-1.5 left-1.5 bg-emerald-700/95 backdrop-blur-xs text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded shadow-2xs max-w-[80%] truncate z-10">
+                          {prod.kategori}
+                        </div>
+                      </div>
+
+                      {/* Body Content - Berjarak Nyaman dan Rapi */}
+                      <div className="p-2.5 sm:p-3 flex flex-col justify-between gap-1 sm:gap-1.5">
+                        {/* Judul Komoditas */}
+                        <h3
+                          className={`text-xs sm:text-xs font-semibold tracking-tight leading-tight line-clamp-2 h-[2.6em] transition-colors ${
+                            isOutOfStock
+                              ? 'text-slate-500'
+                              : 'text-slate-800 group-hover:text-emerald-700'
+                          }`}
+                          title={prod.nama}
+                        >
+                          {prod.nama}
+                        </h3>
+
+                        {/* Harga Satuan */}
+                        <div className="flex items-baseline gap-1 mt-0.5">
+                          <span className={`text-xs sm:text-sm font-extrabold tracking-tight ${
+                            isOutOfStock ? 'text-slate-500' : 'text-slate-900'
+                          }`}>
+                            Rp {Number(prod.hargaPerSatuan).toLocaleString('id-ID')}
+                          </span>
+                          <span className="text-[8px] sm:text-[9px] text-slate-400 font-normal">
+                            /{prod.satuan}
+                          </span>
+                        </div>
+
+                        {/* Stok */}
+                        {isOutOfStock ? (
+                          <div className="text-[9px] sm:text-[11px] text-rose-600 font-bold">
+                            Stok Habis (0)
+                          </div>
+                        ) : (
+                          <div className="text-[9px] sm:text-[11px] text-slate-500 font-medium">
+                            Stok {Number(prod.stok).toLocaleString('id-ID')}
+                          </div>
+                        )}
+
+                        {/* Nama Akun Petani */}
+                        <div
+                          onClick={(e) => {
+                            const targetId =
+                              prod.petani?.id ||
+                              prod.petaniId ||
+                              (isPetani ? user?.id : null);
+                            if (targetId) {
+                              e.stopPropagation();
+                              router.push(`/toko/petani/${targetId}`);
+                            }
+                          }}
+                          className="text-[10px] sm:text-xs font-bold text-slate-800 hover:text-emerald-700 hover:underline transition-colors truncate"
+                          title={`Kunjungi Toko ${
+                            prod.petani?.name ||
+                            (isPetani ? user?.name : 'Petani Koperasi') ||
+                            'Petani Koperasi'
+                          }`}
+                        >
+                          {prod.petani?.name ||
+                            (isPetani ? user?.name : 'Petani Koperasi') ||
+                            'Petani Koperasi'}
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Footer Action - Compact */}
-                  <div className="p-1.5 pt-0 sm:p-2 sm:pt-0">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleAddToCart(prod, 1);
-                      }}
-                      className="w-full py-1 px-1.5 sm:py-1.5 sm:px-2 rounded-md sm:rounded-lg bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white text-[9px] sm:text-[10px] font-bold flex items-center justify-center gap-1 transition cursor-pointer shadow-2xs"
-                    >
-                      <ShoppingCart className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                      <span>+ Keranjang</span>
-                    </button>
+                    {/* Footer Action - Compact */}
+                    <div className="p-1.5 pt-0 sm:p-2 sm:pt-0">
+                      <button
+                        type="button"
+                        disabled={isOutOfStock}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (isOutOfStock) return;
+                          handleAddToCart(prod, 1);
+                        }}
+                        className={`w-full py-1 px-1.5 sm:py-1.5 sm:px-2 rounded-md sm:rounded-lg text-[9px] sm:text-[10px] font-bold flex items-center justify-center gap-1 transition shadow-2xs ${
+                          isOutOfStock
+                            ? 'bg-slate-200 text-slate-400 border border-slate-300 cursor-not-allowed shadow-none'
+                            : 'bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white cursor-pointer'
+                        }`}
+                      >
+                        <ShoppingCart className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                        <span>{isOutOfStock ? 'Stok Habis' : '+ Keranjang'}</span>
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Tokopedia-Style "Muat Lebih Banyak" Button (Hanya tampil jika ada komoditas lanjutan / > 30) */}

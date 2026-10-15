@@ -31,6 +31,7 @@ import {
   Star,
   X,
   Tractor,
+  FileText,
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
@@ -350,7 +351,7 @@ Nomor Pesanan: #${order.orderNumber}
 Nama Pembeli: ${order.pembeli?.name || user?.name}
 Total Tagihan: Rp ${Number(order.totalAmount).toLocaleString('id-ID')}
 Metode Bayar: ${order.paymentMethod === 'CASH_KOPERASI' ? 'Bayar Tunai (Cash) di Koperasi' : 'Transfer'}
-Lokasi Ambil: ${order.alamatKirim || warehouseAddress}
+Lokasi Ambil: ${warehouseAddress}
 
 Komoditas:
 ${itemsSummary}
@@ -900,53 +901,34 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
                         </div>
                       </div>
 
-                      {/* 4. Accordion Lokasi Serah Terima & Alamat Domisili */}
+                      {/* 4. Accordion Catatan Pesanan */}
                       <div className="px-3 sm:px-5 pb-2.5 sm:pb-3">
                         <button
                           type="button"
                           onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
                           className="text-[11px] sm:text-xs font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1 transition cursor-pointer"
                         >
-                          <span>{isExpanded ? 'Sembunyikan Info Lokasi & Catatan' : 'Lihat Titik Ambil & Catatan'}</span>
+                          <span>{isExpanded ? 'Sembunyikan Catatan' : 'Lihat Catatan'}</span>
                           {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                         </button>
 
                         {isExpanded && (
-                          <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 text-xs animate-in fade-in-50 duration-200">
-                            {/* Lokasi Ambil */}
-                            <div className="p-2.5 sm:p-3 bg-slate-50 rounded-xl sm:rounded-2xl border border-slate-200 space-y-0.5 sm:space-y-1">
-                              <div className="text-[9px] sm:text-[10px] font-bold uppercase text-slate-400">
-                                Lokasi Serah Terima Barang:
+                          <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-slate-100 text-xs animate-in fade-in-50 duration-200">
+                            <div className="p-2.5 sm:p-3 bg-slate-50 rounded-xl sm:rounded-2xl border border-slate-200 flex items-start gap-2.5">
+                              <FileText className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
+                              <div className="space-y-0.5 w-full">
+                                <div className="text-[10px] sm:text-[11px] font-bold uppercase text-slate-500">
+                                  Catatan Pesanan:
+                                </div>
+                                <div className="text-slate-800 font-medium text-xs sm:text-sm">
+                                  {order.catatan || order.notes ? (
+                                    <span>{order.catatan || order.notes}</span>
+                                  ) : (
+                                    <span className="text-slate-400 italic">Tidak ada catatan untuk pesanan ini.</span>
+                                  )}
+                                </div>
                               </div>
-                              <div className="text-slate-800 font-semibold text-[11px] sm:text-xs flex items-start gap-1.5">
-                                <Store className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-700 shrink-0 mt-0.5" />
-                                <span>{order.alamatKirim || warehouseAddress}</span>
-                              </div>
-                              <p className="text-[9px] sm:text-[10px] text-slate-400">
-                                Tunjukkan invoice ini ke kasir/petugas gudang saat serah terima barang.
-                              </p>
                             </div>
-
-                            {/* Alamat Domisili */}
-                            <div className="p-2.5 sm:p-3 bg-slate-50 rounded-xl sm:rounded-2xl border border-slate-200 space-y-0.5 sm:space-y-1">
-                              <div className="text-[9px] sm:text-[10px] font-bold uppercase text-slate-400">
-                                Alamat Rumah Pembeli (Domisili):
-                              </div>
-                              <div className="text-slate-800 font-semibold text-[11px] sm:text-xs flex items-start gap-1.5">
-                                <Home className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-700 shrink-0 mt-0.5" />
-                                <span>{order.pembeli?.address || user?.address || 'Belum diisi di profil pengguna'}</span>
-                              </div>
-                              <p className="text-[9px] sm:text-[10px] text-slate-400">
-                                Alamat tinggal resmi untuk keperluan verifikasi pengurus koperasi.
-                              </p>
-                            </div>
-
-                            {/* Catatan Pembeli */}
-                            {order.catatan && (
-                              <div className="col-span-1 sm:col-span-2 p-2 sm:p-2.5 rounded-lg sm:rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-[10px] sm:text-xs">
-                                <span className="font-bold">Catatan Pembeli:</span> {order.catatan}
-                              </div>
-                            )}
                           </div>
                         )}
                       </div>

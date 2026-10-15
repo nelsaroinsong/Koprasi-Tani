@@ -411,55 +411,87 @@ function SearchPageContent() {
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
-                  {data.products.map((prod) => (
-                    <div
-                      key={prod.id}
-                      onClick={() => router.push(`/toko/${prod.id}`)}
-                      className="bg-white border border-slate-200/90 rounded-2xl overflow-hidden shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between group cursor-pointer h-full"
-                    >
-                      <div>
-                        {/* Product Image 1:1 Aspect Ratio */}
-                        <div className="relative aspect-square w-full shrink-0 bg-slate-100 overflow-hidden">
-                          <img
-                            src={
-                              prod.imageUrl ||
-                              'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=400&q=80'
-                            }
-                            alt={prod.nama}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src =
-                                'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=400&q=80';
-                            }}
-                          />
-                          <div className="absolute bottom-1.5 left-1.5 bg-emerald-700/95 backdrop-blur-xs text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded shadow-2xs max-w-[80%] truncate z-10">
-                            {prod.kategori}
-                          </div>
-                        </div>
+                  {data.products.map((prod) => {
+                    const isOutOfStock =
+                      !prod.isTersedia || Number(prod.stok || 0) <= 0;
 
-                        {/* Product Details */}
-                        <div className="p-2.5 sm:p-3 flex flex-col justify-between gap-1">
-                          <h3
-                            className="text-xs font-semibold text-slate-800 tracking-tight leading-tight line-clamp-2 h-[2.6em] group-hover:text-emerald-700 transition-colors"
-                            title={prod.nama}
-                          >
-                            {prod.nama}
-                          </h3>
-
-                          {prod.petani?.name && (
-                            <div className="text-[10px] text-slate-400 truncate">
-                              Oleh {prod.petani.name}
+                    return (
+                      <div
+                        key={prod.id}
+                        onClick={() => {
+                          if (isOutOfStock) return;
+                          router.push(`/toko/${prod.id}`);
+                        }}
+                        className={`border rounded-2xl overflow-hidden transition-all duration-200 flex flex-col justify-between h-full ${
+                          isOutOfStock
+                            ? 'bg-slate-100/90 border-slate-300/80 opacity-75 cursor-not-allowed shadow-none'
+                            : 'bg-white border-slate-200/90 shadow-2xs hover:shadow-md hover:-translate-y-0.5 cursor-pointer group'
+                        }`}
+                      >
+                        <div>
+                          {/* Product Image 1:1 Aspect Ratio */}
+                          <div className="relative aspect-square w-full shrink-0 bg-slate-100 overflow-hidden">
+                            <img
+                              src={
+                                prod.imageUrl ||
+                                'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=400&q=80'
+                              }
+                              alt={prod.nama}
+                              className={`w-full h-full object-cover transition-transform duration-300 ${
+                                isOutOfStock
+                                  ? 'grayscale contrast-90'
+                                  : 'group-hover:scale-105'
+                              }`}
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src =
+                                  'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=400&q=80';
+                              }}
+                            />
+                            {isOutOfStock && (
+                              <div className="absolute top-1.5 right-1.5 bg-white/95 backdrop-blur-xs text-rose-700 border border-rose-200 text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded shadow-2xs flex items-center gap-1 z-10">
+                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                                <span>Stok Habis</span>
+                              </div>
+                            )}
+                            <div className="absolute bottom-1.5 left-1.5 bg-emerald-700/95 backdrop-blur-xs text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded shadow-2xs max-w-[80%] truncate z-10">
+                              {prod.kategori}
                             </div>
-                          )}
+                          </div>
 
-                          <div className="text-xs sm:text-sm font-bold text-emerald-800 mt-1">
-                            Rp {Number(prod.hargaPerSatuan).toLocaleString('id-ID')}
-                            <span className="text-[10px] font-normal text-slate-500"> / {prod.satuan}</span>
+                          {/* Product Details */}
+                          <div className="p-2.5 sm:p-3 flex flex-col justify-between gap-1">
+                            <h3
+                              className={`text-xs font-semibold tracking-tight leading-tight line-clamp-2 h-[2.6em] transition-colors ${
+                                isOutOfStock
+                                  ? 'text-slate-500'
+                                  : 'text-slate-800 group-hover:text-emerald-700'
+                              }`}
+                              title={prod.nama}
+                            >
+                              {prod.nama}
+                            </h3>
+
+                            {prod.petani?.name && (
+                              <div className="text-[10px] text-slate-400 truncate">
+                                Oleh {prod.petani.name}
+                              </div>
+                            )}
+
+                            <div className="text-xs sm:text-sm font-bold text-emerald-800 mt-1">
+                              Rp {Number(prod.hargaPerSatuan).toLocaleString('id-ID')}
+                              <span className="text-[10px] font-normal text-slate-500"> / {prod.satuan}</span>
+                            </div>
+
+                            {isOutOfStock && (
+                              <div className="text-[10px] font-bold text-rose-600 mt-0.5">
+                                Stok Habis (0)
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
