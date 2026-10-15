@@ -3,21 +3,24 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   ArrowLeft,
-  Camera,
+  Package,
+  Check,
   Upload,
+  Camera,
   Trash2,
+  Search,
+  ChevronsUpDown,
+  X,
+  FileText,
+  Bookmark,
+  Plus,
   Loader2,
-  ShoppingBag,
   Tag,
   User,
-  Search,
-  Check,
-  ChevronsUpDown,
-  FileText,
-  DollarSign,
-  Package,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { useToast } from '@/context/toast-context';
+import defaultCategoriesData from '@/data/categories.json';
 
 export interface AdminProductData {
   id?: string;
@@ -65,73 +68,97 @@ export function TokoProductFormPage({
 
   const isEdit = Boolean(initialData && initialData.id);
 
-  // Categories & Petani states
-  const [categoriesList, setCategoriesList] = useState<string[]>([]);
+  const [categoriesList, setCategoriesList] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('koperasi_categories_cache');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed.map((c: any) => c.name);
+          }
+        }
+      } catch {}
+    }
+    return defaultCategoriesData.map((c) => c.name);
+  });
+
   const [petaniOptions, setPetaniOptions] = useState<PetaniOption[]>([]);
-  const [isLoadingInitial, setIsLoadingInitial] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadingSource, setUploadingSource] = useState<'CAMERA' | 'GALLERY' | null>(null);
 
   // Form states
   const [nama, setNama] = useState(initialData?.nama || '');
-  const [kategori, setKategori] = useState(initialData?.kategori || '');
-  const [customKategori, setCustomKategori] = useState('');
+  const [deskripsi, setDeskripsi] = useState(initialData?.deskripsi || '');
+  const [kategori, setKategori] = useState(initialData?.kategori || 'Kelapa');
+  const [isAddingNewCat, setIsAddingNewCat] = useState(false);
+  const [newCatInput, setNewCatInput] = useState('');
   const [petaniId, setPetaniId] = useState(initialData?.petaniId || initialData?.petani?.id || '');
   const [hargaPerSatuan, setHargaPerSatuan] = useState(
     initialData?.hargaPerSatuan ? String(initialData.hargaPerSatuan) : ''
   );
   const [satuan, setSatuan] = useState(initialData?.satuan || 'kg');
   const [stok, setStok] = useState(initialData?.stok !== undefined ? String(initialData.stok) : '100');
-  const [imageUrl, setImageUrl] = useState(initialData?.imageUrl || '');
-  const [deskripsi, setDeskripsi] = useState(initialData?.deskripsi || '');
   const [isTersedia, setIsTersedia] = useState(
     initialData?.isTersedia !== undefined ? initialData.isTersedia : true
   );
+
+  // Multiple Images state
+  const [images, setImages] = useState<string[]>(() => {
+    if (initialData?.imageUrl) {
+      return initialData.imageUrl.includes(',')
+        ? initialData.imageUrl.split(',').map((s) => s.trim())
+        : [initialData.imageUrl];
+    }
+    return [];
+  });
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   // Combobox Petani states
   const [isPetaniOpen, setIsPetaniOpen] = useState(false);
   const [petaniSearch, setPetaniSearch] = useState('');
   const petaniComboboxRef = useRef<HTMLDivElement>(null);
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [uploadingSource, setUploadingSource] = useState<'CAMERA' | 'GALLERY' | null>(null);
-
-  // Load categories and verified petani
+  // Load petani options and check draft if in CREATE mode
   useEffect(() => {
-    async function loadData() {
+    async function loadPetani() {
       try {
-        setIsLoadingInitial(true);
-        const [catRes, userRes] = await Promise.all([
-          fetch('/api/categories'),
-          fetch('/api/admin/users?role=PETANI'),
-        ]);
-
-        const catData = await catRes.json();
-        const userData = await userRes.json();
-
-        if (catData.categories && Array.isArray(catData.categories)) {
-          const names = catData.categories.map((c: any) => c.name);
-          setCategoriesList(names);
-          if (!kategori && names.length > 0) {
-            setKategori(names[0]);
-          }
-        }
-
-        if (userData.users && Array.isArray(userData.users)) {
-          const verified = userData.users.filter(
-            (u: any) => u.role === 'PETANI' && u.isVerified
-          );
-          setPetaniOptions(verified.length > 0 ? verified : userData.users);
-          if (!petaniId && verified.length > 0) {
-            setPetaniId(verified[0].id);
+        const res = await fetch('/api/admin/users?role=PETANI');
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.users)) {
+            const verified = data.users.filter((u: any) => u.isVerified);
+            setPetaniOptions(verified.length > 0 ? verified : data.users);
+            if (!petaniId && (verified.length > 0 || data.users.length > 0)) {
+              setPetaniId((verified[0] || data.users[0]).id);
+            }
           }
         }
       } catch (err) {
-        console.error(err);
-      } finally {
-        setIsLoadingInitial(false);
+        console.error('Failed to load petani options', err);
       }
     }
-    loadData();
-  }, [kategori, petaniId]);
+    loadPetani();
+
+    // Load draft if CREATE mode and fields are empty
+    if (!isEdit) {
+      try {
+        const savedDraft = localStorage.getItem('admin_product_draft');
+        if (savedDraft) {
+          const parsed = JSON.parse(savedDraft);
+          if (parsed.nama) setNama(parsed.nama);
+          if (parsed.deskripsi) setDeskripsi(parsed.deskripsi);
+          if (parsed.kategori) setKategori(parsed.kategori);
+          if (parsed.hargaPerSatuan) setHargaPerSatuan(parsed.hargaPerSatuan);
+          if (parsed.satuan) setSatuan(parsed.satuan);
+          if (parsed.stok) setStok(parsed.stok);
+          if (Array.isArray(parsed.images) && parsed.images.length > 0) {
+            setImages(parsed.images);
+          }
+        }
+      } catch {}
+    }
+  }, [isEdit]);
 
   // Click outside to close combobox
   useEffect(() => {
@@ -143,51 +170,68 @@ export function TokoProductFormPage({
         setIsPetaniOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    if (isPetaniOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isPetaniOpen]);
 
   const selectedPetani = useMemo(() => {
     return petaniOptions.find((p) => p.id === petaniId);
   }, [petaniOptions, petaniId]);
 
-  const filteredPetaniOptions = useMemo(() => {
+  const filteredPetani = useMemo(() => {
     const q = petaniSearch.toLowerCase().trim();
-    if (!q) return petaniOptions;
+    if (!q) {
+      return selectedPetani ? [selectedPetani] : petaniOptions.slice(0, 5);
+    }
     return petaniOptions.filter(
       (p) =>
         p.name.toLowerCase().includes(q) ||
         p.email.toLowerCase().includes(q)
     );
-  }, [petaniOptions, petaniSearch]);
+  }, [petaniOptions, petaniSearch, selectedPetani]);
 
-  // Photo Upload Handler
-  const handlePhotoUpload = async (file: File, source: 'CAMERA' | 'GALLERY') => {
+  // Handler Upload Foto Tambahan (Bisa upload beberapa image)
+  const handlePhotoUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    source: 'CAMERA' | 'GALLERY'
+  ) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
     try {
       setUploadingSource(source);
-      const formData = new FormData();
-      formData.append('file', file);
 
-      const res = await fetch('/api/upload/product', {
-        method: 'POST',
-        body: formData,
-      });
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const formData = new FormData();
+        formData.append('file', file);
 
-      const data = await res.json();
-      if (!res.ok || data.error) {
-        throw new Error(data.error || 'Gagal mengunggah foto komoditas.');
+        const res = await fetch('/api/upload/product', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const data = await res.json();
+        if (!res.ok || data.error) {
+          throw new Error(data.error || 'Gagal mengunggah foto.');
+        }
+
+        setImages((prev) => [...prev, data.url]);
       }
 
-      setImageUrl(data.url);
       showToast({
         title: 'Foto Berhasil Diunggah',
-        message: 'Gambar komoditas berhasil disimpan.',
+        message: `${files.length} foto komoditas berhasil ditambahkan.`,
         type: 'success',
       });
     } catch (err: any) {
       console.error(err);
       showToast({
-        title: 'Gagal Unggah',
+        title: 'Gagal Mengunggah',
         message: err.message || 'Terjadi gangguan saat mengunggah foto.',
         type: 'error',
       });
@@ -198,25 +242,65 @@ export function TokoProductFormPage({
     }
   };
 
-  // Submit Handler
+  const handleRemoveImage = (indexToRemove: number) => {
+    setImages((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+    if (activeImageIndex >= indexToRemove && activeImageIndex > 0) {
+      setActiveImageIndex(activeImageIndex - 1);
+    }
+  };
+
+  const handleSaveDraft = () => {
+    try {
+      const draftData = {
+        nama,
+        deskripsi,
+        kategori,
+        petaniId,
+        hargaPerSatuan,
+        satuan,
+        stok,
+        isTersedia,
+        images,
+        savedAt: new Date().toISOString(),
+      };
+      localStorage.setItem('admin_product_draft', JSON.stringify(draftData));
+      showToast({
+        title: 'Draf Disimpan',
+        message: 'Draf komoditas pertanian berhasil disimpan ke perangkat.',
+        type: 'success',
+      });
+    } catch (err: any) {
+      showToast({
+        title: 'Gagal Menyimpan Draf',
+        message: err.message || 'Terjadi kendala saat menyimpan draf.',
+        type: 'error',
+      });
+    }
+  };
+
+  const handleAddCategory = () => {
+    const clean = newCatInput.trim();
+    if (!clean) return;
+    if (!categoriesList.includes(clean)) {
+      setCategoriesList((prev) => [...prev, clean]);
+    }
+    setKategori(clean);
+    setIsAddingNewCat(false);
+    setNewCatInput('');
+    showToast({
+      title: 'Kategori Ditambahkan',
+      message: `Kategori "${clean}" siap digunakan.`,
+      type: 'success',
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    const finalKategori = kategori === 'LAINNYA' ? customKategori.trim() : kategori;
 
     if (!nama.trim()) {
       showToast({
         title: 'Form Belum Lengkap',
-        message: 'Mohon isi nama komoditas produk.',
-        type: 'warning',
-      });
-      return;
-    }
-
-    if (!finalKategori) {
-      showToast({
-        title: 'Form Belum Lengkap',
-        message: 'Mohon pilih kategori komoditas.',
+        message: 'Mohon isi nama produk/komoditas.',
         type: 'warning',
       });
       return;
@@ -245,14 +329,16 @@ export function TokoProductFormPage({
     try {
       setIsSubmitting(true);
 
+      const primaryImageUrl = images[activeImageIndex] || images[0] || '';
+
       const payload = {
         nama: nama.trim(),
-        kategori: finalKategori,
+        kategori: kategori.trim(),
         petaniId: petaniId || undefined,
         hargaPerSatuan: hargaNum,
         satuan: satuan.trim(),
         stok: stokNum,
-        imageUrl: imageUrl.trim() || null,
+        imageUrl: primaryImageUrl || null,
         deskripsi: deskripsi.trim() || null,
         isTersedia,
       };
@@ -273,8 +359,12 @@ export function TokoProductFormPage({
         throw new Error(data.error || 'Gagal menyimpan data komoditas.');
       }
 
+      if (!isEdit) {
+        localStorage.removeItem('admin_product_draft');
+      }
+
       showToast({
-        title: isEdit ? 'Komoditas Diperbarui' : 'Komoditas Ditambahkan',
+        title: isEdit ? 'Produk Diperbarui' : 'Produk Berhasil Ditambahkan',
         message: data.message || `Komoditas "${nama}" berhasil disimpan ke sistem.`,
         type: 'success',
       });
@@ -284,7 +374,7 @@ export function TokoProductFormPage({
       console.error(err);
       showToast({
         title: 'Gagal Menyimpan',
-        message: err.message || 'Terjadi kesalahan sistem saat menyimpan komoditas.',
+        message: err.message || 'Terjadi kesalahan sistem saat menyimpan data.',
         type: 'error',
       });
     } finally {
@@ -292,132 +382,168 @@ export function TokoProductFormPage({
     }
   };
 
+  const primaryImage = images[activeImageIndex] || images[0] || null;
+
   return (
     <div className="w-full max-w-5xl mx-auto space-y-6">
-      {/* 1. Header Toolbar with Back Button */}
+      {/* Hidden File Inputs */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        onChange={(e) => handlePhotoUpload(e, 'GALLERY')}
+        className="hidden"
+      />
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={(e) => handlePhotoUpload(e, 'CAMERA')}
+        className="hidden"
+      />
+
+      {/* Top Header Bar Sesuai Gambar 2 */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={onCancel}
-            className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition cursor-pointer shadow-2xs"
-            title="Kembali ke Toko Online"
+            className="p-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition cursor-pointer shadow-2xs"
+            title="Kembali"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              {isEdit ? 'Edit Data Komoditas Masuk Gudang' : 'Input Komoditas Masuk Gudang'}
-            </h1>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Catat komoditas pertanian hasil panen petani binaan yang disetor ke gudang koperasi.
-            </p>
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+              <Package className="w-4 h-4" />
+            </div>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                {isEdit ? 'Ubah Data Produk' : 'Tambah Produk Baru'}
+              </h1>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Kelola informasi komoditas, harga satuan, dan galeri foto
+              </p>
+            </div>
           </div>
         </div>
 
+        {/* Action Buttons Sesuai Gambar 2 */}
         <div className="flex items-center gap-2 self-end sm:self-center">
           <button
             type="button"
-            onClick={onCancel}
-            className="py-2 px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold cursor-pointer transition shadow-2xs"
+            onClick={handleSaveDraft}
+            className="px-3.5 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
           >
-            Batal
+            <Bookmark className="w-3.5 h-3.5 text-slate-400" />
+            <span>Simpan Draf</span>
           </button>
+
           <button
             type="button"
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className="py-2 px-5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer transition shadow-xs disabled:opacity-60"
+            className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-xs disabled:opacity-60"
           >
             {isSubmitting ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Menyimpan...</span>
-              </>
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
             ) : (
-              <span>{isEdit ? 'Simpan Perubahan' : 'Simpan Komoditas'}</span>
+              <Check className="w-3.5 h-3.5" />
             )}
+            <span>{isEdit ? 'Simpan Perubahan' : 'Tambah Produk'}</span>
           </button>
         </div>
       </div>
 
-      {/* 2. Main Form Content */}
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column (2 Cols on lg): Data Komoditas */}
-        <div className="lg:col-span-2 space-y-5">
-          {/* Card 1: Detail Komoditas & Petani */}
-          <div className="p-5 sm:p-6 bg-white border border-slate-200/90 rounded-2xl shadow-2xs space-y-4">
-            <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
-              <ShoppingBag className="w-4 h-4 text-emerald-700" />
-              <h2 className="text-sm font-bold text-slate-800">Detail Komoditas Pertanian</h2>
-            </div>
+      {/* 2-Column Form Layout Sesuai Gambar 2 */}
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6">
+        {/* Kolom Kiri: Informasi Umum & Harga dan Stok (7 Kolom) */}
+        <div className="lg:col-span-7 space-y-5">
+          {/* Card 1: Informasi Umum (General Information) */}
+          <div className="p-5 bg-white border border-slate-200 rounded-xl space-y-4">
+            <h3 className="text-sm font-bold text-slate-800">Informasi Umum</h3>
 
+            {/* Nama Produk */}
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Nama Komoditas <span className="text-red-500">*</span>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                Nama Produk
               </label>
               <input
                 type="text"
                 required
-                placeholder="Contoh: Kelapa Butir Grade A, Jagung Pipil Kering Super"
                 value={nama}
                 onChange={(e) => setNama(e.target.value)}
-                className="w-full text-xs px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600 focus:bg-white transition"
+                placeholder="Contoh: Kelapa Butir Hibrida, Jagung Pipil Kering Super"
+                className="w-full text-xs px-3.5 py-2.5 bg-slate-100 border border-transparent rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-600 focus:bg-white transition text-slate-800"
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Kategori Komoditas <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={kategori}
-                  onChange={(e) => setKategori(e.target.value)}
-                  className="w-full text-xs px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600 focus:bg-white transition cursor-pointer font-medium"
-                >
-                  {categoriesList.map((catName) => (
-                    <option key={catName} value={catName}>
-                      {catName}
-                    </option>
-                  ))}
-                  <option value="LAINNYA">+ Ketik Kategori Lainnya</option>
-                </select>
+            {/* Deskripsi Produk */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                Deskripsi Produk
+              </label>
+              <textarea
+                rows={4}
+                value={deskripsi}
+                onChange={(e) => setDeskripsi(e.target.value)}
+                placeholder="Jelaskan kualitas panen, varietas benih, keunggulan komoditas, dan cara penyimpanan..."
+                className="w-full text-xs px-3.5 py-2.5 bg-slate-100 border border-transparent rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-600 focus:bg-white transition text-slate-800 resize-none leading-relaxed"
+              />
+            </div>
 
-                {kategori === 'LAINNYA' && (
-                  <input
-                    type="text"
-                    required
-                    placeholder="Ketik kategori baru..."
-                    value={customKategori}
-                    onChange={(e) => setCustomKategori(e.target.value)}
-                    className="w-full text-xs px-3.5 py-2 mt-2 bg-emerald-50/50 border border-emerald-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600"
-                  />
-                )}
+            {/* Satuan & Mitra Petani Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+              {/* Satuan Komoditas (Pilihan Box Style) */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                  Satuan Penjualan
+                </label>
+                <div className="flex flex-wrap gap-1.5">
+                  {SATUAN_OPTIONS.map((opt) => {
+                    const isSelected = satuan === opt;
+                    return (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => setSatuan(opt)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer border ${
+                          isSelected
+                            ? 'bg-emerald-100 border-emerald-400 text-emerald-900 font-bold'
+                            : 'bg-slate-100 border-transparent text-slate-600 hover:bg-slate-200'
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
-              {/* Combobox Petani Penyetor */}
+              {/* Mitra Petani Binaan */}
               <div ref={petaniComboboxRef} className="relative">
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Petani Penyetor Panen
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                  Mitra Petani
                 </label>
                 <button
                   type="button"
                   onClick={() => setIsPetaniOpen(!isPetaniOpen)}
-                  className="w-full text-xs px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-left focus:outline-none focus:ring-1 focus:ring-emerald-600 hover:bg-slate-100/70 transition"
+                  className="w-full text-xs px-3.5 py-2 bg-slate-100 border border-transparent rounded-lg flex items-center justify-between text-left focus:outline-none focus:ring-1 focus:ring-emerald-600 transition"
                 >
-                  <div className="flex items-center gap-2 truncate">
+                  <div className="flex items-center gap-1.5 truncate">
                     <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                     <span className="truncate font-medium text-slate-800">
-                      {selectedPetani ? selectedPetani.name : 'Pilih Petani Binaan...'}
+                      {selectedPetani ? selectedPetani.name : 'Pilih Mitra Petani...'}
                     </span>
                   </div>
                   <ChevronsUpDown className="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1" />
                 </button>
 
-                {/* Combobox Popover */}
+                {/* Popover Petani */}
                 {isPetaniOpen && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-30 max-h-56 overflow-hidden flex flex-col animate-in fade-in zoom-in-95">
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-30 max-h-48 overflow-hidden flex flex-col animate-in fade-in zoom-in-95">
                     <div className="p-2 border-b border-slate-100 flex items-center gap-1.5 bg-slate-50">
                       <Search className="w-3 h-3 text-slate-400" />
                       <input
@@ -425,293 +551,274 @@ export function TokoProductFormPage({
                         placeholder="Cari nama petani..."
                         value={petaniSearch}
                         onChange={(e) => setPetaniSearch(e.target.value)}
-                        className="w-full text-[11px] bg-transparent focus:outline-none text-slate-800"
+                        className="w-full text-xs bg-transparent focus:outline-none text-slate-800"
                         autoFocus
                       />
                     </div>
                     <div className="overflow-y-auto p-1 space-y-0.5">
-                      {filteredPetaniOptions.length === 0 ? (
-                        <div className="p-3 text-center text-[11px] text-slate-400">
+                      {filteredPetani.length === 0 ? (
+                        <div className="p-2 text-center text-xs text-slate-400">
                           Tidak ada petani ditemukan
                         </div>
                       ) : (
-                        filteredPetaniOptions.map((petani) => {
-                          const isSelected = petani.id === petaniId;
-                          return (
-                            <button
-                              key={petani.id}
-                              type="button"
-                              onClick={() => {
-                                setPetaniId(petani.id);
-                                setIsPetaniOpen(false);
-                              }}
-                              className={`w-full text-left p-2 rounded-lg text-xs flex items-center justify-between transition cursor-pointer ${
-                                isSelected
-                                  ? 'bg-emerald-50 text-emerald-800 font-bold'
-                                  : 'hover:bg-slate-50 text-slate-700'
-                              }`}
-                            >
-                              <div className="truncate">
-                                <div>{petani.name}</div>
-                                <div className="text-[10px] text-slate-400 truncate">{petani.email}</div>
-                              </div>
-                              {isSelected && <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />}
-                            </button>
-                          );
-                        })
+                        filteredPetani.map((petani) => (
+                          <button
+                            key={petani.id}
+                            type="button"
+                            onClick={() => {
+                              setPetaniId(petani.id);
+                              setIsPetaniOpen(false);
+                            }}
+                            className={`w-full text-left p-1.5 rounded-lg text-xs flex items-center justify-between transition cursor-pointer ${
+                              petani.id === petaniId
+                                ? 'bg-emerald-50 text-emerald-800 font-bold'
+                                : 'text-slate-700 hover:bg-slate-50'
+                            }`}
+                          >
+                            <span className="truncate">{petani.name}</span>
+                            {petani.id === petaniId && (
+                              <Check className="w-3 h-3 text-emerald-700" />
+                            )}
+                          </button>
+                        ))
                       )}
                     </div>
                   </div>
                 )}
               </div>
             </div>
+          </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Harga Satuan (Rp) <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  required
-                  min={1}
-                  placeholder="Contoh: 8500"
-                  value={hargaPerSatuan}
-                  onChange={(e) => setHargaPerSatuan(e.target.value)}
-                  className="w-full text-xs px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600 focus:bg-white transition"
-                />
-              </div>
+          {/* Card 2: Harga dan Stok (Pricing And Stock) */}
+          <div className="p-5 bg-white border border-slate-200 rounded-xl space-y-4">
+            <h3 className="text-sm font-bold text-slate-800">Harga dan Stok</h3>
 
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Harga Satuan */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Satuan Takaran <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={satuan}
-                  onChange={(e) => setSatuan(e.target.value)}
-                  className="w-full text-xs px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600 focus:bg-white transition cursor-pointer font-medium"
-                >
-                  {SATUAN_OPTIONS.map((opt) => (
-                    <option key={opt} value={opt}>
-                      /{opt}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Stok Masuk Gudang <span className="text-red-500">*</span>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                  Harga Satuan (Rp)
                 </label>
                 <input
                   type="number"
                   required
                   min={0}
-                  placeholder="100"
+                  step={500}
+                  value={hargaPerSatuan}
+                  onChange={(e) => setHargaPerSatuan(e.target.value)}
+                  placeholder="Contoh: 5000"
+                  className="w-full text-xs px-3.5 py-2.5 bg-slate-100 border border-transparent rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-600 focus:bg-white transition text-slate-800 font-semibold"
+                />
+              </div>
+
+              {/* Stok */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                  Jumlah Stok Tersedia
+                </label>
+                <input
+                  type="number"
+                  required
+                  min={0}
                   value={stok}
                   onChange={(e) => setStok(e.target.value)}
-                  className="w-full text-xs px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600 focus:bg-white transition"
+                  placeholder="Contoh: 100"
+                  className="w-full text-xs px-3.5 py-2.5 bg-slate-100 border border-transparent rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-600 focus:bg-white transition text-slate-800 font-semibold"
                 />
               </div>
             </div>
-          </div>
 
-          {/* Card 2: Deskripsi Komoditas */}
-          <div className="p-5 sm:p-6 bg-white border border-slate-200/90 rounded-2xl shadow-2xs space-y-4">
-            <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
-              <FileText className="w-4 h-4 text-emerald-700" />
-              <h2 className="text-sm font-bold text-slate-800">Deskripsi & Kualitas Panen</h2>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Keterangan Komoditas
-              </label>
-              <textarea
-                rows={4}
-                placeholder="Jelaskan kualitas buah/biji, kadar air, masa petik, dan spesifikasi kemasan..."
-                value={deskripsi}
-                onChange={(e) => setDeskripsi(e.target.value)}
-                className="w-full text-xs px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600 focus:bg-white transition resize-none"
-              />
+            {/* Status Ketersediaan */}
+            <div className="pt-2 flex items-center justify-between border-t border-slate-100 text-xs">
+              <div>
+                <span className="font-semibold text-slate-700 block">Status Ketersediaan Toko</span>
+                <span className="text-[11px] text-slate-400">
+                  {isTersedia ? 'Aktif dan dapat dipesan oleh anggota' : 'Stok habis / dinonaktifkan sementara'}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsTersedia(!isTersedia)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer border ${
+                  isTersedia
+                    ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                    : 'bg-slate-100 text-slate-600 border-slate-200'
+                }`}
+              >
+                {isTersedia ? 'Tersedia' : 'Nonaktif'}
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Right Column (1 Col on lg): Foto & Status */}
-        <div className="space-y-5">
-          {/* Card Foto Komoditas */}
-          <div className="p-5 sm:p-6 bg-white border border-slate-200/90 rounded-2xl shadow-2xs space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <h2 className="text-sm font-bold text-slate-800">Foto Fisik Komoditas</h2>
-              <span className="text-[10px] text-slate-400 font-medium">Bebas ukuran</span>
+        {/* Kolom Kanan: Upload Img & Category (5 Kolom) */}
+        <div className="lg:col-span-5 space-y-5">
+          {/* Card 1: Upload Img (Unggah Foto Produk) */}
+          <div className="p-5 bg-white border border-slate-200 rounded-xl space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-slate-800">Unggah Foto</h3>
+              <span className="text-[11px] font-semibold text-slate-400">
+                {images.length} Foto
+              </span>
             </div>
 
-            {/* Hidden Inputs */}
-            <input
-              type="file"
-              ref={fileInputRef}
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handlePhotoUpload(file, 'GALLERY');
-              }}
-            />
-            <input
-              type="file"
-              ref={cameraInputRef}
-              accept="image/*"
-              capture="environment"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handlePhotoUpload(file, 'CAMERA');
-              }}
-            />
-
-            {/* Preview Box Fleksibel Bebas Ukuran */}
-            {imageUrl ? (
-              <div className="space-y-3">
-                <div className="relative w-full rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shadow-2xs flex items-center justify-center p-2 min-h-[160px] max-h-[260px]">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={imageUrl}
-                    alt="Foto Komoditas"
-                    className="w-full h-auto max-h-[245px] object-contain rounded-xl"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src =
-                        'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=400&q=80';
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setImageUrl('')}
-                    className="absolute top-2 right-2 p-1.5 rounded-xl bg-red-600/90 text-white shadow-md hover:bg-red-700 transition cursor-pointer"
-                    title="Hapus Foto"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+            {/* Main Large Image Container Sesuai Gambar 2 */}
+            <div className="w-full aspect-square rounded-xl bg-slate-100 border border-slate-200 overflow-hidden relative flex items-center justify-center group">
+              {primaryImage ? (
+                <img
+                  src={primaryImage}
+                  alt="Preview Produk"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center p-6 text-center text-slate-400">
+                  <ImageIcon className="w-12 h-12 stroke-1 mb-2 text-slate-300" />
+                  <span className="text-xs font-medium text-slate-500">
+                    Belum ada foto komoditas
+                  </span>
+                  <span className="text-[10px] text-slate-400 mt-0.5">
+                    Klik tombol + di bawah atau jepret kamera
+                  </span>
                 </div>
+              )}
 
-                <div className="grid grid-cols-2 gap-2">
+              {/* Overlay upload buttons on main image */}
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
+                <button
+                  type="button"
+                  disabled={Boolean(uploadingSource)}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="px-3 py-1.5 rounded-lg bg-white/95 text-slate-800 text-xs font-bold hover:bg-white shadow-xs transition flex items-center gap-1.5"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Galeri</span>
+                </button>
+                <button
+                  type="button"
+                  disabled={Boolean(uploadingSource)}
+                  onClick={() => cameraInputRef.current?.click()}
+                  className="px-3 py-1.5 rounded-lg bg-white/95 text-slate-800 text-xs font-bold hover:bg-white shadow-xs transition flex items-center gap-1.5"
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                  <span>Kamera</span>
+                </button>
+              </div>
+
+              {uploadingSource && (
+                <div className="absolute inset-0 bg-white/80 backdrop-blur-2xs flex flex-col items-center justify-center gap-2">
+                  <Loader2 className="w-6 h-6 text-emerald-600 animate-spin" />
+                  <span className="text-xs font-bold text-slate-700">Mengunggah foto...</span>
+                </div>
+              )}
+            </div>
+
+            {/* Thumbnails Row Sesuai Gambar 2 (+ button for multi upload) */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar pt-1">
+              {images.map((imgUrl, idx) => {
+                const isActive = idx === activeImageIndex;
+                return (
+                  <div
+                    key={idx}
+                    className={`relative w-14 h-14 rounded-lg overflow-hidden border-2 cursor-pointer shrink-0 transition ${
+                      isActive
+                        ? 'border-emerald-600 ring-2 ring-emerald-200'
+                        : 'border-slate-200 hover:border-slate-300'
+                    }`}
+                    onClick={() => setActiveImageIndex(idx)}
+                  >
+                    <img
+                      src={imgUrl}
+                      alt={`Thumbnail ${idx + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveImage(idx);
+                      }}
+                      className="absolute top-0.5 right-0.5 w-4 h-4 rounded-md bg-black/60 text-white flex items-center justify-center text-[10px] hover:bg-red-600 transition"
+                      title="Hapus foto ini"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                );
+              })}
+
+              {/* Add Image Button Sesuai Gambar 2 (+) */}
+              <button
+                type="button"
+                disabled={Boolean(uploadingSource)}
+                onClick={() => fileInputRef.current?.click()}
+                className="w-14 h-14 rounded-lg border-2 border-dashed border-emerald-300 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 flex flex-col items-center justify-center gap-0.5 shrink-0 transition cursor-pointer"
+                title="Tambah foto komoditas"
+              >
+                <Plus className="w-4 h-4" />
+                <span className="text-[9px] font-bold">Tambah</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Card 2: Kategori (Category) Sesuai Gambar 2 */}
+          <div className="p-5 bg-white border border-slate-200 rounded-xl space-y-3">
+            <h3 className="text-sm font-bold text-slate-800">Kategori</h3>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                Kategori Produk
+              </label>
+              <select
+                value={kategori}
+                onChange={(e) => setKategori(e.target.value)}
+                className="w-full text-xs px-3.5 py-2.5 bg-slate-100 border border-transparent rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-600 focus:bg-white transition cursor-pointer font-medium text-slate-800"
+              >
+                {categoriesList.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Form Input Kategori Baru jika tombol Add Category ditekan */}
+            {isAddingNewCat ? (
+              <div className="space-y-2 pt-1 animate-in fade-in duration-150">
+                <input
+                  type="text"
+                  placeholder="Nama kategori baru..."
+                  value={newCatInput}
+                  onChange={(e) => setNewCatInput(e.target.value)}
+                  className="w-full text-xs px-3 py-2 bg-slate-50 border border-emerald-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                  autoFocus
+                />
+                <div className="flex items-center gap-1.5">
                   <button
                     type="button"
-                    disabled={Boolean(uploadingSource)}
-                    onClick={() => cameraInputRef.current?.click()}
-                    className="py-2 px-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-2xs disabled:opacity-60"
+                    onClick={handleAddCategory}
+                    className="flex-1 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition cursor-pointer"
                   >
-                    {uploadingSource === 'CAMERA' ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                      <Camera className="w-3.5 h-3.5" />
-                    )}
-                    <span>Jepret Kamera</span>
+                    Simpan Kategori
                   </button>
                   <button
                     type="button"
-                    disabled={Boolean(uploadingSource)}
-                    onClick={() => fileInputRef.current?.click()}
-                    className="py-2 px-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer disabled:opacity-60"
+                    onClick={() => setIsAddingNewCat(false)}
+                    className="py-1.5 px-3 rounded-lg border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition cursor-pointer"
                   >
-                    {uploadingSource === 'GALLERY' ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                      <Upload className="w-3.5 h-3.5" />
-                    )}
-                    <span>Galeri File</span>
+                    Batal
                   </button>
                 </div>
               </div>
             ) : (
-              <div className="space-y-3">
-                <div className="w-full py-8 px-4 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/50 flex flex-col items-center justify-center text-center">
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center mb-2">
-                    <Package className="w-6 h-6" />
-                  </div>
-                  <span className="text-xs font-bold text-slate-700">Belum Ada Foto Komoditas</span>
-                  <span className="text-[10px] text-slate-400 mt-1 max-w-[220px]">
-                    Bebas unggah foto ukuran apa saja melalui kamera HP atau file galeri.
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    disabled={Boolean(uploadingSource)}
-                    onClick={() => cameraInputRef.current?.click()}
-                    className="py-2.5 px-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-2xs disabled:opacity-60"
-                  >
-                    {uploadingSource === 'CAMERA' ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Camera className="w-4 h-4" />
-                    )}
-                    <span>Buka Kamera</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    disabled={Boolean(uploadingSource)}
-                    onClick={() => fileInputRef.current?.click()}
-                    className="py-2.5 px-3 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer disabled:opacity-60 shadow-2xs"
-                  >
-                    {uploadingSource === 'GALLERY' ? (
-                      <Loader2 className="w-4 h-4 animate-spin text-emerald-700" />
-                    ) : (
-                      <Upload className="w-4 h-4" />
-                    )}
-                    <span>Pilih Galeri</span>
-                  </button>
-                </div>
-              </div>
+              <button
+                type="button"
+                onClick={() => setIsAddingNewCat(true)}
+                className="w-full py-2.5 px-4 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-900 text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Tambah Kategori</span>
+              </button>
             )}
-
-
-          </div>
-
-          {/* Card Status Publik */}
-          <div className="p-5 sm:p-6 bg-white border border-slate-200/90 rounded-2xl shadow-2xs space-y-3">
-            <h2 className="text-sm font-bold text-slate-800">Status Penjualan</h2>
-            <label className="flex items-center justify-between p-3 rounded-xl border border-slate-200 bg-slate-50/60 cursor-pointer hover:bg-slate-50 transition">
-              <div>
-                <div className="text-xs font-bold text-slate-900">Aktif di Katalog Toko</div>
-                <div className="text-[10px] text-slate-500 mt-0.5">
-                  Pembeli dapat melihat dan memesan komoditas ini
-                </div>
-              </div>
-              <input
-                type="checkbox"
-                checked={isTersedia}
-                onChange={(e) => setIsTersedia(e.target.checked)}
-                className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer"
-              />
-            </label>
-          </div>
-
-          {/* Bottom Action Card */}
-          <div className="p-4 bg-white border border-slate-200/90 rounded-2xl shadow-2xs space-y-2">
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full py-2.5 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition shadow-xs disabled:opacity-60"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Menyimpan...</span>
-                </>
-              ) : (
-                <span>{isEdit ? 'Simpan Perubahan Komoditas' : 'Simpan Komoditas ke Gudang'}</span>
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={onCancel}
-              className="w-full py-2 px-4 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition cursor-pointer"
-            >
-              Batal & Kembali
-            </button>
           </div>
         </div>
       </form>

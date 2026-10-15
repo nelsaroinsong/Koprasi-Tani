@@ -999,9 +999,9 @@ export default function EquipmentsDataTable() {
         )}
       </div>
 
-      {/* 5. Modal Tambah / Edit Alat Pertanian (UI Dilebarkan ke Samping: max-w-4xl) */}
+      {/* 5. Modal Tambah / Edit Alat Pertanian (UI Kotak Tumpul) */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto p-5 sm:p-7 rounded-2xl">
+        <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto p-5 sm:p-7 rounded-xl">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
               <Tractor className="w-5 h-5 text-emerald-600" />
@@ -1025,7 +1025,7 @@ export default function EquipmentsDataTable() {
                     value={formNama}
                     onChange={(e) => setFormNama(e.target.value)}
                     placeholder="Contoh: Traktor Roda 4 Kubota L4018"
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-1 focus:ring-emerald-500 focus:outline-none font-semibold text-slate-800"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:ring-1 focus:ring-emerald-500 focus:outline-none font-semibold text-slate-800"
                   />
                 </div>
 
@@ -1038,7 +1038,7 @@ export default function EquipmentsDataTable() {
                     <select
                       value={formKategori}
                       onChange={(e) => setFormKategori(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-1 focus:ring-emerald-500 focus:outline-none font-medium cursor-pointer"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:ring-1 focus:ring-emerald-500 focus:outline-none font-medium cursor-pointer"
                     >
                       {categoriesList.map((cat) => (
                         <option key={cat.id} value={cat.name}>
@@ -1053,7 +1053,7 @@ export default function EquipmentsDataTable() {
                     <select
                       value={formKondisi}
                       onChange={(e) => setFormKondisi(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-1 focus:ring-emerald-500 focus:outline-none font-medium cursor-pointer"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:ring-1 focus:ring-emerald-500 focus:outline-none font-medium cursor-pointer"
                     >
                       {KONDISI_PRESETS.map((kon) => (
                         <option key={kon} value={kon}>
@@ -1081,7 +1081,7 @@ export default function EquipmentsDataTable() {
                         value={formHargaSewa}
                         onChange={(e) => setFormHargaSewa(e.target.value)}
                         placeholder="Contoh: 150000"
-                        className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-1 focus:ring-emerald-500 focus:outline-none font-semibold"
+                        className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:ring-1 focus:ring-emerald-500 focus:outline-none font-semibold"
                       />
                     </div>
                   </div>
@@ -1091,7 +1091,7 @@ export default function EquipmentsDataTable() {
                     <select
                       value={formSatuanSewa}
                       onChange={(e) => setFormSatuanSewa(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-1 focus:ring-emerald-500 focus:outline-none font-medium cursor-pointer"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:ring-1 focus:ring-emerald-500 focus:outline-none font-medium cursor-pointer"
                     >
                       <option value="hari">/ hari</option>
                       <option value="jam">/ jam</option>
@@ -1117,7 +1117,7 @@ export default function EquipmentsDataTable() {
                         value={formBiayaOperator}
                         onChange={(e) => setFormBiayaOperator(e.target.value)}
                         placeholder="Kosongkan jika mandiri"
-                        className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+                        className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:ring-1 focus:ring-emerald-500 focus:outline-none"
                       />
                     </div>
                   </div>
@@ -1132,7 +1132,7 @@ export default function EquipmentsDataTable() {
                       required
                       value={formStokUnit}
                       onChange={(e) => setFormStokUnit(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-1 focus:ring-emerald-500 focus:outline-none font-semibold"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:ring-1 focus:ring-emerald-500 focus:outline-none font-semibold"
                     />
                   </div>
                 </div>
@@ -1150,7 +1150,7 @@ export default function EquipmentsDataTable() {
                         value={formKontakPj}
                         onChange={(e) => setFormKontakPj(e.target.value)}
                         placeholder="081944078924"
-                        className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+                        className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:ring-1 focus:ring-emerald-500 focus:outline-none"
                       />
                     </div>
                   </div>
@@ -1175,7 +1175,6 @@ export default function EquipmentsDataTable() {
 
               {/* Kolom Kanan: Foto Kamera / File & Deskripsi Teknis */}
               <div className="space-y-3.5">
-                {/* Metode Input Foto: Kamera Langsung & Unggah Berkas Galeri (Persis Toko Online) */}
                 <div>
                   <label className="block font-bold text-slate-700 mb-1.5">
                     Foto Unit Alat Fisik
@@ -1202,9 +1201,9 @@ export default function EquipmentsDataTable() {
 
                   {formImageUrl ? (
                     /* Preview Box jika foto sudah ada */
-                    <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-16 h-16 rounded-xl border border-slate-200 overflow-hidden shrink-0 bg-white shadow-2xs relative">
+                        <div className="w-16 h-16 rounded-lg border border-slate-200 overflow-hidden shrink-0 bg-white shadow-2xs relative">
                           <img
                             src={formImageUrl}
                             alt="Preview Alat"
@@ -1227,7 +1226,7 @@ export default function EquipmentsDataTable() {
                           type="button"
                           disabled={isUploadingPhoto}
                           onClick={() => cameraInputRef.current?.click()}
-                          className="px-2.5 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-[11px] flex items-center gap-1.5 transition cursor-pointer shadow-2xs disabled:opacity-60"
+                          className="px-2.5 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-[11px] flex items-center gap-1.5 transition cursor-pointer shadow-2xs disabled:opacity-60"
                         >
                           {uploadingSource === 'CAMERA' ? (
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -1240,7 +1239,7 @@ export default function EquipmentsDataTable() {
                           type="button"
                           disabled={isUploadingPhoto}
                           onClick={() => fileInputRef.current?.click()}
-                          className="px-2.5 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-700 font-semibold text-[11px] flex items-center gap-1 transition cursor-pointer disabled:opacity-60"
+                          className="px-2.5 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-700 font-semibold text-[11px] flex items-center gap-1 transition cursor-pointer disabled:opacity-60"
                         >
                           {uploadingSource === 'GALLERY' ? (
                             <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-700" />
@@ -1253,7 +1252,7 @@ export default function EquipmentsDataTable() {
                           type="button"
                           disabled={isUploadingPhoto}
                           onClick={() => setFormImageUrl('')}
-                          className="p-1.5 text-slate-400 hover:text-red-600 rounded-xl hover:bg-red-50 transition cursor-pointer"
+                          className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition cursor-pointer"
                           title="Hapus Foto"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -1261,15 +1260,15 @@ export default function EquipmentsDataTable() {
                       </div>
                     </div>
                   ) : (
-                    /* 2 Opsi Tombol Input Foto (Persis Toko Online) */
+                    /* 2 Opsi Tombol Input Foto */
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                       <button
                         type="button"
                         disabled={isUploadingPhoto}
                         onClick={() => cameraInputRef.current?.click()}
-                        className="p-3.5 rounded-2xl border-2 border-emerald-500 bg-emerald-50/60 hover:bg-emerald-100/70 text-emerald-900 transition flex flex-col items-center justify-center text-center cursor-pointer group shadow-2xs disabled:opacity-60"
+                        className="p-3.5 rounded-xl border-2 border-emerald-500 bg-emerald-50/60 hover:bg-emerald-100/70 text-emerald-900 transition flex flex-col items-center justify-center text-center cursor-pointer group shadow-2xs disabled:opacity-60"
                       >
-                        <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center mb-1.5 shadow-xs group-hover:scale-105 transition">
+                        <div className="w-10 h-10 rounded-lg bg-emerald-600 text-white flex items-center justify-center mb-1.5 shadow-xs group-hover:scale-105 transition">
                           {uploadingSource === 'CAMERA' ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
                           ) : (
@@ -1288,9 +1287,9 @@ export default function EquipmentsDataTable() {
                         type="button"
                         disabled={isUploadingPhoto}
                         onClick={() => fileInputRef.current?.click()}
-                        className="p-3.5 rounded-2xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 transition flex flex-col items-center justify-center text-center cursor-pointer group shadow-2xs disabled:opacity-60"
+                        className="p-3.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 transition flex flex-col items-center justify-center text-center cursor-pointer group shadow-2xs disabled:opacity-60"
                       >
-                        <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center mb-1.5 shadow-2xs group-hover:scale-105 transition">
+                        <div className="w-10 h-10 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center mb-1.5 shadow-2xs group-hover:scale-105 transition">
                           {uploadingSource === 'GALLERY' ? (
                             <Loader2 className="w-4 h-4 animate-spin text-emerald-700" />
                           ) : (
@@ -1306,8 +1305,6 @@ export default function EquipmentsDataTable() {
                       </button>
                     </div>
                   )}
-
-
                 </div>
 
                 {/* Spesifikasi Teknis */}
@@ -1320,7 +1317,7 @@ export default function EquipmentsDataTable() {
                     value={formSpesifikasi}
                     onChange={(e) => setFormSpesifikasi(e.target.value)}
                     placeholder="Contoh: Mesin Diesel 4 Silinder 40 HP, 4WD, Rotary Tiller"
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:ring-1 focus:ring-emerald-500 focus:outline-none"
                   />
                 </div>
 
@@ -1334,7 +1331,7 @@ export default function EquipmentsDataTable() {
                     value={formDeskripsi}
                     onChange={(e) => setFormDeskripsi(e.target.value)}
                     placeholder="Jelaskan jenis lahan yang cocok, keunggulan unit, dan panduan operasional..."
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-1 focus:ring-emerald-500 focus:outline-none leading-relaxed"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:ring-1 focus:ring-emerald-500 focus:outline-none leading-relaxed"
                   />
                 </div>
               </div>
@@ -1344,14 +1341,14 @@ export default function EquipmentsDataTable() {
               <button
                 type="button"
                 onClick={() => setIsFormOpen(false)}
-                className="py-2 px-4 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl font-semibold transition cursor-pointer"
+                className="py-2 px-4 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-lg font-semibold transition cursor-pointer"
               >
                 Batal
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="py-2 px-5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl font-bold flex items-center gap-1.5 transition cursor-pointer disabled:opacity-60 shadow-xs"
+                className="py-2 px-5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg font-bold flex items-center gap-1.5 transition cursor-pointer disabled:opacity-60 shadow-xs"
               >
                 {isSubmitting ? (
                   <>
