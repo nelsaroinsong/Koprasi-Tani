@@ -23,6 +23,7 @@ import {
   Phone,
   Building2,
   Share2,
+  X,
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
@@ -58,6 +59,15 @@ export default function OrderDetailPage({
   );
   const [adminPhone, setAdminPhone] = useState('081944078924');
 
+  // Cancel Order Modal State
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [isCanceling, setIsCanceling] = useState(false);
+
+  // Countdown timer state for 72h auto cancel
+  const [timeRemaining, setTimeRemaining] = useState<string>('');
+  const [isExpired, setIsExpired] = useState(false);
+
   useEffect(() => {
     fetch('/api/koperasi/info')
       .then((res) => (res.ok ? res.json() : null))
@@ -74,13 +84,29 @@ export default function OrderDetailPage({
       try {
         setIsLoading(true);
 
-        // Coba cari di orders toko online terlebih dahulu
+        // 1. Coba ambil langsung dari endpoint detail pesanan spesifik
+        const resSingleOrder = await fetch(`/api/orders/${targetId}`).catch(() => null);
+        if (resSingleOrder && resSingleOrder.ok) {
+          const singleData = await resSingleOrder.json();
+          const order = singleData.order || singleData;
+          if (order && (order.id || order.orderNumber)) {
+            setOrderData(order);
+            setIsRental(false);
+            setIsLoading(false);
+            return;
+          }
+        }
+
+        // 2. Fallback: Cari di orders list toko online pembeli
         const resOrders = await fetch('/api/orders').catch(() => null);
         if (resOrders && resOrders.ok) {
-          const ordersList = await resOrders.json();
-          const found = Array.isArray(ordersList)
-            ? ordersList.find((o: any) => o.id === targetId || o.orderNumber === targetId)
-            : null;
+          const data = await resOrders.json();
+          const ordersList = Array.isArray(data)
+            ? data
+            : Array.isArray(data?.orders)
+            ? data.orders
+            : [];
+          const found = ordersList.find((o: any) => o.id === targetId || o.orderNumber === targetId);
 
           if (found) {
             setOrderData(found);
@@ -90,13 +116,17 @@ export default function OrderDetailPage({
           }
         }
 
-        // Jika tidak ketemu di orders toko, cari di sewa alat
+        // 3. Jika tidak ketemu di orders toko, cari di sewa alat
         const resRentals = await fetch('/api/equipments/rent').catch(() => null);
         if (resRentals && resRentals.ok) {
           const rentalData = await resRentals.json();
           const rentalsList = Array.isArray(rentalData)
             ? rentalData
-            : rentalData.rentals || rentalData.data || [];
+            : Array.isArray(rentalData?.rentals)
+            ? rentalData.rentals
+            : Array.isArray(rentalData?.data)
+            ? rentalData.data
+            : [];
           const found = rentalsList.find(
             (r: any) =>
               r.id === targetId ||
@@ -209,12 +239,108 @@ export default function OrderDetailPage({
           badgeClass: 'bg-red-50 text-red-700 border-red-200',
           hint: 'Pengajuan sewa tidak dapat diproses. Silakan hubungi admin koperasi.',
         };
+      case 'DIBATALKAN':
+        return {
+          label: 'Dibatalkan',
+          badgeClass: 'bg-rose-50 text-rose-700 border-rose-200',
+          hint: 'Pengajuan sewa alat ini telah dibatalkan oleh pemohon.',
+        };
       default:
         return {
           label: status,
           badgeClass: 'bg-slate-100 text-slate-700 border-slate-300',
           hint: 'Status sewa alat sedang diproses.',
         };
+    }
+  };
+
+  // Hitung sisa waktu pembayaran (72 jam sejak pesanan dibuat)
+  useEffect(() => {
+    if (!orderData || orderData.status !== 'MENUNGGU_PEMBAYARAN' || isRental) {
+      setTimeRemaining('');
+      return;
+    }
+
+    const calculateTime = () => {
+      const createdTime = new Date(orderData.createdAt).getTime();
+      const expireTime = createdTime + 72 * 60 * 60 * 1000;
+      const now = Date.now();
+      const diff = expireTime - now;
+
+      if (diff <= 0) {
+        setTimeRemaining('Waktu pembayaran telah habis (72 jam)');
+        setIsExpired(true);
+        // Refresh otomatis agar status diupdate ke DIBATALKAN
+        if (orderData.status === 'MENUNGGU_PEMBAYARAN') {
+          fetch(`/api/orders/${targetId}`)
+            .then((r) => r.json())
+            .then((d) => {
+              if (d.order) setOrderData(d.order);
+            })
+            .catch(() => {});
+        }
+        return;
+      }
+
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+      setTimeRemaining(`${hours} jam ${minutes} menit ${seconds} detik`);
+      setIsExpired(false);
+    };
+
+    calculateTime();
+    const interval = setInterval(calculateTime, 1000);
+    return () => clearInterval(interval);
+  }, [orderData, isRental, targetId]);
+
+  const handleCancelOrder = async () => {
+    if (!orderData) return;
+    try {
+      setIsCanceling(true);
+      const url = isRental ? '/api/equipments/rent' : `/api/orders/${targetId}`;
+      const payload = isRental
+        ? {
+            action: 'CANCEL',
+            rentalId: orderData.id || targetId,
+            alasanBatal: cancelReason.trim() || 'Dibatalkan oleh pemohon sewa alat',
+          }
+        : {
+            action: 'CANCEL',
+            alasanBatal: cancelReason.trim() || 'Dibatalkan oleh pembeli sebelum pembayaran',
+          };
+
+      const res = await fetch(url, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Gagal membatalkan pesanan');
+      }
+
+      showToast({
+        title: isRental ? 'Pengajuan Dibatalkan' : 'Pesanan Dibatalkan',
+        message: isRental
+          ? 'Pengajuan sewa alat pertanian berhasil dibatalkan.'
+          : 'Pesanan berhasil dibatalkan. Stok barang telah dikembalikan ke katalog koperasi.',
+        type: 'info',
+      });
+
+      setOrderData(data.order || data.rental);
+      setIsCancelModalOpen(false);
+      setCancelReason('');
+    } catch (err: any) {
+      showToast({
+        title: 'Gagal Membatalkan',
+        message: err.message || 'Terjadi gangguan saat membatalkan pesanan.',
+        type: 'error',
+      });
+    } finally {
+      setIsCanceling(false);
     }
   };
 
@@ -256,7 +382,7 @@ export default function OrderDetailPage({
     <div className="min-h-screen bg-slate-50 pb-24 text-slate-800">
       <AppHeader />
 
-      <main className="max-w-3xl mx-auto px-3 sm:px-6 pt-4 sm:pt-6 space-y-4">
+      <main className="max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 pt-4 sm:pt-6 space-y-4">
         {/* Tombol Kembali ke Halaman Pesanan */}
         <div className="flex items-center justify-between">
           <Link
@@ -326,23 +452,47 @@ export default function OrderDetailPage({
                   </span>
                 </div>
 
-                {isRental ? (
-                  <span
-                    className={`px-2.5 py-0.5 rounded-lg text-xs font-extrabold border ${
-                      getRentalStatusConfig(orderData.status).badgeClass
-                    }`}
-                  >
-                    {getRentalStatusConfig(orderData.status).label}
-                  </span>
-                ) : (
-                  <span
-                    className={`px-2.5 py-0.5 rounded-lg text-xs font-extrabold border ${
-                      getStatusConfig(orderData.status).badgeClass
-                    }`}
-                  >
-                    {getStatusConfig(orderData.status).label}
-                  </span>
-                )}
+                <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-200/60">
+                  {isRental ? (
+                    <span
+                      className={`px-2.5 py-1 rounded-lg text-xs font-extrabold border ${
+                        getRentalStatusConfig(orderData.status).badgeClass
+                      }`}
+                    >
+                      {getRentalStatusConfig(orderData.status).label}
+                    </span>
+                  ) : (
+                    <span
+                      className={`px-2.5 py-1 rounded-lg text-xs font-extrabold border ${
+                        getStatusConfig(orderData.status).badgeClass
+                      }`}
+                    >
+                      {getStatusConfig(orderData.status).label}
+                    </span>
+                  )}
+
+                  {/* Tombol Batalkan Cepat di Header (Langsung tampak di HP & Tablet tanpa scroll) */}
+                  {!isRental && orderData.status === 'MENUNGGU_PEMBAYARAN' && (
+                    <button
+                      type="button"
+                      onClick={() => setIsCancelModalOpen(true)}
+                      className="px-3 py-1.5 rounded-lg text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 transition cursor-pointer shadow-2xs flex items-center gap-1 shrink-0"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                      <span>Batalkan</span>
+                    </button>
+                  )}
+                  {isRental && orderData.status === 'MENUNGGU_PERSETUJUAN_ADMIN' && (
+                    <button
+                      type="button"
+                      onClick={() => setIsCancelModalOpen(true)}
+                      className="px-3 py-1.5 rounded-lg text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 transition cursor-pointer shadow-2xs flex items-center gap-1 shrink-0"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                      <span>Batalkan</span>
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Visual Stepper 4 Tahap (Khusus Toko Online) */}
@@ -433,15 +583,67 @@ export default function OrderDetailPage({
                       <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
                       <span>{getStatusConfig(orderData.status).hint}</span>
                     </div>
+
+                    {/* Akumulasi Batas Waktu Pembayaran 72 Jam (Bila Menunggu Pembayaran) */}
+                    {orderData.status === 'MENUNGGU_PEMBAYARAN' && (
+                      <div className="mt-2.5 p-3 rounded-lg bg-amber-50/95 border border-amber-300 text-amber-950 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-amber-600 shrink-0 animate-pulse" />
+                          <div>
+                            <span className="font-bold block sm:inline">Batas Waktu Pembayaran Kasir: </span>
+                            <span className="font-mono font-black text-amber-900">
+                              {timeRemaining || '72:00:00 (Menghitung batas bayar...)'}
+                            </span>
+                            <p className="text-[10px] text-amber-700 mt-0.5">
+                              Pesanan otomatis dibatalkan sistem dan stok komoditas dikembalikan jika belum dibayar di kasir dalam 72 jam.
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Tombol Batalkan Pesanan Sendiri sebelum bayar */}
+                        <button
+                          type="button"
+                          onClick={() => setIsCancelModalOpen(true)}
+                          className="w-full sm:w-auto px-3.5 py-1.5 rounded-lg border border-red-300 bg-white hover:bg-red-50 text-red-700 text-xs font-bold transition cursor-pointer shrink-0 shadow-2xs flex items-center justify-center gap-1.5"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                          <span>Batalkan Pesanan</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
 
-              {/* Status Hint Sewa Alat */}
+              {/* Status Hint & Cancel Pengajuan Sewa Alat */}
               {isRental && (
-                <div className="p-3 sm:p-4 bg-emerald-50/70 border-b border-emerald-100/80 text-xs text-emerald-900 flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
-                  <span>{getRentalStatusConfig(orderData.status).hint}</span>
+                <div className="border-b border-emerald-100/80">
+                  <div className="p-3 sm:p-4 bg-emerald-50/70 text-xs text-emerald-900 flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
+                    <span>{getRentalStatusConfig(orderData.status).hint}</span>
+                  </div>
+
+                  {orderData.status === 'MENUNGGU_PERSETUJUAN_ADMIN' && (
+                    <div className="p-3 bg-amber-50/90 border-t border-amber-200/80 text-xs text-amber-950 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-amber-600 shrink-0 animate-pulse" />
+                        <div>
+                          <span className="font-bold">Pengajuan Sedang Diverifikasi Admin Koperasi</span>
+                          <p className="text-[10px] text-amber-700 mt-0.5">
+                            Anda dapat membatalkan pengajuan sewa ini sebelum disetujui staf/pengurus koperasi.
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsCancelModalOpen(true)}
+                        className="w-full sm:w-auto px-3.5 py-1.5 rounded-lg border border-red-300 bg-white hover:bg-red-50 text-red-700 text-xs font-bold transition cursor-pointer shadow-2xs flex items-center justify-center gap-1.5"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                        <span>Batalkan Pengajuan Sewa</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -642,10 +844,22 @@ export default function OrderDetailPage({
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto justify-end">
+                  {((!isRental && orderData.status === 'MENUNGGU_PEMBAYARAN') ||
+                    (isRental && orderData.status === 'MENUNGGU_PERSETUJUAN_ADMIN')) && (
+                    <button
+                      type="button"
+                      onClick={() => setIsCancelModalOpen(true)}
+                      className="w-full sm:w-auto px-4 py-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 border border-red-300 font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-2xs"
+                    >
+                      <X className="w-4 h-4" />
+                      <span>{isRental ? 'Batalkan Pengajuan' : 'Batalkan Pesanan'}</span>
+                    </button>
+                  )}
+
                   <button
                     type="button"
                     onClick={handleOpenWhatsApp}
-                    className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+                    className="w-full sm:w-auto px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
                   >
                     <MessageCircle className="w-4 h-4 text-emerald-100" />
                     <span>Chat Admin WhatsApp</span>
@@ -653,7 +867,7 @@ export default function OrderDetailPage({
 
                   <Link
                     href={isRental ? '/sewa-alat' : '/toko'}
-                    className="px-4 py-2 rounded-lg border border-slate-300 hover:bg-white bg-slate-50 text-slate-700 font-bold text-xs transition"
+                    className="w-full sm:w-auto px-4 py-2 rounded-lg border border-slate-300 hover:bg-white bg-slate-50 text-slate-700 font-bold text-xs transition text-center"
                   >
                     {isRental ? 'Sewa Alat Lain' : 'Beli Lagi'}
                   </Link>
@@ -662,6 +876,30 @@ export default function OrderDetailPage({
             </div>
           </div>
         )}
+
+        {/* Sticky Floating Bottom Action Bar Khusus Mobile & Tablet Kecil */}
+        {orderData &&
+          ((!isRental && orderData.status === 'MENUNGGU_PEMBAYARAN') ||
+            (isRental && orderData.status === 'MENUNGGU_PERSETUJUAN_ADMIN')) && (
+            <div className="sm:hidden fixed bottom-0 left-0 right-0 p-3 bg-white/95 backdrop-blur-md border-t border-slate-200 z-40 flex items-center gap-2 shadow-lg">
+              <button
+                type="button"
+                onClick={() => setIsCancelModalOpen(true)}
+                className="flex-1 py-2.5 px-3 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 border border-red-300 font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-2xs"
+              >
+                <X className="w-4 h-4" />
+                <span>{isRental ? 'Batalkan Sewa' : 'Batalkan Pesanan'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleOpenWhatsApp}
+                className="flex-1 py-2.5 px-3 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
+              >
+                <MessageCircle className="w-4 h-4 text-emerald-100" />
+                <span>Chat Admin WA</span>
+              </button>
+            </div>
+          )}
       </main>
 
       {/* Modal Dialog Beri Ulasan */}
@@ -733,6 +971,64 @@ export default function OrderDetailPage({
               >
                 {isSubmittingReview ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
                 <span>Kirim Ulasan</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Dialog Batalkan Pesanan */}
+      {isCancelModalOpen && (
+        <div
+          onClick={() => !isCanceling && setIsCancelModalOpen(false)}
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in-0 duration-200"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md bg-white rounded-xl p-5 sm:p-6 shadow-2xl border border-slate-100 space-y-4 animate-in zoom-in-95 duration-200"
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-lg bg-red-50 text-red-600 flex items-center justify-center shrink-0">
+                <AlertCircle className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Batalkan Pesanan Ini?</h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Pesanan akan dibatalkan secara permanen dan seluruh stok komoditas akan dikembalikan ke gudang koperasi.
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-slate-700 block mb-1.5">
+                Alasan Pembatalan (Opsional):
+              </label>
+              <textarea
+                rows={3}
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                placeholder="Contoh: Ingin mengubah jumlah pesanan, salah memilih komoditas, atau belum sempat ke kasir..."
+                className="w-full p-2.5 rounded-lg border border-slate-200 text-xs text-slate-800 bg-slate-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600 transition resize-none"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                disabled={isCanceling}
+                onClick={() => setIsCancelModalOpen(false)}
+                className="px-4 py-2 rounded-lg border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+              >
+                Kembali
+              </button>
+              <button
+                type="button"
+                disabled={isCanceling}
+                onClick={handleCancelOrder}
+                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50 shadow-xs"
+              >
+                {isCanceling ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                <span>Ya, Batalkan Pesanan</span>
               </button>
             </div>
           </div>

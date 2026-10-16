@@ -232,3 +232,63 @@ Mohon konfirmasi ketersediaan unit dan persetujuan jadwal operasionalnya. Terima
     );
   }
 }
+
+// 3. PATCH: Batalkan Pengajuan Sewa Alat oleh Pengguna
+export async function PATCH(request: Request) {
+  try {
+    const session = await auth();
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Tidak terotentikasi' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { rentalId, action, alasanBatal } = body;
+
+    if (action !== 'CANCEL') {
+      return NextResponse.json({ error: 'Aksi tidak valid' }, { status: 400 });
+    }
+
+    const allRentals = readEquipmentRentals();
+    const targetIdx = allRentals.findIndex(
+      (r) =>
+        (r.id === rentalId || r.rentalCode === rentalId || (r as any).rentalNumber === rentalId) &&
+        r.userEmail === session.user?.email
+    );
+
+    if (targetIdx === -1) {
+      return NextResponse.json(
+        { error: 'Pengajuan sewa tidak ditemukan' },
+        { status: 404 }
+      );
+    }
+
+    const rental = allRentals[targetIdx];
+    if (rental.status !== 'MENUNGGU_PERSETUJUAN_ADMIN') {
+      return NextResponse.json(
+        { error: 'Pengajuan sewa tidak dapat dibatalkan karena sudah diproses atau disetujui.' },
+        { status: 400 }
+      );
+    }
+
+    const reason = alasanBatal ? ` (Dibatalkan pemohon: ${alasanBatal})` : ' (Dibatalkan oleh pemohon)';
+    allRentals[targetIdx].status = 'DIBATALKAN';
+    allRentals[targetIdx].catatan = allRentals[targetIdx].catatan
+      ? `${allRentals[targetIdx].catatan}${reason}`
+      : reason.trim();
+
+    writeEquipmentRentals(allRentals);
+
+    return NextResponse.json({
+      success: true,
+      message: 'Pengajuan sewa alat berhasil dibatalkan.',
+      rental: allRentals[targetIdx],
+    });
+  } catch (err: any) {
+    console.error('Error canceling rental:', err);
+    return NextResponse.json(
+      { error: err?.message || 'Gagal membatalkan pengajuan sewa' },
+      { status: 500 }
+    );
+  }
+}
+

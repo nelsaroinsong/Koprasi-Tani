@@ -54,6 +54,7 @@ const RENTAL_STATUS_FILTERS = [
   { key: 'SIAP_DIAMBIL', label: 'Siap Diambil' },
   { key: 'SEDANG_DISEWA', label: 'Sedang Disewa' },
   { key: 'SELESAI', label: 'Selesai' },
+  { key: 'DIBATALKAN', label: 'Dibatalkan' },
   { key: 'DITOLAK', label: 'Ditolak' },
 ];
 
@@ -87,6 +88,16 @@ export default function PesananPage() {
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+
+  // Cancellation Modal State
+  const [cancelTarget, setCancelTarget] = useState<{
+    type: 'order' | 'rental';
+    id: string;
+    orderNumber?: string;
+    title?: string;
+  } | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [isCanceling, setIsCanceling] = useState(false);
 
   const [warehouseAddress, setWarehouseAddress] = useState(
     'Koperasi Sinar Pagi Sejahtera — Jl. Raya Kolongan, Kec. Kalawat, Kabupaten Minahasa Utara, Sulawesi Utara'
@@ -156,12 +167,14 @@ export default function PesananPage() {
     let diprosesCount = 0;
     let siapDiambilCount = 0;
     let selesaiCount = 0;
+    let dibatalkanCount = 0;
 
     for (const order of orders) {
       if (order.status === 'MENUNGGU_PEMBAYARAN') pendingCount++;
       if (order.status === 'DIPROSES') diprosesCount++;
       if (order.status === 'SIAP_DIAMBIL') siapDiambilCount++;
       if (order.status === 'SELESAI') selesaiCount++;
+      if (order.status === 'DIBATALKAN') dibatalkanCount++;
     }
 
     return {
@@ -170,6 +183,7 @@ export default function PesananPage() {
       diprosesCount,
       siapDiambilCount,
       selesaiCount,
+      dibatalkanCount,
     };
   }, [orders]);
 
@@ -206,6 +220,8 @@ export default function PesananPage() {
     let siapCount = 0;
     let aktifCount = 0;
     let selesaiCount = 0;
+    let dibatalkanCount = 0;
+    let ditolakCount = 0;
 
     for (const r of rentalOrders) {
       if (r.status === 'MENUNGGU_PERSETUJUAN_ADMIN') pendingCount++;
@@ -213,6 +229,8 @@ export default function PesananPage() {
       if (r.status === 'SIAP_DIAMBIL') siapCount++;
       if (r.status === 'SEDANG_DISEWA') aktifCount++;
       if (r.status === 'SELESAI') selesaiCount++;
+      if (r.status === 'DIBATALKAN') dibatalkanCount++;
+      if (r.status === 'DITOLAK') ditolakCount++;
     }
 
     return {
@@ -222,6 +240,8 @@ export default function PesananPage() {
       siapCount,
       aktifCount,
       selesaiCount,
+      dibatalkanCount,
+      ditolakCount,
     };
   }, [rentalOrders]);
 
@@ -404,6 +424,12 @@ Mohon info kesiapan fisik komoditas di gudang koperasi. Terima kasih.`;
           badgeClass: 'bg-slate-100 text-slate-800 border-slate-300',
           hint: 'Masa sewa selesai dan fisik alat telah dikembalikan dalam kondisi baik ke koperasi.',
         };
+      case 'DIBATALKAN':
+        return {
+          label: 'Dibatalkan',
+          badgeClass: 'bg-rose-50 text-rose-700 border-rose-300',
+          hint: 'Pengajuan sewa alat ini telah dibatalkan oleh pemohon.',
+        };
       case 'DITOLAK':
         return {
           label: 'Pengajuan Ditolak',
@@ -463,6 +489,64 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
 
     const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
     window.open(waUrl, '_blank');
+  };
+
+  // Handler Konfirmasi Pembatalan Pesanan / Sewa Alat
+  const handleConfirmCancel = async () => {
+    if (!cancelTarget) return;
+    setIsCanceling(true);
+    try {
+      if (cancelTarget.type === 'order') {
+        const res = await fetch(`/api/orders/${encodeURIComponent(cancelTarget.id)}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'CANCEL',
+            alasanBatal: cancelReason.trim(),
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || 'Gagal membatalkan pesanan');
+        }
+        showToast({
+          title: 'Pesanan Berhasil Dibatalkan',
+          message: 'Pesanan telah dibatalkan dan alokasi komoditas telah dikembalikan ke stok.',
+          type: 'success',
+        });
+        await fetchOrders(true);
+      } else {
+        const res = await fetch('/api/equipments/rent', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            rentalId: cancelTarget.id,
+            action: 'CANCEL',
+            alasanBatal: cancelReason.trim(),
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || 'Gagal membatalkan pengajuan sewa');
+        }
+        showToast({
+          title: 'Pengajuan Sewa Dibatalkan',
+          message: 'Pengajuan sewa alat pertanian berhasil dibatalkan.',
+          type: 'success',
+        });
+        await fetchRentalOrders();
+      }
+      setCancelTarget(null);
+      setCancelReason('');
+    } catch (err: any) {
+      showToast({
+        title: 'Pembatalan Gagal',
+        message: err?.message || 'Terjadi kesalahan sistem saat membatalkan.',
+        type: 'error',
+      });
+    } finally {
+      setIsCanceling(false);
+    }
   };
 
   if (!authLoading && !user) {
@@ -621,7 +705,7 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
         {activeTypeTab === 'toko' ? (
           <div className="space-y-2.5 sm:space-y-4">
             {/* Status Filter Tabs (Sesuai Gambar 3) */}
-            <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-0.5 no-scrollbar text-[10px] sm:text-xs font-medium sm:font-semibold">
+            <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 no-scrollbar text-[10px] sm:text-xs font-medium sm:font-semibold">
               {STATUS_FILTERS.map((tab) => {
                 const isActive = activeFilter === tab.key;
                 return (
@@ -629,13 +713,22 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
                     key={tab.key}
                     type="button"
                     onClick={() => setActiveFilter(tab.key)}
-                    className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition cursor-pointer shadow-2xs shrink-0 ${
+                    className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition cursor-pointer shadow-2xs shrink-0 flex items-center gap-1.5 ${
                       isActive
                         ? 'bg-emerald-700 text-white font-bold shadow-xs'
                         : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
                     }`}
                   >
-                    {tab.label}
+                    <span>{tab.label}</span>
+                    {tab.key === 'DIBATALKAN' && stats.dibatalkanCount > 0 && (
+                      <span
+                        className={`px-1.5 py-0.2 rounded-full text-[9px] font-black ${
+                          isActive ? 'bg-white/20 text-white' : 'bg-red-100 text-red-700'
+                        }`}
+                      >
+                        {stats.dibatalkanCount}
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -772,14 +865,33 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
                           </div>
                         </div>
 
-                        {/* Right: Total Belanja (Desktop/Tablet) + Tombol "Lihat" */}
-                        <div className="flex items-center gap-2.5 sm:gap-4 shrink-0">
+                        {/* Right: Total Belanja (Desktop/Tablet) + Tombol "Batalkan" & "Lihat" */}
+                        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                           <div className="hidden sm:block text-right">
                             <span className="text-[10px] text-slate-400 font-medium block">Total Pembayaran</span>
                             <span className="text-sm font-black text-emerald-800 tracking-tight">
                               Rp {Number(order.totalAmount).toLocaleString('id-ID')}
                             </span>
                           </div>
+
+                          {order.status === 'MENUNGGU_PEMBAYARAN' && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setCancelTarget({
+                                  type: 'order',
+                                  id: order.id,
+                                  orderNumber: order.orderNumber,
+                                  title: firstItem?.namaProduk || firstItem?.product?.nama || 'Komoditas Pertanian',
+                                });
+                              }}
+                              className="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 transition cursor-pointer shrink-0 shadow-2xs hover:border-red-300 flex items-center gap-1"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                              <span>Batalkan</span>
+                            </button>
+                          )}
 
                           <Link
                             href={`/pesanan/${order.id}`}
@@ -801,7 +913,7 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
           /* TAB 2: PENGAJUAN SEWA ALAT */
           <div className="space-y-2.5 sm:space-y-4">
             {/* Status Filter Tabs Sewa Alat (Sesuai Gambar 3) */}
-            <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-0.5 no-scrollbar text-[10px] sm:text-xs font-medium sm:font-semibold">
+            <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 no-scrollbar text-[10px] sm:text-xs font-medium sm:font-semibold">
               {RENTAL_STATUS_FILTERS.map((tab) => {
                 const isActive = rentalActiveFilter === tab.key;
                 return (
@@ -809,13 +921,22 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
                     key={tab.key}
                     type="button"
                     onClick={() => setRentalActiveFilter(tab.key)}
-                    className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition cursor-pointer shadow-2xs shrink-0 ${
+                    className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition cursor-pointer shadow-2xs shrink-0 flex items-center gap-1.5 ${
                       isActive
                         ? 'bg-emerald-700 text-white font-bold shadow-xs'
                         : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
                     }`}
                   >
-                    {tab.label}
+                    <span>{tab.label}</span>
+                    {tab.key === 'DIBATALKAN' && rentalStats.dibatalkanCount > 0 && (
+                      <span
+                        className={`px-1.5 py-0.2 rounded-full text-[9px] font-black ${
+                          isActive ? 'bg-white/20 text-white' : 'bg-red-100 text-red-700'
+                        }`}
+                      >
+                        {rentalStats.dibatalkanCount}
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -952,14 +1073,33 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
                           </div>
                         </div>
 
-                        {/* Right: Total Biaya Sewa + Tombol "Lihat" */}
-                        <div className="flex items-center gap-2.5 sm:gap-4 shrink-0">
+                        {/* Right: Total Biaya Sewa + Tombol "Batalkan" & "Lihat" */}
+                        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                           <div className="hidden sm:block text-right">
                             <span className="text-[10px] text-slate-400 font-medium block">Total Biaya Sewa</span>
                             <span className="text-sm font-black text-emerald-800 tracking-tight">
                               Rp {Number(rental.totalEstimasi ?? rental.totalAmount ?? 0).toLocaleString('id-ID')}
                             </span>
                           </div>
+
+                          {rental.status === 'MENUNGGU_PERSETUJUAN_ADMIN' && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setCancelTarget({
+                                  type: 'rental',
+                                  id: rental.id,
+                                  orderNumber: rental.rentalCode || rental.rentalNumber,
+                                  title: firstItemName || 'Alat Pertanian',
+                                });
+                              }}
+                              className="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 transition cursor-pointer shrink-0 shadow-2xs hover:border-red-300 flex items-center gap-1"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                              <span>Batalkan</span>
+                            </button>
+                          )}
 
                           <Link
                             href={`/pesanan/${rental.id}?type=sewa`}
@@ -1092,6 +1232,94 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Dialog Konfirmasi Batalkan Pesanan / Pengajuan */}
+      {cancelTarget && (
+        <div
+          onClick={() => !isCanceling && setCancelTarget(null)}
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in-0 duration-200"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md bg-white rounded-2xl p-5 sm:p-6 shadow-2xl border border-slate-100 space-y-4 animate-in zoom-in-95 duration-200"
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-red-100 text-red-700 flex items-center justify-center font-bold">
+                  <AlertCircle className="w-4 h-4 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="text-sm sm:text-base font-black text-slate-900">
+                    {cancelTarget.type === 'order' ? 'Batalkan Pesanan Toko' : 'Batalkan Pengajuan Sewa'}
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    #{cancelTarget.orderNumber || cancelTarget.id}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={isCanceling}
+                onClick={() => setCancelTarget(null)}
+                className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-3 bg-red-50/70 rounded-xl border border-red-200/80 text-xs text-red-900 leading-relaxed">
+              {cancelTarget.type === 'order'
+                ? 'Apakah Anda yakin ingin membatalkan pesanan ini? Alokasi komoditas akan dikembalikan ke gudang koperasi dan pesanan tidak dapat diaktifkan kembali.'
+                : 'Apakah Anda yakin ingin membatalkan pengajuan sewa alat ini? Jadwal pemesanan unit alat akan dibatalkan.'}
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-slate-700 block mb-1.5">
+                Alasan Pembatalan (Opsional):
+              </label>
+              <textarea
+                rows={3}
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                placeholder="Misal: Ingin mengubah jumlah / salah pilih komoditas..."
+                className="w-full text-xs p-3 rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-red-500 bg-slate-50 focus:bg-white transition"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                disabled={isCanceling}
+                onClick={() => {
+                  setCancelTarget(null);
+                  setCancelReason('');
+                }}
+                className="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold text-xs transition cursor-pointer"
+              >
+                Kembali
+              </button>
+              <button
+                type="button"
+                disabled={isCanceling}
+                onClick={handleConfirmCancel}
+                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white font-bold text-xs flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+              >
+                {isCanceling ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Membatalkan...</span>
+                  </>
+                ) : (
+                  <>
+                    <X className="w-3.5 h-3.5" />
+                    <span>Ya, Batalkan Sekarang</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

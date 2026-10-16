@@ -212,6 +212,42 @@ export async function GET() {
       return NextResponse.json(cachedOrders);
     }
 
+    // 1. Periksa dan batalkan pesanan pending yang sudah lewat dari 72 jam
+    const seventyTwoHoursAgo = new Date(Date.now() - 72 * 60 * 60 * 1000);
+    const expiredOrders = await prisma.order.findMany({
+      where: {
+        pembeliId: currentUser.id,
+        status: 'MENUNGGU_PEMBAYARAN',
+        createdAt: { lte: seventyTwoHoursAgo },
+      },
+      include: { items: true },
+    });
+
+    if (expiredOrders.length > 0) {
+      await prisma.$transaction(async (tx) => {
+        for (const exp of expiredOrders) {
+          for (const item of exp.items) {
+            if (item.productId && item.quantity > 0) {
+              await tx.product.update({
+                where: { id: item.productId },
+                data: { stok: { increment: item.quantity } },
+              });
+            }
+          }
+          await tx.order.update({
+            where: { id: exp.id },
+            data: {
+              status: 'DIBATALKAN',
+              catatan: exp.catatan
+                ? `${exp.catatan} (Otomatis dibatalkan sistem: Melewati batas pembayaran 72 jam)`
+                : '(Otomatis dibatalkan sistem: Melewati batas pembayaran 72 jam)',
+            },
+          });
+        }
+      });
+      await delCachePattern('products:*');
+    }
+
     const orders = await prisma.order.findMany({
       where: { pembeliId: currentUser.id },
       include: {

@@ -119,6 +119,10 @@ export function TokoProductFormPage({
   const [petaniSearch, setPetaniSearch] = useState('');
   const petaniComboboxRef = useRef<HTMLDivElement>(null);
 
+  // Custom Category Dropdown states
+  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+  const categoryDropdownRef = useRef<HTMLDivElement>(null);
+
   // Load petani options and check draft if in CREATE mode
   useEffect(() => {
     async function loadPetani() {
@@ -160,7 +164,7 @@ export function TokoProductFormPage({
     }
   }, [isEdit]);
 
-  // Click outside to close combobox
+  // Click outside to close combobox & category dropdown
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (
@@ -169,14 +173,20 @@ export function TokoProductFormPage({
       ) {
         setIsPetaniOpen(false);
       }
+      if (
+        categoryDropdownRef.current &&
+        !categoryDropdownRef.current.contains(e.target as Node)
+      ) {
+        setIsCategoryOpen(false);
+      }
     };
-    if (isPetaniOpen) {
+    if (isPetaniOpen || isCategoryOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isPetaniOpen]);
+  }, [isPetaniOpen, isCategoryOpen]);
 
   const selectedPetani = useMemo(() => {
     return petaniOptions.find((p) => p.id === petaniId);
@@ -764,21 +774,49 @@ export function TokoProductFormPage({
           <div className="p-5 bg-white border border-slate-200 rounded-xl space-y-3">
             <h3 className="text-sm font-bold text-slate-800">Kategori</h3>
 
-            <div>
+            <div ref={categoryDropdownRef} className="relative">
               <label className="block text-xs font-semibold text-slate-600 mb-1.5">
                 Kategori Produk
               </label>
-              <select
-                value={kategori}
-                onChange={(e) => setKategori(e.target.value)}
-                className="w-full text-xs px-3.5 py-2.5 bg-slate-100 border border-transparent rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-600 focus:bg-white transition cursor-pointer font-medium text-slate-800"
+              <button
+                type="button"
+                onClick={() => setIsCategoryOpen(!isCategoryOpen)}
+                className="w-full text-xs px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200/70 border border-transparent rounded-lg flex items-center justify-between text-left focus:outline-none focus:ring-1 focus:ring-emerald-600 focus:bg-white transition cursor-pointer"
               >
-                {categoriesList.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
+                <span className="font-semibold text-slate-800 truncate">
+                  {kategori || 'Pilih Kategori...'}
+                </span>
+                <ChevronsUpDown className="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1" />
+              </button>
+
+              {/* Custom Popover Kategori (Tanpa Search, Sesuai Gambar 2) */}
+              {isCategoryOpen && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-30 max-h-56 overflow-y-auto p-1 space-y-0.5 animate-in fade-in zoom-in-95">
+                  {categoriesList.map((cat) => {
+                    const isSelected = cat === kategori;
+                    return (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => {
+                          setKategori(cat);
+                          setIsCategoryOpen(false);
+                        }}
+                        className={`w-full text-left px-3 py-2 rounded-lg text-xs flex items-center justify-between transition cursor-pointer ${
+                          isSelected
+                            ? 'bg-emerald-50 text-emerald-800 font-bold'
+                            : 'text-slate-700 hover:bg-slate-50 font-medium'
+                        }`}
+                      >
+                        <span className="truncate">{cat}</span>
+                        {isSelected && (
+                          <Check className="w-3.5 h-3.5 text-emerald-700 shrink-0 stroke-[2.5]" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Form Input Kategori Baru jika tombol Add Category ditekan */}

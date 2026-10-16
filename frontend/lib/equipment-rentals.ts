@@ -7,7 +7,8 @@ export type EquipmentRentalStatus =
   | 'SIAP_DIAMBIL'
   | 'SEDANG_DISEWA'
   | 'SELESAI'
-  | 'DITOLAK';
+  | 'DITOLAK'
+  | 'DIBATALKAN';
 
 export interface EquipmentRentalOrderItem {
   equipmentId: string;

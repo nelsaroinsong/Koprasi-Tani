@@ -310,7 +310,7 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-[#f3f5f6] pb-24 lg:pb-14">
       <AppHeader activePage="profile" />
 
-      <main className="max-w-4xl mx-auto px-2.5 sm:px-6 pt-2.5 sm:pt-6">
+      <main className="max-w-7xl w-full mx-auto px-2.5 sm:px-6 lg:px-8 pt-2.5 sm:pt-6">
         {/* Tombol Navigasi Kembali */}
         <div className="mb-2 sm:mb-3.5">
           <button
@@ -323,8 +323,8 @@ export default function ProfilePage() {
           </button>
         </div>
 
-        {/* Master Profile Container Card (Mirip Gambar 1) */}
-        <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-xs overflow-hidden">
+        {/* Master Profile Container Card (Lebar Penuh Sisi Kiri Kanan) */}
+        <div className="bg-white rounded-xl border border-slate-200/90 shadow-xs overflow-hidden">
           {/* 1. Header Banner Landscape Gradient */}
           <div className="h-24 sm:h-44 bg-gradient-to-tr from-emerald-600 via-emerald-500 to-teal-400 relative overflow-hidden shadow-inner">
             <div className="absolute -top-10 -right-10 w-36 sm:w-48 h-36 sm:h-48 rounded-full bg-emerald-300/30 blur-2xl pointer-events-none" />

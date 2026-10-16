@@ -15,6 +15,7 @@ import {
   DollarSign,
   Phone,
   Image as ImageIcon,
+  ChevronsUpDown,
 } from 'lucide-react';
 import { useToast } from '@/context/toast-context';
 
@@ -118,6 +119,28 @@ export function EquipmentFormPage({
     }
     loadCategories();
   }, [kategori]);
+
+  // Custom Category Dropdown states
+  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+  const categoryDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Click outside to close category dropdown
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        categoryDropdownRef.current &&
+        !categoryDropdownRef.current.contains(e.target as Node)
+      ) {
+        setIsCategoryOpen(false);
+      }
+    };
+    if (isCategoryOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isCategoryOpen]);
 
   // Load draft if adding new
   useEffect(() => {
@@ -714,25 +737,53 @@ export function EquipmentFormPage({
           <div className="bg-white border border-slate-200/90 rounded-xl p-5 sm:p-6 shadow-xs space-y-4">
             <h2 className="text-base font-bold text-slate-900">Kategori Alat</h2>
 
-            <div>
+            <div ref={categoryDropdownRef} className="relative">
               <label className="block text-xs font-semibold text-slate-700 mb-1.5">
                 Kategori Alat Pertanian
               </label>
-              <select
-                value={kategori}
-                onChange={(e) => setKategori(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-lg bg-slate-100 border border-transparent focus:border-emerald-500 focus:bg-white focus:outline-none text-slate-800 text-sm font-medium transition cursor-pointer"
+              <button
+                type="button"
+                onClick={() => setIsCategoryOpen(!isCategoryOpen)}
+                className="w-full text-xs sm:text-sm px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200/70 border border-transparent rounded-lg flex items-center justify-between text-left focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:bg-white transition cursor-pointer"
               >
-                {isLoadingCategories ? (
-                  <option>Memuat kategori...</option>
-                ) : (
-                  categories.map((c) => (
-                    <option key={c.id} value={c.name}>
-                      {c.name}
-                    </option>
-                  ))
-                )}
-              </select>
+                <span className="font-semibold text-slate-800 truncate">
+                  {kategori || 'Pilih Kategori Alat...'}
+                </span>
+                <ChevronsUpDown className="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1" />
+              </button>
+
+              {/* Custom Popover Kategori Alat (Tanpa Search, Sesuai Gambar 2) */}
+              {isCategoryOpen && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-30 max-h-56 overflow-y-auto p-1 space-y-0.5 animate-in fade-in zoom-in-95">
+                  {isLoadingCategories ? (
+                    <div className="p-2 text-center text-xs text-slate-400">Memuat kategori...</div>
+                  ) : (
+                    categories.map((c) => {
+                      const isSelected = c.name === kategori;
+                      return (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => {
+                            setKategori(c.name);
+                            setIsCategoryOpen(false);
+                          }}
+                          className={`w-full text-left px-3 py-2 rounded-lg text-xs flex items-center justify-between transition cursor-pointer ${
+                            isSelected
+                              ? 'bg-emerald-50 text-emerald-800 font-bold'
+                              : 'text-slate-700 hover:bg-slate-50 font-medium'
+                          }`}
+                        >
+                          <span className="truncate">{c.name}</span>
+                          {isSelected && (
+                            <Check className="w-3.5 h-3.5 text-emerald-700 shrink-0 stroke-[2.5]" />
+                          )}
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Tambah Kategori Baru */}
