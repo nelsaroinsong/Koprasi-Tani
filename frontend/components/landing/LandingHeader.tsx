@@ -1,15 +1,138 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { createPortal } from 'react-dom';
 import { ArrowRight, Menu, X } from 'lucide-react';
+import { gsap } from 'gsap';
 import { useAuth } from '@/context/auth-context';
 import { useSmoothScroll } from '@/components/providers/smooth-scroll-provider';
 
 export default function LandingHeader() {
   const { user } = useAuth();
   const { scrollTo } = useSmoothScroll();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const router = useRouter();
+
+  const [isOpen, setIsOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  const menuRef = useRef<HTMLDivElement>(null);
+  const itemsRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const isAnimatingRef = useRef(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // GSAP Entrance animation when menu opens
+  useEffect(() => {
+    if (isOpen && menuRef.current) {
+      document.body.style.overflow = 'hidden';
+
+      const tl = gsap.timeline({
+        onComplete: () => {
+          isAnimatingRef.current = false;
+        },
+      });
+
+      // 1. Menu container slides down smoothly from top
+      tl.fromTo(
+        menuRef.current,
+        { yPercent: -100 },
+        { yPercent: 0, duration: 0.45, ease: 'power3.out' }
+      );
+
+      // 2. Stagger animate numbered navigation items
+      if (itemsRef.current) {
+        tl.fromTo(
+          itemsRef.current.children,
+          { y: 35, opacity: 0 },
+          { y: 0, opacity: 1, stagger: 0.07, duration: 0.35, ease: 'power2.out' },
+          '-=0.18'
+        );
+      }
+
+      // 3. Fade in bottom section (divider, columns, action button)
+      if (bottomRef.current) {
+        tl.fromTo(
+          bottomRef.current,
+          { y: 25, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.35, ease: 'power2.out' },
+          '-=0.2'
+        );
+      }
+    }
+  }, [isOpen]);
+
+  const handleOpenMenu = () => {
+    if (isAnimatingRef.current) return;
+    isAnimatingRef.current = true;
+    setIsOpen(true);
+  };
+
+  const handleCloseMenu = (callback?: () => void) => {
+    if (!menuRef.current || isAnimatingRef.current) return;
+    isAnimatingRef.current = true;
+
+    const tl = gsap.timeline({
+      onComplete: () => {
+        setIsOpen(false);
+        isAnimatingRef.current = false;
+        document.body.style.overflow = '';
+        if (callback) callback();
+      },
+    });
+
+    // 1. Stagger exit nav items
+    if (itemsRef.current) {
+      tl.to(itemsRef.current.children, {
+        y: -15,
+        opacity: 0,
+        stagger: 0.03,
+        duration: 0.2,
+        ease: 'power2.in',
+      });
+    }
+
+    // 2. Fade exit bottom section
+    if (bottomRef.current) {
+      tl.to(
+        bottomRef.current,
+        {
+          opacity: 0,
+          y: 15,
+          duration: 0.2,
+          ease: 'power2.in',
+        },
+        '-=0.15'
+      );
+    }
+
+    // 3. Slide menu container up smoothly
+    tl.to(
+      menuRef.current,
+      {
+        yPercent: -100,
+        duration: 0.4,
+        ease: 'power3.inOut',
+      },
+      '-=0.1'
+    );
+  };
+
+  const navigateTo = (href: string) => {
+    if (href.startsWith('#')) {
+      handleCloseMenu(() => {
+        scrollTo(href, { offset: -30, duration: 1.4 });
+      });
+    } else {
+      handleCloseMenu(() => {
+        router.push(href);
+      });
+    }
+  };
 
   return (
     <header className="w-full pt-4 sm:pt-6 px-3 sm:px-6 relative z-40">
@@ -90,62 +213,121 @@ export default function LandingHeader() {
 
           {/* Mobile Hamburger Button */}
           <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden p-1.5 rounded-full hover:bg-slate-100 text-slate-700 transition"
-            aria-label="Toggle menu"
+            onClick={handleOpenMenu}
+            className="md:hidden p-1.5 rounded-full hover:bg-slate-100 text-slate-700 transition cursor-pointer"
+            aria-label="Buka menu navigasi"
           >
-            {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            <Menu className="w-5 h-5" />
           </button>
         </div>
+      </div>
 
-        {/* Mobile Slide-down Menu */}
-        {isMobileMenuOpen && (
-          <div className="md:hidden mt-2 bg-white rounded-2xl p-4 shadow-xl border border-slate-200 space-y-2 animate-in slide-in-from-top-2 duration-150">
-            <Link
-              href="/"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="block py-2 px-3 rounded-lg text-sm font-medium text-slate-800 hover:bg-slate-50"
+      {/* Full-screen Mobile Menu rendered via Portal into document.body to ensure it appears in FRONT of everything */}
+      {isMounted && isOpen && createPortal(
+        <div
+          ref={menuRef}
+          className="fixed inset-0 z-[99999] bg-[#233414] text-white flex flex-col justify-between p-6 sm:p-8 overflow-y-auto font-sans"
+          style={{ willChange: 'transform' }}
+        >
+          {/* Top Bar: Brand Logo + Simple X Close Button as requested */}
+          <div className="flex items-center justify-between pb-6 sm:pb-8">
+            <button
+              onClick={() => navigateTo('/')}
+              className="flex items-center focus:outline-none cursor-pointer text-left"
             >
-              Beranda
-            </Link>
-            <Link
-              href="/toko"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="block py-2 px-3 rounded-lg text-sm font-medium text-slate-800 hover:bg-slate-50"
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/landing/koperasi-full-white.png"
+                alt="Logo Koperasi Sinar Pagi Sejahtera"
+                className="h-6 sm:h-7 w-auto object-contain"
+              />
+            </button>
+
+            {/* Close Button: Simple X Icon Button as requested */}
+            <button
+              onClick={() => handleCloseMenu()}
+              className="p-2 rounded-full hover:bg-white/10 text-white transition-colors cursor-pointer"
+              aria-label="Tutup menu"
             >
-              Toko Online
-            </Link>
-            <Link
-              href="/sewa-alat"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="block py-2 px-3 rounded-lg text-sm font-medium text-slate-800 hover:bg-slate-50"
-            >
-              Sewa Alat
-            </Link>
-            <a
-              href="#tentang-kami"
-              onClick={(e) => {
-                e.preventDefault();
-                setIsMobileMenuOpen(false);
-                scrollTo('#tentang-kami', { offset: -30, duration: 1.4 });
-              }}
-              className="block py-2 px-3 rounded-lg text-sm font-medium text-slate-800 hover:bg-slate-50 cursor-pointer"
-            >
-              Tentang Kami
-            </a>
-            <div className="pt-2 border-t border-slate-100">
-              <Link
-                href={user ? '/toko' : '/login'}
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="w-full py-2.5 rounded-full bg-slate-900 text-white font-semibold text-xs tracking-wide text-center flex items-center justify-center gap-2 shadow-md"
+              <X className="w-6 h-6 stroke-[2.2]" />
+            </button>
+          </div>
+
+          {/* Main Navigation Links: Exactly 4 numbered items 01-04 */}
+          <div
+            ref={itemsRef}
+            className="my-auto py-4 sm:py-6 space-y-6 sm:space-y-8"
+          >
+            <div>
+              <button
+                onClick={() => navigateTo('/')}
+                className="group flex items-baseline gap-4 sm:gap-5 py-1 focus:outline-none cursor-pointer text-left w-full"
               >
-                <span>{user ? 'Masuk ke Toko' : 'Masuk / Gabung'}</span>
-                <ArrowRight className="w-4 h-4" />
-              </Link>
+                <span className="font-mono text-xs sm:text-sm font-semibold tracking-wider text-white/50 group-hover:text-white">
+                  01
+                </span>
+                <span className="text-3xl sm:text-[40px] font-normal tracking-tight text-white group-hover:text-[#D4F63D] group-hover:translate-x-1.5 transition-all duration-200">
+                  Beranda
+                </span>
+              </button>
+            </div>
+
+            <div>
+              <button
+                onClick={() => navigateTo('/toko')}
+                className="group flex items-baseline gap-4 sm:gap-5 py-1 focus:outline-none cursor-pointer text-left w-full"
+              >
+                <span className="font-mono text-xs sm:text-sm font-semibold tracking-wider text-white/50 group-hover:text-white">
+                  02
+                </span>
+                <span className="text-3xl sm:text-[40px] font-normal tracking-tight text-white group-hover:text-[#D4F63D] group-hover:translate-x-1.5 transition-all duration-200">
+                  Toko Online
+                </span>
+              </button>
+            </div>
+
+            <div>
+              <button
+                onClick={() => navigateTo('/sewa-alat')}
+                className="group flex items-baseline gap-4 sm:gap-5 py-1 focus:outline-none cursor-pointer text-left w-full"
+              >
+                <span className="font-mono text-xs sm:text-sm font-semibold tracking-wider text-white/50 group-hover:text-white">
+                  03
+                </span>
+                <span className="text-3xl sm:text-[40px] font-normal tracking-tight text-white group-hover:text-[#D4F63D] group-hover:translate-x-1.5 transition-all duration-200">
+                  Sewa Alat
+                </span>
+              </button>
+            </div>
+
+            <div>
+              <button
+                onClick={() => navigateTo('#tentang-kami')}
+                className="group flex items-baseline gap-4 sm:gap-5 py-1 focus:outline-none cursor-pointer text-left w-full"
+              >
+                <span className="font-mono text-xs sm:text-sm font-semibold tracking-wider text-white/50 group-hover:text-white">
+                  04
+                </span>
+                <span className="text-3xl sm:text-[40px] font-normal tracking-tight text-white group-hover:text-[#D4F63D] group-hover:translate-x-1.5 transition-all duration-200">
+                  Tentang Kami
+                </span>
+              </button>
             </div>
           </div>
-        )}
-      </div>
+
+          {/* Bottom Section: Full-width Action Button (Secondary links section removed as requested) */}
+          <div ref={bottomRef} className="pt-4 sm:pt-6">
+            <button
+              onClick={() => navigateTo(user ? '/toko' : '/login')}
+              className="w-full py-4 px-6 rounded-xl bg-white hover:bg-[#D4F63D] text-slate-950 font-mono text-xs sm:text-sm font-bold tracking-widest uppercase flex items-center justify-center gap-2 active:scale-[0.99] transition-all duration-200 cursor-pointer shadow-xl"
+            >
+              <span>{user ? 'DASHBOARD TOKO' : 'MASUK / GABUNG'}</span>
+              <span className="font-mono text-sm">&gt;</span>
+            </button>
+          </div>
+        </div>,
+        document.body
+      )}
     </header>
   );
 }
