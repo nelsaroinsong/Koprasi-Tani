@@ -14,8 +14,8 @@ export default function LandingHeader() {
   return (
     <header className="w-full pt-4 sm:pt-6 px-3 sm:px-6 relative z-40">
       <div className="max-w-6xl mx-auto">
-        {/* Floating White Pill Capsule Navbar */}
-        <div className="bg-white/95 backdrop-blur-md rounded-full px-4 sm:px-6 py-2.5 sm:py-3 shadow-lg shadow-black/5 border border-slate-200/80 flex items-center justify-between transition-all duration-300">
+        {/* Floating White Navbar with corner radius matching hero section */}
+        <div className="bg-white/95 backdrop-blur-md rounded-xl sm:rounded-2xl px-4 sm:px-6 py-2.5 sm:py-3 shadow-lg shadow-black/5 border border-slate-200/80 flex items-center justify-between transition-all duration-300">
           
           {/* Left: Brand Logo + Divider + Left-aligned Nav Links (Matches Image 3) */}
           <div className="flex items-center gap-2 sm:gap-3">

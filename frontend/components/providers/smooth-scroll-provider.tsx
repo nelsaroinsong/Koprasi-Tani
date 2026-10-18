@@ -7,7 +7,7 @@ import 'lenis/dist/lenis.css';
 
 interface SmoothScrollContextType {
   lenis: Lenis | null;
-  scrollTo: (target: string | HTMLElement, options?: { offset?: number; duration?: number }) => void;
+  scrollTo: (target: string | HTMLElement | number, options?: { offset?: number; duration?: number }) => void;
 }
 
 const SmoothScrollContext = createContext<SmoothScrollContextType>({
@@ -71,14 +71,16 @@ export default function SmoothScrollProvider({ children }: { children: React.Rea
     };
   }, []);
 
-  const scrollTo = (target: string | HTMLElement, options?: { offset?: number; duration?: number }) => {
+  const scrollTo = (target: string | HTMLElement | number, options?: { offset?: number; duration?: number }) => {
     if (lenisRef.current) {
       lenisRef.current.scrollTo(target, {
-        offset: options?.offset ?? -30,
+        offset: options?.offset ?? (typeof target === 'number' ? 0 : -30),
         duration: options?.duration ?? 1.4,
       });
     } else {
-      if (typeof target === 'string') {
+      if (typeof target === 'number') {
+        window.scrollTo({ top: target, behavior: 'smooth' });
+      } else if (typeof target === 'string') {
         const el = document.querySelector(target);
         el?.scrollIntoView({ behavior: 'smooth' });
       } else {
