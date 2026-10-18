@@ -3,13 +3,19 @@ import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { delCachePattern } from '@/lib/redis';
 
-// Batas waktu pembayaran (72 jam)
-const AUTO_CANCEL_HOURS = 72;
+// Batas waktu pembayaran (24 jam)
+const AUTO_CANCEL_HOURS = 24;
 const AUTO_CANCEL_MS = AUTO_CANCEL_HOURS * 60 * 60 * 1000;
 
-// Helper: Batalkan pesanan kedaluwarsa secara otomatis dan kembalikan stok fisik
+// Helper: Batalkan pesanan kedaluwarsa secara otomatis dan kembalikan stok fisik (24 jam batas bayar)
 async function checkAndAutoCancelExpiredOrder(order: any) {
-  if (order.status !== 'MENUNGGU_PEMBAYARAN') return order;
+  if (
+    order.status !== 'MENUNGGU_PEMBAYARAN' &&
+    order.status !== 'DIPROSES' &&
+    order.status !== 'SIAP_DIAMBIL'
+  ) {
+    return order;
+  }
 
   const createdAt = new Date(order.createdAt).getTime();
   const now = Date.now();
@@ -36,8 +42,8 @@ async function checkAndAutoCancelExpiredOrder(order: any) {
           data: {
             status: 'DIBATALKAN',
             catatan: order.catatan
-              ? `${order.catatan} (Otomatis dibatalkan sistem: Melewati batas pembayaran 72 jam)`
-              : '(Otomatis dibatalkan sistem: Melewati batas pembayaran 72 jam)',
+              ? `${order.catatan} (Otomatis dibatalkan sistem: Melewati batas waktu 24 jam)`
+              : '(Otomatis dibatalkan sistem: Melewati batas waktu 24 jam)',
           },
           include: {
             items: {
@@ -203,15 +209,39 @@ export async function PATCH(
       return NextResponse.json({ error: 'Pesanan tidak ditemukan' }, { status: 404 });
     }
 
-    // Validasi status: HANYA bisa dibatalkan jika belum bayar / MENUNGGU_PEMBAYARAN
-    if (order.status !== 'MENUNGGU_PEMBAYARAN') {
-      return NextResponse.json(
-        {
-          error:
-            'Pesanan tidak dapat dibatalkan karena sudah diproses atau telah dibayar di kasir koperasi.',
-        },
-        { status: 400 }
-      );
+    // Validasi aturan pembatalan:
+    // Pembeli HANYA bisa membatalkan saat masih sebagai Pesanan Masuk (MENUNGGU_PEMBAYARAN).
+    // Jika sudah disiapkan gudang (DIPROSES) atau di kasir (SIAP_DIAMBIL), pembeli tidak bisa membatalkan manual.
+    if (currentUser.role !== 'ADMIN') {
+      if (order.status === 'DIPROSES') {
+        return NextResponse.json(
+          { error: 'Pesanan sudah sedang disiapkan di gudang dan tidak dapat dibatalkan.' },
+          { status: 400 }
+        );
+      }
+      if (order.status === 'SIAP_DIAMBIL') {
+        return NextResponse.json(
+          {
+            error:
+              'Pesanan sudah siap di kasir. Tidak dapat dibatalkan manual. Pesanan akan otomatis dibatalkan sistem jika belum dibayar dalam 24 jam.',
+          },
+          { status: 400 }
+        );
+      }
+      if (order.status !== 'MENUNGGU_PEMBAYARAN') {
+        return NextResponse.json(
+          { error: 'Pesanan tidak dapat dibatalkan karena sudah selesai atau telah dibatalkan.' },
+          { status: 400 }
+        );
+      }
+    } else {
+      // Admin tidak bisa membatalkan jika sudah selesai
+      if (order.status === 'SELESAI' || order.status === 'DIBATALKAN') {
+        return NextResponse.json(
+          { error: 'Pesanan sudah selesai atau sudah dibatalkan sebelumnya.' },
+          { status: 400 }
+        );
+      }
     }
 
     // Jalankan transaksi pembatalan dan kembalikan stok fisik

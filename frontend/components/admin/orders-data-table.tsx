@@ -168,9 +168,9 @@ export function OrdersDataTable() {
 
   const STATUS_TABS = [
     { key: 'ALL', label: 'Semua Pesanan' },
-    { key: 'MENUNGGU_PEMBAYARAN', label: 'Menunggu Pembayaran' },
-    { key: 'DIPROSES', label: 'Disiapkan / Diproses' },
-    { key: 'SIAP_DIAMBIL', label: 'Siap Diambil' },
+    { key: 'MENUNGGU_PEMBAYARAN', label: 'Pesanan Masuk' },
+    { key: 'DIPROSES', label: 'Disiapkan Gudang' },
+    { key: 'SIAP_DIAMBIL', label: 'Bayar di Kasir' },
     { key: 'SELESAI', label: 'Selesai' },
     { key: 'DIBATALKAN', label: 'Dibatalkan' },
   ];
@@ -189,7 +189,7 @@ export function OrdersDataTable() {
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            Pantau pembayaran cash/transfer dari pembeli, siapkan barang di gudang, dan serahkan komoditas panen.
+            Alur transaksi: Pesanan Masuk (Bisa Batal) → Disiapkan Gudang (Tidak Bisa Batal) → Bayar di Kasir (24 Jam Auto-Cancel) → Ambil di Kasir & Selesai.
           </p>
         </div>
 
@@ -214,31 +214,31 @@ export function OrdersDataTable() {
           <div className="text-[10px] text-slate-400 mt-0.5">Seluruh pesanan sah koperasi</div>
         </div>
 
-        {/* Menunggu Pembayaran */}
+        {/* Pesanan Masuk (Tahap 1) */}
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
-          <div className="text-[11px] font-bold uppercase text-amber-600">Menunggu Pembayaran</div>
+          <div className="text-[11px] font-bold uppercase text-amber-600">Pesanan Masuk</div>
           <div className="text-base sm:text-xl font-black text-amber-700 mt-1">
             {stats.pendingCount} <span className="text-xs font-normal text-slate-500">Pesanan</span>
           </div>
-          <div className="text-[10px] text-slate-400 mt-0.5">Perlu konfirmasi cash/transfer</div>
+          <div className="text-[10px] text-slate-400 mt-0.5">Menunggu diproses gudang</div>
         </div>
 
-        {/* Sedang Diproses */}
+        {/* Sedang Diproses / Disiapkan Gudang (Tahap 2) */}
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
           <div className="text-[11px] font-bold uppercase text-blue-600">Disiapkan di Gudang</div>
           <div className="text-base sm:text-xl font-black text-blue-700 mt-1">
             {stats.diprosesCount} <span className="text-xs font-normal text-slate-500">Pesanan</span>
           </div>
-          <div className="text-[10px] text-slate-400 mt-0.5">Lunas & siap diambil/kirim</div>
+          <div className="text-[10px] text-slate-400 mt-0.5">Sortir & timbang fisik komoditas</div>
         </div>
 
-        {/* Selesai */}
+        {/* Selesai (Tahap 4) */}
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
           <div className="text-[11px] font-bold uppercase text-slate-400">Pesanan Selesai</div>
           <div className="text-base sm:text-xl font-black text-slate-800 mt-1">
             {stats.selesaiCount} <span className="text-xs font-normal text-slate-500">Pesanan</span>
           </div>
-          <div className="text-[10px] text-slate-400 mt-0.5">Barang sudah diterima pembeli</div>
+          <div className="text-[10px] text-slate-400 mt-0.5">Lunas & diserahterimakan</div>
         </div>
       </div>
 
@@ -409,7 +409,7 @@ export function OrdersDataTable() {
                       {ord.status === 'MENUNGGU_PEMBAYARAN' && (
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
                           <Clock className="w-3 h-3 text-amber-600" />
-                          <span>Menunggu Bayar</span>
+                          <span>Pesanan Masuk</span>
                         </span>
                       )}
                       {ord.status === 'DIPROSES' && (
@@ -419,9 +419,9 @@ export function OrdersDataTable() {
                         </span>
                       )}
                       {ord.status === 'SIAP_DIAMBIL' && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-800 border border-indigo-200">
-                          <Check className="w-3 h-3 text-indigo-600" />
-                          <span>Siap Diambil/Kirim</span>
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-purple-50 text-purple-800 border border-purple-200">
+                          <Check className="w-3 h-3 text-purple-600" />
+                          <span>Bayar di Kasir</span>
                         </span>
                       )}
                       {ord.status === 'SELESAI' && (
@@ -441,37 +441,51 @@ export function OrdersDataTable() {
                     {/* Aksi & Verifikasi */}
                     <TableCell className="text-right pr-4">
                       <div className="flex items-center justify-end gap-1.5">
-                        {/* Tombol Terima Pembayaran Cash / Verifikasi */}
+                        {/* Tahap 1 -> Tahap 2: Admin/Gudang mulai siapkan barang */}
                         {ord.status === 'MENUNGGU_PEMBAYARAN' && (
                           <button
                             onClick={() => handleUpdateStatus(ord.id, 'DIPROSES')}
                             disabled={isUpdatingStatus}
-                            className="px-2.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white rounded-lg text-xs font-bold transition cursor-pointer shadow-xs"
-                            title="Konfirmasi Pembayaran Diterima"
+                            className="px-2.5 py-1.5 bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white rounded-lg text-xs font-bold transition cursor-pointer shadow-xs"
+                            title="Kirim pesanan ke gudang untuk mulai disortir dan ditimbang fisik"
                           >
-                            Terima Bayar
+                            Siapkan di Gudang
                           </button>
                         )}
 
+                        {/* Tahap 2 -> Tahap 3: Gudang selesai siapkan barang -> Pindah ke Kasir untuk dibayar */}
                         {ord.status === 'DIPROSES' && (
                           <button
                             onClick={() => handleUpdateStatus(ord.id, 'SIAP_DIAMBIL')}
                             disabled={isUpdatingStatus}
-                            className="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition cursor-pointer shadow-xs"
-                            title="Tandai Barang Siap Diambil"
+                            className="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-lg text-xs font-bold transition cursor-pointer shadow-xs"
+                            title="Komoditas selesai ditimbang/disortir. Pindahkan ke Kasir untuk pembayaran pembeli"
                           >
-                            Siap Diambil
+                            Siap di Kasir
                           </button>
                         )}
 
+                        {/* Tahap 3 -> Tahap 4: Pembeli bayar di Kasir (24 Jam) -> Kasir terima uang & serahkan komoditas */}
                         {ord.status === 'SIAP_DIAMBIL' && (
                           <button
                             onClick={() => handleUpdateStatus(ord.id, 'SELESAI')}
                             disabled={isUpdatingStatus}
-                            className="px-2.5 py-1.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-lg text-xs font-bold transition cursor-pointer shadow-xs"
-                            title="Selesaikan Transaksi & Serahkan Barang"
+                            className="px-2.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white rounded-lg text-xs font-bold transition cursor-pointer shadow-xs"
+                            title="Terima uang pembayaran (cash/transfer), serahkan komoditas, dan selesaikan pesanan"
                           >
-                            Selesai
+                            Terima Bayar & Selesai
+                          </button>
+                        )}
+
+                        {/* Tombol Batalkan Cepat dari Admin (Berlaku selama belum selesai/dibatalkan) */}
+                        {ord.status !== 'SELESAI' && ord.status !== 'DIBATALKAN' && (
+                          <button
+                            onClick={() => handleUpdateStatus(ord.id, 'DIBATALKAN')}
+                            disabled={isUpdatingStatus}
+                            className="px-2 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 text-xs font-semibold transition cursor-pointer"
+                            title="Batalkan pesanan ini dan kembalikan stok komoditas ke gudang"
+                          >
+                            Batal
                           </button>
                         )}
 
@@ -633,18 +647,56 @@ export function OrdersDataTable() {
             </div>
 
             {/* Footer Modal Actions */}
-            <div className="p-4 bg-white border-t border-slate-100 flex items-center justify-between gap-2">
-              {/* Tombol Batalkan Pesanan (Stok otomatis kembali) */}
-              {selectedOrder.status !== 'DIBATALKAN' && selectedOrder.status !== 'SELESAI' && (
-                <button
-                  type="button"
-                  onClick={() => handleUpdateStatus(selectedOrder.id, 'DIBATALKAN')}
-                  disabled={isUpdatingStatus}
-                  className="px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-xl border border-red-200 transition cursor-pointer"
-                >
-                  Batalkan Pesanan (Balikkan Stok)
-                </button>
-              )}
+            <div className="p-4 bg-white border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                {/* Aksi Tahap 1 -> Tahap 2 */}
+                {selectedOrder.status === 'MENUNGGU_PEMBAYARAN' && (
+                  <button
+                    type="button"
+                    onClick={() => handleUpdateStatus(selectedOrder.id, 'DIPROSES')}
+                    disabled={isUpdatingStatus}
+                    className="px-3.5 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-xl transition cursor-pointer shadow-xs"
+                  >
+                    Kirim ke Gudang (Siapkan Komoditas)
+                  </button>
+                )}
+
+                {/* Aksi Tahap 2 -> Tahap 3 */}
+                {selectedOrder.status === 'DIPROSES' && (
+                  <button
+                    type="button"
+                    onClick={() => handleUpdateStatus(selectedOrder.id, 'SIAP_DIAMBIL')}
+                    disabled={isUpdatingStatus}
+                    className="px-3.5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition cursor-pointer shadow-xs"
+                  >
+                    Komoditas Siap → Pindah ke Kasir
+                  </button>
+                )}
+
+                {/* Aksi Tahap 3 -> Tahap 4 (Selesai) */}
+                {selectedOrder.status === 'SIAP_DIAMBIL' && (
+                  <button
+                    type="button"
+                    onClick={() => handleUpdateStatus(selectedOrder.id, 'SELESAI')}
+                    disabled={isUpdatingStatus}
+                    className="px-3.5 py-2 text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl transition cursor-pointer shadow-xs"
+                  >
+                    Terima Bayar di Kasir & Selesaikan Pesanan
+                  </button>
+                )}
+
+                {/* Tombol Batalkan Pesanan (Stok otomatis kembali) */}
+                {selectedOrder.status !== 'DIBATALKAN' && selectedOrder.status !== 'SELESAI' && (
+                  <button
+                    type="button"
+                    onClick={() => handleUpdateStatus(selectedOrder.id, 'DIBATALKAN')}
+                    disabled={isUpdatingStatus}
+                    className="px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-xl border border-red-200 transition cursor-pointer"
+                  >
+                    Batalkan Pesanan (Balikkan Stok)
+                  </button>
+                )}
+              </div>
 
               <button
                 type="button"

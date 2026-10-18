@@ -1,18 +1,11 @@
 import type {Metadata} from 'next';
-import { Plus_Jakarta_Sans, Inter } from 'next/font/google';
+import { DM_Sans } from 'next/font/google';
 import './globals.css';
 
-const plusJakartaSans = Plus_Jakarta_Sans({
+const dmSans = DM_Sans({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700', '800'],
-  variable: '--font-sans',
-  display: 'swap',
-});
-
-const inter = Inter({
-  subsets: ['latin'],
-  weight: ['300', '400', '500', '600'],
-  variable: '--font-inter',
+  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-dm-sans',
   display: 'swap',
 });
 
@@ -36,16 +29,19 @@ import { AuthProvider } from '@/context/auth-context';
 import { SessionProvider } from '@/components/providers/session-provider';
 import { ToastProvider } from '@/context/toast-context';
 import SessionTimeoutManager from '@/components/SessionTimeoutManager';
+import SmoothScrollProvider from '@/components/providers/smooth-scroll-provider';
 
 export default function RootLayout({children}: {children: React.ReactNode}) {
   return (
-    <html lang="id" className={`${plusJakartaSans.variable} ${inter.variable}`}>
+    <html lang="id" className={`${dmSans.variable} font-sans`}>
       <body className="font-sans antialiased bg-dot-pattern text-slate-800 selection:bg-emerald-100 selection:text-emerald-900 pb-16 lg:pb-0" suppressHydrationWarning>
         <SessionProvider>
           <AuthProvider>
             <ToastProvider>
-              <SessionTimeoutManager />
-              {children}
+              <SmoothScrollProvider>
+                <SessionTimeoutManager />
+                {children}
+              </SmoothScrollProvider>
             </ToastProvider>
           </AuthProvider>
         </SessionProvider>

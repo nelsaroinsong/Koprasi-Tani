@@ -152,50 +152,54 @@ export default function OrderDetailPage({
     loadDetail();
   }, [targetId]);
 
-  // Alur 4 Tahap Toko Online
+  // Alur 4 Tahap Toko Online (Alur: Pesanan Masuk -> Disiapkan Gudang -> Bayar di Kasir -> Ambil di Kasir)
+  // Tahap 1: Pesanan Masuk (MENUNGGU_PEMBAYARAN - Tombol batalkan berlaku bagi pembeli)
+  // Tahap 2: Disiapkan Gudang (DIPROSES - Tidak bisa dibatalkan)
+  // Tahap 3: Bayar di Kasir (SIAP_DIAMBIL - 24 Jam Batal Otomatis berlaku tanpa tombol batalkan)
+  // Tahap 4: Ambil di Kasir & Selesai (SELESAI)
   const getStatusConfig = (status: string) => {
     switch (status) {
       case 'MENUNGGU_PEMBAYARAN':
         return {
           step: 1,
-          label: 'Menunggu Pembayaran Kasir',
-          badgeClass: 'bg-amber-50 text-amber-900 border-amber-300',
-          hint: 'Silakan kunjungi kantor koperasi untuk pembayaran tunai (cash) langsung saat serah terima barang.',
+          label: 'Pesanan Masuk',
+          badgeClass: 'bg-amber-50 text-amber-900 border-amber-300 font-bold',
+          hint: 'Pesanan Anda telah diterima sistem koperasi dan menunggu konfirmasi pemrosesan staf gudang.',
         };
       case 'DIPROSES':
         return {
           step: 2,
           label: 'Sedang Disiapkan Gudang',
-          badgeClass: 'bg-blue-50 text-blue-900 border-blue-300',
-          hint: 'Komoditas pesanan Anda sedang disortir dan ditimbang oleh petugas gudang koperasi.',
+          badgeClass: 'bg-blue-50 text-blue-900 border-blue-300 font-bold',
+          hint: 'Komoditas pesanan Anda sedang disortir dan ditimbang fisik oleh petugas gudang koperasi.',
         };
       case 'SIAP_DIAMBIL':
         return {
           step: 3,
-          label: 'Siap Diambil di Kantor',
-          badgeClass: 'bg-purple-50 text-purple-900 border-purple-300',
-          hint: 'Pesanan sudah siap! Silakan ambil di kantor Koperasi Sinar Pagi Sejahtera.',
+          label: 'Bayar di Kasir',
+          badgeClass: 'bg-purple-50 text-purple-900 border-purple-300 font-bold',
+          hint: 'Komoditas telah siap di kasir! Silakan bayar tunai (cash) atau transfer ke kasir koperasi dalam batas waktu 24 jam.',
         };
       case 'SELESAI':
         return {
           step: 4,
-          label: 'Selesai & Lunas',
-          badgeClass: 'bg-emerald-50 text-emerald-900 border-emerald-300',
-          hint: 'Pesanan telah selesai diterima dan dibayar tunai di kasir koperasi. Terima kasih!',
+          label: 'Ambil di Kasir & Selesai',
+          badgeClass: 'bg-emerald-50 text-emerald-900 border-emerald-300 font-bold',
+          hint: 'Pembayaran telah sah diterima dan komoditas telah diserahkan di kasir koperasi. Transaksi selesai!',
         };
       case 'DIBATALKAN':
         return {
           step: 0,
           label: 'Pesanan Dibatalkan',
-          badgeClass: 'bg-red-50 text-red-700 border-red-200',
-          hint: 'Pesanan telah dibatalkan. Hubungi admin koperasi jika ada kendala.',
+          badgeClass: 'bg-red-50 text-red-700 border-red-200 font-bold',
+          hint: 'Pesanan telah dibatalkan dan alokasi komoditas telah dikembalikan ke gudang.',
         };
       default:
         return {
           step: 1,
           label: status,
           badgeClass: 'bg-slate-100 text-slate-700 border-slate-300',
-          hint: 'Status pesanan sedang diproses.',
+          hint: 'Pesanan Anda sedang diproses.',
         };
     }
   };
@@ -254,31 +258,35 @@ export default function OrderDetailPage({
     }
   };
 
-  // Hitung sisa waktu pembayaran (72 jam sejak pesanan dibuat)
+  // Hitung sisa waktu pembayaran (24 jam sejak pesanan dibuat / sampai tahap 3 bayar di kasir)
   useEffect(() => {
-    if (!orderData || orderData.status !== 'MENUNGGU_PEMBAYARAN' || isRental) {
+    if (
+      !orderData ||
+      (orderData.status !== 'MENUNGGU_PEMBAYARAN' &&
+        orderData.status !== 'DIPROSES' &&
+        orderData.status !== 'SIAP_DIAMBIL') ||
+      isRental
+    ) {
       setTimeRemaining('');
       return;
     }
 
     const calculateTime = () => {
       const createdTime = new Date(orderData.createdAt).getTime();
-      const expireTime = createdTime + 72 * 60 * 60 * 1000;
+      const expireTime = createdTime + 24 * 60 * 60 * 1000;
       const now = Date.now();
       const diff = expireTime - now;
 
       if (diff <= 0) {
-        setTimeRemaining('Waktu pembayaran telah habis (72 jam)');
+        setTimeRemaining('Waktu pembayaran telah habis (24 jam)');
         setIsExpired(true);
         // Refresh otomatis agar status diupdate ke DIBATALKAN
-        if (orderData.status === 'MENUNGGU_PEMBAYARAN') {
-          fetch(`/api/orders/${targetId}`)
-            .then((r) => r.json())
-            .then((d) => {
-              if (d.order) setOrderData(d.order);
-            })
-            .catch(() => {});
-        }
+        fetch(`/api/orders/${targetId}`)
+          .then((r) => r.json())
+          .then((d) => {
+            if (d.order) setOrderData(d.order);
+          })
+          .catch(() => {});
         return;
       }
 
@@ -471,7 +479,7 @@ export default function OrderDetailPage({
                     </span>
                   )}
 
-                  {/* Tombol Batalkan Cepat di Header (Langsung tampak di HP & Tablet tanpa scroll) */}
+                  {/* Tombol Batalkan Cepat di Header (Hanya berlaku saat masih sebagai Pesanan Masuk) */}
                   {!isRental && orderData.status === 'MENUNGGU_PEMBAYARAN' && (
                     <button
                       type="button"
@@ -495,7 +503,7 @@ export default function OrderDetailPage({
                 </div>
               </div>
 
-              {/* Visual Stepper 4 Tahap (Khusus Toko Online) */}
+              {/* Visual Stepper 4 Tahap (Khusus Toko Online: Bayar Dulu baru Ambil di Kasir) */}
               {!isRental && orderData.status !== 'DIBATALKAN' && (
                 <div className="p-4 sm:p-5 border-b border-slate-100 bg-gradient-to-b from-emerald-50/30 to-transparent">
                   <div className="max-w-2xl mx-auto py-1">
@@ -513,7 +521,7 @@ export default function OrderDetailPage({
                               ? '38%'
                               : getStatusConfig(orderData.status).step === 3
                               ? '75%'
-                              : '76%',
+                              : '100%',
                         }}
                       />
 
@@ -547,7 +555,7 @@ export default function OrderDetailPage({
                         <span className="text-[9px] text-slate-400">Pengecekan Fisik</span>
                       </div>
 
-                      {/* Step 3 */}
+                      {/* Step 3 (Bayar di Kasir) */}
                       <div className="flex flex-col items-center relative z-10">
                         <div
                           className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shadow-xs transition ${
@@ -558,11 +566,11 @@ export default function OrderDetailPage({
                         >
                           {getStatusConfig(orderData.status).step > 3 ? '✓' : '3'}
                         </div>
-                        <span className="text-[10px] sm:text-xs font-bold text-slate-800 mt-1">Siap Diambil</span>
-                        <span className="text-[9px] text-slate-400">Ambil di Kantor</span>
+                        <span className="text-[10px] sm:text-xs font-bold text-slate-800 mt-1">Bayar di Kasir</span>
+                        <span className="text-[9px] text-slate-400">Bayar Dulu</span>
                       </div>
 
-                      {/* Step 4 */}
+                      {/* Step 4 (Ambil di Kasir) */}
                       <div className="flex flex-col items-center relative z-10">
                         <div
                           className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shadow-xs transition ${
@@ -573,8 +581,8 @@ export default function OrderDetailPage({
                         >
                           {getStatusConfig(orderData.status).step >= 4 ? '✓' : '4'}
                         </div>
-                        <span className="text-[10px] sm:text-xs font-bold text-slate-800 mt-1">Selesai</span>
-                        <span className="text-[9px] text-slate-400">Lunas & Sah</span>
+                        <span className="text-[10px] sm:text-xs font-bold text-slate-800 mt-1">Ambil di Kasir</span>
+                        <span className="text-[9px] text-slate-400">Serah Terima & Selesai</span>
                       </div>
                     </div>
 
@@ -584,23 +592,40 @@ export default function OrderDetailPage({
                       <span>{getStatusConfig(orderData.status).hint}</span>
                     </div>
 
-                    {/* Akumulasi Batas Waktu Pembayaran 72 Jam (Bila Menunggu Pembayaran) */}
+                    {/* Akumulasi Batas Waktu Pembayaran 24 Jam (Tahap Bayar di Kasir: Otomatis batal tanpa tombol batalkan) */}
+                    {orderData.status === 'SIAP_DIAMBIL' && (
+                      <div className="mt-2.5 p-3 rounded-lg bg-amber-50/95 border border-amber-300 text-amber-950 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-amber-600 shrink-0 animate-pulse" />
+                          <div>
+                            <span className="font-bold block sm:inline">Batas Waktu Pembayaran Kasir (24 Jam): </span>
+                            <span className="font-mono font-black text-amber-900">
+                              {timeRemaining || '24:00:00 (Menghitung batas bayar...)'}
+                            </span>
+                            <p className="text-[10px] text-amber-700 mt-0.5">
+                              Pesanan otomatis dibatalkan sistem dan stok komoditas dikembalikan ke gudang jika belum dibayar di kasir dalam batas waktu 24 jam.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Batas Waktu Pesanan Masuk (Tahap 1: Pembeli bisa batalkan manual) */}
                     {orderData.status === 'MENUNGGU_PEMBAYARAN' && (
                       <div className="mt-2.5 p-3 rounded-lg bg-amber-50/95 border border-amber-300 text-amber-950 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
                         <div className="flex items-center gap-2">
                           <Clock className="w-4 h-4 text-amber-600 shrink-0 animate-pulse" />
                           <div>
-                            <span className="font-bold block sm:inline">Batas Waktu Pembayaran Kasir: </span>
+                            <span className="font-bold block sm:inline">Batas Waktu Pesanan (24 Jam): </span>
                             <span className="font-mono font-black text-amber-900">
-                              {timeRemaining || '72:00:00 (Menghitung batas bayar...)'}
+                              {timeRemaining || '24:00:00 (Menghitung batas bayar...)'}
                             </span>
                             <p className="text-[10px] text-amber-700 mt-0.5">
-                              Pesanan otomatis dibatalkan sistem dan stok komoditas dikembalikan jika belum dibayar di kasir dalam 72 jam.
+                              Pesanan masih dalam antrean pesanan masuk. Anda dapat membatalkan pesanan sebelum komoditas mulai disiapkan oleh petugas gudang.
                             </p>
                           </div>
                         </div>
 
-                        {/* Tombol Batalkan Pesanan Sendiri sebelum bayar */}
                         <button
                           type="button"
                           onClick={() => setIsCancelModalOpen(true)}

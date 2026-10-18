@@ -114,7 +114,7 @@
 }
 
 @theme {
-  --font-sans: var(--font-sans), "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  --font-sans: var(--font-dm-sans), "DM Sans", system-ui, -apple-system, sans-serif;
 }
 
 @layer base {
@@ -233,6 +233,29 @@
 .animate-bubble-float {
   animation: bubble-float 3.5s ease-in-out infinite;
   transform-origin: 425px 115px;
+}
+
+/* 3D Perspective & Curved Fan Card Deck Utilities */
+.perspective-1200 {
+  perspective: 1200px;
+}
+.perspective-800 {
+  perspective: 800px;
+}
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+.backface-hidden {
+  backface-visibility: hidden;
+}
+
+/* Hide scrollbar for clean horizontal card scrolling on touch devices */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 

@@ -38,8 +38,8 @@ export async function PATCH(
       if (status !== undefined) {
         updateData.status = status;
 
-        // Jika status menjadi DIPROSES, otomatis tandai pembayaran lunas diterima admin
-        if (status === 'DIPROSES' || status === 'SIAP_DIAMBIL' || status === 'SELESAI') {
+        // Pembayaran lunas diterima saat pesanan selesai / serah terima
+        if (status === 'SELESAI' || status === 'SIAP_DIAMBIL') {
           updateData.isPaid = true;
           if (!existingOrder.paidAt) {
             updateData.paidAt = new Date();

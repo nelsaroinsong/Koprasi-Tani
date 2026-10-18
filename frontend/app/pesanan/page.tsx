@@ -40,9 +40,9 @@ type OrderStatus = 'ALL' | 'MENUNGGU_PEMBAYARAN' | 'DIPROSES' | 'SIAP_DIAMBIL' |
 
 const STATUS_FILTERS: { key: OrderStatus; label: string }[] = [
   { key: 'ALL', label: 'Semua Pesanan' },
-  { key: 'MENUNGGU_PEMBAYARAN', label: 'Menunggu Bayar' },
-  { key: 'DIPROSES', label: 'Sedang Diproses' },
-  { key: 'SIAP_DIAMBIL', label: 'Siap Diambil' },
+  { key: 'MENUNGGU_PEMBAYARAN', label: 'Pesanan Masuk' },
+  { key: 'DIPROSES', label: 'Disiapkan Gudang' },
+  { key: 'SIAP_DIAMBIL', label: 'Bayar di Kasir' },
   { key: 'SELESAI', label: 'Selesai' },
   { key: 'DIBATALKAN', label: 'Dibatalkan' },
 ];
@@ -314,41 +314,41 @@ export default function PesananPage() {
     }
   };
 
-  // Konfigurasi Status Badge & Stepper
+  // Konfigurasi Status Badge & Stepper (Alur: Pesanan Masuk -> Disiapkan Gudang -> Bayar di Kasir -> Selesai)
   const getStatusConfig = (status: string) => {
     switch (status) {
       case 'MENUNGGU_PEMBAYARAN':
         return {
-          label: 'Menunggu Pembayaran Kasir',
-          badgeClass: 'bg-amber-50 text-amber-800 border-amber-300 ring-1 ring-amber-400/30',
+          label: 'Pesanan Masuk',
+          badgeClass: 'bg-amber-50 text-amber-900 border-amber-300 ring-1 ring-amber-400/30 font-bold',
           step: 1,
-          hint: 'Silakan kunjungi kantor koperasi untuk pembayaran tunai (cash) langsung saat serah terima barang.',
+          hint: 'Pesanan telah diterima sistem koperasi dan masuk antrean pengecekan staf gudang.',
         };
       case 'DIPROSES':
         return {
-          label: 'Sedang Disiapkan di Gudang',
-          badgeClass: 'bg-blue-50 text-blue-800 border-blue-300 ring-1 ring-blue-400/30',
+          label: 'Sedang Disiapkan Gudang',
+          badgeClass: 'bg-blue-50 text-blue-900 border-blue-300 ring-1 ring-blue-400/30 font-bold',
           step: 2,
           hint: 'Staf gudang koperasi sedang mengecek fisik dan mengemas komoditas pesanan Anda.',
         };
       case 'SIAP_DIAMBIL':
         return {
-          label: 'Siap Diambil di Koperasi',
-          badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-400 ring-1 ring-emerald-500/30 font-bold',
+          label: 'Bayar di Kasir',
+          badgeClass: 'bg-purple-50 text-purple-900 border-purple-300 font-bold',
           step: 3,
-          hint: 'Komoditas telah siap! Silakan datang ke kantor & gudang koperasi untuk serah terima dan pembayaran kas.',
+          hint: 'Komoditas telah siap di kasir. Silakan bayar di kasir koperasi (24 jam) sebelum serah terima.',
         };
       case 'SELESAI':
         return {
-          label: 'Pesanan Selesai',
-          badgeClass: 'bg-slate-100 text-slate-800 border-slate-300',
+          label: 'Pesanan Selesai & Lunas',
+          badgeClass: 'bg-emerald-50 text-emerald-900 border-emerald-300 font-bold',
           step: 4,
-          hint: 'Komoditas telah diserahkan dan pembayaran tunai telah sah dicatat oleh kasir koperasi.',
+          hint: 'Komoditas telah diserahkan dan pembayaran telah sah dicatat oleh kasir koperasi.',
         };
       case 'DIBATALKAN':
         return {
           label: 'Dibatalkan',
-          badgeClass: 'bg-red-50 text-red-700 border-red-300',
+          badgeClass: 'bg-red-50 text-red-700 border-red-300 font-bold',
           step: 0,
           hint: 'Pesanan telah dibatalkan dan alokasi stok komoditas telah dikembalikan ke gudang koperasi.',
         };
@@ -874,6 +874,7 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
                             </span>
                           </div>
 
+                          {/* Tombol Batalkan hanya berlaku jika masih sebagai Pesanan Masuk */}
                           {order.status === 'MENUNGGU_PEMBAYARAN' && (
                             <button
                               type="button"

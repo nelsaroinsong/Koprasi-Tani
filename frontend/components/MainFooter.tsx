@@ -9,7 +9,7 @@ interface MainFooterProps {
 
 export default function MainFooter({}: MainFooterProps) {
   return (
-    <footer id="main-footer" className="w-full bg-white text-slate-900 border-t border-slate-200/80 py-8 sm:py-10 font-sans">
+    <footer id="main-footer" className="w-full bg-[#f4f5f1] text-slate-900 border-t border-slate-200/60 py-8 sm:py-10 font-sans">
       <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 space-y-4">
         {/* Baris 1: Lokasi di Kiri & Nama Brand Koperasi di Kanan */}
         <div className="flex items-center justify-between">
