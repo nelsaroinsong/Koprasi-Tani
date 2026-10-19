@@ -301,16 +301,16 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
 
   return (
     <>
-      <div className="flex items-center gap-1.5 sm:gap-2.5" ref={dropdownRef}>
+      <div className="flex items-center gap-2" ref={dropdownRef}>
         {/* Tombol Pencarian Cepat (di samping Keranjang Belanja) */}
         {onOpenSearch && (
           <button
             type="button"
             onClick={onOpenSearch}
-            className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition border cursor-pointer shadow-2xs bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border-slate-200 group"
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors border cursor-pointer bg-[#f4f5f1] hover:bg-[#EAEDE7] text-[#233414] border-[#d5dccf]"
             title="Pencarian Cepat (Ctrl+K)"
           >
-            <Search className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5 group-hover:scale-110 transition-transform" />
+            <Search className="w-4 h-4" />
           </button>
         )}
 
@@ -318,18 +318,20 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
         <Link
           href="/cart"
           prefetch={true}
-          className={`relative w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition border cursor-pointer shadow-2xs group ${
+          className={`relative w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors border cursor-pointer ${
             isCartActive
-              ? 'bg-emerald-700 text-white border-emerald-700 shadow-xs'
-              : 'bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border-slate-200'
+              ? 'bg-[#233414] text-[#D4F63D] border-[#233414]'
+              : 'bg-[#f4f5f1] hover:bg-[#EAEDE7] text-[#233414] border-[#d5dccf]'
           }`}
           title="Keranjang Belanja"
         >
-          <ShoppingCart className={`w-3.5 h-3.5 sm:w-4.5 sm:h-4.5 group-hover:scale-110 transition-transform ${isCartActive ? 'text-white' : ''}`} />
+          <ShoppingCart className="w-4 h-4" />
           {cartCount > 0 && (
             <span
-              className={`absolute -top-1 -right-1 w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full font-bold text-[8px] sm:text-[10px] flex items-center justify-center shadow-xs ring-2 ${
-                isCartActive ? 'bg-amber-400 text-slate-900 ring-emerald-700' : 'bg-amber-500 text-white ring-white'
+              className={`absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full font-bold text-[10px] tabular-nums flex items-center justify-center ring-2 ${
+                isCartActive
+                  ? 'bg-[#D4F63D] text-[#1a2610] ring-[#233414]'
+                  : 'bg-[#233414] text-[#D4F63D] ring-white'
               }`}
             >
               {cartCount}
@@ -340,10 +342,10 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
         {/* Profile Trigger Pill - Hanya di Desktop (>= lg), di mobile & tablet sudah ada di BottomNav */}
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="hidden lg:flex items-center gap-1.5 sm:gap-2.5 p-0.5 sm:p-1 sm:pr-3 rounded-full border border-slate-200 hover:border-emerald-500/50 bg-white hover:bg-slate-50 transition cursor-pointer shadow-2xs group"
+          className="hidden lg:flex items-center gap-2.5 p-1 pr-3 rounded-full border border-[#d5dccf] hover:border-[#b8c4ae] bg-[#f4f5f1] hover:bg-[#EAEDE7] transition-colors cursor-pointer group"
           type="button"
         >
-          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-emerald-800 text-white font-bold text-xs flex items-center justify-center shadow-xs overflow-hidden shrink-0">
+          <div className="w-8 h-8 rounded-full bg-[#233414] text-[#D4F63D] font-bold text-xs flex items-center justify-center overflow-hidden shrink-0 border border-[#344d15]">
             {user.avatarUrl ? (
               <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" />
             ) : (
@@ -352,38 +354,41 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
           </div>
 
           <div className="text-left hidden sm:block">
-            <div className="text-xs font-bold text-slate-800 leading-tight group-hover:text-emerald-800 transition">
+            <div className="text-xs font-bold text-[#1a2610] leading-tight">
               {user.name}
             </div>
-            <div className="text-[10px] font-bold text-emerald-700 tracking-wider">
-              {displayRole}
+            <div className="text-[11px] font-semibold text-[#344d15]">
+              {displayRole === 'PETANI' ? 'Mitra Petani' : 'Pembeli'}
             </div>
           </div>
 
-          <div className="text-slate-400 group-hover:text-slate-700 transition pr-1">
-            {isOpen ? <ChevronUp className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> : <ChevronDown className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
+          <div className="text-[#526046] group-hover:text-[#1a2610] transition-colors pr-0.5">
+            {isOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
           </div>
         </button>
 
-        {/* Dropdown Card - Style Gambar 1 (Modern Fluid Green Banner + White Card) */}
+        {/* Dropdown Card - Beranda Forest Olive Green Theme */}
         {isOpen && (
-          <div className="absolute right-3 sm:right-6 top-16 sm:top-20 z-50 w-[320px] sm:w-[340px] bg-white rounded-[28px] shadow-2xl border border-slate-100 p-3 overflow-hidden animate-in fade-in-50 zoom-in-95 duration-200">
-            {/* 1. Fluid Aurora Green Banner */}
+          <div className="absolute right-3 sm:right-6 top-16 sm:top-18 z-50 w-[320px] sm:w-[340px] bg-white rounded-[28px] shadow-xl border border-[#dce1d6] p-3.5 overflow-hidden animate-in fade-in-50 zoom-in-95 duration-150">
+            {/* 1. Flat Deep Forest Olive Banner */}
             <div
               onClick={() => {
                 setIsOpen(false);
                 router.push('/profile');
               }}
-              className="h-24 w-full rounded-2xl relative overflow-hidden bg-gradient-to-tr from-emerald-600 via-emerald-500 to-teal-400 cursor-pointer shadow-inner group"
+              className="h-20 w-full rounded-2xl relative overflow-hidden bg-[#233414] border border-[#344d15] cursor-pointer flex items-start justify-end p-3"
               title="Buka Halaman Profil Saya"
             >
-              <div className="absolute -top-6 -right-6 w-28 h-28 rounded-full bg-emerald-300/30 blur-xl" />
-              <div className="absolute -bottom-6 -left-6 w-28 h-28 rounded-full bg-teal-300/30 blur-xl" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/landing/koperasi-logo-lime.png"
+                alt=""
+                className="w-6 h-6 object-contain opacity-80"
+              />
             </div>
 
             {/* 2. Avatar Overlapping & Role Badge */}
-            <div className="flex items-end justify-between px-2 -mt-8 mb-2 relative z-10">
+            <div className="flex items-end justify-between px-2 -mt-8 mb-2.5 relative z-10">
               <div
                 onClick={() => {
                   setIsOpen(false);
@@ -391,71 +396,67 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
                 }}
                 className="relative cursor-pointer group"
               >
-                <div className="w-16 h-16 rounded-full bg-white ring-4 ring-white text-slate-900 flex items-center justify-center font-extrabold text-xl shadow-md overflow-hidden group-hover:scale-105 transition-transform">
+                <div className="w-15 h-15 rounded-full bg-white ring-4 ring-white text-[#1a2610] flex items-center justify-center font-bold text-lg overflow-hidden">
                   {user.avatarUrl ? (
                     <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" />
                   ) : (
-                    <span className="bg-emerald-100 text-emerald-800 w-full h-full flex items-center justify-center">
+                    <span className="bg-[#EAEDE7] text-[#233414] w-full h-full flex items-center justify-center">
                       {userInitial}
                     </span>
                   )}
                 </div>
-                <div className="absolute bottom-0 right-0 w-4.5 h-4.5 rounded-full bg-blue-500 text-white flex items-center justify-center shadow-xs ring-2 ring-white" title="Akun Terverifikasi">
-                  <svg className="w-2.5 h-2.5 fill-current" viewBox="0 0 20 20">
-                    <path
-                      fillRule="evenodd"
-                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
+                <div
+                  className="absolute bottom-0 right-0 w-4.5 h-4.5 rounded-full bg-[#344d15] text-[#D4F63D] flex items-center justify-center ring-2 ring-white"
+                  title="Akun Terverifikasi"
+                >
+                  <Check className="w-2.5 h-2.5 stroke-[3]" />
                 </div>
               </div>
 
-              {/* Role Badge (Pill Style seperti Gambar 1) */}
+              {/* Role Badge */}
               <div className="flex items-center gap-1.5 mb-1">
-                <span className="px-3 py-1 rounded-full bg-neutral-900 text-white text-[10px] font-bold tracking-wider uppercase shadow-xs">
-                  {displayRole}
+                <span className="px-3 py-1 rounded-full bg-[#e2f2c8] border border-[#c9e39e] text-[#233414] text-xs font-semibold">
+                  {displayRole === 'PETANI' ? 'Mitra Petani' : 'Pembeli'}
                 </span>
               </div>
             </div>
 
             {/* 3. User Identity: Name, Phone, Address */}
-            <div className="px-2 mb-2.5">
+            <div className="px-2 mb-3">
               <h3
                 onClick={() => {
                   setIsOpen(false);
                   router.push('/profile');
                 }}
-                className="text-base font-extrabold text-slate-900 tracking-tight leading-snug flex items-center gap-1.5 cursor-pointer hover:text-emerald-700 transition"
+                className="text-base font-bold text-[#1a2610] tracking-tight leading-snug flex items-center gap-1.5 cursor-pointer hover:text-[#344d15] transition-colors"
               >
                 <span>{user.name}</span>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                <ChevronRight className="w-3.5 h-3.5 text-[#5b6950]" />
               </h3>
 
-              <div className="flex items-center gap-1.5 text-xs text-slate-600 mt-1">
-                <Phone className="w-3 h-3 text-emerald-600 shrink-0" />
-                <span className="font-medium">{user.phone || '+62 812-4455-6677'}</span>
+              <div className="flex items-center gap-1.5 text-xs text-[#526046] mt-1 tabular-nums">
+                <Phone className="w-3.5 h-3.5 text-[#344d15] shrink-0" />
+                <span className="font-medium">{user.phone || '—'}</span>
               </div>
 
-              <div className="flex items-center gap-1.5 text-[11px] text-slate-500 mt-0.5">
-                <MapPin className="w-3 h-3 text-emerald-600 shrink-0" />
+              <div className="flex items-center gap-1.5 text-xs text-[#5b6950] mt-0.5">
+                <MapPin className="w-3.5 h-3.5 text-[#344d15] shrink-0" />
                 <span className="truncate" title={user.address || 'Minahasa Utara, Sulawesi Utara'}>
                   {user.address || 'Minahasa Utara, Sulawesi Utara'}
                 </span>
               </div>
             </div>
 
-            {/* Divider Line (Persis Gambar 1) */}
-            <div className="border-t border-slate-100 my-2" />
-
-            {/* 4. Stats Row 3 Kolom (Persis Rating / Posts / Followers di Gambar 1) */}
-            <div className="grid grid-cols-3 divide-x divide-slate-100 py-1 mb-2.5">
+            {/* 4. Stats Row 3 Kolom */}
+            <div className="grid grid-cols-3 divide-x divide-[#dce1d6] py-2.5 mb-3 bg-[#f4f5f1] rounded-xl border border-[#dce1d6]">
               {/* Stat 1: Terdaftar */}
               <div className="text-center px-1">
-                <div className="text-xs sm:text-[13px] font-extrabold text-slate-900 flex items-center justify-center">
-                  <span className="truncate">{registeredDate.split(' ')[0]} {registeredDate.split(' ')[1]?.slice(0, 3)}</span>
+                <div className="text-xs sm:text-[13px] font-bold text-[#1a2610] flex items-center justify-center">
+                  <span className="truncate">
+                    {registeredDate.split(' ')[0]} {registeredDate.split(' ')[1]?.slice(0, 3)}
+                  </span>
                 </div>
-                <div className="text-[9.5px] text-slate-400 font-medium mt-0.5 uppercase tracking-wider">
+                <div className="text-[11px] text-[#5b6950] font-medium mt-0.5">
                   Terdaftar
                 </div>
               </div>
@@ -467,30 +468,30 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
                   setIsOpen(false);
                   router.push('/profile/mengikuti');
                 }}
-                className="text-center px-1 hover:bg-slate-50 rounded-lg transition cursor-pointer"
+                className="text-center px-1 hover:bg-[#EAEDE7] rounded-lg transition-colors cursor-pointer"
                 title="Lihat yang diikuti"
               >
-                <div className="text-xs sm:text-[13px] font-extrabold text-slate-900 flex items-center justify-center">
+                <div className="text-xs sm:text-[13px] font-bold text-[#1a2610] flex items-center justify-center tabular-nums">
                   <span>{followStats.followingCount}</span>
                 </div>
-                <div className="text-[9.5px] text-slate-400 font-medium mt-0.5 uppercase tracking-wider">
+                <div className="text-[11px] text-[#5b6950] font-medium mt-0.5">
                   Mengikuti
                 </div>
               </button>
 
               {/* Stat 3: Pengikut */}
               <div className="text-center px-1">
-                <div className="text-xs sm:text-[13px] font-extrabold text-slate-900 flex items-center justify-center">
+                <div className="text-xs sm:text-[13px] font-bold text-[#1a2610] flex items-center justify-center tabular-nums">
                   <span>{followStats.followersCount}</span>
                 </div>
-                <div className="text-[9.5px] text-slate-400 font-medium mt-0.5 uppercase tracking-wider">
+                <div className="text-[11px] text-[#5b6950] font-medium mt-0.5">
                   Pengikut
                 </div>
               </div>
             </div>
 
-            {/* 5. Slide Button Keluar dari Akun (Seperti di Pesanan Resmi / Gambar 2) */}
-            <div className="pt-1">
+            {/* 5. Slide Button Keluar dari Akun */}
+            <div className="pt-0.5">
               <SlideCommit
                 label="Geser untuk Keluar dari Akun"
                 doneLabel="Berhasil Keluar"
@@ -501,8 +502,8 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
                 }}
                 height={46}
                 radius={23}
-                trackColor="#171717"
-                successColor="#dc2626"
+                trackColor="#233414"
+                successColor="#c4242a"
                 className="w-full"
               />
             </div>

@@ -11,14 +11,15 @@ export async function GET() {
       return NextResponse.json({ error: 'Tidak terotentikasi' }, { status: 401 });
     }
 
-    const cacheKey = `user:profile:${session.user.email}`;
+    const normalizedEmail = session.user.email.trim().toLowerCase();
+    const cacheKey = `user:profile:${normalizedEmail}`;
     const cachedProfile = await getCache<any>(cacheKey);
     if (cachedProfile) {
       return NextResponse.json(cachedProfile);
     }
 
     const dbUser = await prisma.user.findUnique({
-      where: { email: session.user.email },
+      where: { email: normalizedEmail },
     });
 
     if (!dbUser) {
@@ -63,7 +64,7 @@ export async function GET() {
         phone: dbUser.phone,
         address: dbUser.address,
         role: dbUser.role,
-        isVerified: dbUser.isVerified,
+        isVerified: dbUser.role === 'PEMBELI' ? true : dbUser.isVerified,
         isOnboarded: dbUser.isOnboarded,
         avatarUrl: dbUser.avatarUrl,
         createdAt: dbUser.createdAt,

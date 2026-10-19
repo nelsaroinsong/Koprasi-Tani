@@ -42,7 +42,6 @@ export default function AppHeader({ activePage }: AppHeaderProps) {
   // Deteksi halaman aktif secara otomatis berdasarkan pathname jika props tidak spesifik
   const currentActive = useMemo(() => {
     if (activePage === 'none') return 'none';
-    // Halaman akun profil petani/user tidak boleh mengaktifkan tab toko online di navbar
     if (pathname.startsWith('/toko/petani')) return 'none';
     if (activePage && activePage !== 'beranda') return activePage;
     if (pathname === '/cart' || pathname.startsWith('/cart')) return 'cart';
@@ -57,143 +56,169 @@ export default function AppHeader({ activePage }: AppHeaderProps) {
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
-      <div className="max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8 h-13 sm:h-16 flex items-center justify-between gap-4 relative">
-        {/* Left: Brand Logo - Mengarah ke /toko saat login, atau ke / saat belum login */}
-        <div className="flex items-center shrink-0 z-10">
-          <Link
-            href={user ? '/toko' : '/'}
-            prefetch={true}
-            className="flex items-center gap-1.5 sm:gap-2.5 group focus:outline-none shrink-0"
-          >
-            <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-emerald-700 flex items-center justify-center text-white shadow-xs group-hover:scale-105 transition-transform">
-              <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-200" />
-            </div>
-            <div className="min-w-0">
-              <div className="text-[11px] sm:text-sm font-bold text-slate-900 leading-tight truncate">
-                Sinar Pagi Sejahtera
-              </div>
-              <div className="text-[8px] sm:text-[10px] text-slate-400 font-semibold tracking-wider uppercase">
-                Minahasa Utara
-              </div>
-            </div>
-          </Link>
-        </div>
-
-        {/* Center: Desktop Navigation Links (Posisi Center di Layar Lebar) */}
-        <nav className="hidden lg:flex items-center justify-center gap-1.5 text-xs font-semibold absolute left-1/2 -translate-x-1/2">
-          <Link
-            href="/toko"
-            prefetch={true}
-            className={`px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5 ${
-              currentActive === 'toko'
-                ? 'bg-emerald-700 text-white shadow-xs font-bold'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-semibold'
-            }`}
-          >
-            <ShoppingBag className={`w-3.5 h-3.5 ${currentActive === 'toko' ? 'text-white' : 'text-slate-500'}`} />
-            <span>Toko Online</span>
-          </Link>
-          <Link
-            href="/sewa-alat"
-            prefetch={true}
-            className={`px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5 ${
-              currentActive === 'sewa-alat'
-                ? 'bg-emerald-700 text-white shadow-xs font-bold'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-semibold'
-            }`}
-          >
-            <Tractor className={`w-3.5 h-3.5 ${currentActive === 'sewa-alat' ? 'text-white' : 'text-slate-500'}`} />
-            <span>Sewa Alat</span>
-          </Link>
-          <Link
-            href="/pesanan"
-            prefetch={true}
-            className={`px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5 ${
-              currentActive === 'pesanan'
-                ? 'bg-emerald-700 text-white shadow-xs font-bold'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-semibold'
-            }`}
-          >
-            <Receipt className={`w-3.5 h-3.5 ${currentActive === 'pesanan' ? 'text-white' : 'text-slate-500'}`} />
-            <span>Pesanan</span>
-          </Link>
-
-          {/* Khusus Role Petani: Fitur Dashboard Mandiri di antara Pesanan dan Profil */}
-          {user?.role === 'PETANI' && (
+      <header className="sticky top-0 z-40 bg-white border-b border-[#dce1d6]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-4 relative">
+          {/* Left: Official Koperasi Brand Emblem & Wordmark */}
+          <div className="flex items-center shrink-0 z-10">
             <Link
-              href="/dashboard"
+              href={user ? '/toko' : '/'}
               prefetch={true}
-              className={`px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5 ${
-                currentActive === 'dashboard'
-                  ? 'bg-emerald-700 text-white shadow-xs font-bold'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-semibold'
+              className="flex items-center gap-2.5 group focus:outline-none shrink-0"
+            >
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[#233414] border border-[#344d15] flex items-center justify-center shrink-0">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/landing/koperasi-logo-lime.png"
+                  alt="Logo Koperasi Sinar Pagi Sejahtera"
+                  className="w-4.5 h-4.5 sm:w-5 sm:h-5 object-contain"
+                />
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs sm:text-sm font-bold text-[#1a2610] leading-tight truncate">
+                  Sinar Pagi Sejahtera
+                </div>
+                <div className="text-[11px] text-[#5b6950] font-medium leading-tight">
+                  Koperasi Minahasa Utara
+                </div>
+              </div>
+            </Link>
+          </div>
+
+          {/* Center: Desktop Navigation Links */}
+          <nav className="hidden lg:flex items-center justify-center gap-1 p-1 rounded-full bg-[#f4f5f1] border border-[#dce1d6] text-xs font-semibold absolute left-1/2 -translate-x-1/2">
+            <Link
+              href="/toko"
+              prefetch={true}
+              className={`px-3.5 py-1.5 rounded-full transition-colors flex items-center gap-1.5 ${
+                currentActive === 'toko'
+                  ? 'bg-[#233414] text-white font-semibold'
+                  : 'text-[#344d15] hover:text-[#1a2610] hover:bg-[#EAEDE7] font-medium'
               }`}
             >
-              <LayoutDashboard className={`w-3.5 h-3.5 ${currentActive === 'dashboard' ? 'text-white' : 'text-slate-500'}`} />
-              <span>Dashboard</span>
-            </Link>
-          )}
-
-          <Link
-            href={user ? '/profile' : '/login'}
-            prefetch={true}
-            className={`px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5 ${
-              currentActive === 'profile'
-                ? 'bg-emerald-700 text-white shadow-xs font-bold'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-semibold'
-            }`}
-          >
-            <UserIcon className={`w-3.5 h-3.5 ${currentActive === 'profile' ? 'text-white' : 'text-slate-500'}`} />
-            <span>Profil</span>
-          </Link>
-        </nav>
-
-        {/* Right Section: Pencarian, Keranjang Belanja & Profil Dropdown */}
-        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0 z-10">
-          {!user && (
-            <>
-              {/* Tombol Pencarian Cepat saat belum login */}
-              <button
-                type="button"
-                onClick={() => setIsSearchOpen(true)}
-                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition border cursor-pointer shadow-2xs bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border-slate-200 group"
-                title="Pencarian Cepat (Ctrl+K)"
-              >
-                <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 group-hover:scale-110 transition-transform" />
-              </button>
-
-              <Link
-                href="/cart"
-                prefetch={true}
-                className={`relative w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition border cursor-pointer shadow-2xs group ${
-                  currentActive === 'cart'
-                    ? 'bg-emerald-700 text-white border-emerald-700 shadow-xs'
-                    : 'bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border-slate-200'
+              <ShoppingBag
+                className={`w-3.5 h-3.5 ${
+                  currentActive === 'toko' ? 'text-[#D4F63D]' : 'text-[#526046]'
                 }`}
-                title="Keranjang Belanja"
-              >
-                <ShoppingCart className={`w-3.5 h-3.5 sm:w-4 sm:h-4 group-hover:scale-110 transition-transform ${currentActive === 'cart' ? 'text-white' : ''}`} />
-              </Link>
-            </>
-          )}
-
-          {user ? (
-            <UserProfileDropdown onOpenSearch={() => setIsSearchOpen(true)} />
-          ) : (
-            <Link
-              href="/login"
-              className="text-xs font-semibold bg-emerald-700 hover:bg-emerald-800 text-white px-3.5 sm:px-4 py-1.5 rounded-full transition shadow-xs flex items-center gap-1.5"
-            >
-              <LogIn className="w-3.5 h-3.5" />
-              <span>Masuk</span>
+              />
+              <span>Toko Online</span>
             </Link>
-          )}
+
+            <Link
+              href="/sewa-alat"
+              prefetch={true}
+              className={`px-3.5 py-1.5 rounded-full transition-colors flex items-center gap-1.5 ${
+                currentActive === 'sewa-alat'
+                  ? 'bg-[#233414] text-white font-semibold'
+                  : 'text-[#344d15] hover:text-[#1a2610] hover:bg-[#EAEDE7] font-medium'
+              }`}
+            >
+              <Tractor
+                className={`w-3.5 h-3.5 ${
+                  currentActive === 'sewa-alat' ? 'text-[#D4F63D]' : 'text-[#526046]'
+                }`}
+              />
+              <span>Sewa Alat</span>
+            </Link>
+
+            <Link
+              href="/pesanan"
+              prefetch={true}
+              className={`px-3.5 py-1.5 rounded-full transition-colors flex items-center gap-1.5 ${
+                currentActive === 'pesanan'
+                  ? 'bg-[#233414] text-white font-semibold'
+                  : 'text-[#344d15] hover:text-[#1a2610] hover:bg-[#EAEDE7] font-medium'
+              }`}
+            >
+              <Receipt
+                className={`w-3.5 h-3.5 ${
+                  currentActive === 'pesanan' ? 'text-[#D4F63D]' : 'text-[#526046]'
+                }`}
+              />
+              <span>Pesanan</span>
+            </Link>
+
+            {/* Khusus Role Petani: Fitur Dashboard Mandiri */}
+            {user?.role === 'PETANI' && (
+              <Link
+                href="/dashboard"
+                prefetch={true}
+                className={`px-3.5 py-1.5 rounded-full transition-colors flex items-center gap-1.5 ${
+                  currentActive === 'dashboard'
+                    ? 'bg-[#233414] text-white font-semibold'
+                    : 'text-[#344d15] hover:text-[#1a2610] hover:bg-[#EAEDE7] font-medium'
+                }`}
+              >
+                <LayoutDashboard
+                  className={`w-3.5 h-3.5 ${
+                    currentActive === 'dashboard' ? 'text-[#D4F63D]' : 'text-[#526046]'
+                  }`}
+                />
+                <span>Dashboard</span>
+              </Link>
+            )}
+
+            <Link
+              href={user ? '/profile' : '/login'}
+              prefetch={true}
+              className={`px-3.5 py-1.5 rounded-full transition-colors flex items-center gap-1.5 ${
+                currentActive === 'profile'
+                  ? 'bg-[#233414] text-white font-semibold'
+                  : 'text-[#344d15] hover:text-[#1a2610] hover:bg-[#EAEDE7] font-medium'
+              }`}
+            >
+              <UserIcon
+                className={`w-3.5 h-3.5 ${
+                  currentActive === 'profile' ? 'text-[#D4F63D]' : 'text-[#526046]'
+                }`}
+              />
+              <span>Profil</span>
+            </Link>
+          </nav>
+
+          {/* Right Section: Pencarian, Keranjang Belanja & Profil Dropdown */}
+          <div className="flex items-center gap-2 shrink-0 z-10">
+            {!user && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setIsSearchOpen(true)}
+                  className="w-9 h-9 rounded-full flex items-center justify-center transition-colors border cursor-pointer bg-[#f4f5f1] hover:bg-[#EAEDE7] text-[#233414] border-[#d5dccf]"
+                  title="Pencarian Cepat (Ctrl+K)"
+                >
+                  <Search className="w-4 h-4" />
+                </button>
+
+                <Link
+                  href="/cart"
+                  prefetch={true}
+                  className={`relative w-9 h-9 rounded-full flex items-center justify-center transition-colors border cursor-pointer ${
+                    currentActive === 'cart'
+                      ? 'bg-[#233414] text-[#D4F63D] border-[#233414]'
+                      : 'bg-[#f4f5f1] hover:bg-[#EAEDE7] text-[#233414] border-[#d5dccf]'
+                  }`}
+                  title="Keranjang Belanja"
+                >
+                  <ShoppingCart className="w-4 h-4" />
+                </Link>
+              </>
+            )}
+
+            {user ? (
+              <UserProfileDropdown onOpenSearch={() => setIsSearchOpen(true)} />
+            ) : (
+              <Link
+                href="/login"
+                className="text-xs font-semibold bg-[#233414] hover:bg-[#344d15] text-white px-4 py-2 rounded-full transition-colors flex items-center gap-1.5"
+              >
+                <LogIn className="w-3.5 h-3.5 text-[#D4F63D]" />
+                <span>Masuk</span>
+              </Link>
+            )}
+          </div>
         </div>
-      </div>
-    </header>
-    <GlobalSearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
-    <BottomNav activePage={currentActive} />
-  </>
-);
+      </header>
+      <GlobalSearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+      <BottomNav activePage={currentActive} />
+    </>
+  );
 }

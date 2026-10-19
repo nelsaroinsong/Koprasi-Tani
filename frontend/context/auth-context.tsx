@@ -46,9 +46,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [localUser, setLocalUser] = useState<User | null>(null);
   const router = useRouter();
 
-  // Load local user on mount and sync with database
+  // Load local user on mount and sync with database (strictly scoped by session email)
   useEffect(() => {
-    // Tangani browser BFCache saat pengguna menekan tombol 'Back' setelah logout
     const handlePageShow = (event: PageTransitionEvent) => {
       if (event.persisted) {
         window.location.reload();
@@ -56,25 +55,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
     window.addEventListener('pageshow', handlePageShow);
 
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        setLocalUser(JSON.parse(saved));
-      }
-    } catch (e) {
-      console.error('Failed to load user from localStorage', e);
-    }
+    const sessionEmail = session?.user?.email?.trim().toLowerCase();
 
-    // Fetch fresh profile from database via API jika session aktif
-    let isCancelled = false;
-    if (status === 'authenticated' && session?.user?.email) {
-      fetch('/api/user/profile')
+    if (status === 'authenticated' && sessionEmail) {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          // Hanya gunakan cache localStorage jika email sama persis dengan akun sesi aktif saat ini
+          if (parsed?.email?.trim().toLowerCase() === sessionEmail) {
+            setLocalUser(parsed);
+          } else {
+            // Hapus cache localStorage milik akun sebelumnya agar tidak bocor antar-akun
+            localStorage.removeItem(STORAGE_KEY);
+            localStorage.removeItem('koperasi_user');
+            setLocalUser(null);
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to parse user from localStorage', e);
+      }
+
+      // Fetch fresh profile from database via API jika session aktif
+      let isCancelled = false;
+      fetch('/api/user/profile', { cache: 'no-store' })
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
           if (isCancelled || !data?.user) return;
+          if (data.user.email?.trim().toLowerCase() !== sessionEmail) return;
+
           setLocalUser((prev) => {
             if (
               prev &&
+              prev.email?.trim().toLowerCase() === sessionEmail &&
               prev.name === data.user.name &&
               prev.role === data.user.role &&
               prev.isVerified === data.user.isVerified &&
@@ -86,18 +99,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             ) {
               return prev;
             }
-            const merged = { ...prev, ...data.user };
             try {
-              localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(data.user));
             } catch {}
-            return merged;
+            return data.user;
           });
         })
         .catch(() => {});
+
+      return () => {
+        isCancelled = true;
+        window.removeEventListener('pageshow', handlePageShow);
+      };
     }
 
     return () => {
-      isCancelled = true;
       window.removeEventListener('pageshow', handlePageShow);
     };
   }, [status, session?.user?.email]);
@@ -107,20 +123,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (status === 'unauthenticated') {
       setLocalUser(null);
       localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem('koperasi_user');
       localStorage.removeItem('koperasi_last_activity_time');
     }
   }, [status]);
 
-  // Dengarkan event sinkronisasi profil instan antar-halaman
+  // Dengarkan event sinkronisasi profil instan antar-halaman (hanya jika email cocok dengan sesi)
   useEffect(() => {
     const handleUserUpdated = () => {
       try {
+        const sessionEmail = session?.user?.email?.trim().toLowerCase();
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
           const parsed = JSON.parse(saved);
+          if (sessionEmail && parsed?.email?.trim().toLowerCase() !== sessionEmail) {
+            return;
+          }
           setLocalUser((prev) => {
             if (!prev) return parsed;
-            // Cegah loop re-render jika data identik
             if (
               prev.id === parsed.id &&
               prev.name === parsed.name &&
@@ -147,42 +167,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       window.removeEventListener('user-updated', handleUserUpdated);
       window.removeEventListener('storage', handleUserUpdated);
     };
-  }, []);
+  }, [session?.user?.email]);
 
   // Sesi pengguna hanya aktif jika NextAuth berstatus authenticated atau ada sesi valid
   const isSessionActive = status === 'authenticated' && Boolean(session?.user);
 
-  // Sync with NextAuth session and local storage (Memoized to prevent cascading re-renders)
+  // Sync with NextAuth session and local storage (Strictly email-matched to prevent cross-account bleed)
   const currentUser: User | null = useMemo(() => {
     if (!isSessionActive) return null;
+
+    const sessionEmail = (session?.user?.email || '').trim().toLowerCase();
+    const matchedLocal =
+      localUser && localUser.email?.trim().toLowerCase() === sessionEmail ? localUser : null;
+
+    const resolvedRole =
+      (matchedLocal?.role as UserRole) ||
+      // @ts-ignore
+      (session?.user?.role as UserRole) ||
+      null;
+
+    const resolvedIsVerified =
+      resolvedRole === 'PEMBELI'
+        ? true
+        : matchedLocal !== null
+        ? Boolean(matchedLocal.isVerified)
+        : Boolean((session?.user as any)?.isVerified);
+
+    const resolvedIsOnboarded =
+      matchedLocal !== null && matchedLocal.isOnboarded !== undefined
+        ? Boolean(matchedLocal.isOnboarded)
+        : Boolean((session?.user as any)?.isOnboarded);
+
     return {
-      id: session?.user?.id || localUser?.id || 'usr-google',
-      name: localUser?.name || session?.user?.name || 'Pengguna',
-      email: session?.user?.email || localUser?.email || '',
+      id: session?.user?.id || matchedLocal?.id || 'usr-google',
+      name: matchedLocal?.name || session?.user?.name || 'Pengguna',
+      email: session?.user?.email || matchedLocal?.email || '',
       avatarUrl:
-        localUser?.avatarUrl ||
+        matchedLocal?.avatarUrl ||
         // @ts-ignore
         session?.user?.avatarUrl ||
         session?.user?.image ||
         '',
       phone:
-        localUser?.phone ||
+        matchedLocal?.phone ||
         // @ts-ignore
         session?.user?.phone ||
         '',
-      role:
-        (localUser?.role as UserRole) ||
-        // @ts-ignore
-        (session?.user?.role as UserRole) ||
-        null,
-      isVerified:
-        Boolean(localUser?.isVerified) ||
-        Boolean((session?.user as any)?.isVerified),
-      isOnboarded:
-        Boolean(localUser?.isOnboarded) ||
-        Boolean((session?.user as any)?.isOnboarded),
+      role: resolvedRole,
+      isVerified: resolvedIsVerified,
+      isOnboarded: resolvedIsOnboarded,
       address:
-        localUser?.address ||
+        matchedLocal?.address ||
         // @ts-ignore
         session?.user?.address ||
         '',
@@ -222,7 +257,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Google Login Handler
   const loginWithGoogle = async (customData?: Partial<User>) => {
-    // Jika user mengisi form coba akun khusus (custom data)
+    // Bersihkan sisa state akun lama sebelum memulai proses login akun baru
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem('koperasi_user');
+    }
+    setLocalUser(null);
+
     if (customData && customData.name && customData.name !== 'Anggota Koperasi') {
       const userData: User = {
         id: 'usr-' + Math.random().toString(36).substring(2, 9),
@@ -239,13 +280,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // Google OAuth resmi NextAuth - diarahkan ke /auth-callback untuk auto-dispatch (ke toko atau onboarding stepper)
+    // Google OAuth resmi NextAuth - diarahkan ke /auth-callback untuk auto-dispatch
     await nextAuthSignIn('google', { callbackUrl: '/auth-callback' }, { prompt: 'select_account' });
   };
 
   // Onboarding Role Selection Handler
   const selectRole = async (role: 'PETANI' | 'PEMBELI') => {
-    // Admin tidak diperkenankan mengubah perannya menjadi pembeli atau petani
     if (currentUser?.role === 'ADMIN') {
       console.warn('Akun administrator tidak dapat diubah menjadi pembeli atau petani.');
       router.push('/admin');
@@ -253,7 +293,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      // Simpan ke PostgreSQL database via API
       await fetch('/api/user/role', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -295,7 +334,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
     saveUser(updated);
 
-    // Kirim perubahan (Nama, No Telepon, Alamat, Avatar) ke database PostgreSQL
     try {
       await fetch('/api/user/profile', {
         method: 'POST',
@@ -320,7 +358,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Muat ulang data profil terbaru dari backend database
   const refreshUser = async (): Promise<User | null> => {
     try {
-      const res = await fetch('/api/user/profile');
+      const res = await fetch('/api/user/profile', { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         if (data?.user) {
@@ -341,6 +379,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     saveUser(null);
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem('koperasi_user');
+    localStorage.removeItem('koperasi_token');
+    localStorage.removeItem('koperasi_last_active');
     localStorage.removeItem('koperasi_last_activity_time');
     sessionStorage.clear();
 
@@ -352,7 +393,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('Error saat sign out:', err);
     }
 
-    // Mengganti entry riwayat peramban secara absolut ke /login agar tombol 'Back' tidak membuka sesi lama
     window.location.replace('/login');
   };
 

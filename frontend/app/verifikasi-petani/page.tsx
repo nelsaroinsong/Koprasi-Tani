@@ -215,11 +215,6 @@ export default function VerifikasiPetaniPage() {
             )}
             <span>{isLoggingOut ? 'Mengalihkan...' : 'Kembali ke Login / Ganti Akun'}</span>
           </button>
-
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#fffbeb] border border-[#fde68a] text-[#92400e] text-xs font-semibold">
-            <Clock className="w-3.5 h-3.5 text-amber-700" />
-            <span>Tahap Verifikasi</span>
-          </span>
         </div>
 
         {/* Main Card matching /login & /onboarding */}

@@ -183,7 +183,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           if (dbUser) {
             token.id = dbUser.id;
             token.role = dbUser.role;
-            token.isVerified = dbUser.isVerified;
+            token.isVerified = dbUser.role === 'PEMBELI' ? true : dbUser.isVerified;
             token.isOnboarded = dbUser.isOnboarded;
             token.name = dbUser.name;
             token.avatarUrl = dbUser.avatarUrl;

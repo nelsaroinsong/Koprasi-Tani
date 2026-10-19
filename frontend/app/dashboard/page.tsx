@@ -74,32 +74,43 @@ export default function DashboardPetaniPage() {
           const stored = localStorage.getItem('koperasi_auth_user');
           if (stored) {
             const parsed = JSON.parse(stored);
-            if (parsed.role === 'PETANI' && parsed.isVerified) {
+            if (
+              parsed?.email?.trim().toLowerCase() === user.email?.trim().toLowerCase() &&
+              parsed.role === 'PETANI' &&
+              parsed.isVerified
+            ) {
               return;
             }
           }
         } catch {}
 
-        fetch('/api/user/profile')
+        fetch('/api/user/profile', { cache: 'no-store' })
           .then((res) => (res.ok ? res.json() : null))
           .then((data) => {
-            if (data?.user?.role === 'PETANI' && data.user.isVerified) {
-              try {
-                localStorage.setItem('koperasi_auth_user', JSON.stringify(data.user));
-                window.dispatchEvent(new CustomEvent('user-updated'));
-              } catch {}
+            if (!data?.user) return;
+            try {
+              localStorage.setItem('koperasi_auth_user', JSON.stringify(data.user));
+              window.dispatchEvent(new CustomEvent('user-updated'));
+            } catch {}
+
+            if (!data.user.isOnboarded) {
+              router.replace('/onboarding');
               return;
             }
-            router.replace('/verifikasi-petani');
+            if (data.user.role === 'PETANI' && !data.user.isVerified) {
+              router.replace('/verifikasi-petani');
+              return;
+            }
+            if (data.user.role !== 'PETANI' && data.user.role !== 'ADMIN') {
+              router.replace('/profile');
+            }
           })
-          .catch(() => {
-            router.replace('/verifikasi-petani');
-          });
+          .catch(() => {});
       } else if (user.role !== 'PETANI' && user.role !== 'ADMIN') {
         router.replace('/profile');
       }
     }
-  }, [user?.role, user?.isVerified, user?.isOnboarded, Boolean(user), authLoading, router]);
+  }, [user?.email, user?.role, user?.isVerified, user?.isOnboarded, Boolean(user), authLoading, router]);
 
   // Fetch Dashboard Stats & Recent Sales
   const fetchDashboardStats = useCallback(async () => {

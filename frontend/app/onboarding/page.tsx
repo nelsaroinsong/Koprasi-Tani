@@ -82,9 +82,11 @@ export default function OnboardingPage() {
     try {
       setIsSwitchingAccount(true);
       if (typeof window !== 'undefined') {
+        localStorage.removeItem('koperasi_auth_user');
         localStorage.removeItem('koperasi_user');
         localStorage.removeItem('koperasi_token');
         localStorage.removeItem('koperasi_last_active');
+        localStorage.removeItem('koperasi_last_activity_time');
       }
       await signOut({ redirect: false });
       window.location.replace('/login');
@@ -311,6 +313,13 @@ export default function OnboardingPage() {
       const data = await res.json();
       if (!res.ok || data.error) {
         throw new Error(data.error || 'Gagal menyimpan identitas akun.');
+      }
+
+      if (data.user && typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('koperasi_auth_user', JSON.stringify(data.user));
+          window.dispatchEvent(new CustomEvent('user-updated'));
+        } catch {}
       }
 
       if (updateSession) {
