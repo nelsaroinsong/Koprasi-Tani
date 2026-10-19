@@ -170,21 +170,21 @@ export default function OrderDetailPage({
         return {
           step: 2,
           label: 'Sedang Disiapkan Gudang',
-          badgeClass: 'bg-blue-50 text-blue-900 border-blue-300 font-bold',
+          badgeClass: 'bg-[#EAEDE7] text-[#233414] border-[#cfd6c9] font-bold',
           hint: 'Komoditas pesanan Anda sedang disortir dan ditimbang fisik oleh petugas gudang koperasi.',
         };
       case 'SIAP_DIAMBIL':
         return {
           step: 3,
           label: 'Bayar di Kasir',
-          badgeClass: 'bg-purple-50 text-purple-900 border-purple-300 font-bold',
+          badgeClass: 'bg-[#233414] text-[#D4F63D] border-[#233414] font-bold',
           hint: 'Komoditas telah siap di kasir! Silakan bayar tunai (cash) atau transfer ke kasir koperasi dalam batas waktu 24 jam.',
         };
       case 'SELESAI':
         return {
           step: 4,
           label: 'Ambil di Kasir & Selesai',
-          badgeClass: 'bg-emerald-50 text-emerald-900 border-emerald-300 font-bold',
+          badgeClass: 'bg-[#e2f2c8] text-[#233414] border-[#c9e39e] font-bold',
           hint: 'Pembayaran telah sah diterima dan komoditas telah diserahkan di kasir koperasi. Transaksi selesai!',
         };
       case 'DIBATALKAN':
@@ -198,7 +198,7 @@ export default function OrderDetailPage({
         return {
           step: 1,
           label: status,
-          badgeClass: 'bg-slate-100 text-slate-700 border-slate-300',
+          badgeClass: 'bg-[#f4f5f1] text-[#1a2610] border-[#dce1d6]',
           hint: 'Pesanan Anda sedang diproses.',
         };
     }
@@ -210,49 +210,49 @@ export default function OrderDetailPage({
       case 'MENUNGGU_PERSETUJUAN_ADMIN':
         return {
           label: 'Menunggu Persetujuan',
-          badgeClass: 'bg-amber-50 text-amber-900 border-amber-300',
+          badgeClass: 'bg-amber-50 text-amber-900 border-amber-300 font-bold',
           hint: 'Pengajuan sewa alat Anda sedang ditinjau oleh staf koperasi & pemilik alat.',
         };
       case 'DISETUJUI':
         return {
           label: 'Pengajuan Disetujui',
-          badgeClass: 'bg-blue-50 text-blue-900 border-blue-300',
+          badgeClass: 'bg-[#e2f2c8] text-[#233414] border-[#c9e39e] font-bold',
           hint: 'Pengajuan telah disetujui! Alat sedang disiapkan untuk pengambilan/pengantaran.',
         };
       case 'SIAP_DIAMBIL':
         return {
           label: 'Siap Diambil',
-          badgeClass: 'bg-purple-50 text-purple-900 border-purple-300',
+          badgeClass: 'bg-[#233414] text-[#D4F63D] border-[#233414] font-bold',
           hint: 'Unit alat sudah siap diambil di pool/gudang koperasi pertanian.',
         };
       case 'SEDANG_DISEWA':
         return {
           label: 'Sedang Disewa',
-          badgeClass: 'bg-indigo-50 text-indigo-900 border-indigo-300',
+          badgeClass: 'bg-[#344d15] text-white border-[#233414] font-bold',
           hint: 'Alat sedang beroperasi di lahan kebun pertanian Anda.',
         };
       case 'SELESAI':
         return {
           label: 'Sewa Selesai',
-          badgeClass: 'bg-emerald-50 text-emerald-900 border-emerald-300',
+          badgeClass: 'bg-[#EAEDE7] text-[#1a2610] border-[#cfd6c9] font-bold',
           hint: 'Masa sewa telah selesai dan alat telah dikembalikan dalam kondisi baik.',
         };
       case 'DITOLAK':
         return {
           label: 'Pengajuan Ditolak',
-          badgeClass: 'bg-red-50 text-red-700 border-red-200',
+          badgeClass: 'bg-red-50 text-red-700 border-red-200 font-bold',
           hint: 'Pengajuan sewa tidak dapat diproses. Silakan hubungi admin koperasi.',
         };
       case 'DIBATALKAN':
         return {
           label: 'Dibatalkan',
-          badgeClass: 'bg-rose-50 text-rose-700 border-rose-200',
+          badgeClass: 'bg-red-50 text-red-700 border-red-200 font-bold',
           hint: 'Pengajuan sewa alat ini telah dibatalkan oleh pemohon.',
         };
       default:
         return {
           label: status,
-          badgeClass: 'bg-slate-100 text-slate-700 border-slate-300',
+          badgeClass: 'bg-[#f4f5f1] text-[#1a2610] border-[#dce1d6]',
           hint: 'Status sewa alat sedang diproses.',
         };
     }
@@ -387,7 +387,7 @@ export default function OrderDetailPage({
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-24 text-slate-800">
+    <div className="min-h-screen bg-[#f4f5f1] pb-24 text-[#1a2610] font-sans">
       <AppHeader />
 
       <main className="max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 pt-4 sm:pt-6 space-y-4">
@@ -395,33 +395,33 @@ export default function OrderDetailPage({
         <div className="flex items-center justify-between">
           <Link
             href="/pesanan"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 transition shadow-2xs"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-[#dce1d6] text-xs font-bold text-[#1a2610] hover:bg-[#EAEDE7] hover:border-[#cfd6c9] transition shadow-2xs"
           >
-            <ChevronLeft className="w-4 h-4" />
+            <ChevronLeft className="w-4 h-4 text-[#233414]" />
             <span>Kembali ke Pesanan</span>
           </Link>
 
-          <span className="text-[11px] font-semibold text-slate-400">
+          <span className="text-[11px] font-semibold text-[#5b6950]">
             {isRental ? 'Detail Pengajuan Sewa Alat' : 'Detail Pesanan Toko Online'}
           </span>
         </div>
 
         {/* Loading State */}
         {isLoading ? (
-          <div className="py-24 flex flex-col items-center justify-center gap-3 bg-white rounded-xl border border-slate-200 shadow-2xs">
-            <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
-            <span className="text-xs font-semibold text-slate-500">Memuat rincian data pesanan...</span>
+          <div className="py-24 flex flex-col items-center justify-center gap-3 bg-white rounded-xl sm:rounded-2xl border border-[#dce1d6] shadow-2xs">
+            <Loader2 className="w-8 h-8 text-[#233414] animate-spin" />
+            <span className="text-xs font-semibold text-[#526046]">Memuat rincian data pesanan...</span>
           </div>
         ) : !orderData ? (
-          <div className="py-20 text-center bg-white rounded-xl border border-slate-200 shadow-2xs p-6 space-y-3">
-            <AlertCircle className="w-12 h-12 text-slate-400 mx-auto" />
-            <h3 className="text-base font-bold text-slate-800">Pesanan Tidak Ditemukan</h3>
-            <p className="text-xs text-slate-500 max-w-md mx-auto">
+          <div className="py-20 text-center bg-white rounded-xl sm:rounded-2xl border border-[#dce1d6] shadow-2xs p-6 space-y-3">
+            <AlertCircle className="w-12 h-12 text-[#5b6950] mx-auto" />
+            <h3 className="text-base font-bold text-[#1a2610]">Pesanan Tidak Ditemukan</h3>
+            <p className="text-xs text-[#526046] max-w-md mx-auto leading-relaxed">
               ID pesanan tidak terdaftar atau telah dihapus dari sistem. Silakan periksa kembali riwayat pesanan Anda.
             </p>
             <Link
               href="/pesanan"
-              className="inline-block px-4 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold shadow-xs transition"
+              className="inline-block px-5 py-2.5 rounded-xl bg-[#233414] hover:bg-[#344d15] text-white text-xs font-bold shadow-xs transition"
             >
               Lihat Semua Pesanan
             </Link>
@@ -429,21 +429,21 @@ export default function OrderDetailPage({
         ) : (
           <div className="space-y-4">
             {/* Kartu Utama Rincian */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden">
+            <div className="bg-white rounded-xl sm:rounded-2xl border border-[#dce1d6] shadow-2xs overflow-hidden">
               {/* Header Kartu */}
-              <div className="p-3 sm:p-4 border-b border-slate-100 bg-slate-50/70 flex flex-wrap items-center justify-between gap-2.5 text-xs">
+              <div className="p-3.5 sm:p-4 border-b border-[#dce1d6] bg-[#f4f5f1]/70 flex flex-wrap items-center justify-between gap-2.5 text-xs">
                 <div className="flex flex-wrap items-center gap-2">
-                  <div className="flex items-center gap-1.5 font-bold text-slate-800 text-xs sm:text-sm">
+                  <div className="flex items-center gap-1.5 font-bold text-[#1a2610] text-xs sm:text-sm">
                     {isRental ? (
-                      <Tractor className="w-4 h-4 text-emerald-700" />
+                      <Tractor className="w-4 h-4 text-[#233414]" />
                     ) : (
-                      <Store className="w-4 h-4 text-emerald-700" />
+                      <Store className="w-4 h-4 text-[#233414]" />
                     )}
                     <span>Koperasi Sinar Pagi Sejahtera</span>
                   </div>
-                  <span className="text-slate-300">•</span>
-                  <div className="text-slate-500 text-[11px] flex items-center gap-1">
-                    <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                  <span className="text-[#cfd6c9]">•</span>
+                  <div className="text-[#526046] text-[11px] flex items-center gap-1">
+                    <Calendar className="w-3.5 h-3.5 text-[#5b6950]" />
                     <span>
                       {new Date(orderData.createdAt).toLocaleDateString('id-ID', {
                         day: 'numeric',
@@ -454,13 +454,13 @@ export default function OrderDetailPage({
                       })}
                     </span>
                   </div>
-                  <span className="text-slate-300">•</span>
-                  <span className="font-mono text-[11px] text-emerald-800 font-bold">
+                  <span className="text-[#cfd6c9]">•</span>
+                  <span className="font-mono text-[11px] text-[#233414] font-bold">
                     #{orderData.orderNumber || orderData.rentalCode || orderData.id}
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-200/60">
+                <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end pt-2 sm:pt-0 border-t sm:border-t-0 border-[#dce1d6]">
                   {isRental ? (
                     <span
                       className={`px-2.5 py-1 rounded-lg text-xs font-extrabold border ${
@@ -505,14 +505,14 @@ export default function OrderDetailPage({
 
               {/* Visual Stepper 4 Tahap (Khusus Toko Online: Bayar Dulu baru Ambil di Kasir) */}
               {!isRental && orderData.status !== 'DIBATALKAN' && (
-                <div className="p-4 sm:p-5 border-b border-slate-100 bg-gradient-to-b from-emerald-50/30 to-transparent">
+                <div className="p-4 sm:p-5 border-b border-[#dce1d6] bg-[#f4f5f1]/40">
                   <div className="max-w-2xl mx-auto py-1">
                     <div className="grid grid-cols-4 gap-1 text-center relative">
                       {/* Background Bar */}
-                      <div className="absolute top-3 sm:top-3.5 left-[12%] right-[12%] h-1 bg-slate-200 -z-0 rounded-full" />
+                      <div className="absolute top-3 sm:top-3.5 left-[12%] right-[12%] h-1 bg-[#dce1d6] -z-0 rounded-full" />
                       {/* Active Bar */}
                       <div
-                        className="absolute top-3 sm:top-3.5 left-[12%] h-1 bg-emerald-600 -z-0 rounded-full transition-all duration-500"
+                        className="absolute top-3 sm:top-3.5 left-[12%] h-1 bg-[#233414] -z-0 rounded-full transition-all duration-500"
                         style={{
                           width:
                             getStatusConfig(orderData.status).step === 1
@@ -530,14 +530,14 @@ export default function OrderDetailPage({
                         <div
                           className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shadow-xs transition ${
                             getStatusConfig(orderData.status).step >= 1
-                              ? 'bg-emerald-600 text-white ring-2 ring-emerald-100'
-                              : 'bg-slate-200 text-slate-500'
+                              ? 'bg-[#233414] text-[#D4F63D] ring-2 ring-[#e2f2c8]'
+                              : 'bg-[#EAEDE7] text-[#5b6950] border border-[#cfd6c9]'
                           }`}
                         >
                           {getStatusConfig(orderData.status).step > 1 ? '✓' : '1'}
                         </div>
-                        <span className="text-[10px] sm:text-xs font-bold text-slate-800 mt-1">Pesanan Masuk</span>
-                        <span className="text-[9px] text-slate-400">Kasir Koperasi</span>
+                        <span className="text-[10px] sm:text-xs font-bold text-[#1a2610] mt-1.5">Pesanan Masuk</span>
+                        <span className="text-[9px] text-[#5b6950]">Kasir Koperasi</span>
                       </div>
 
                       {/* Step 2 */}
@@ -545,14 +545,14 @@ export default function OrderDetailPage({
                         <div
                           className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shadow-xs transition ${
                             getStatusConfig(orderData.status).step >= 2
-                              ? 'bg-emerald-600 text-white ring-2 ring-emerald-100'
-                              : 'bg-slate-200 text-slate-500'
+                              ? 'bg-[#233414] text-[#D4F63D] ring-2 ring-[#e2f2c8]'
+                              : 'bg-[#EAEDE7] text-[#5b6950] border border-[#cfd6c9]'
                           }`}
                         >
                           {getStatusConfig(orderData.status).step > 2 ? '✓' : '2'}
                         </div>
-                        <span className="text-[10px] sm:text-xs font-bold text-slate-800 mt-1">Disiapkan Gudang</span>
-                        <span className="text-[9px] text-slate-400">Pengecekan Fisik</span>
+                        <span className="text-[10px] sm:text-xs font-bold text-[#1a2610] mt-1.5">Disiapkan Gudang</span>
+                        <span className="text-[9px] text-[#5b6950]">Pengecekan Fisik</span>
                       </div>
 
                       {/* Step 3 (Bayar di Kasir) */}
@@ -560,14 +560,14 @@ export default function OrderDetailPage({
                         <div
                           className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shadow-xs transition ${
                             getStatusConfig(orderData.status).step >= 3
-                              ? 'bg-emerald-600 text-white ring-2 ring-emerald-100'
-                              : 'bg-slate-200 text-slate-500'
+                              ? 'bg-[#233414] text-[#D4F63D] ring-2 ring-[#e2f2c8]'
+                              : 'bg-[#EAEDE7] text-[#5b6950] border border-[#cfd6c9]'
                           }`}
                         >
                           {getStatusConfig(orderData.status).step > 3 ? '✓' : '3'}
                         </div>
-                        <span className="text-[10px] sm:text-xs font-bold text-slate-800 mt-1">Bayar di Kasir</span>
-                        <span className="text-[9px] text-slate-400">Bayar Dulu</span>
+                        <span className="text-[10px] sm:text-xs font-bold text-[#1a2610] mt-1.5">Bayar di Kasir</span>
+                        <span className="text-[9px] text-[#5b6950]">Bayar Dulu</span>
                       </div>
 
                       {/* Step 4 (Ambil di Kasir) */}
@@ -575,31 +575,31 @@ export default function OrderDetailPage({
                         <div
                           className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shadow-xs transition ${
                             getStatusConfig(orderData.status).step >= 4
-                              ? 'bg-emerald-600 text-white ring-2 ring-emerald-100'
-                              : 'bg-slate-200 text-slate-500'
+                              ? 'bg-[#233414] text-[#D4F63D] ring-2 ring-[#e2f2c8]'
+                              : 'bg-[#EAEDE7] text-[#5b6950] border border-[#cfd6c9]'
                           }`}
                         >
                           {getStatusConfig(orderData.status).step >= 4 ? '✓' : '4'}
                         </div>
-                        <span className="text-[10px] sm:text-xs font-bold text-slate-800 mt-1">Ambil di Kasir</span>
-                        <span className="text-[9px] text-slate-400">Serah Terima & Selesai</span>
+                        <span className="text-[10px] sm:text-xs font-bold text-[#1a2610] mt-1.5">Ambil di Kasir</span>
+                        <span className="text-[9px] text-[#5b6950]">Serah Terima & Selesai</span>
                       </div>
                     </div>
 
                     {/* Hint Box */}
-                    <div className="mt-3 p-2.5 rounded-lg bg-emerald-50/80 border border-emerald-200/70 text-xs text-emerald-900 flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
-                      <span>{getStatusConfig(orderData.status).hint}</span>
+                    <div className="mt-3.5 p-3 rounded-xl bg-[#e2f2c8]/50 border border-[#c9e39e] text-xs text-[#1a2610] flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-[#233414] shrink-0" />
+                      <span className="font-medium">{getStatusConfig(orderData.status).hint}</span>
                     </div>
 
                     {/* Akumulasi Batas Waktu Pembayaran 24 Jam (Tahap Bayar di Kasir: Otomatis batal tanpa tombol batalkan) */}
                     {orderData.status === 'SIAP_DIAMBIL' && (
-                      <div className="mt-2.5 p-3 rounded-lg bg-amber-50/95 border border-amber-300 text-amber-950 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
+                      <div className="mt-2.5 p-3 rounded-xl bg-amber-50/95 border border-amber-300 text-amber-950 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
                         <div className="flex items-center gap-2">
                           <Clock className="w-4 h-4 text-amber-600 shrink-0 animate-pulse" />
                           <div>
                             <span className="font-bold block sm:inline">Batas Waktu Pembayaran Kasir (24 Jam): </span>
-                            <span className="font-mono font-black text-amber-900">
+                            <span className="font-mono font-black text-amber-900 tabular-nums">
                               {timeRemaining || '24:00:00 (Menghitung batas bayar...)'}
                             </span>
                             <p className="text-[10px] text-amber-700 mt-0.5">
@@ -612,12 +612,12 @@ export default function OrderDetailPage({
 
                     {/* Batas Waktu Pesanan Masuk (Tahap 1: Pembeli bisa batalkan manual) */}
                     {orderData.status === 'MENUNGGU_PEMBAYARAN' && (
-                      <div className="mt-2.5 p-3 rounded-lg bg-amber-50/95 border border-amber-300 text-amber-950 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
+                      <div className="mt-2.5 p-3 rounded-xl bg-amber-50/95 border border-amber-300 text-amber-950 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
                         <div className="flex items-center gap-2">
                           <Clock className="w-4 h-4 text-amber-600 shrink-0 animate-pulse" />
                           <div>
                             <span className="font-bold block sm:inline">Batas Waktu Pesanan (24 Jam): </span>
-                            <span className="font-mono font-black text-amber-900">
+                            <span className="font-mono font-black text-amber-900 tabular-nums">
                               {timeRemaining || '24:00:00 (Menghitung batas bayar...)'}
                             </span>
                             <p className="text-[10px] text-amber-700 mt-0.5">
@@ -642,10 +642,10 @@ export default function OrderDetailPage({
 
               {/* Status Hint & Cancel Pengajuan Sewa Alat */}
               {isRental && (
-                <div className="border-b border-emerald-100/80">
-                  <div className="p-3 sm:p-4 bg-emerald-50/70 text-xs text-emerald-900 flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
-                    <span>{getRentalStatusConfig(orderData.status).hint}</span>
+                <div className="border-b border-[#dce1d6]">
+                  <div className="p-3.5 sm:p-4 bg-[#e2f2c8]/50 text-xs text-[#1a2610] flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-[#233414] shrink-0" />
+                    <span className="font-medium">{getRentalStatusConfig(orderData.status).hint}</span>
                   </div>
 
                   {orderData.status === 'MENUNGGU_PERSETUJUAN_ADMIN' && (
@@ -674,7 +674,7 @@ export default function OrderDetailPage({
 
               {/* Daftar Barang / Alat */}
               <div className="p-4 sm:p-5 space-y-3">
-                <div className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                <div className="text-xs font-bold uppercase tracking-wider text-[#526046]">
                   {isRental
                     ? `Daftar Alat Disewa (${orderData.items?.length || 1} Unit)`
                     : `Rincian Komoditas (${orderData.items?.length || 1} Barang)`}
@@ -685,37 +685,37 @@ export default function OrderDetailPage({
                     orderData.items?.map((item: any) => (
                       <div
                         key={item.id}
-                        className="flex items-start gap-3 p-3 rounded-lg bg-slate-50/60 border border-slate-200/80"
+                        className="flex items-start gap-3 p-3 sm:p-3.5 rounded-xl bg-[#f4f5f1]/80 border border-[#dce1d6]"
                       >
                         {item.product?.imageUrl ? (
                           <img
                             src={item.product.imageUrl}
                             alt={item.product.nama}
-                            className="w-14 h-14 rounded-lg object-cover border border-slate-200 shrink-0 shadow-2xs"
+                            className="w-14 h-14 rounded-lg object-cover border border-[#dce1d6] shrink-0 shadow-2xs"
                           />
                         ) : (
-                          <div className="w-14 h-14 rounded-lg bg-emerald-50 text-emerald-800 flex items-center justify-center shrink-0 border border-emerald-100 text-xl font-bold shadow-2xs">
+                          <div className="w-14 h-14 rounded-lg bg-[#e2f2c8]/60 text-[#233414] flex items-center justify-center shrink-0 border border-[#c9e39e] text-xl font-bold shadow-2xs">
                             🌾
                           </div>
                         )}
 
                         <div className="min-w-0 flex-1">
-                          <h4 className="text-sm font-bold text-slate-900 leading-snug truncate">
+                          <h4 className="text-sm font-bold text-[#1a2610] leading-snug truncate">
                             {item.namaProduk || item.product?.nama || 'Komoditas Pertanian'}
                           </h4>
-                          <div className="text-xs text-slate-500 mt-0.5">
+                          <div className="text-xs text-[#526046] mt-0.5 tabular-nums">
                             {item.quantity} {item.satuan || item.product?.satuan || 'unit'} × Rp{' '}
                             {Number(item.hargaPerSatuan).toLocaleString('id-ID')}
                           </div>
                           {item.petani?.name && (
-                            <div className="text-xs text-emerald-700 font-semibold mt-0.5 flex items-center gap-1">
+                            <div className="text-xs text-[#233414] font-semibold mt-0.5 flex items-center gap-1">
                               <span>🌾 Mitra Petani:</span>
                               <strong>{item.petani.name}</strong>
                             </div>
                           )}
 
                           {orderData.status === 'SELESAI' && (
-                            <div className="mt-2 flex items-center gap-2">
+                            <div className="mt-2 flex items-center gap-2.5 flex-wrap">
                               <button
                                 type="button"
                                 onClick={() => setReviewItem(item)}
@@ -726,7 +726,7 @@ export default function OrderDetailPage({
                               </button>
                               <Link
                                 href={`/toko/${item.productId || item.product?.id}`}
-                                className="text-xs text-emerald-700 hover:underline font-semibold"
+                                className="text-xs text-[#233414] hover:text-[#344d15] hover:underline font-bold"
                               >
                                 Lihat Halaman Produk →
                               </Link>
@@ -735,8 +735,8 @@ export default function OrderDetailPage({
                         </div>
 
                         <div className="text-right shrink-0">
-                          <div className="text-[11px] text-slate-400 font-medium">Subtotal</div>
-                          <div className="text-sm font-black text-slate-900 mt-0.5">
+                          <div className="text-[11px] text-[#5b6950] font-medium">Subtotal</div>
+                          <div className="text-sm font-black text-[#1a2610] mt-0.5 tabular-nums">
                             Rp {Number(item.subtotal).toLocaleString('id-ID')}
                           </div>
                         </div>
@@ -760,33 +760,33 @@ export default function OrderDetailPage({
                       return (
                         <div
                           key={idx}
-                          className="flex items-start gap-3 p-3 rounded-lg bg-slate-50/60 border border-slate-200/80"
+                          className="flex items-start gap-3 p-3 sm:p-3.5 rounded-xl bg-[#f4f5f1]/80 border border-[#dce1d6]"
                         >
                           {item.imageUrl ? (
                             <img
                               src={item.imageUrl}
                               alt={itemName}
-                              className="w-14 h-14 rounded-lg object-cover border border-slate-200 shrink-0 shadow-2xs"
+                              className="w-14 h-14 rounded-lg object-cover border border-[#dce1d6] shrink-0 shadow-2xs"
                             />
                           ) : (
-                            <div className="w-14 h-14 rounded-lg bg-emerald-50 text-emerald-800 flex items-center justify-center shrink-0 border border-emerald-100 text-xl font-bold shadow-2xs">
+                            <div className="w-14 h-14 rounded-lg bg-[#e2f2c8]/60 text-[#233414] flex items-center justify-center shrink-0 border border-[#c9e39e] text-xl font-bold shadow-2xs">
                               🚜
                             </div>
                           )}
 
                           <div className="min-w-0 flex-1">
-                            <h4 className="text-sm font-bold text-slate-900 leading-snug">{itemName}</h4>
-                            <div className="text-xs text-slate-500 mt-0.5">
+                            <h4 className="text-sm font-bold text-[#1a2610] leading-snug">{itemName}</h4>
+                            <div className="text-xs text-[#526046] mt-0.5 tabular-nums">
                               {itemQty} unit × Rp {itemPrice.toLocaleString('id-ID')} / {itemUnit}
                             </div>
-                            <div className="text-xs text-emerald-700 font-semibold mt-0.5">
+                            <div className="text-xs text-[#233414] font-semibold mt-0.5">
                               Durasi: {itemDuration} {itemUnit} (Mulai {orderData.startDate})
                             </div>
                           </div>
 
                           <div className="text-right shrink-0">
-                            <div className="text-[11px] text-slate-400 font-medium">Subtotal</div>
-                            <div className="text-sm font-black text-slate-900 mt-0.5">
+                            <div className="text-[11px] text-[#5b6950] font-medium">Subtotal</div>
+                            <div className="text-sm font-black text-[#1a2610] mt-0.5 tabular-nums">
                               Rp {itemSubtotal.toLocaleString('id-ID')}
                             </div>
                           </div>
@@ -797,14 +797,14 @@ export default function OrderDetailPage({
               </div>
 
               {/* Informasi Pengambilan / Lokasi Kebun */}
-              <div className="p-4 sm:p-5 bg-slate-50/60 border-t border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+              <div className="p-4 sm:p-5 bg-[#f4f5f1]/60 border-t border-[#dce1d6] grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
                 {/* Info Lokasi */}
-                <div className="p-3 bg-white rounded-lg border border-slate-200 space-y-1">
-                  <div className="text-[11px] font-bold uppercase text-slate-400 flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5 text-emerald-700" />
+                <div className="p-3.5 bg-white rounded-xl border border-[#dce1d6] space-y-1">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-[#526046] flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-[#233414]" />
                     <span>{isRental ? 'Lokasi Lahan Kebun Pertanian' : 'Lokasi Serah Terima & Kasir'}</span>
                   </div>
-                  <div className="text-slate-800 font-medium leading-relaxed">
+                  <div className="text-[#1a2610] font-medium leading-relaxed">
                     {isRental
                       ? orderData.lokasiLahan || orderData.farmLocationAddress || 'Wilayah Minahasa Utara'
                       : warehouseAddress}
@@ -815,7 +815,7 @@ export default function OrderDetailPage({
                         href={`https://www.google.com/maps?q=${orderData.farmLocationGps.lat},${orderData.farmLocationGps.lng}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-emerald-700 font-bold hover:underline inline-flex items-center gap-1 text-[11px]"
+                        className="text-[#233414] hover:text-[#344d15] font-bold hover:underline inline-flex items-center gap-1 text-[11px]"
                       >
                         <span>Buka Koordinat GPS di Google Maps</span>
                         <ExternalLink className="w-3 h-3" />
@@ -825,26 +825,26 @@ export default function OrderDetailPage({
                 </div>
 
                 {/* Catatan Pembeli */}
-                <div className="p-3 bg-white rounded-lg border border-slate-200 space-y-1">
-                  <div className="text-[11px] font-bold uppercase text-slate-400 flex items-center gap-1.5">
-                    <FileText className="w-3.5 h-3.5 text-emerald-700" />
+                <div className="p-3.5 bg-white rounded-xl border border-[#dce1d6] space-y-1">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-[#526046] flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5 text-[#233414]" />
                     <span>Catatan Pesanan</span>
                   </div>
-                  <div className="text-slate-800 italic">
+                  <div className="text-[#1a2610] italic">
                     {orderData.catatan || orderData.notes ? (
                       <span>{orderData.catatan || orderData.notes}</span>
                     ) : (
-                      <span className="text-slate-400">Tidak ada catatan khusus untuk pesanan ini.</span>
+                      <span className="text-[#5b6950]">Tidak ada catatan khusus untuk pesanan ini.</span>
                     )}
                   </div>
                 </div>
               </div>
 
               {/* Rincian Pembayaran */}
-              <div className="p-4 sm:p-5 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white">
+              <div className="p-4 sm:p-5 border-t border-[#dce1d6] flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white">
                 <div>
-                  <div className="text-xs text-slate-500">Metode Pembayaran:</div>
-                  <div className="text-xs font-bold text-slate-800 mt-0.5">
+                  <div className="text-xs text-[#526046]">Metode Pembayaran:</div>
+                  <div className="text-xs font-bold text-[#1a2610] mt-0.5">
                     {orderData.paymentMethod === 'CASH_KOPERASI' || isRental
                       ? 'Bayar Tunai di Kasir Koperasi'
                       : 'Transfer Bank'}
@@ -852,8 +852,8 @@ export default function OrderDetailPage({
                 </div>
 
                 <div className="text-left sm:text-right">
-                  <div className="text-xs text-slate-500">Total Pembayaran:</div>
-                  <div className="text-xl font-black text-emerald-800 tracking-tight mt-0.5">
+                  <div className="text-xs text-[#526046]">Total Pembayaran:</div>
+                  <div className="text-xl font-black text-[#233414] tracking-tight mt-0.5 tabular-nums">
                     Rp{' '}
                     {Number(
                       orderData.totalAmount ?? orderData.totalEstimasi ?? 0
@@ -863,8 +863,8 @@ export default function OrderDetailPage({
               </div>
 
               {/* Footer Actions */}
-              <div className="p-4 bg-slate-100/70 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2.5 text-xs">
-                <div className="text-slate-500 text-[11px]">
+              <div className="p-4 bg-[#EAEDE7]/70 border-t border-[#dce1d6] flex flex-wrap items-center justify-between gap-2.5 text-xs">
+                <div className="text-[#526046] text-[11px]">
                   Ada pertanyaan seputar pesanan ini? Hubungi langsung staf/admin koperasi.
                 </div>
 
@@ -884,15 +884,15 @@ export default function OrderDetailPage({
                   <button
                     type="button"
                     onClick={handleOpenWhatsApp}
-                    className="w-full sm:w-auto px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
+                    className="w-full sm:w-auto px-4 py-2 rounded-lg bg-[#233414] hover:bg-[#344d15] text-white font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
                   >
-                    <MessageCircle className="w-4 h-4 text-emerald-100" />
+                    <MessageCircle className="w-4 h-4 text-[#D4F63D]" />
                     <span>Chat Admin WhatsApp</span>
                   </button>
 
                   <Link
                     href={isRental ? '/sewa-alat' : '/toko'}
-                    className="w-full sm:w-auto px-4 py-2 rounded-lg border border-slate-300 hover:bg-white bg-slate-50 text-slate-700 font-bold text-xs transition text-center"
+                    className="w-full sm:w-auto px-4 py-2 rounded-lg border border-[#cfd6c9] hover:bg-[#f4f5f1] bg-white text-[#1a2610] font-bold text-xs transition text-center"
                   >
                     {isRental ? 'Sewa Alat Lain' : 'Beli Lagi'}
                   </Link>
@@ -906,7 +906,7 @@ export default function OrderDetailPage({
         {orderData &&
           ((!isRental && orderData.status === 'MENUNGGU_PEMBAYARAN') ||
             (isRental && orderData.status === 'MENUNGGU_PERSETUJUAN_ADMIN')) && (
-            <div className="sm:hidden fixed bottom-0 left-0 right-0 p-3 bg-white/95 backdrop-blur-md border-t border-slate-200 z-40 flex items-center gap-2 shadow-lg">
+            <div className="sm:hidden fixed bottom-0 left-0 right-0 p-3 bg-white/95 backdrop-blur-md border-t border-[#dce1d6] z-40 flex items-center gap-2 shadow-lg">
               <button
                 type="button"
                 onClick={() => setIsCancelModalOpen(true)}
@@ -918,9 +918,9 @@ export default function OrderDetailPage({
               <button
                 type="button"
                 onClick={handleOpenWhatsApp}
-                className="flex-1 py-2.5 px-3 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
+                className="flex-1 py-2.5 px-3 rounded-lg bg-[#233414] hover:bg-[#344d15] text-white font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
               >
-                <MessageCircle className="w-4 h-4 text-emerald-100" />
+                <MessageCircle className="w-4 h-4 text-[#D4F63D]" />
                 <span>Chat Admin WA</span>
               </button>
             </div>
@@ -935,18 +935,18 @@ export default function OrderDetailPage({
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md bg-white rounded-xl p-6 shadow-2xl border border-slate-100 space-y-4 animate-in zoom-in-95 duration-200"
+            className="w-full max-w-md bg-white rounded-2xl p-6 shadow-2xl border border-[#dce1d6] space-y-4 animate-in zoom-in-95 duration-200"
           >
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div className="flex items-center justify-between border-b border-[#dce1d6] pb-3">
               <div>
-                <h3 className="text-base font-bold text-slate-900">Beri Penilaian & Ulasan</h3>
-                <p className="text-xs text-slate-500">Bagikan kepuasan Anda setelah pesanan selesai diterima</p>
+                <h3 className="text-base font-bold text-[#1a2610]">Beri Penilaian & Ulasan</h3>
+                <p className="text-xs text-[#526046]">Bagikan kepuasan Anda setelah pesanan selesai diterima</p>
               </div>
             </div>
 
             <div className="space-y-3">
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1.5">Penilaian (Bintang 1 - 5):</label>
+                <label className="text-xs font-bold text-[#1a2610] block mb-1.5">Penilaian (Bintang 1 - 5):</label>
                 <div className="flex items-center gap-2">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
@@ -959,32 +959,32 @@ export default function OrderDetailPage({
                         className={`w-7 h-7 ${
                           star <= reviewRating
                             ? 'text-amber-400 fill-amber-400'
-                            : 'text-slate-200'
+                            : 'text-[#cfd6c9] fill-[#EAEDE7]'
                         }`}
                       />
                     </button>
                   ))}
-                  <span className="text-xs font-bold text-amber-700 ml-2">{reviewRating} dari 5 Bintang</span>
+                  <span className="text-xs font-bold text-amber-800 ml-2">{reviewRating} dari 5 Bintang</span>
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1.5">Ulasan Anda:</label>
+                <label className="text-xs font-bold text-[#1a2610] block mb-1.5">Ulasan Anda:</label>
                 <textarea
                   rows={3}
                   value={reviewComment}
                   onChange={(e) => setReviewComment(e.target.value)}
                   placeholder="Tulis ulasan mengenai kualitas komoditas, kesegaran, atau keramahan pelayanan koperasi..."
-                  className="w-full p-3 rounded-lg border border-slate-200 text-xs text-slate-800 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600 transition resize-none"
+                  className="w-full p-3 rounded-xl border border-[#cfd6c9] text-xs text-[#1a2610] placeholder:text-[#5b6950] bg-[#f4f5f1] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#233414]/20 focus:border-[#233414] transition resize-none"
                 />
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#dce1d6]">
               <button
                 type="button"
                 onClick={() => setReviewItem(null)}
-                className="px-4 py-2 rounded-lg border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                className="px-4 py-2 rounded-lg border border-[#cfd6c9] text-xs font-bold text-[#1a2610] hover:bg-[#f4f5f1] transition cursor-pointer"
               >
                 Batal
               </button>
@@ -992,7 +992,7 @@ export default function OrderDetailPage({
                 type="button"
                 disabled={isSubmittingReview}
                 onClick={handleSubmitReview}
-                className="px-4 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50 shadow-xs"
+                className="px-4 py-2 rounded-lg bg-[#233414] hover:bg-[#344d15] text-white text-xs font-bold flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50 shadow-xs"
               >
                 {isSubmittingReview ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
                 <span>Kirim Ulasan</span>
@@ -1010,22 +1010,22 @@ export default function OrderDetailPage({
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md bg-white rounded-xl p-5 sm:p-6 shadow-2xl border border-slate-100 space-y-4 animate-in zoom-in-95 duration-200"
+            className="w-full max-w-md bg-white rounded-2xl p-5 sm:p-6 shadow-2xl border border-[#dce1d6] space-y-4 animate-in zoom-in-95 duration-200"
           >
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-lg bg-red-50 text-red-600 flex items-center justify-center shrink-0">
                 <AlertCircle className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-slate-900">Batalkan Pesanan Ini?</h3>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <h3 className="text-base font-bold text-[#1a2610]">Batalkan Pesanan Ini?</h3>
+                <p className="text-xs text-[#526046] mt-0.5 leading-relaxed">
                   Pesanan akan dibatalkan secara permanen dan seluruh stok komoditas akan dikembalikan ke gudang koperasi.
                 </p>
               </div>
             </div>
 
             <div>
-              <label className="text-xs font-bold text-slate-700 block mb-1.5">
+              <label className="text-xs font-bold text-[#1a2610] block mb-1.5">
                 Alasan Pembatalan (Opsional):
               </label>
               <textarea
@@ -1033,16 +1033,16 @@ export default function OrderDetailPage({
                 value={cancelReason}
                 onChange={(e) => setCancelReason(e.target.value)}
                 placeholder="Contoh: Ingin mengubah jumlah pesanan, salah memilih komoditas, atau belum sempat ke kasir..."
-                className="w-full p-2.5 rounded-lg border border-slate-200 text-xs text-slate-800 bg-slate-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600 transition resize-none"
+                className="w-full p-2.5 rounded-lg border border-[#cfd6c9] text-xs text-[#1a2610] placeholder:text-[#5b6950] bg-[#f4f5f1] focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition resize-none"
               />
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#dce1d6]">
               <button
                 type="button"
                 disabled={isCanceling}
                 onClick={() => setIsCancelModalOpen(false)}
-                className="px-4 py-2 rounded-lg border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                className="px-4 py-2 rounded-lg border border-[#cfd6c9] text-xs font-bold text-[#1a2610] hover:bg-[#f4f5f1] transition cursor-pointer"
               >
                 Kembali
               </button>

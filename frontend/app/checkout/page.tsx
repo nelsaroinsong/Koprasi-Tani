@@ -18,19 +18,21 @@ function CheckoutDispatcher() {
   }, [router, searchParams]);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 text-center">
-      <Loader2 className="w-8 h-8 text-emerald-700 animate-spin" />
+    <div className="min-h-screen bg-[#f4f5f1] flex items-center justify-center p-6 text-center">
+      <Loader2 className="w-8 h-8 text-[#233414] animate-spin" />
     </div>
   );
 }
 
 export default function CheckoutPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 text-center">
-        <Loader2 className="w-8 h-8 text-emerald-700 animate-spin" />
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#f4f5f1] flex items-center justify-center p-6 text-center">
+          <Loader2 className="w-8 h-8 text-[#233414] animate-spin" />
+        </div>
+      }
+    >
       <CheckoutDispatcher />
     </Suspense>
   );

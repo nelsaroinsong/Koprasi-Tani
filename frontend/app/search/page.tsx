@@ -1,12 +1,11 @@
 'use client';
 
-import React, { useState, useEffect, Suspense, useMemo } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import AppHeader from '@/components/AppHeader';
 import {
   Search,
-  X,
   Store,
   Tractor,
   User as UserIcon,
@@ -15,11 +14,7 @@ import {
   Loader2,
   MapPin,
   Sparkles,
-  SlidersHorizontal,
   ChevronRight,
-  Tag,
-  ShieldCheck,
-  Package,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
@@ -134,53 +129,55 @@ function SearchPageContent() {
   const totalCount = data.counts.total;
 
   return (
-    <div className="min-h-screen bg-slate-50/70 pb-20">
+    <div className="min-h-screen bg-[#f4f5f1] pb-20">
       <AppHeader />
 
       {/* Header Banner Pencarian */}
-      <div className="bg-white border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      <div className="bg-white border-b border-[#dce1d6]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8">
           <div className="max-w-3xl">
-            {/* Breadcrumb sederhana */}
-            <div className="flex items-center gap-1.5 text-xs text-slate-500 mb-2">
-              <Link href="/" className="hover:text-emerald-700 transition">
+            {/* Breadcrumb */}
+            <div className="flex items-center gap-1.5 text-xs text-[#526046] mb-2">
+              <Link href="/" className="hover:text-[#344d15] transition font-semibold">
                 Beranda
               </Link>
-              <ChevronRight className="w-3 h-3 text-slate-400" />
-              <span className="text-slate-800 font-semibold">Pencarian</span>
+              <ChevronRight className="w-3 h-3 text-[#cfd6c9]" />
+              <span className="text-[#1a2610] font-bold">Pencarian</span>
             </div>
 
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-slate-900 tracking-tight">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-[#1a2610] tracking-tight">
               {currentQuery ? (
                 <>
                   Hasil pencarian untuk{' '}
-                  <span className="text-emerald-700">&quot;{currentQuery}&quot;</span>
+                  <span className="text-[#344d15]">&quot;{currentQuery}&quot;</span>
                 </>
               ) : (
                 'Pencarian Ekosistem Koperasi'
               )}
             </h1>
 
-            <p className="text-xs sm:text-sm text-slate-500 mt-1">
+            <p className="text-xs sm:text-sm text-[#526046] mt-1">
               Temukan komoditas panen petani lokal, penyewaan alsintan modern, atau akun mitra koperasi.
             </p>
           </div>
 
           {/* Tab Filter Navigasi */}
-          <div className="flex items-center gap-2 overflow-x-auto pt-4 mt-5 border-t border-slate-100 no-scrollbar">
+          <div className="flex items-center gap-2 overflow-x-auto pt-4 mt-5 border-t border-[#EAEDE7] no-scrollbar">
             <button
               type="button"
               onClick={() => handleTabChange('all')}
               className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
                 activeTab === 'all'
-                  ? 'bg-emerald-700 text-white shadow-xs'
-                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                  ? 'bg-[#233414] text-white'
+                  : 'bg-[#EAEDE7] hover:bg-[#dce1d6] text-[#526046] hover:text-[#1a2610]'
               }`}
             >
               <span>Semua</span>
               <span
-                className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                  activeTab === 'all' ? 'bg-emerald-800 text-emerald-100' : 'bg-white text-slate-600'
+                className={`px-1.5 py-0.5 rounded-full text-[10px] tabular-nums ${
+                  activeTab === 'all'
+                    ? 'bg-[#344d15] text-[#D4F63D]'
+                    : 'bg-white border border-[#cfd6c9] text-[#1a2610]'
                 }`}
               >
                 {data.counts.total}
@@ -192,15 +189,17 @@ function SearchPageContent() {
               onClick={() => handleTabChange('products')}
               className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
                 activeTab === 'products'
-                  ? 'bg-emerald-700 text-white shadow-xs'
-                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                  ? 'bg-[#233414] text-white'
+                  : 'bg-[#EAEDE7] hover:bg-[#dce1d6] text-[#526046] hover:text-[#1a2610]'
               }`}
             >
-              <Store className="w-3.5 h-3.5" />
+              <Store className={`w-3.5 h-3.5 ${activeTab === 'products' ? 'text-[#D4F63D]' : ''}`} />
               <span>Toko Online</span>
               <span
-                className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                  activeTab === 'products' ? 'bg-emerald-800 text-emerald-100' : 'bg-white text-slate-600'
+                className={`px-1.5 py-0.5 rounded-full text-[10px] tabular-nums ${
+                  activeTab === 'products'
+                    ? 'bg-[#344d15] text-[#D4F63D]'
+                    : 'bg-white border border-[#cfd6c9] text-[#1a2610]'
                 }`}
               >
                 {data.counts.products}
@@ -212,15 +211,17 @@ function SearchPageContent() {
               onClick={() => handleTabChange('equipments')}
               className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
                 activeTab === 'equipments'
-                  ? 'bg-emerald-700 text-white shadow-xs'
-                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                  ? 'bg-[#233414] text-white'
+                  : 'bg-[#EAEDE7] hover:bg-[#dce1d6] text-[#526046] hover:text-[#1a2610]'
               }`}
             >
-              <Tractor className="w-3.5 h-3.5" />
+              <Tractor className={`w-3.5 h-3.5 ${activeTab === 'equipments' ? 'text-[#D4F63D]' : ''}`} />
               <span>Sewa Alat</span>
               <span
-                className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                  activeTab === 'equipments' ? 'bg-emerald-800 text-emerald-100' : 'bg-white text-slate-600'
+                className={`px-1.5 py-0.5 rounded-full text-[10px] tabular-nums ${
+                  activeTab === 'equipments'
+                    ? 'bg-[#344d15] text-[#D4F63D]'
+                    : 'bg-white border border-[#cfd6c9] text-[#1a2610]'
                 }`}
               >
                 {data.counts.equipments}
@@ -232,15 +233,17 @@ function SearchPageContent() {
               onClick={() => handleTabChange('users')}
               className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
                 activeTab === 'users'
-                  ? 'bg-emerald-700 text-white shadow-xs'
-                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                  ? 'bg-[#233414] text-white'
+                  : 'bg-[#EAEDE7] hover:bg-[#dce1d6] text-[#526046] hover:text-[#1a2610]'
               }`}
             >
-              <UserIcon className="w-3.5 h-3.5" />
+              <UserIcon className={`w-3.5 h-3.5 ${activeTab === 'users' ? 'text-[#D4F63D]' : ''}`} />
               <span>Akun & Petani</span>
               <span
-                className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                  activeTab === 'users' ? 'bg-emerald-800 text-emerald-100' : 'bg-white text-slate-600'
+                className={`px-1.5 py-0.5 rounded-full text-[10px] tabular-nums ${
+                  activeTab === 'users'
+                    ? 'bg-[#344d15] text-[#D4F63D]'
+                    : 'bg-white border border-[#cfd6c9] text-[#1a2610]'
                 }`}
               >
                 {data.counts.users}
@@ -255,42 +258,42 @@ function SearchPageContent() {
         {/* Loading Spinner */}
         {isLoading && (
           <div className="py-20 flex flex-col items-center justify-center gap-2">
-            <Loader2 className="w-8 h-8 text-emerald-700 animate-spin" />
-            <span className="text-xs text-slate-500 font-semibold">Loading...</span>
+            <Loader2 className="w-8 h-8 text-[#233414] animate-spin" />
+            <span className="text-xs text-[#526046] font-semibold">Memuat hasil pencarian...</span>
           </div>
         )}
 
         {/* Belum Ada Input Pencarian */}
         {!isLoading && !currentQuery && (
-          <div className="bg-white border border-slate-200 rounded-3xl p-8 sm:p-14 text-center max-w-lg mx-auto shadow-2xs">
-            <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center mx-auto mb-4 border border-emerald-100 shadow-2xs">
+          <div className="bg-white border border-[#dce1d6] rounded-2xl p-8 sm:p-14 text-center max-w-lg mx-auto">
+            <div className="w-14 h-14 rounded-2xl bg-[#e2f2c8] text-[#233414] flex items-center justify-center mx-auto mb-4 border border-[#c9e39e]">
               <Sparkles className="w-7 h-7" />
             </div>
-            <h2 className="text-base sm:text-lg font-extrabold text-slate-900">
+            <h2 className="text-base sm:text-lg font-extrabold text-[#1a2610]">
               Mulai Pencarian Terpadu
             </h2>
-            <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-xs mx-auto">
-              Ketik kata kunci pada form di atas untuk menelusuri hasil komoditas, sewa alat, dan profil pengguna.
+            <p className="text-xs sm:text-sm text-[#526046] mt-1 max-w-xs mx-auto">
+              Ketik kata kunci pada bilah pencarian di atas untuk menelusuri hasil komoditas, sewa alat, dan profil pengguna.
             </p>
           </div>
         )}
 
-        {/* State Tidak Ditemukan (Radar Concentric Rings Mirip Gambar 1) */}
+        {/* State Tidak Ditemukan */}
         {!isLoading && currentQuery && totalCount === 0 && (
-          <div className="bg-white border border-slate-200 rounded-3xl p-8 sm:p-14 text-center max-w-lg mx-auto shadow-2xs">
+          <div className="bg-white border border-[#dce1d6] rounded-2xl p-8 sm:p-14 text-center max-w-lg mx-auto">
             <div className="relative w-32 h-32 flex items-center justify-center mx-auto mb-4">
-              <div className="absolute inset-0 rounded-full border border-slate-100 animate-pulse pointer-events-none" />
-              <div className="absolute inset-4 rounded-full border border-slate-200/60 pointer-events-none" />
-              <div className="absolute inset-8 rounded-full border border-slate-200 pointer-events-none" />
-              <div className="w-14 h-14 rounded-2xl bg-white shadow-md border border-slate-200 flex items-center justify-center text-slate-400 relative z-10">
-                <Search className="w-6 h-6 text-slate-400 stroke-[2.2]" />
+              <div className="absolute inset-0 rounded-full border border-[#EAEDE7] animate-pulse pointer-events-none" />
+              <div className="absolute inset-4 rounded-full border border-[#dce1d6] pointer-events-none" />
+              <div className="absolute inset-8 rounded-full border border-[#cfd6c9] pointer-events-none" />
+              <div className="w-14 h-14 rounded-2xl bg-[#e2f2c8] border border-[#c9e39e] flex items-center justify-center text-[#233414] relative z-10">
+                <Search className="w-6 h-6 text-[#233414] stroke-[2.2]" />
               </div>
             </div>
 
-            <h2 className="text-base sm:text-lg font-bold text-slate-900">
-              No results found
+            <h2 className="text-base sm:text-lg font-bold text-[#1a2610]">
+              Hasil Tidak Ditemukan
             </h2>
-            <p className="text-xs sm:text-sm text-slate-500 mt-1 mb-5 max-w-xs mx-auto">
+            <p className="text-xs sm:text-sm text-[#526046] mt-1 mb-5 max-w-xs mx-auto">
               Pencarian untuk &quot;{currentQuery}&quot; tidak menemukan hasil. Periksa ejaan atau gunakan kata kunci lain.
             </p>
 
@@ -300,9 +303,9 @@ function SearchPageContent() {
                 setSearchTerm('');
                 router.push('/search');
               }}
-              className="px-4 py-2 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold transition shadow-2xs cursor-pointer hover:border-slate-400"
+              className="px-4 py-2 rounded-xl bg-[#233414] hover:bg-[#344d15] text-white text-xs font-semibold transition cursor-pointer"
             >
-              Clear search
+              Bersihkan Pencarian
             </button>
           </div>
         )}
@@ -310,13 +313,13 @@ function SearchPageContent() {
         {/* Tampilan Hasil Pencarian */}
         {!isLoading && currentQuery && totalCount > 0 && (
           <div className="space-y-8">
-            {/* 1. SEKSI AKUN & PETANI (Muncul jika Tab = 'all' atau 'users') */}
+            {/* 1. SEKSI AKUN & PETANI */}
             {(activeTab === 'all' || activeTab === 'users') && data.users.length > 0 && (
               <div>
                 <div className="flex items-center justify-between mb-3.5">
                   <div className="flex items-center gap-2">
-                    <UserIcon className="w-4 h-4 text-emerald-700" />
-                    <h2 className="text-sm sm:text-base font-extrabold text-slate-900">
+                    <UserIcon className="w-4 h-4 text-[#233414]" />
+                    <h2 className="text-sm sm:text-base font-extrabold text-[#1a2610]">
                       Akun & Petani Mitra ({data.users.length})
                     </h2>
                   </div>
@@ -324,7 +327,7 @@ function SearchPageContent() {
                     <button
                       type="button"
                       onClick={() => handleTabChange('users')}
-                      className="text-xs font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-0.5"
+                      className="text-xs font-bold text-[#233414] hover:text-[#344d15] flex items-center gap-0.5 cursor-pointer"
                     >
                       <span>Lihat Semua Akun</span>
                       <ChevronRight className="w-3.5 h-3.5" />
@@ -337,33 +340,32 @@ function SearchPageContent() {
                     <Link
                       key={u.id}
                       href={u.role === 'PETANI' ? `/toko/petani/${u.id}` : `/profile`}
-                      className="bg-white border border-slate-200/90 hover:border-emerald-300 rounded-2xl p-4 shadow-2xs hover:shadow-md transition-all flex items-center justify-between group cursor-pointer"
+                      className="bg-white border border-[#dce1d6] hover:border-[#344d15] rounded-2xl p-4 transition-colors flex items-center justify-between group cursor-pointer"
                     >
                       <div className="flex items-center gap-3.5 min-w-0">
-                        {/* Avatar Profil Akun */}
-                        <Avatar className="w-12 h-12 rounded-full border-2 border-white shadow-2xs shrink-0 ring-1 ring-slate-100">
+                        <Avatar className="w-12 h-12 rounded-full border border-[#cfd6c9] shrink-0">
                           <AvatarImage src={u.avatarUrl || ''} alt={u.name} className="object-cover" />
-                          <AvatarFallback className="bg-emerald-700 text-white font-bold text-sm">
+                          <AvatarFallback className="bg-[#233414] text-[#D4F63D] font-bold text-sm">
                             {u.name ? u.name.slice(0, 2).toUpperCase() : 'U'}
                           </AvatarFallback>
                         </Avatar>
 
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5">
-                            <span className="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-emerald-700 transition truncate">
+                            <span className="text-xs sm:text-sm font-bold text-[#1a2610] group-hover:text-[#344d15] transition truncate">
                               {u.name}
                             </span>
                             {u.isVerified && (
-                              <CheckCircle2 className="w-4 h-4 text-blue-500 fill-blue-500 text-white shrink-0" />
+                              <CheckCircle2 className="w-4 h-4 text-[#344d15] fill-[#e2f2c8] shrink-0" />
                             )}
                           </div>
 
-                          <div className="flex items-center gap-2 text-[11px] text-slate-500 mt-0.5">
+                          <div className="flex items-center gap-2 text-[11px] text-[#526046] mt-0.5">
                             <span
-                              className={`px-2 py-0.5 rounded-md font-semibold text-[10px] ${
+                              className={`px-2 py-0.5 rounded-md font-semibold text-[10px] border ${
                                 u.role === 'PETANI'
-                                  ? 'bg-emerald-50 text-emerald-800 border border-emerald-200/60'
-                                  : 'bg-blue-50 text-blue-800 border border-blue-200/60'
+                                  ? 'bg-[#e2f2c8] text-[#233414] border-[#c9e39e]'
+                                  : 'bg-[#EAEDE7] text-[#1a2610] border-[#cfd6c9]'
                               }`}
                             >
                               {u.role === 'PETANI' ? 'Petani Mitra' : 'Anggota Pembeli'}
@@ -371,15 +373,15 @@ function SearchPageContent() {
                           </div>
 
                           {u.address && (
-                            <div className="text-[11px] text-slate-400 mt-1 truncate flex items-center gap-1">
-                              <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+                            <div className="text-[11px] text-[#5b6950] mt-1 truncate flex items-center gap-1">
+                              <MapPin className="w-3 h-3 text-[#5b6950] shrink-0" />
                               <span className="truncate">{u.address}</span>
                             </div>
                           )}
                         </div>
                       </div>
 
-                      <div className="w-8 h-8 rounded-full bg-slate-50 group-hover:bg-emerald-50 text-slate-400 group-hover:text-emerald-700 flex items-center justify-center transition shrink-0 ml-2">
+                      <div className="w-8 h-8 rounded-full bg-[#f4f5f1] group-hover:bg-[#233414] text-[#526046] group-hover:text-[#D4F63D] flex items-center justify-center transition shrink-0 ml-2 border border-[#cfd6c9] group-hover:border-[#233414]">
                         <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                       </div>
                     </Link>
@@ -388,13 +390,13 @@ function SearchPageContent() {
               </div>
             )}
 
-            {/* 2. SEKSI KOMODITAS TOKO ONLINE (Muncul jika Tab = 'all' atau 'products') */}
+            {/* 2. SEKSI KOMODITAS TOKO ONLINE */}
             {(activeTab === 'all' || activeTab === 'products') && data.products.length > 0 && (
               <div>
                 <div className="flex items-center justify-between mb-3.5">
                   <div className="flex items-center gap-2">
-                    <Store className="w-4 h-4 text-emerald-700" />
-                    <h2 className="text-sm sm:text-base font-extrabold text-slate-900">
+                    <Store className="w-4 h-4 text-[#233414]" />
+                    <h2 className="text-sm sm:text-base font-extrabold text-[#1a2610]">
                       Komoditas Toko Online ({data.products.length})
                     </h2>
                   </div>
@@ -402,7 +404,7 @@ function SearchPageContent() {
                     <button
                       type="button"
                       onClick={() => handleTabChange('products')}
-                      className="text-xs font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-0.5"
+                      className="text-xs font-bold text-[#233414] hover:text-[#344d15] flex items-center gap-0.5 cursor-pointer"
                     >
                       <span>Lihat Semua Produk</span>
                       <ChevronRight className="w-3.5 h-3.5" />
@@ -410,7 +412,7 @@ function SearchPageContent() {
                   )}
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5 sm:gap-3.5 lg:gap-4">
                   {data.products.map((prod) => {
                     const isOutOfStock =
                       !prod.isTersedia || Number(prod.stok || 0) <= 0;
@@ -422,15 +424,15 @@ function SearchPageContent() {
                           if (isOutOfStock) return;
                           router.push(`/toko/${prod.id}`);
                         }}
-                        className={`border rounded-2xl overflow-hidden transition-all duration-200 flex flex-col justify-between h-full ${
+                        className={`border rounded-xl sm:rounded-2xl overflow-hidden transition-colors duration-150 flex flex-col justify-between h-full ${
                           isOutOfStock
-                            ? 'bg-slate-100/90 border-slate-300/80 opacity-75 cursor-not-allowed shadow-none'
-                            : 'bg-white border-slate-200/90 shadow-2xs hover:shadow-md hover:-translate-y-0.5 cursor-pointer group'
+                            ? 'bg-[#f4f5f1] border-[#d5dccf] opacity-80 cursor-not-allowed'
+                            : 'bg-white border-[#dce1d6] hover:border-[#344d15] cursor-pointer group'
                         }`}
                       >
                         <div>
-                          {/* Product Image 1:1 Aspect Ratio */}
-                          <div className="relative aspect-square w-full shrink-0 bg-slate-100 overflow-hidden">
+                          {/* Product Image */}
+                          <div className="relative aspect-square sm:aspect-[4/3] w-full shrink-0 bg-[#EAEDE7] overflow-hidden border-b border-[#EAEDE7]">
                             <img
                               src={
                                 prod.imageUrl ||
@@ -439,8 +441,8 @@ function SearchPageContent() {
                               alt={prod.nama}
                               className={`w-full h-full object-cover transition-transform duration-300 ${
                                 isOutOfStock
-                                  ? 'grayscale contrast-90'
-                                  : 'group-hover:scale-105'
+                                  ? 'grayscale opacity-75'
+                                  : 'group-hover:scale-[1.03]'
                               }`}
                               onError={(e) => {
                                 (e.target as HTMLImageElement).src =
@@ -448,23 +450,23 @@ function SearchPageContent() {
                               }}
                             />
                             {isOutOfStock && (
-                              <div className="absolute top-1.5 right-1.5 bg-white/95 backdrop-blur-xs text-rose-700 border border-rose-200 text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded shadow-2xs flex items-center gap-1 z-10">
-                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                                <span>Stok Habis</span>
+                              <div className="absolute top-1.5 right-1.5 bg-[#ffedea] text-[#831c1e] border border-red-200 text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-1 z-10">
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#c4242a]" />
+                                <span>Habis</span>
                               </div>
                             )}
-                            <div className="absolute bottom-1.5 left-1.5 bg-emerald-700/95 backdrop-blur-xs text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded shadow-2xs max-w-[80%] truncate z-10">
+                            <div className="absolute top-1.5 left-1.5 bg-[#233414] text-[#D4F63D] text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 sm:px-2 sm:py-0.5 rounded-md max-w-[65%] truncate z-10">
                               {prod.kategori}
                             </div>
                           </div>
 
                           {/* Product Details */}
-                          <div className="p-2.5 sm:p-3 flex flex-col justify-between gap-1">
+                          <div className="p-2.5 sm:p-3.5 flex flex-col justify-between gap-1">
                             <h3
-                              className={`text-xs font-semibold tracking-tight leading-tight line-clamp-2 h-[2.6em] transition-colors ${
+                              className={`text-xs sm:text-sm font-bold tracking-tight leading-snug line-clamp-2 transition-colors ${
                                 isOutOfStock
-                                  ? 'text-slate-500'
-                                  : 'text-slate-800 group-hover:text-emerald-700'
+                                  ? 'text-[#68785b]'
+                                  : 'text-[#1a2610] group-hover:text-[#344d15]'
                               }`}
                               title={prod.nama}
                             >
@@ -472,18 +474,18 @@ function SearchPageContent() {
                             </h3>
 
                             {prod.petani?.name && (
-                              <div className="text-[10px] text-slate-400 truncate">
+                              <div className="text-[10px] sm:text-[11px] text-[#5b6950] truncate">
                                 Oleh {prod.petani.name}
                               </div>
                             )}
 
-                            <div className="text-xs sm:text-sm font-bold text-emerald-800 mt-1">
+                            <div className="text-xs sm:text-sm font-extrabold text-[#233414] mt-1 tabular-nums">
                               Rp {Number(prod.hargaPerSatuan).toLocaleString('id-ID')}
-                              <span className="text-[10px] font-normal text-slate-500"> / {prod.satuan}</span>
+                              <span className="text-[10px] font-medium text-[#5b6950]"> /{prod.satuan}</span>
                             </div>
 
                             {isOutOfStock && (
-                              <div className="text-[10px] font-bold text-rose-600 mt-0.5">
+                              <div className="text-[10px] font-bold text-[#c4242a] mt-0.5">
                                 Stok Habis (0)
                               </div>
                             )}
@@ -496,13 +498,13 @@ function SearchPageContent() {
               </div>
             )}
 
-            {/* 3. SEKSI SEWA ALAT (Muncul jika Tab = 'all' atau 'equipments') */}
+            {/* 3. SEKSI SEWA ALAT */}
             {(activeTab === 'all' || activeTab === 'equipments') && data.equipments.length > 0 && (
               <div>
                 <div className="flex items-center justify-between mb-3.5">
                   <div className="flex items-center gap-2">
-                    <Tractor className="w-4 h-4 text-amber-700" />
-                    <h2 className="text-sm sm:text-base font-extrabold text-slate-900">
+                    <Tractor className="w-4 h-4 text-[#233414]" />
+                    <h2 className="text-sm sm:text-base font-extrabold text-[#1a2610]">
                       Sewa Alat Pertanian ({data.equipments.length})
                     </h2>
                   </div>
@@ -510,7 +512,7 @@ function SearchPageContent() {
                     <button
                       type="button"
                       onClick={() => handleTabChange('equipments')}
-                      className="text-xs font-bold text-amber-700 hover:text-amber-800 flex items-center gap-0.5"
+                      className="text-xs font-bold text-[#233414] hover:text-[#344d15] flex items-center gap-0.5 cursor-pointer"
                     >
                       <span>Lihat Semua Alat</span>
                       <ChevronRight className="w-3.5 h-3.5" />
@@ -518,43 +520,43 @@ function SearchPageContent() {
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4">
                   {data.equipments.map((item) => (
                     <div
                       key={item.id}
                       onClick={() => router.push('/sewa-alat')}
-                      className="bg-white border border-slate-200/90 rounded-2xl overflow-hidden shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group cursor-pointer"
+                      className="bg-white border border-[#dce1d6] hover:border-[#344d15] rounded-xl sm:rounded-2xl overflow-hidden transition-colors flex flex-col justify-between group cursor-pointer"
                     >
                       <div>
-                        <div className="relative aspect-video w-full bg-slate-100 overflow-hidden">
+                        <div className="relative aspect-square sm:aspect-video w-full bg-[#EAEDE7] overflow-hidden border-b border-[#EAEDE7]">
                           {item.imageUrl ? (
                             <img
                               src={item.imageUrl}
                               alt={item.nama}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300"
                             />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-amber-50 text-amber-600">
+                            <div className="w-full h-full flex items-center justify-center bg-[#EAEDE7] text-[#233414]">
                               <Tractor className="w-10 h-10" />
                             </div>
                           )}
-                          <div className="absolute bottom-1.5 left-1.5 bg-amber-700/95 backdrop-blur-xs text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded shadow-2xs max-w-[80%] truncate">
+                          <div className="absolute top-1.5 left-1.5 bg-[#233414] text-[#D4F63D] text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 sm:px-2 sm:py-0.5 rounded-md max-w-[80%] truncate">
                             {item.kategori}
                           </div>
                         </div>
 
-                        <div className="p-3">
-                          <h3 className="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-amber-700 transition truncate">
+                        <div className="p-2.5 sm:p-3.5">
+                          <h3 className="text-xs sm:text-sm font-bold text-[#1a2610] group-hover:text-[#344d15] transition truncate">
                             {item.nama}
                           </h3>
                           {item.spesifikasi && (
-                            <p className="text-[11px] text-slate-400 line-clamp-1 mt-0.5">
+                            <p className="text-[11px] text-[#5b6950] line-clamp-1 mt-0.5">
                               {item.spesifikasi}
                             </p>
                           )}
-                          <div className="text-xs sm:text-sm font-extrabold text-amber-800 mt-2">
+                          <div className="text-xs sm:text-sm font-extrabold text-[#233414] mt-1.5 sm:mt-2 tabular-nums">
                             Rp {Number(item.hargaSewa).toLocaleString('id-ID')}
-                            <span className="text-[10px] font-normal text-slate-500"> / {item.satuanSewa}</span>
+                            <span className="text-[10px] font-medium text-[#5b6950]"> /{item.satuanSewa}</span>
                           </div>
                         </div>
                       </div>
@@ -574,8 +576,8 @@ export default function SearchPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-          <Loader2 className="w-8 h-8 text-emerald-700 animate-spin" />
+        <div className="min-h-screen bg-[#f4f5f1] flex items-center justify-center">
+          <Loader2 className="w-8 h-8 text-[#233414] animate-spin" />
         </div>
       }
     >

@@ -325,35 +325,45 @@ export default function SewaAlatPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="min-h-screen bg-[#f4f5f1] flex flex-col font-sans selection:bg-[#D4F63D] selection:text-slate-950">
       <AppHeader activePage="sewa-alat" />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-3.5 sm:py-6">
-        {/* Header Title & Search Toolbar (Mirip dengan Toko Online) */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 pb-24 lg:pb-12">
+        {/* Header Title & Search Toolbar */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 mb-3.5 sm:mb-5">
           <div>
-            <h1 className="text-base sm:text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight leading-snug">
+            <h1 className="text-lg sm:text-2xl lg:text-3xl font-bold text-[#1a2610] tracking-tight leading-tight">
               Sewa Alat Pertanian
             </h1>
-            <p className="text-[11px] sm:text-xs text-slate-500 mt-1 max-w-2xl">
+            <p className="text-xs sm:text-[13px] text-[#526046] mt-1 max-w-2xl leading-relaxed">
               Penyewaan mesin dan alat pertanian modern untuk pengolahan lahan dan panen anggota Koperasi Sinar Pagi Sejahtera.
             </p>
           </div>
 
           <div className="relative w-full md:w-72 lg:w-80 shrink-0">
-            <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#68785b] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               placeholder="Cari traktor, kultivator, drone, pemipil..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 sm:py-2 text-[11px] sm:text-xs bg-white border border-slate-200 rounded-lg sm:rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600 shadow-2xs"
+              className="w-full h-9 sm:h-10 pl-9 sm:pl-10 pr-8 text-xs sm:text-[13px] bg-white border border-[#cfd6c9] rounded-xl text-[#1a2610] placeholder:text-[#68785b] focus:outline-none focus:border-[#233414] focus:ring-1 focus:ring-[#233414] transition-colors"
             />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-[#EAEDE7] hover:bg-[#cfd6c9] text-[#233414] flex items-center justify-center transition-colors cursor-pointer"
+                title="Bersihkan pencarian"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Kategori Navigation & Filter Status (Tepat di bawah title seperti Toko Online) */}
-        <div className="flex items-center justify-between gap-2 overflow-x-auto pb-2 mb-4 sm:mb-5 no-scrollbar">
+        {/* Kategori Navigation & Filter Status */}
+        <div className="flex items-center justify-between gap-2 overflow-x-auto pb-2 mb-4 sm:mb-6 no-scrollbar">
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {dynamicKategoriTabs.map((tab) => {
               const active = selectedKategori.toLowerCase().trim() === tab.key.toLowerCase().trim();
@@ -362,10 +372,10 @@ export default function SewaAlatPage() {
                   key={tab.key}
                   type="button"
                   onClick={() => setSelectedKategori(tab.key)}
-                  className={`px-3 sm:px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer border shadow-2xs shrink-0 ${
+                  className={`h-8 sm:h-9 px-3 sm:px-4 rounded-lg sm:rounded-xl text-xs sm:text-[13px] whitespace-nowrap transition-colors cursor-pointer border shrink-0 flex items-center gap-1.5 ${
                     active
-                      ? 'bg-emerald-700 text-white border-emerald-700 font-bold shadow-xs'
-                      : 'bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-900 border-slate-200'
+                      ? 'bg-[#233414] text-white border-[#233414] font-semibold'
+                      : 'bg-white text-[#233414] hover:bg-[#EAEDE7] border-[#cfd6c9] font-medium'
                   }`}
                 >
                   {tab.label}
@@ -374,27 +384,27 @@ export default function SewaAlatPage() {
             })}
           </div>
 
-          <label className="flex items-center gap-1.5 sm:gap-2 text-xs font-medium text-slate-600 hover:text-slate-900 cursor-pointer select-none shrink-0 ml-auto pl-2">
+          <label className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-[13px] font-medium text-[#526046] hover:text-[#1a2610] cursor-pointer select-none shrink-0 ml-auto pl-2">
             <input
               type="checkbox"
               checked={onlyAvailable}
               onChange={(e) => setOnlyAvailable(e.target.checked)}
-              className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded text-emerald-700 focus:ring-emerald-600 border-slate-300 cursor-pointer"
+              className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded accent-[#233414] text-[#233414] focus:ring-[#233414] border-[#cfd6c9] cursor-pointer"
             />
-            <span className="text-[11px] sm:text-xs">Hanya yang Siap Pakai</span>
+            <span className="text-[11px] sm:text-xs font-semibold">Hanya yang Siap Pakai</span>
           </label>
         </div>
 
         {/* State Kosong / Grid Alat */}
         {filteredEquipments.length === 0 ? (
-          <div className="p-12 text-center bg-white rounded-3xl border border-slate-200 shadow-2xs flex flex-col items-center">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center mb-3">
-              <Tractor className="w-6 h-6 text-emerald-600" />
+          <div className="bg-white border border-[#dce1d6] rounded-2xl sm:rounded-3xl p-6 sm:p-12 text-center flex flex-col items-center justify-center min-h-[240px] sm:min-h-[300px]">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-[#f4f5f1] border border-[#dce1d6] text-[#233414] flex items-center justify-center mb-3 sm:mb-4">
+              <Tractor className="w-5 h-5 sm:w-6 sm:h-6 text-[#344d15]" />
             </div>
-            <h3 className="text-sm font-bold text-slate-800">
+            <h3 className="text-sm sm:text-base lg:text-lg font-bold text-[#1a2610]">
               Tidak ada alat pertanian yang cocok
             </h3>
-            <p className="text-xs text-slate-500 mt-1 max-w-sm mb-4">
+            <p className="text-xs sm:text-[13px] text-[#526046] mt-1 max-w-sm mb-4 leading-relaxed">
               Silakan gunakan kata kunci pencarian lain atau ubah filter kategori.
             </p>
             <button
@@ -403,26 +413,26 @@ export default function SewaAlatPage() {
                 setSelectedKategori('SEMUA');
                 setOnlyAvailable(false);
               }}
-              className="py-2 px-4 rounded-xl bg-emerald-700 text-white font-bold text-xs hover:bg-emerald-800 transition cursor-pointer"
+              className="py-2 px-4 rounded-xl bg-[#233414] hover:bg-[#344d15] text-white font-semibold text-xs transition-colors cursor-pointer"
             >
               Reset Filter
             </button>
           </div>
         ) : (
           /* Grid Sewa Alat - Klik Card Masuk ke Halaman Info Detail /sewa-alat/[id] */
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-3.5 md:gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5 sm:gap-3.5 lg:gap-4">
             {filteredEquipments.map((item) => {
               const isOutOfStock = !item.isTersedia || (item.stokTersedia !== undefined && item.stokTersedia <= 0);
               const remainingStock = item.stokTersedia !== undefined ? item.stokTersedia : (item.isTersedia ? (item.stokUnit || 1) : 0);
 
               return (
-                <div
+                <article
                   key={item.id}
                   onClick={() => router.push(`/sewa-alat/${item.id}`)}
-                  className={`border rounded-2xl overflow-hidden shadow-2xs transition-all duration-200 flex flex-col justify-between group cursor-pointer h-full ${
+                  className={`border rounded-xl sm:rounded-2xl overflow-hidden transition-colors duration-150 flex flex-col justify-between group cursor-pointer h-full ${
                     isOutOfStock
-                      ? 'bg-slate-100/90 border-slate-300/80 opacity-75'
-                      : 'bg-white border-slate-200/90 hover:shadow-md hover:-translate-y-0.5'
+                      ? 'bg-[#f4f5f1] border-[#d5dccf]'
+                      : 'bg-white border-[#dce1d6] hover:border-[#344d15]'
                   }`}
                   title={
                     isOutOfStock
@@ -431,11 +441,8 @@ export default function SewaAlatPage() {
                   }
                 >
                   <div>
-                    {/* Top Image Section with Badges - Strict 1:1 Aspect Ratio */}
-                    <div
-                      className="relative aspect-square w-full shrink-0 bg-slate-100 overflow-hidden"
-                      style={{ aspectRatio: '1 / 1' }}
-                    >
+                    {/* Top Image Section with Badges */}
+                    <div className="relative aspect-square sm:aspect-[4/3] w-full shrink-0 bg-[#EAEDE7] overflow-hidden border-b border-[#EAEDE7]">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={
@@ -443,8 +450,10 @@ export default function SewaAlatPage() {
                           'https://picsum.photos/seed/sewa-alat-koperasi/600/600'
                         }
                         alt={item.nama}
+                        loading="lazy"
+                        decoding="async"
                         className={`w-full h-full object-cover transition-transform duration-300 ${
-                          isOutOfStock ? 'grayscale contrast-90' : 'group-hover:scale-105'
+                          isOutOfStock ? 'grayscale opacity-75' : 'group-hover:scale-[1.03]'
                         }`}
                         onError={(e) => {
                           (e.target as HTMLImageElement).src =
@@ -452,31 +461,31 @@ export default function SewaAlatPage() {
                         }}
                       />
 
-                      {/* Status Badge di Kanan Atas */}
-                      {isOutOfStock ? (
-                        <div className="absolute top-1.5 right-1.5 bg-slate-900/90 backdrop-blur-xs text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded shadow-2xs flex items-center gap-1 z-10 border border-slate-700">
-                          <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
-                          <span>Sedang Disewa</span>
-                        </div>
-                      ) : (
-                        <div className="absolute top-1.5 right-1.5 bg-white/95 backdrop-blur-xs text-emerald-800 text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded shadow-2xs flex items-center gap-1 z-10 border border-emerald-100">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                          <span>Ready ({remainingStock} unit)</span>
-                        </div>
-                      )}
-
-                      {/* Badge Kategori di Kiri Bawah */}
-                      <div className="absolute bottom-1.5 left-1.5 bg-emerald-700/95 backdrop-blur-xs text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded shadow-2xs max-w-[80%] truncate z-10">
+                      {/* Badge Kategori di Kiri Atas */}
+                      <div className="absolute top-1.5 left-1.5 sm:top-2.5 sm:left-2.5 bg-[#233414] text-[#D4F63D] text-[10px] sm:text-xs font-semibold px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-md sm:rounded-lg max-w-[60%] truncate z-10">
                         {item.kategori}
                       </div>
+
+                      {/* Status Badge di Kanan Atas */}
+                      {isOutOfStock ? (
+                        <div className="absolute top-1.5 right-1.5 sm:top-2.5 sm:right-2.5 bg-[#ffedea] text-[#831c1e] text-[10px] sm:text-xs font-semibold px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-md sm:rounded-lg flex items-center gap-1 z-10 border border-red-200">
+                          <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#c4242a]" />
+                          <span>Disewa</span>
+                        </div>
+                      ) : (
+                        <div className="absolute top-1.5 right-1.5 sm:top-2.5 sm:right-2.5 bg-white text-[#1a2610] text-[10px] sm:text-xs font-semibold px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-md sm:rounded-lg flex items-center gap-1 z-10 border border-[#dce1d6]">
+                          <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#547318]" />
+                          <span>Ready ({remainingStock})</span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Body Content */}
-                    <div className="p-2.5 sm:p-3 flex flex-col justify-between gap-1 sm:gap-1.5">
+                    <div className="p-2.5 sm:p-3.5 lg:p-4 flex flex-col justify-between">
                       {/* Judul Alat */}
                       <h3
-                        className={`text-xs font-semibold tracking-tight leading-tight line-clamp-2 h-[2.6em] transition-colors ${
-                          isOutOfStock ? 'text-slate-600' : 'text-slate-800 group-hover:text-emerald-700'
+                        className={`text-xs sm:text-sm lg:text-[15px] font-bold tracking-tight leading-snug line-clamp-1 transition-colors ${
+                          isOutOfStock ? 'text-[#68785b]' : 'text-[#1a2610] group-hover:text-[#344d15]'
                         }`}
                         title={item.nama}
                       >
@@ -484,50 +493,59 @@ export default function SewaAlatPage() {
                       </h3>
 
                       {/* Harga Sewa */}
-                      <div className="flex items-baseline gap-1 mt-0.5">
-                        <span className={`text-xs sm:text-sm font-extrabold tracking-tight ${isOutOfStock ? 'text-slate-500' : 'text-slate-900'}`}>
+                      <div className="mt-1 sm:mt-1.5 flex items-baseline gap-0.5 sm:gap-1">
+                        <span
+                          className={`text-xs sm:text-[15px] lg:text-base font-extrabold tracking-tight tabular-nums ${
+                            isOutOfStock ? 'text-[#68785b]' : 'text-[#233414]'
+                          }`}
+                        >
                           Rp {Number(item.hargaSewa).toLocaleString('id-ID')}
                         </span>
-                        <span className="text-[8px] sm:text-[9px] text-slate-400 font-normal">
+                        <span className="text-[10px] sm:text-xs text-[#5b6950] font-medium">
                           /{item.satuanSewa || 'hari'}
                         </span>
                       </div>
 
-                      {/* Stok & Kondisi Unit */}
-                      {isOutOfStock ? (
-                        <div className="text-[9px] sm:text-[11px] font-bold text-red-600 truncate">
-                          Stok Kosong • Sedang Disewa
-                        </div>
-                      ) : (
-                        <div className="text-[9px] sm:text-[11px] text-slate-500 font-medium truncate">
-                          Sisa {remainingStock} unit • {item.kondisi || 'Sangat Baik'}
-                        </div>
-                      )}
+                      {/* Stok & Kondisi Unit + Operator Info */}
+                      <div className="mt-2 sm:mt-2.5 pt-2 sm:pt-2.5 border-t border-[#EAEDE7] space-y-0.5 sm:space-y-1">
+                        {isOutOfStock ? (
+                          <div className="text-[10px] sm:text-xs font-semibold text-[#c4242a] truncate">
+                            Stok Kosong • Sedang Disewa
+                          </div>
+                        ) : (
+                          <div className="text-[10px] sm:text-xs text-[#526046] font-medium truncate tabular-nums">
+                            Sisa {remainingStock} unit • {item.kondisi || 'Sangat Baik'}
+                          </div>
+                        )}
 
-                      {/* Operator Info */}
-                      <div className="text-[10px] sm:text-xs font-bold text-slate-700 truncate">
-                        {item.biayaOperator
-                          ? `+Rp ${Number(item.biayaOperator).toLocaleString('id-ID')} operator`
-                          : 'Operator mandiri / bebas'}
+                        <div className="text-[10px] sm:text-xs font-semibold text-[#1a2610] truncate">
+                          {item.biayaOperator
+                            ? `+Rp ${Number(item.biayaOperator).toLocaleString('id-ID')} operator`
+                            : 'Operator mandiri / bebas'}
+                        </div>
                       </div>
                     </div>
                   </div>
 
                   {/* Footer Action - Tambah ke Keranjang Sewa & WhatsApp */}
-                  <div className="p-1.5 pt-0 sm:p-2 sm:pt-0 flex items-center gap-1">
+                  <div className="px-2.5 pb-2.5 sm:px-3.5 sm:pb-3.5 lg:px-4 lg:pb-4 pt-0 flex items-center gap-1.5">
                     <button
                       type="button"
                       onClick={(e) => handleAddToCartDirectly(item, e)}
                       disabled={isOutOfStock}
-                      className={`flex-1 py-1 px-1.5 sm:py-1.5 sm:px-2 rounded-lg text-[9px] sm:text-[10px] font-bold flex items-center justify-center gap-1 transition shadow-2xs ${
+                      className={`flex-1 h-8 sm:h-9 lg:h-10 px-2 sm:px-3 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors ${
                         isOutOfStock
-                          ? 'bg-slate-200/90 text-slate-500 border border-slate-300/80 cursor-not-allowed'
-                          : 'bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white cursor-pointer'
+                          ? 'bg-[#EAEDE7] text-[#68785b] border border-[#cfd6c9] cursor-not-allowed'
+                          : 'bg-[#233414] hover:bg-[#344d15] text-white cursor-pointer'
                       }`}
                       title={isOutOfStock ? 'Unit alat saat ini sedang disewa anggota lain' : 'Tambahkan alat ke keranjang sewa'}
                     >
-                      <ShoppingCart className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                      <span>{isOutOfStock ? 'Sedang Disewa' : '+ Sewa Alat'}</span>
+                      <ShoppingCart
+                        className={`w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0 ${
+                          isOutOfStock ? 'text-[#68785b]' : 'text-[#D4F63D]'
+                        }`}
+                      />
+                      <span className="truncate">{isOutOfStock ? 'Sedang Disewa' : '+ Sewa Alat'}</span>
                     </button>
 
                     {item.kontakPj && (
@@ -540,29 +558,27 @@ export default function SewaAlatPage() {
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
-                        className="p-1 sm:p-1.5 rounded-lg border border-slate-200 hover:bg-emerald-50 text-emerald-700 transition flex items-center justify-center"
+                        className="w-8 h-8 sm:w-9 sm:h-9 lg:w-10 lg:h-10 shrink-0 rounded-lg sm:rounded-xl border border-[#cfd6c9] bg-white hover:bg-[#EAEDE7] hover:border-[#233414] text-[#233414] transition-colors flex items-center justify-center"
                         title="Tanya Pengurus via WhatsApp"
                       >
-                        <MessageCircle className="w-3 h-3 text-emerald-600" />
+                        <MessageCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#344d15]" />
                       </a>
                     )}
                   </div>
-                </div>
+                </article>
               );
             })}
           </div>
         )}
       </main>
 
-
-
       {/* DIALOG 2: SHORTCUT QUICK BOOKING MODAL (DARI TOMBOL CARD) */}
       <Dialog open={isBookingOpen} onOpenChange={setIsBookingOpen}>
-        <DialogContent className="max-w-lg max-h-[92vh] overflow-y-auto p-5 sm:p-6 rounded-3xl">
+        <DialogContent className="max-w-lg max-h-[92vh] overflow-y-auto p-5 sm:p-6 rounded-3xl bg-white border border-[#dce1d6]">
           <DialogHeader>
-            <DialogTitle className="text-base font-bold text-slate-900 flex items-center justify-between">
+            <DialogTitle className="text-base font-bold text-[#1a2610] flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Tractor className="w-5 h-5 text-emerald-700" />
+                <Tractor className="w-5 h-5 text-[#233414]" />
                 <span>Pengajuan Sewa Alat Pertanian</span>
               </div>
               {selectedEquipment && (
@@ -572,7 +588,7 @@ export default function SewaAlatPage() {
                     setIsBookingOpen(false);
                     router.push(`/sewa-alat/${selectedEquipment.id}`);
                   }}
-                  className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 hover:underline flex items-center gap-1 cursor-pointer"
+                  className="text-xs font-semibold text-[#233414] hover:text-[#344d15] hover:underline flex items-center gap-1 cursor-pointer"
                 >
                   <span>Halaman Info</span>
                   <ChevronRight className="w-3.5 h-3.5" />
@@ -584,27 +600,29 @@ export default function SewaAlatPage() {
           {selectedEquipment && !bookingSuccessResult && (
             <form onSubmit={handleSubmitBooking} className="space-y-4 text-xs mt-2">
               {/* Info Unit Terpilih */}
-              <div className="p-3 bg-emerald-50/70 border border-emerald-200/80 rounded-2xl flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-white overflow-hidden shrink-0 border border-emerald-100">
+              <div className="p-3 bg-[#f4f5f1] border border-[#dce1d6] rounded-2xl flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-white overflow-hidden shrink-0 border border-[#cfd6c9]">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   {selectedEquipment.imageUrl ? (
                     <img
                       src={selectedEquipment.imageUrl}
                       alt={selectedEquipment.nama}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <Tractor className="w-6 h-6 text-emerald-600 m-auto mt-3" />
+                    <Tractor className="w-6 h-6 text-[#344d15] m-auto mt-3" />
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="font-bold text-slate-900 text-xs sm:text-sm truncate">
+                  <div className="font-bold text-[#1a2610] text-xs sm:text-sm truncate">
                     {selectedEquipment.nama}
                   </div>
-                  <div className="text-[11px] text-emerald-800 font-semibold mt-0.5">
+                  <div className="text-[11px] text-[#233414] font-semibold mt-0.5 tabular-nums">
                     Rp {selectedEquipment.hargaSewa.toLocaleString('id-ID')} / {selectedEquipment.satuanSewa}
                   </div>
-                  <div className="text-[10px] text-slate-500 font-medium">
+                  <div className="text-[10px] text-[#5b6950] font-medium">
                     Kondisi: {selectedEquipment.kondisi} • Stok: {selectedEquipment.stokUnit} unit
                   </div>
                 </div>
@@ -613,20 +631,20 @@ export default function SewaAlatPage() {
               {/* Tanggal, Durasi, dan Jumlah Unit */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">
-                    Mulai Tanggal <span className="text-red-500">*</span>
+                  <label className="block font-bold text-[#1a2610] mb-1">
+                    Mulai Tanggal <span className="text-[#c4242a]">*</span>
                   </label>
                   <input
                     type="date"
                     required
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600 font-semibold"
+                    className="w-full px-2.5 py-2 bg-[#f4f5f1] border border-[#cfd6c9] rounded-xl text-[#1a2610] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#233414] focus:border-[#233414] font-semibold"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">
+                  <label className="block font-bold text-[#1a2610] mb-1">
                     Durasi ({selectedEquipment.satuanSewa})
                   </label>
                   <input
@@ -635,12 +653,12 @@ export default function SewaAlatPage() {
                     required
                     value={durasi}
                     onChange={(e) => setDurasi(e.target.value)}
-                    className="w-full px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600 font-bold"
+                    className="w-full px-2.5 py-2 bg-[#f4f5f1] border border-[#cfd6c9] rounded-xl text-[#1a2610] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#233414] focus:border-[#233414] font-bold tabular-nums"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">
+                  <label className="block font-bold text-[#1a2610] mb-1">
                     Jumlah Unit (Max: {selectedEquipment.stokUnit || 1})
                   </label>
                   <input
@@ -660,28 +678,28 @@ export default function SewaAlatPage() {
                         )
                       )
                     }
-                    className="w-full px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600 font-bold"
+                    className="w-full px-2.5 py-2 bg-[#f4f5f1] border border-[#cfd6c9] rounded-xl text-[#1a2610] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#233414] focus:border-[#233414] font-bold tabular-nums"
                   />
                 </div>
               </div>
 
               {/* Opsi Layanan Operator */}
               {selectedEquipment.biayaOperator ? (
-                <div className="p-3 bg-slate-50 border border-slate-200/90 rounded-xl">
+                <div className="p-3 bg-[#f4f5f1] border border-[#dce1d6] rounded-xl">
                   <label className="flex items-start gap-2.5 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={includeOperator}
                       onChange={(e) => setIncludeOperator(e.target.checked)}
-                      className="w-4 h-4 rounded text-emerald-700 focus:ring-emerald-600 border-slate-300 mt-0.5 cursor-pointer"
+                      className="w-4 h-4 rounded accent-[#233414] text-[#233414] focus:ring-[#233414] border-[#cfd6c9] mt-0.5 cursor-pointer"
                     />
                     <div className="text-xs">
-                      <div className="font-bold text-slate-800">
+                      <div className="font-bold text-[#1a2610]">
                         Gunakan Tenaga Operator Koperasi (+ Rp{' '}
                         {selectedEquipment.biayaOperator.toLocaleString('id-ID')} /{' '}
                         {selectedEquipment.satuanSewa})
                       </div>
-                      <div className="text-[10px] text-slate-500 mt-0.5">
+                      <div className="text-[10px] text-[#526046] mt-0.5">
                         Disediakan kru terlatih koperasi untuk mengoperasikan mesin di lahan perkebunan Anda.
                       </div>
                     </div>
@@ -698,7 +716,7 @@ export default function SewaAlatPage() {
 
               {/* Catatan Tambahan */}
               <div>
-                <label className="block font-bold text-slate-700 mb-1">
+                <label className="block font-bold text-[#1a2610] mb-1">
                   Catatan Kebutuhan Tambahan
                 </label>
                 <textarea
@@ -706,17 +724,17 @@ export default function SewaAlatPage() {
                   value={catatan}
                   onChange={(e) => setCatatan(e.target.value)}
                   placeholder="Kebutuhan implemen bajak rotary, kondisi tanah berbatu, jam operasional..."
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                  className="w-full px-3 py-2 bg-[#f4f5f1] border border-[#cfd6c9] rounded-xl text-[#1a2610] placeholder:text-[#68785b] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#233414] focus:border-[#233414]"
                 />
               </div>
 
               {/* Rincian Perhitungan Biaya */}
-              <div className="p-3.5 rounded-2xl bg-slate-100/80 border border-slate-200/80 space-y-1.5">
-                <div className="flex items-center justify-between text-[11px] text-slate-600">
+              <div className="p-3.5 rounded-2xl bg-[#f4f5f1] border border-[#dce1d6] space-y-1.5">
+                <div className="flex items-center justify-between text-[11px] text-[#526046]">
                   <span>
                     Tarif Sewa Pokok ({jumlahUnit} unit × {durasi} {selectedEquipment.satuanSewa}):
                   </span>
-                  <span className="font-semibold text-slate-800">
+                  <span className="font-semibold text-[#1a2610] tabular-nums">
                     Rp{' '}
                     {(
                       selectedEquipment.hargaSewa *
@@ -727,11 +745,11 @@ export default function SewaAlatPage() {
                 </div>
 
                 {includeOperator && selectedEquipment.biayaOperator ? (
-                  <div className="flex items-center justify-between text-[11px] text-slate-600">
+                  <div className="flex items-center justify-between text-[11px] text-[#526046]">
                     <span>
                       Jasa Operator ({jumlahUnit} unit × {durasi} {selectedEquipment.satuanSewa}):
                     </span>
-                    <span className="font-semibold text-slate-800">
+                    <span className="font-semibold text-[#1a2610] tabular-nums">
                       Rp{' '}
                       {(
                         selectedEquipment.biayaOperator *
@@ -742,9 +760,9 @@ export default function SewaAlatPage() {
                   </div>
                 ) : null}
 
-                <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-xs">
-                  <span className="font-bold text-slate-800">Total Estimasi Sewa:</span>
-                  <span className="font-black text-sm text-emerald-800">
+                <div className="pt-2 border-t border-[#cfd6c9] flex items-center justify-between text-xs">
+                  <span className="font-bold text-[#1a2610]">Total Estimasi Sewa:</span>
+                  <span className="font-black text-sm text-[#233414] tabular-nums">
                     Rp {calculatedTotal.toLocaleString('id-ID')}
                   </span>
                 </div>
@@ -754,9 +772,9 @@ export default function SewaAlatPage() {
                 <button
                   type="button"
                   onClick={handleAddQuickToCart}
-                  className="py-2.5 px-3.5 rounded-xl border border-emerald-600 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 font-bold flex items-center justify-center gap-1.5 transition cursor-pointer"
+                  className="py-2.5 px-3.5 rounded-xl border border-[#c9e39e] bg-[#e2f2c8] text-[#233414] hover:bg-[#d5ebae] font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                 >
-                  <ShoppingCart className="w-4 h-4" />
+                  <ShoppingCart className="w-4 h-4 text-[#233414]" />
                   <span>+ Tambah ke Keranjang Sewa (Banyak)</span>
                 </button>
 
@@ -764,23 +782,23 @@ export default function SewaAlatPage() {
                   <button
                     type="button"
                     onClick={() => setIsBookingOpen(false)}
-                    className="py-2.5 px-3 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl font-semibold transition cursor-pointer"
+                    className="py-2.5 px-3 border border-[#cfd6c9] bg-white hover:bg-[#EAEDE7] text-[#526046] rounded-xl font-semibold transition-colors cursor-pointer"
                   >
                     Batal
                   </button>
                   <button
                     type="submit"
                     disabled={isSubmittingBooking}
-                    className="py-2.5 px-4 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl font-bold flex items-center justify-center gap-1.5 transition cursor-pointer disabled:opacity-60 shadow-xs"
+                    className="py-2.5 px-4 bg-[#233414] hover:bg-[#344d15] text-white rounded-xl font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-60"
                   >
                     {isSubmittingBooking ? (
                       <>
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-[#D4F63D]" />
                         <span>Menyiapkan...</span>
                       </>
                     ) : (
                       <>
-                        <MessageCircle className="w-4 h-4" />
+                        <MessageCircle className="w-4 h-4 text-[#D4F63D]" />
                         <span>Sewa Unit Ini</span>
                       </>
                     )}
@@ -793,25 +811,25 @@ export default function SewaAlatPage() {
           {/* Sukses Booking Dialog */}
           {bookingSuccessResult && (
             <div className="py-6 text-center space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto">
+              <div className="w-12 h-12 rounded-2xl bg-[#e2f2c8] border border-[#c9e39e] text-[#233414] flex items-center justify-center mx-auto">
                 <CheckCircle2 className="w-6 h-6" />
               </div>
-              <h3 className="text-base font-bold text-slate-900">
+              <h3 className="text-base font-bold text-[#1a2610]">
                 Pengajuan Sewa Siap Dikirim!
               </h3>
-              <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                Kode Pengajuan: <span className="font-mono font-bold text-slate-800">{bookingSuccessResult.rentalCode}</span>
+              <p className="text-xs text-[#526046] max-w-sm mx-auto">
+                Kode Pengajuan: <span className="font-mono font-bold text-[#1a2610]">{bookingSuccessResult.rentalCode}</span>
                 <br />
-                Total Estimasi: <span className="font-bold text-emerald-800">Rp {bookingSuccessResult.totalEstimasi.toLocaleString('id-ID')}</span>
+                Total Estimasi: <span className="font-bold text-[#233414] tabular-nums">Rp {bookingSuccessResult.totalEstimasi.toLocaleString('id-ID')}</span>
               </p>
               <div className="pt-2 flex flex-col gap-2 max-w-xs mx-auto">
                 <a
                   href={bookingSuccessResult.waUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="py-3 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition"
+                  className="py-3 px-4 rounded-xl bg-[#233414] hover:bg-[#344d15] text-white font-bold text-xs flex items-center justify-center gap-2 transition-colors"
                 >
-                  <MessageCircle className="w-4 h-4" />
+                  <MessageCircle className="w-4 h-4 text-[#D4F63D]" />
                   <span>Kirim ke WhatsApp Pengurus</span>
                 </a>
                 <button
@@ -820,7 +838,7 @@ export default function SewaAlatPage() {
                     setIsBookingOpen(false);
                     setBookingSuccessResult(null);
                   }}
-                  className="py-2 text-xs font-semibold text-slate-500 hover:text-slate-800 transition"
+                  className="py-2 text-xs font-semibold text-[#5b6950] hover:text-[#1a2610] transition-colors cursor-pointer"
                 >
                   Tutup
                 </button>

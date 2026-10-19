@@ -174,8 +174,6 @@ function CartContent() {
     };
   }, [syncRentalCart]);
 
-
-
   // Update Quantity Unit Alat
   const handleUpdateRentalQty = (id: string, delta: number) => {
     const item = rentalCartItems.find((it) => it.id === id);
@@ -230,12 +228,10 @@ function CartContent() {
     return rentalCartItems.reduce((acc, curr) => acc + (curr.jumlahUnit || 1), 0);
   }, [rentalCartItems]);
 
-
-
   const isLoaded = activeTab === 'toko' ? isLoadedToko : isLoadedRental;
 
   return (
-    <div className="min-h-screen bg-slate-50/60 flex flex-col pb-24">
+    <div className="min-h-screen bg-[#f4f5f1] flex flex-col pb-24">
       {/* App Header */}
       <AppHeader activePage="cart" />
 
@@ -244,10 +240,10 @@ function CartContent() {
         {/* Title & Clear Action */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#1a2610] tracking-tight">
               Keranjang Saya
             </h1>
-            <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+            <p className="text-xs sm:text-sm text-[#526046] mt-0.5">
               Kelola daftar belanjaan komoditas toko online dan pengajuan sewa alat pertanian Anda.
             </p>
           </div>
@@ -256,7 +252,7 @@ function CartContent() {
           {activeTab === 'toko' && cartItems.length > 0 && (
             <button
               onClick={handleClearCart}
-              className="text-xs font-semibold text-slate-500 hover:text-red-600 transition flex items-center gap-1.5 py-1.5 px-3 rounded-lg hover:bg-red-50 border border-slate-200 hover:border-red-200 cursor-pointer self-start sm:self-auto"
+              className="text-xs font-semibold text-[#526046] hover:text-[#831c1e] bg-white transition flex items-center gap-1.5 py-1.5 px-3 rounded-lg hover:bg-[#ffedea] border border-[#cfd6c9] hover:border-red-200 cursor-pointer self-start sm:self-auto"
             >
               <Trash2 className="w-3.5 h-3.5" />
               <span>Kosongkan Komoditas</span>
@@ -266,7 +262,7 @@ function CartContent() {
           {activeTab === 'sewa-alat' && rentalCartItems.length > 0 && (
             <button
               onClick={handleClearRentalCart}
-              className="text-xs font-semibold text-slate-500 hover:text-red-600 transition flex items-center gap-1.5 py-1.5 px-3 rounded-lg hover:bg-red-50 border border-slate-200 hover:border-red-200 cursor-pointer self-start sm:self-auto"
+              className="text-xs font-semibold text-[#526046] hover:text-[#831c1e] bg-white transition flex items-center gap-1.5 py-1.5 px-3 rounded-lg hover:bg-[#ffedea] border border-[#cfd6c9] hover:border-red-200 cursor-pointer self-start sm:self-auto"
             >
               <Trash2 className="w-3.5 h-3.5" />
               <span>Kosongkan Sewa Alat</span>
@@ -275,24 +271,24 @@ function CartContent() {
         </div>
 
         {/* TAB SEGMENTED CONTROL: TOKO ONLINE & SEWA ALAT */}
-        <div className="flex items-center gap-1.5 p-1 bg-slate-200/80 rounded-2xl w-fit mb-6 sm:mb-8 border border-slate-300/60 shadow-2xs">
+        <div className="flex items-center gap-1.5 p-1 bg-[#EAEDE7] rounded-2xl w-fit mb-6 sm:mb-8 border border-[#cfd6c9]">
           <button
             type="button"
             onClick={() => setActiveTab('toko')}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer ${
               activeTab === 'toko'
-                ? 'bg-emerald-700 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                ? 'bg-[#233414] text-white'
+                : 'text-[#526046] hover:text-[#1a2610] hover:bg-white/70'
             }`}
           >
-            <ShoppingBag className="w-4 h-4" />
+            <ShoppingBag className={`w-4 h-4 ${activeTab === 'toko' ? 'text-[#D4F63D]' : ''}`} />
             <span>Toko Online</span>
             {cartItems.length > 0 && (
               <span
-                className={`text-[10px] px-1.5 py-0.5 rounded-full font-black ${
+                className={`text-[10px] px-1.5 py-0.5 rounded-full font-black tabular-nums ${
                   activeTab === 'toko'
-                    ? 'bg-emerald-950 text-white'
-                    : 'bg-slate-300 text-slate-800'
+                    ? 'bg-[#344d15] text-[#D4F63D]'
+                    : 'bg-[#cfd6c9] text-[#1a2610]'
                 }`}
               >
                 {cartItems.length}
@@ -305,18 +301,18 @@ function CartContent() {
             onClick={() => setActiveTab('sewa-alat')}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer ${
               activeTab === 'sewa-alat'
-                ? 'bg-emerald-700 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                ? 'bg-[#233414] text-white'
+                : 'text-[#526046] hover:text-[#1a2610] hover:bg-white/70'
             }`}
           >
-            <Tractor className="w-4 h-4" />
+            <Tractor className={`w-4 h-4 ${activeTab === 'sewa-alat' ? 'text-[#D4F63D]' : ''}`} />
             <span>Sewa Alat</span>
             {rentalCartItems.length > 0 && (
               <span
-                className={`text-[10px] px-1.5 py-0.5 rounded-full font-black ${
+                className={`text-[10px] px-1.5 py-0.5 rounded-full font-black tabular-nums ${
                   activeTab === 'sewa-alat'
-                    ? 'bg-emerald-950 text-white'
-                    : 'bg-slate-300 text-slate-800'
+                    ? 'bg-[#344d15] text-[#D4F63D]'
+                    : 'bg-[#cfd6c9] text-[#1a2610]'
                 }`}
               >
                 {rentalCartItems.length}
@@ -328,8 +324,8 @@ function CartContent() {
         {/* Loading Spinner */}
         {!isLoaded ? (
           <div className="py-20 flex flex-col items-center justify-center gap-2">
-            <Loader2 className="w-8 h-8 text-emerald-700 animate-spin" />
-            <span className="text-xs text-slate-500 font-medium">Memuat isi keranjang...</span>
+            <Loader2 className="w-8 h-8 text-[#233414] animate-spin" />
+            <span className="text-xs text-[#526046] font-medium">Memuat isi keranjang...</span>
           </div>
         ) : activeTab === 'toko' ? (
           /* ========================================================= */
@@ -337,21 +333,21 @@ function CartContent() {
           /* ========================================================= */
           cartItems.length === 0 ? (
             /* Empty State Toko */
-            <div className="bg-white border border-slate-200 rounded-3xl p-8 sm:p-14 text-center flex flex-col items-center justify-center shadow-2xs max-w-2xl mx-auto my-4">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mb-4">
+            <div className="bg-white border border-[#dce1d6] rounded-2xl p-8 sm:p-14 text-center flex flex-col items-center justify-center max-w-2xl mx-auto my-4">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[#e2f2c8] border border-[#c9e39e] text-[#233414] flex items-center justify-center mb-4">
                 <ShoppingBag className="w-8 h-8 sm:w-10 sm:h-10 stroke-[1.5]" />
               </div>
-              <h2 className="text-lg sm:text-xl font-bold text-slate-900">
+              <h2 className="text-lg sm:text-xl font-bold text-[#1a2610]">
                 Keranjang Belanja Toko Kosong
               </h2>
-              <p className="text-xs sm:text-sm text-slate-500 max-w-md mt-1 mb-6">
+              <p className="text-xs sm:text-sm text-[#526046] max-w-md mt-1 mb-6">
                 Belum ada komoditas hasil panen yang dimasukkan. Jelajahi katalog hasil tani koperasi dan dukung petani lokal kami.
               </p>
               <Link
                 href="/toko"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs sm:text-sm shadow-xs transition"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#233414] hover:bg-[#344d15] text-white font-bold text-xs sm:text-sm transition"
               >
-                <ShoppingBag className="w-4 h-4" />
+                <ShoppingBag className="w-4 h-4 text-[#D4F63D]" />
                 <span>Mulai Belanja Komoditas</span>
               </Link>
             </div>
@@ -366,10 +362,10 @@ function CartContent() {
                   return (
                     <div
                       key={item.id}
-                      className="bg-white border border-slate-200/90 rounded-2xl p-3.5 sm:p-4 shadow-2xs hover:shadow-xs transition flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                      className="bg-white border border-[#dce1d6] hover:border-[#344d15] rounded-2xl p-3.5 sm:p-4 transition flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                     >
                       <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
-                        <div className="w-20 h-20 sm:w-22 sm:h-22 shrink-0 rounded-xl overflow-hidden bg-slate-100 border border-slate-200/80 relative aspect-square">
+                        <div className="w-20 h-20 sm:w-22 sm:h-22 shrink-0 rounded-xl overflow-hidden bg-[#EAEDE7] border border-[#cfd6c9] relative aspect-square">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={
@@ -387,43 +383,43 @@ function CartContent() {
 
                         <div className="flex-1 min-w-0 flex flex-col justify-between self-stretch py-0.5">
                           <div>
-                            <h3 className="font-bold text-slate-900 text-sm leading-snug line-clamp-2">
+                            <h3 className="font-bold text-[#1a2610] text-sm leading-snug line-clamp-2">
                               {item.nama}
                             </h3>
-                            <div className="text-[11px] text-slate-500 mt-1 flex items-center gap-1.5 flex-wrap">
+                            <div className="text-[11px] text-[#526046] mt-1 flex items-center gap-1.5 flex-wrap">
                               <span>Kategori: {item.kategori}</span>
                               {item.petaniName && (
                                 <>
-                                  <span className="text-slate-300">•</span>
+                                  <span className="text-[#cfd6c9]">•</span>
                                   <span>Petani: {item.petaniName}</span>
                                 </>
                               )}
                             </div>
                             <div className="mt-1">
-                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200/70">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#e2f2c8] text-[#233414] border border-[#c9e39e]">
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#547318]" />
                                 <span>Tersedia di Gudang</span>
                               </span>
                             </div>
                           </div>
 
                           <div className="flex items-center gap-3 mt-3">
-                            <div className="inline-flex items-center rounded-lg border border-slate-200 bg-white shadow-2xs">
+                            <div className="inline-flex items-center rounded-lg border border-[#cfd6c9] bg-white">
                               <button
                                 type="button"
                                 onClick={() => handleUpdateQuantity(item.id, -1)}
-                                className="w-7 h-7 flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-l-lg transition cursor-pointer"
+                                className="w-7 h-7 flex items-center justify-center text-[#526046] hover:text-[#1a2610] hover:bg-[#f4f5f1] rounded-l-lg transition cursor-pointer"
                                 title="Kurangi Kuantitas"
                               >
                                 <Minus className="w-3.5 h-3.5" />
                               </button>
-                              <span className="w-8 text-center text-xs font-bold text-slate-900">
+                              <span className="w-8 text-center text-xs font-bold text-[#1a2610] tabular-nums">
                                 {item.quantity}
                               </span>
                               <button
                                 type="button"
                                 onClick={() => handleUpdateQuantity(item.id, 1)}
-                                className="w-7 h-7 flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-r-lg transition cursor-pointer"
+                                className="w-7 h-7 flex items-center justify-center text-[#526046] hover:text-[#1a2610] hover:bg-[#f4f5f1] rounded-r-lg transition cursor-pointer"
                                 title="Tambah Kuantitas"
                               >
                                 <Plus className="w-3.5 h-3.5" />
@@ -433,7 +429,7 @@ function CartContent() {
                             <button
                               type="button"
                               onClick={() => handleRemoveItem(item.id, item.nama)}
-                              className="text-slate-400 hover:text-red-600 transition p-1 cursor-pointer"
+                              className="text-[#5b6950] hover:text-[#c4242a] transition p-1 cursor-pointer"
                               title="Hapus komoditas"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -442,11 +438,11 @@ function CartContent() {
                         </div>
                       </div>
 
-                      <div className="flex sm:flex-col items-center sm:items-end justify-between border-t sm:border-t-0 pt-2.5 sm:pt-0 border-slate-100 shrink-0">
-                        <div className="text-[11px] text-slate-400 font-medium">
+                      <div className="flex sm:flex-col items-center sm:items-end justify-between border-t sm:border-t-0 pt-2.5 sm:pt-0 border-[#EAEDE7] shrink-0">
+                        <div className="text-[11px] text-[#5b6950] font-medium tabular-nums">
                           Rp {Number(item.hargaPerSatuan).toLocaleString('id-ID')} / {item.satuan}
                         </div>
-                        <div className="text-sm sm:text-base font-extrabold text-emerald-800">
+                        <div className="text-sm sm:text-base font-extrabold text-[#233414] tabular-nums">
                           Rp {itemTotal.toLocaleString('id-ID')}
                         </div>
                       </div>
@@ -457,29 +453,29 @@ function CartContent() {
 
               {/* Kolom Kanan: Ringkasan Belanja Toko */}
               <div className="md:col-span-5 lg:col-span-4 sticky top-20 space-y-4">
-                <div className="bg-white border border-slate-200/90 rounded-3xl p-5 shadow-2xs space-y-4">
-                  <h3 className="font-bold text-slate-900 text-sm sm:text-base border-b border-slate-100 pb-3">
+                <div className="bg-white border border-[#dce1d6] rounded-2xl p-5 space-y-4">
+                  <h3 className="font-bold text-[#1a2610] text-sm sm:text-base border-b border-[#EAEDE7] pb-3">
                     Ringkasan Belanja Komoditas
                   </h3>
 
                   <div className="space-y-2 text-xs">
-                    <div className="flex justify-between text-slate-600">
+                    <div className="flex justify-between text-[#526046]">
                       <span>Total Kuantitas</span>
-                      <span className="font-semibold text-slate-900">{totalItemsCount} Satuan</span>
+                      <span className="font-semibold text-[#1a2610] tabular-nums">{totalItemsCount} Satuan</span>
                     </div>
-                    <div className="flex justify-between text-slate-600">
+                    <div className="flex justify-between text-[#526046]">
                       <span>Metode Pembayaran</span>
-                      <span className="font-semibold text-emerald-800">Tunai Kas Koperasi</span>
+                      <span className="font-semibold text-[#344d15]">Tunai Kas Koperasi</span>
                     </div>
-                    <div className="flex justify-between text-slate-600">
+                    <div className="flex justify-between text-[#526046]">
                       <span>Lokasi Pengambilan</span>
-                      <span className="font-semibold text-slate-800">Gudang Koperasi</span>
+                      <span className="font-semibold text-[#1a2610]">Gudang Koperasi</span>
                     </div>
                   </div>
 
-                  <div className="border-t border-slate-100 pt-3 flex justify-between items-baseline">
-                    <span className="text-xs font-bold text-slate-700">Total Tagihan:</span>
-                    <span className="text-lg font-black text-emerald-900">
+                  <div className="border-t border-[#EAEDE7] pt-3 flex justify-between items-baseline">
+                    <span className="text-xs font-bold text-[#1a2610]">Total Tagihan:</span>
+                    <span className="text-lg font-black text-[#233414] tabular-nums">
                       Rp {finalTotalAmount.toLocaleString('id-ID')}
                     </span>
                   </div>
@@ -493,10 +489,10 @@ function CartContent() {
                       }
                       router.push('/checkout/toko');
                     }}
-                    className="w-full py-3 px-4 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs transition cursor-pointer"
+                    className="w-full py-3 px-4 bg-[#233414] hover:bg-[#344d15] text-white rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition cursor-pointer"
                   >
                     <span>Lanjut ke Konfirmasi Pengambilan</span>
-                    <ArrowRight className="w-4 h-4" />
+                    <ArrowRight className="w-4 h-4 text-[#D4F63D]" />
                   </button>
                 </div>
               </div>
@@ -508,21 +504,21 @@ function CartContent() {
           /* ========================================================= */
           rentalCartItems.length === 0 ? (
             /* Empty State Sewa Alat */
-            <div className="bg-white border border-slate-200 rounded-3xl p-8 sm:p-14 text-center flex flex-col items-center justify-center shadow-2xs max-w-2xl mx-auto my-4">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center mb-4">
+            <div className="bg-white border border-[#dce1d6] rounded-2xl p-8 sm:p-14 text-center flex flex-col items-center justify-center max-w-2xl mx-auto my-4">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[#e2f2c8] border border-[#c9e39e] text-[#233414] flex items-center justify-center mb-4">
                 <Tractor className="w-8 h-8 sm:w-10 sm:h-10 stroke-[1.5]" />
               </div>
-              <h2 className="text-lg sm:text-xl font-bold text-slate-900">
+              <h2 className="text-lg sm:text-xl font-bold text-[#1a2610]">
                 Keranjang Sewa Alat Masih Kosong
               </h2>
-              <p className="text-xs sm:text-sm text-slate-500 max-w-md mt-1 mb-6">
+              <p className="text-xs sm:text-sm text-[#526046] max-w-md mt-1 mb-6">
                 Belum ada unit mesin atau alat pertanian yang dipilih. Masukkan traktor, kultivator, pompa, atau mesin panen untuk disewa bersamaan.
               </p>
               <Link
                 href="/sewa-alat"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs sm:text-sm shadow-xs transition"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#233414] hover:bg-[#344d15] text-white font-bold text-xs sm:text-sm transition"
               >
-                <Tractor className="w-4 h-4" />
+                <Tractor className="w-4 h-4 text-[#D4F63D]" />
                 <span>Jelajahi Katalog Sewa Alat</span>
               </Link>
             </div>
@@ -537,11 +533,11 @@ function CartContent() {
                   return (
                     <div
                       key={item.id}
-                      className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-2xs hover:shadow-xs transition space-y-3"
+                      className="bg-white border border-[#dce1d6] hover:border-[#344d15] rounded-2xl p-4 sm:p-5 transition space-y-3"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 relative aspect-square">
+                          <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-xl overflow-hidden bg-[#EAEDE7] border border-[#cfd6c9] relative aspect-square">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                               src={
@@ -554,14 +550,14 @@ function CartContent() {
                           </div>
 
                           <div className="min-w-0">
-                            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 uppercase">
+                            <span className="text-[10px] font-bold text-[#D4F63D] bg-[#233414] px-2 py-0.5 rounded-md uppercase">
                               {item.kategori}
                             </span>
-                            <h3 className="font-bold text-slate-900 text-sm sm:text-base mt-1 truncate">
+                            <h3 className="font-bold text-[#1a2610] text-sm sm:text-base mt-1 truncate">
                               {item.nama}
                             </h3>
-                            <div className="text-xs text-slate-500 mt-0.5">
-                              Tarif: <span className="font-bold text-slate-800">Rp {item.hargaSewa.toLocaleString('id-ID')}</span> / {item.satuanSewa}
+                            <div className="text-xs text-[#526046] mt-0.5 tabular-nums">
+                              Tarif: <span className="font-bold text-[#1a2610]">Rp {item.hargaSewa.toLocaleString('id-ID')}</span> / {item.satuanSewa}
                             </div>
                           </div>
                         </div>
@@ -569,7 +565,7 @@ function CartContent() {
                         <button
                           type="button"
                           onClick={() => handleRemoveRentalItem(item.id, item.nama)}
-                          className="text-slate-400 hover:text-red-600 transition p-1.5 cursor-pointer"
+                          className="text-[#5b6950] hover:text-[#c4242a] transition p-1.5 cursor-pointer"
                           title="Hapus alat dari sewa"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -577,29 +573,29 @@ function CartContent() {
                       </div>
 
                       {/* Stepper Pengaturan Kuantitas & Durasi */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-[#EAEDE7]">
                         {/* Stepper Jumlah Unit */}
-                        <div className="flex items-center justify-between sm:justify-start gap-3 bg-slate-50 p-2.5 rounded-xl border border-slate-200/70">
-                          <span className="text-xs font-semibold text-slate-600">
+                        <div className="flex items-center justify-between sm:justify-start gap-3 bg-[#f4f5f1] p-2.5 rounded-xl border border-[#dce1d6]">
+                          <span className="text-xs font-semibold text-[#526046]">
                             Jumlah Unit:
                           </span>
-                          <div className="inline-flex items-center rounded-lg border border-slate-300 bg-white shadow-2xs">
+                          <div className="inline-flex items-center rounded-lg border border-[#cfd6c9] bg-white">
                             <button
                               type="button"
                               onClick={() => handleUpdateRentalQty(item.id, -1)}
-                              className="w-7 h-7 flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-l-lg transition cursor-pointer"
+                              className="w-7 h-7 flex items-center justify-center text-[#526046] hover:text-[#1a2610] hover:bg-[#f4f5f1] rounded-l-lg transition cursor-pointer"
                               title="Kurangi unit"
                             >
                               <Minus className="w-3 h-3" />
                             </button>
-                            <span className="w-8 text-center text-xs font-bold text-slate-900">
+                            <span className="w-8 text-center text-xs font-bold text-[#1a2610] tabular-nums">
                               {item.jumlahUnit}
                             </span>
                             <button
                               type="button"
                               onClick={() => handleUpdateRentalQty(item.id, 1)}
                               disabled={item.jumlahUnit >= (item.stokUnit || 99)}
-                              className="w-7 h-7 flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-r-lg transition cursor-pointer disabled:opacity-40"
+                              className="w-7 h-7 flex items-center justify-center text-[#526046] hover:text-[#1a2610] hover:bg-[#f4f5f1] rounded-r-lg transition cursor-pointer disabled:opacity-40"
                               title="Tambah unit"
                             >
                               <Plus className="w-3 h-3" />
@@ -608,27 +604,27 @@ function CartContent() {
                         </div>
 
                         {/* Stepper Durasi Hari */}
-                        <div className="flex items-center justify-between sm:justify-start gap-3 bg-slate-50 p-2.5 rounded-xl border border-slate-200/70">
-                          <span className="text-xs font-semibold text-slate-600">
+                        <div className="flex items-center justify-between sm:justify-start gap-3 bg-[#f4f5f1] p-2.5 rounded-xl border border-[#dce1d6]">
+                          <span className="text-xs font-semibold text-[#526046]">
                             Durasi ({item.satuanSewa}):
                           </span>
-                          <div className="inline-flex items-center rounded-lg border border-slate-300 bg-white shadow-2xs">
+                          <div className="inline-flex items-center rounded-lg border border-[#cfd6c9] bg-white">
                             <button
                               type="button"
                               onClick={() => handleUpdateRentalDurasi(item.id, -1)}
                               disabled={item.durasi <= 1}
-                              className="w-7 h-7 flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-l-lg transition cursor-pointer disabled:opacity-40"
+                              className="w-7 h-7 flex items-center justify-center text-[#526046] hover:text-[#1a2610] hover:bg-[#f4f5f1] rounded-l-lg transition cursor-pointer disabled:opacity-40"
                               title="Kurangi durasi"
                             >
                               <Minus className="w-3 h-3" />
                             </button>
-                            <span className="w-8 text-center text-xs font-bold text-slate-900">
+                            <span className="w-8 text-center text-xs font-bold text-[#1a2610] tabular-nums">
                               {item.durasi}
                             </span>
                             <button
                               type="button"
                               onClick={() => handleUpdateRentalDurasi(item.id, 1)}
-                              className="w-7 h-7 flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-r-lg transition cursor-pointer"
+                              className="w-7 h-7 flex items-center justify-center text-[#526046] hover:text-[#1a2610] hover:bg-[#f4f5f1] rounded-r-lg transition cursor-pointer"
                               title="Tambah durasi"
                             >
                               <Plus className="w-3 h-3" />
@@ -639,7 +635,7 @@ function CartContent() {
 
                       {/* Checklist Operator */}
                       {item.biayaOperator ? (
-                        <div className="p-2.5 bg-emerald-50/50 border border-emerald-200/70 rounded-xl">
+                        <div className="p-2.5 bg-[#e2f2c8]/50 border border-[#c9e39e] rounded-xl">
                           <label className="flex items-start gap-2.5 cursor-pointer">
                             <input
                               type="checkbox"
@@ -647,14 +643,14 @@ function CartContent() {
                               onChange={(e) =>
                                 handleToggleRentalOperator(item.id, e.target.checked)
                               }
-                              className="w-4 h-4 rounded text-emerald-700 focus:ring-emerald-600 border-slate-300 mt-0.5 cursor-pointer"
+                              className="w-4 h-4 rounded accent-[#233414] border-[#cfd6c9] mt-0.5 cursor-pointer"
                             />
                             <div className="text-xs">
-                              <span className="font-bold text-slate-800">
+                              <span className="font-bold text-[#1a2610] tabular-nums">
                                 Gunakan Kru Operator Koperasi (+ Rp{' '}
                                 {item.biayaOperator.toLocaleString('id-ID')} / {item.satuanSewa})
                               </span>
-                              <p className="text-[10px] text-slate-500 mt-0.5">
+                              <p className="text-[10px] text-[#526046] mt-0.5">
                                 Operator terlatih siap mengoperasikan unit di lahan Anda.
                               </p>
                             </div>
@@ -663,9 +659,9 @@ function CartContent() {
                       ) : null}
 
                       {/* Subtotal Unit Ini */}
-                      <div className="flex justify-between items-center pt-2 border-t border-slate-100 text-xs">
-                        <span className="text-slate-500 font-medium">Subtotal Estimasi:</span>
-                        <span className="font-extrabold text-sm sm:text-base text-emerald-900">
+                      <div className="flex justify-between items-center pt-2 border-t border-[#EAEDE7] text-xs">
+                        <span className="text-[#526046] font-medium">Subtotal Estimasi:</span>
+                        <span className="font-extrabold text-sm sm:text-base text-[#233414] tabular-nums">
                           Rp {itemTotal.toLocaleString('id-ID')}
                         </span>
                       </div>
@@ -674,40 +670,40 @@ function CartContent() {
                 })}
               </div>
 
-              {/* Kolom Kanan: Ringkasan Pengajuan Sewa Multi-Alat (Persis Format Toko Online di Gambar 3) */}
+              {/* Kolom Kanan: Ringkasan Pengajuan Sewa Multi-Alat */}
               <div className="md:col-span-5 lg:col-span-4 sticky top-20 space-y-4">
-                <div className="bg-white border border-slate-200/90 rounded-3xl p-5 shadow-2xs space-y-4">
-                  <h3 className="font-bold text-slate-900 text-sm sm:text-base border-b border-slate-100 pb-3 flex items-center justify-between">
+                <div className="bg-white border border-[#dce1d6] rounded-2xl p-5 space-y-4">
+                  <h3 className="font-bold text-[#1a2610] text-sm sm:text-base border-b border-[#EAEDE7] pb-3 flex items-center justify-between gap-2">
                     <span>Ringkasan Pengajuan Sewa</span>
-                    <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                    <span className="text-[10px] font-bold text-[#233414] bg-[#e2f2c8] px-2 py-0.5 rounded-full border border-[#c9e39e]">
                       Perlu Approval Admin
                     </span>
                   </h3>
 
                   <div className="space-y-2 text-xs">
-                    <div className="flex justify-between text-slate-600">
+                    <div className="flex justify-between text-[#526046]">
                       <span>Total Unit Mesin</span>
-                      <span className="font-semibold text-slate-900">
+                      <span className="font-semibold text-[#1a2610] tabular-nums">
                         {totalRentalUnits} Unit ({rentalCartItems.length} Jenis)
                       </span>
                     </div>
-                    <div className="flex justify-between text-slate-600">
+                    <div className="flex justify-between text-[#526046]">
                       <span>Metode Pembayaran</span>
-                      <span className="font-semibold text-emerald-800">
+                      <span className="font-semibold text-[#344d15]">
                         Tunai Kasir Koperasi
                       </span>
                     </div>
-                    <div className="flex justify-between text-slate-600">
+                    <div className="flex justify-between text-[#526046]">
                       <span>Lokasi Pengambilan</span>
-                      <span className="font-semibold text-slate-800">
+                      <span className="font-semibold text-[#1a2610]">
                         Kantor / Gudang Koperasi
                       </span>
                     </div>
                   </div>
 
-                  <div className="border-t border-slate-100 pt-3 flex justify-between items-baseline">
-                    <span className="text-xs font-bold text-slate-700">Total Estimasi Tagihan:</span>
-                    <span className="text-lg font-black text-emerald-900">
+                  <div className="border-t border-[#EAEDE7] pt-3 flex justify-between items-baseline">
+                    <span className="text-xs font-bold text-[#1a2610]">Total Estimasi Tagihan:</span>
+                    <span className="text-lg font-black text-[#233414] tabular-nums">
                       Rp {totalRentalAmount.toLocaleString('id-ID')}
                     </span>
                   </div>
@@ -721,10 +717,10 @@ function CartContent() {
                       }
                       router.push('/checkout/sewa-alat');
                     }}
-                    className="w-full py-3 px-4 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs transition cursor-pointer"
+                    className="w-full py-3 px-4 bg-[#233414] hover:bg-[#344d15] text-white rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition cursor-pointer"
                   >
                     <span>Lanjut ke Konfirmasi Pengajuan</span>
-                    <ArrowRight className="w-4 h-4" />
+                    <ArrowRight className="w-4 h-4 text-[#D4F63D]" />
                   </button>
                 </div>
               </div>
@@ -740,8 +736,8 @@ export default function ShoppingCartPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-          <Loader2 className="w-8 h-8 text-emerald-700 animate-spin" />
+        <div className="min-h-screen bg-[#f4f5f1] flex items-center justify-center">
+          <Loader2 className="w-8 h-8 text-[#233414] animate-spin" />
         </div>
       }
     >

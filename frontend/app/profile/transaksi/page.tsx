@@ -8,22 +8,14 @@ import {
   ChevronLeft,
   Search,
   X,
-  ShoppingBag,
   Tractor,
   TrendingUp,
   Receipt,
-  Clock,
-  CheckCircle2,
-  AlertCircle,
   Building2,
   Calendar,
   ExternalLink,
   ChevronRight,
-  Filter,
-  ArrowDownLeft,
-  ArrowUpRight,
   Loader2,
-  Wallet,
   ArrowLeft,
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
@@ -55,7 +47,7 @@ const CATEGORIES: { key: TransactionCategory; label: string }[] = [
 ];
 
 export default function TransactionHistoryPage() {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
 
   const [activeTab, setActiveTab] = useState<TransactionCategory>('ALL');
@@ -299,50 +291,50 @@ export default function TransactionHistoryPage() {
   const groupKeys = Object.keys(groupedTransactions);
 
   return (
-    <div className="min-h-screen bg-[#F6F8FA] flex flex-col font-sans pb-32 sm:pb-16">
+    <div className="min-h-screen bg-[#f4f5f1] flex flex-col font-sans pb-32 sm:pb-16">
       <AppHeader />
 
-      <main className="flex-1 w-full px-3 sm:px-6 md:px-8 lg:px-12 py-4 sm:py-6">
+      <main className="flex-1 max-w-7xl mx-auto w-full px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
         {/* Desktop & Tablet Breadcrumb Header */}
         <div className="hidden sm:flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-            <Link href="/profile" className="hover:text-emerald-700 transition flex items-center gap-1">
+          <div className="flex items-center gap-2 text-xs text-[#526046] font-medium">
+            <Link href="/profile" className="hover:text-[#344d15] transition flex items-center gap-1 font-semibold">
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Profil Pengguna</span>
             </Link>
-            <span>/</span>
-            <span className="font-bold text-slate-800">Riwayat Transaksi</span>
+            <span className="text-[#cfd6c9]">/</span>
+            <span className="font-bold text-[#1a2610]">Riwayat Transaksi</span>
           </div>
 
-          <div className="text-xs font-semibold text-slate-500">
-            Total Transaksi: <strong className="text-slate-800">{metrics.totalCount} Catatan</strong>
+          <div className="text-xs font-semibold text-[#526046] tabular-nums">
+            Total Transaksi: <strong className="text-[#1a2610]">{metrics.totalCount} Catatan</strong>
           </div>
         </div>
 
-        {/* Card Utama: Full-width Responsif HP, Tablet, dan Desktop */}
-        <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-xs sm:shadow-sm overflow-hidden flex flex-col w-full">
+        {/* Card Utama: Responsif HP, Tablet, dan Desktop */}
+        <div className="bg-white rounded-2xl border border-[#dce1d6] overflow-hidden flex flex-col w-full">
           {/* 1. Header (Mobile & Desktop) */}
-          <div className="p-3.5 sm:p-5 pb-3 border-b border-slate-100 flex items-center justify-between gap-3">
+          <div className="p-3.5 sm:p-5 pb-3 border-b border-[#EAEDE7] flex items-center justify-between gap-3">
             <button
               type="button"
               onClick={() => router.push('/profile')}
-              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 flex items-center justify-center transition cursor-pointer shrink-0"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#f4f5f1] hover:bg-[#EAEDE7] border border-[#cfd6c9] text-[#1a2610] flex items-center justify-center transition cursor-pointer shrink-0"
               title="Kembali ke Profil"
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
 
-            <h1 className="text-sm sm:text-lg font-black text-slate-900 tracking-tight text-center flex-1">
+            <h1 className="text-sm sm:text-lg font-black text-[#1a2610] tracking-tight text-center flex-1">
               Riwayat Transaksi
             </h1>
 
             <button
               type="button"
               onClick={() => setIsSearchOpen((prev) => !prev)}
-              className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl flex items-center justify-center transition cursor-pointer shrink-0 ${
+              className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition cursor-pointer shrink-0 ${
                 isSearchOpen
-                  ? 'bg-emerald-700 text-white'
-                  : 'bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700'
+                  ? 'bg-[#233414] text-[#D4F63D]'
+                  : 'bg-[#f4f5f1] hover:bg-[#EAEDE7] border border-[#cfd6c9] text-[#1a2610]'
               }`}
               title="Cari Transaksi"
             >
@@ -352,22 +344,22 @@ export default function TransactionHistoryPage() {
 
           {/* Inline Search Bar */}
           {isSearchOpen && (
-            <div className="px-3.5 sm:px-5 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center gap-2 animate-in fade-in duration-200">
+            <div className="px-3.5 sm:px-5 py-2.5 bg-[#f4f5f1] border-b border-[#dce1d6] flex items-center gap-2 animate-in fade-in duration-150">
               <div className="relative flex-1">
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <Search className="w-3.5 h-3.5 text-[#5b6950] absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   autoFocus
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Cari transaksi, order ID, nama komoditas..."
-                  className="w-full pl-8 pr-8 py-2 text-xs sm:text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 font-medium text-slate-800"
+                  className="w-full pl-8 pr-8 py-2 text-xs sm:text-sm bg-white border border-[#cfd6c9] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#233414]/15 focus:border-[#233414] font-medium text-[#1a2610] placeholder:text-[#5b6950]"
                 />
                 {searchQuery && (
                   <button
                     type="button"
                     onClick={() => setSearchQuery('')}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#5b6950] hover:text-[#1a2610]"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -376,8 +368,8 @@ export default function TransactionHistoryPage() {
             </div>
           )}
 
-          {/* 2. Filter Kategori dalam Bahasa Indonesia (Background Hijau Mengikuti Tema Web) */}
-          <div className="px-3.5 sm:px-5 py-2.5 sm:py-3 border-b border-slate-100 flex items-center gap-2 overflow-x-auto no-scrollbar">
+          {/* 2. Filter Kategori */}
+          <div className="px-3.5 sm:px-5 py-2.5 sm:py-3 border-b border-[#EAEDE7] flex items-center gap-2 overflow-x-auto no-scrollbar">
             {CATEGORIES.map((tab) => {
               const isActive = activeTab === tab.key;
               return (
@@ -387,8 +379,8 @@ export default function TransactionHistoryPage() {
                   onClick={() => setActiveTab(tab.key)}
                   className={`px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-bold transition shrink-0 cursor-pointer ${
                     isActive
-                      ? 'bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
+                      ? 'bg-[#233414] hover:bg-[#344d15] text-white'
+                      : 'bg-[#EAEDE7] text-[#526046] hover:bg-[#dce1d6] hover:text-[#1a2610]'
                   }`}
                 >
                   {tab.label}
@@ -397,20 +389,20 @@ export default function TransactionHistoryPage() {
             })}
           </div>
 
-          {/* 3. Daftar Transaksi Terkelompok Berdasarkan Tanggal (Bahasa Indonesia) */}
+          {/* 3. Daftar Transaksi Terkelompok Berdasarkan Tanggal */}
           <div className="p-3.5 sm:p-6 flex-1 min-h-[380px]">
             {isLoading ? (
               <div className="py-16 text-center space-y-3">
-                <Loader2 className="w-8 h-8 text-emerald-700 animate-spin mx-auto" />
-                <p className="text-xs font-semibold text-slate-500">Memuat riwayat transaksi...</p>
+                <Loader2 className="w-8 h-8 text-[#233414] animate-spin mx-auto" />
+                <p className="text-xs font-semibold text-[#526046]">Memuat riwayat transaksi...</p>
               </div>
             ) : groupKeys.length === 0 ? (
               <div className="py-16 text-center space-y-3">
-                <div className="w-14 h-14 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+                <div className="w-14 h-14 rounded-2xl bg-[#EAEDE7] border border-[#cfd6c9] text-[#526046] flex items-center justify-center mx-auto">
                   <Receipt className="w-7 h-7" />
                 </div>
-                <h3 className="text-sm font-bold text-slate-800">Belum Ada Transaksi</h3>
-                <p className="text-xs text-slate-400 max-w-xs mx-auto">
+                <h3 className="text-sm font-bold text-[#1a2610]">Belum Ada Transaksi</h3>
+                <p className="text-xs text-[#5b6950] max-w-xs mx-auto">
                   {searchQuery
                     ? `Tidak ada transaksi yang cocok dengan kata kunci "${searchQuery}".`
                     : 'Riwayat transaksi pembelian toko dan sewa alat Anda akan tercatat di sini.'}
@@ -418,10 +410,10 @@ export default function TransactionHistoryPage() {
                 <div className="pt-2">
                   <Link
                     href="/toko"
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold shadow-xs transition"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#233414] hover:bg-[#344d15] text-white text-xs font-bold transition"
                   >
                     <span>Mulai Belanja</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
+                    <ChevronRight className="w-3.5 h-3.5 text-[#D4F63D]" />
                   </Link>
                 </div>
               </div>
@@ -429,9 +421,9 @@ export default function TransactionHistoryPage() {
               <div className="space-y-5 sm:space-y-6">
                 {groupKeys.map((groupKey) => (
                   <div key={groupKey} className="space-y-2.5 sm:space-y-3">
-                    {/* Header Tanggal: Hari Ini / Kemarin / Tanggal Indonesia */}
-                    <div className="text-xs font-bold text-slate-400 flex items-center gap-1.5">
-                      <Calendar className="w-3 h-3 text-slate-400" />
+                    {/* Header Tanggal */}
+                    <div className="text-xs font-bold text-[#5b6950] flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-[#5b6950]" />
                       <span>{groupKey}</span>
                     </div>
 
@@ -444,52 +436,52 @@ export default function TransactionHistoryPage() {
                           <div
                             key={tx.id}
                             onClick={() => router.push(`/profile/transaksi/${encodeURIComponent(tx.id)}`)}
-                            className="p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl border border-transparent hover:border-slate-200 hover:bg-slate-50/80 active:bg-slate-100 flex items-center justify-between gap-3 transition cursor-pointer group"
+                            className="p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl border border-transparent hover:border-[#dce1d6] hover:bg-[#f4f5f1]/80 flex items-center justify-between gap-3 transition cursor-pointer group"
                           >
                             {/* Kiri: Avatar Lingkaran */}
                             <div className="flex items-center gap-3 min-w-0">
                               <div
-                                className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center shrink-0 shadow-2xs ${
+                                className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center shrink-0 border ${
                                   tx.type === 'PENCAIRAN_PANEN'
-                                    ? 'bg-emerald-100 text-emerald-800'
+                                    ? 'bg-[#e2f2c8] text-[#233414] border-[#c9e39e]'
                                     : tx.type === 'SEWA_ALAT'
-                                    ? 'bg-emerald-50 text-emerald-800'
-                                    : 'bg-emerald-700 text-white'
+                                    ? 'bg-[#EAEDE7] text-[#233414] border-[#cfd6c9]'
+                                    : 'bg-[#233414] text-[#D4F63D] border-[#344d15]'
                                 }`}
                               >
                                 {tx.type === 'PENCAIRAN_PANEN' ? (
-                                  <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-700" />
+                                  <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-[#233414]" />
                                 ) : tx.type === 'SEWA_ALAT' ? (
-                                  <Tractor className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-700" />
+                                  <Tractor className="w-4 h-4 sm:w-5 sm:h-5 text-[#233414]" />
                                 ) : (
-                                  <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                                  <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-[#D4F63D]" />
                                 )}
                               </div>
 
-                              {/* Tengah: Judul & Subtitle (Di desktop muat lebih leluasa) */}
+                              {/* Tengah: Judul & Subtitle */}
                               <div className="min-w-0">
-                                <div className="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-emerald-700 transition truncate sm:whitespace-normal">
+                                <div className="text-xs sm:text-sm font-bold text-[#1a2610] group-hover:text-[#344d15] transition truncate sm:whitespace-normal">
                                   {tx.title}
                                 </div>
-                                <div className="text-[10px] sm:text-[11px] text-slate-400 truncate sm:whitespace-normal mt-0.5 flex items-center gap-1.5 flex-wrap">
+                                <div className="text-[10px] sm:text-[11px] text-[#5b6950] truncate sm:whitespace-normal mt-0.5 flex items-center gap-1.5 flex-wrap">
                                   <span>{tx.subtitle}</span>
-                                  <span className="hidden sm:inline-block px-1.5 py-0.2 rounded-md bg-slate-100 text-slate-600 text-[9.5px] font-semibold">
+                                  <span className="hidden sm:inline-block px-1.5 py-0.5 rounded-md bg-[#EAEDE7] border border-[#cfd6c9] text-[#233414] text-[9.5px] font-semibold">
                                     {tx.statusLabel}
                                   </span>
                                 </div>
                               </div>
                             </div>
 
-                            {/* Kanan: Rupiah Keluar = MERAH, Rupiah Masuk = HIJAU */}
+                            {/* Kanan: Rupiah Keluar / Masuk */}
                             <div className="text-right shrink-0">
                               <div
-                                className={`text-xs sm:text-base font-black tracking-tight ${
-                                  isIncome ? 'text-emerald-700' : 'text-rose-600'
+                                className={`text-xs sm:text-base font-black tracking-tight tabular-nums ${
+                                  isIncome ? 'text-[#344d15]' : 'text-[#c4242a]'
                                 }`}
                               >
                                 {isIncome ? '+' : '-'}Rp {tx.amount.toLocaleString('id-ID')}
                               </div>
-                              <div className="text-[10px] sm:text-[11px] text-slate-400 font-medium mt-0.5">
+                              <div className="text-[10px] sm:text-[11px] text-[#5b6950] font-medium mt-0.5 tabular-nums">
                                 {tx.dateLabel}, {tx.timeLabel}
                               </div>
                             </div>
@@ -507,60 +499,60 @@ export default function TransactionHistoryPage() {
 
       {/* Modal Dialog Rincian Transaksi */}
       {selectedTx && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="w-full max-w-sm sm:max-w-md bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden p-5 sm:p-6 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1a2610]/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="w-full max-w-sm sm:max-w-md bg-white rounded-2xl border border-[#dce1d6] shadow-xl overflow-hidden p-5 sm:p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-[#EAEDE7]">
               <div className="flex items-center gap-2">
-                <Receipt className="w-4 h-4 text-emerald-700" />
-                <h3 className="text-sm font-black text-slate-900">Rincian Transaksi</h3>
+                <Receipt className="w-4 h-4 text-[#233414]" />
+                <h3 className="text-sm font-black text-[#1a2610]">Rincian Transaksi</h3>
               </div>
               <button
                 type="button"
                 onClick={() => setSelectedTx(null)}
-                className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition cursor-pointer"
+                className="w-7 h-7 rounded-full bg-[#f4f5f1] hover:bg-[#EAEDE7] border border-[#cfd6c9] text-[#1a2610] flex items-center justify-center transition cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
             </div>
 
-            {/* Total Nominal: Hijau (Masuk) / Merah (Keluar) */}
-            <div className="text-center py-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
-              <div className="text-[11px] font-semibold text-slate-400">Total Nominal Transaksi</div>
+            {/* Total Nominal */}
+            <div className="text-center py-3.5 bg-[#f4f5f1] rounded-2xl border border-[#dce1d6] space-y-1">
+              <div className="text-[11px] font-semibold text-[#5b6950]">Total Nominal Transaksi</div>
               <div
-                className={`text-2xl font-black ${
-                  selectedTx.isIncome ? 'text-emerald-700' : 'text-rose-600'
+                className={`text-2xl font-black tabular-nums ${
+                  selectedTx.isIncome ? 'text-[#344d15]' : 'text-[#c4242a]'
                 }`}
               >
                 {selectedTx.isIncome ? '+' : '-'}Rp {selectedTx.amount.toLocaleString('id-ID')}
               </div>
-              <div className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white text-slate-600 border border-slate-200">
+              <div className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white text-[#233414] border border-[#cfd6c9]">
                 {selectedTx.statusLabel}
               </div>
             </div>
 
             {/* Rincian Data */}
             <div className="space-y-2 text-xs">
-              <div className="flex justify-between items-center py-1 border-b border-slate-100">
-                <span className="text-slate-400">Nomor Referensi</span>
-                <span className="font-bold text-slate-800">{selectedTx.refNumber}</span>
+              <div className="flex justify-between items-center py-1 border-b border-[#EAEDE7]">
+                <span className="text-[#5b6950]">Nomor Referensi</span>
+                <span className="font-bold text-[#1a2610] tabular-nums">{selectedTx.refNumber}</span>
               </div>
-              <div className="flex justify-between items-center py-1 border-b border-slate-100">
-                <span className="text-slate-400">Layanan</span>
-                <span className="font-bold text-slate-800">{selectedTx.title}</span>
+              <div className="flex justify-between items-center py-1 border-b border-[#EAEDE7]">
+                <span className="text-[#5b6950]">Layanan</span>
+                <span className="font-bold text-[#1a2610]">{selectedTx.title}</span>
               </div>
-              <div className="flex justify-between items-center py-1 border-b border-slate-100">
-                <span className="text-slate-400">Waktu Transaksi</span>
-                <span className="font-semibold text-slate-700">
+              <div className="flex justify-between items-center py-1 border-b border-[#EAEDE7]">
+                <span className="text-[#5b6950]">Waktu Transaksi</span>
+                <span className="font-semibold text-[#526046] tabular-nums">
                   {selectedTx.dateLabel} pukul {selectedTx.timeLabel} WITA
                 </span>
               </div>
-              <div className="flex justify-between items-center py-1 border-b border-slate-100">
-                <span className="text-slate-400">Metode Bayar</span>
-                <span className="font-semibold text-slate-700">{selectedTx.paymentMethod}</span>
+              <div className="flex justify-between items-center py-1 border-b border-[#EAEDE7]">
+                <span className="text-[#5b6950]">Metode Bayar</span>
+                <span className="font-semibold text-[#526046]">{selectedTx.paymentMethod}</span>
               </div>
               <div className="flex justify-between items-start py-1">
-                <span className="text-slate-400">Keterangan</span>
-                <span className="font-medium text-slate-700 text-right max-w-[200px]">
+                <span className="text-[#5b6950]">Keterangan</span>
+                <span className="font-medium text-[#526046] text-right max-w-[200px]">
                   {selectedTx.subtitle}
                 </span>
               </div>
@@ -570,15 +562,15 @@ export default function TransactionHistoryPage() {
             <div className="pt-2 space-y-2">
               <Link
                 href="/pesanan"
-                className="w-full py-2.5 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition"
+                className="w-full py-2.5 px-4 rounded-xl bg-[#233414] hover:bg-[#344d15] text-white font-bold text-xs flex items-center justify-center gap-1.5 transition"
               >
                 <span>Buka di Halaman Pesanan</span>
-                <ExternalLink className="w-3.5 h-3.5" />
+                <ExternalLink className="w-3.5 h-3.5 text-[#D4F63D]" />
               </Link>
               <button
                 type="button"
                 onClick={() => setSelectedTx(null)}
-                className="w-full py-2 px-4 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold text-xs transition cursor-pointer"
+                className="w-full py-2 px-4 rounded-xl border border-[#cfd6c9] hover:bg-[#f4f5f1] text-[#1a2610] font-bold text-xs transition cursor-pointer"
               >
                 Tutup
               </button>

@@ -9,7 +9,6 @@ import {
   CheckCircle2,
   ArrowRight,
   Loader2,
-  MapPin,
   Clock,
   TrendingUp,
 } from 'lucide-react';
@@ -159,7 +158,7 @@ export default function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModal
     const list: FlattenedSearchItem[] = [];
 
     if (query.trim().length > 0) {
-      // 1. Query Utama (seperti Gambar 1)
+      // 1. Query Utama
       list.push({
         id: `query-primary`,
         type: 'query',
@@ -167,7 +166,7 @@ export default function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModal
         url: `/search?q=${encodeURIComponent(query.trim())}`,
       });
 
-      // 2. Saran Populer yang Cocok (hanya jika ada data pencarian riil)
+      // 2. Saran Populer yang Cocok
       matchingPopularSuggestions.forEach((term) => {
         list.push({
           id: `query-pop-${term}`,
@@ -177,7 +176,7 @@ export default function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModal
         });
       });
 
-      // 3. Akun Petani & Pembeli yang Cocok (seperti Gambar 1)
+      // 3. Akun Petani & Pembeli yang Cocok
       safeUsers.forEach((u) => {
         list.push({
           id: `user-${u.id}`,
@@ -191,7 +190,7 @@ export default function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModal
         });
       });
     } else {
-      // Saat belum mengetik: item riwayat + item populer riil (jika ada)
+      // Saat belum mengetik: item riwayat + item populer riil
       searchHistory.forEach((h) => {
         list.push({
           id: `hist-${h}`,
@@ -287,26 +286,26 @@ export default function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModal
 
   return (
     <div
-      className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xs flex items-start justify-center p-2.5 sm:p-6 pt-5 sm:pt-16 overflow-y-auto animate-in fade-in duration-150"
+      className="fixed inset-0 z-[100] bg-[#1a2610]/60 backdrop-blur-xs flex items-start justify-center p-2.5 sm:p-6 pt-5 sm:pt-16 overflow-y-auto animate-in fade-in duration-150"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg sm:max-w-xl bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200/90 overflow-hidden flex flex-col animate-in zoom-in-95 duration-150 my-auto sm:my-0"
+        className="w-full max-w-lg sm:max-w-xl bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-[#dce1d6] overflow-hidden flex flex-col animate-in zoom-in-95 duration-150 my-auto sm:my-0"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Search Input Bar (Stroke Hijau, Padding Lapang Anti-Tabrakan) */}
-        <div className="p-2.5 sm:p-4 bg-white relative border-b border-slate-100">
+        {/* Search Input Bar */}
+        <div className="p-2.5 sm:p-4 bg-white relative border-b border-[#EAEDE7]">
           <div className="relative flex items-center">
             {/* Search Icon / Loader */}
-            <div className="absolute left-3.5 sm:left-4 top-1/2 -translate-y-1/2 text-slate-500 flex items-center pointer-events-none z-10">
+            <div className="absolute left-3.5 sm:left-4 top-1/2 -translate-y-1/2 text-[#526046] flex items-center pointer-events-none z-10">
               {isLoading ? (
-                <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 animate-spin" />
+                <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 text-[#233414] animate-spin" />
               ) : (
-                <Search className="w-4 h-4 sm:w-5 sm:h-5 text-slate-600 stroke-[2.2]" />
+                <Search className="w-4 h-4 sm:w-5 sm:h-5 text-[#233414] stroke-[2.2]" />
               )}
             </div>
 
-            {/* Input Field dengan padding eksplisit agar tidak menabrak icon */}
+            {/* Input Field */}
             <input
               ref={inputRef}
               type="text"
@@ -317,7 +316,7 @@ export default function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModal
                 paddingLeft: '2.85rem',
                 paddingRight: '2.6rem',
               }}
-              className="w-full py-2.5 sm:py-3 text-xs sm:text-sm md:text-base font-medium text-slate-900 bg-white border-2 border-emerald-500 hover:border-emerald-600 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-500/20 rounded-xl sm:rounded-2xl outline-none transition-all placeholder:text-slate-400 placeholder:text-xs sm:placeholder:text-sm shadow-xs"
+              className="w-full py-2.5 sm:py-3 text-xs sm:text-sm md:text-base font-medium text-[#1a2610] bg-white border-2 border-[#233414] hover:border-[#344d15] focus:border-[#233414] focus:ring-4 focus:ring-[#233414]/15 rounded-xl sm:rounded-2xl outline-none transition-all placeholder:text-[#5b6950] placeholder:text-xs sm:placeholder:text-sm"
             />
 
             {/* Clear Button (X) */}
@@ -328,7 +327,7 @@ export default function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModal
                   setQuery('');
                   inputRef.current?.focus();
                 }}
-                className="absolute right-3 sm:right-3.5 top-1/2 -translate-y-1/2 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-slate-500 hover:bg-slate-700 text-white flex items-center justify-center transition cursor-pointer shadow-xs z-10"
+                className="absolute right-3 sm:right-3.5 top-1/2 -translate-y-1/2 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-[#233414] hover:bg-[#344d15] text-white flex items-center justify-center transition cursor-pointer z-10"
                 title="Hapus pencarian"
               >
                 <X className="w-3 h-3 sm:w-3.5 sm:h-3.5 stroke-[2.5]" />
@@ -337,12 +336,12 @@ export default function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModal
           </div>
         </div>
 
-        {/* Search Content Body (Gaya Asli Tokopedia Gambar 1 & Gambar 2) */}
-        <div className="max-h-[70vh] sm:max-h-[60vh] overflow-y-auto p-1.5 sm:p-2 divide-y divide-slate-100">
-          {/* 1. STATE BELUM MENGETIK: RIWAYAT PENCARIAN (🕒) & PENCARIAN POPULER RIIL (📈) */}
+        {/* Search Content Body */}
+        <div className="max-h-[70vh] sm:max-h-[60vh] overflow-y-auto p-1.5 sm:p-2 divide-y divide-[#EAEDE7]">
+          {/* 1. STATE BELUM MENGETIK: RIWAYAT PENCARIAN & PENCARIAN POPULER */}
           {query.trim().length === 0 && (
             <div className="space-y-0.5">
-              {/* Item Riwayat Terakhir (Clock Icon 🕒) */}
+              {/* Item Riwayat Terakhir */}
               {searchHistory.map((histItem) => {
                 const itemIndex = flattenedItems.findIndex((it) => it.id === `hist-${histItem}`);
                 const isSelected = itemIndex === selectedIndex;
@@ -353,13 +352,13 @@ export default function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModal
                     onClick={() => handleGoToSearchPage(histItem)}
                     className={`group flex items-center justify-between px-3 py-2.5 rounded-xl transition cursor-pointer ${
                       isSelected
-                        ? 'bg-emerald-50/90 text-emerald-900'
-                        : 'hover:bg-slate-50 text-slate-800'
+                        ? 'bg-[#e2f2c8]/70 text-[#1a2610]'
+                        : 'hover:bg-[#f4f5f1] text-[#1a2610]'
                     }`}
                   >
                     <div className="flex items-center gap-3.5 min-w-0 flex-1">
-                      <Clock className="w-4 h-4 text-slate-400 group-hover:text-emerald-600 transition shrink-0" />
-                      <span className="text-xs sm:text-sm font-medium group-hover:text-emerald-700 truncate transition">
+                      <Clock className="w-4 h-4 text-[#5b6950] group-hover:text-[#233414] transition shrink-0" />
+                      <span className="text-xs sm:text-sm font-medium group-hover:text-[#344d15] truncate transition">
                         {histItem}
                       </span>
                     </div>
@@ -370,7 +369,7 @@ export default function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModal
                         e.stopPropagation();
                         handleRemoveHistoryItem(histItem);
                       }}
-                      className="w-6 h-6 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition cursor-pointer shrink-0 ml-2"
+                      className="w-6 h-6 rounded-full flex items-center justify-center text-[#5b6950] hover:text-[#1a2610] hover:bg-[#EAEDE7] transition cursor-pointer shrink-0 ml-2"
                       title="Hapus riwayat"
                     >
                       <X className="w-3.5 h-3.5 stroke-[2.2]" />
@@ -379,7 +378,7 @@ export default function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModal
                 );
               })}
 
-              {/* Item Pencarian Populer / Trending Riil (HANYA DITAMPILKAN JIKA SUDAH ADA DATA PENCARIAN) */}
+              {/* Item Pencarian Populer / Trending Riil */}
               {popularSearches.length > 0 &&
                 popularSearches.map((popItem) => {
                   const itemIndex = flattenedItems.findIndex((it) => it.id === `pop-${popItem}`);
@@ -391,13 +390,13 @@ export default function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModal
                       onClick={() => handleGoToSearchPage(popItem)}
                       className={`group flex items-center px-3 py-2.5 rounded-xl transition cursor-pointer ${
                         isSelected
-                          ? 'bg-emerald-50/90 text-emerald-900'
-                          : 'hover:bg-slate-50 text-slate-800'
+                          ? 'bg-[#e2f2c8]/70 text-[#1a2610]'
+                          : 'hover:bg-[#f4f5f1] text-[#1a2610]'
                       }`}
                     >
                       <div className="flex items-center gap-3.5 min-w-0 flex-1">
-                        <TrendingUp className="w-4 h-4 text-slate-400 group-hover:text-emerald-600 transition shrink-0" />
-                        <span className="text-xs sm:text-sm font-medium group-hover:text-emerald-700 truncate transition">
+                        <TrendingUp className="w-4 h-4 text-[#5b6950] group-hover:text-[#233414] transition shrink-0" />
+                        <span className="text-xs sm:text-sm font-medium group-hover:text-[#344d15] truncate transition">
                           {popItem}
                         </span>
                       </div>
@@ -407,10 +406,10 @@ export default function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModal
             </div>
           )}
 
-          {/* 2. STATE SEDANG MENGETIK: DAFTAR QUERY (🔍) & AKUN (AVATAR) PERSIS GAMBAR 1 */}
+          {/* 2. STATE SEDANG MENGETIK: DAFTAR QUERY & AKUN */}
           {query.trim().length > 0 && (
             <div className="space-y-0.5">
-              {/* Query Utama yang Sedang Diketik (Ikon Search 🔍) */}
+              {/* Query Utama yang Sedang Diketik */}
               {(() => {
                 const itemIndex = flattenedItems.findIndex((it) => it.id === 'query-primary');
                 const isSelected = itemIndex === selectedIndex;
@@ -420,13 +419,13 @@ export default function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModal
                     onClick={() => handleGoToSearchPage(query)}
                     className={`group flex items-center px-3 py-2.5 rounded-xl transition cursor-pointer ${
                       isSelected
-                        ? 'bg-emerald-50/90 text-emerald-900'
-                        : 'hover:bg-slate-50 text-slate-900'
+                        ? 'bg-[#e2f2c8]/70 text-[#1a2610]'
+                        : 'hover:bg-[#f4f5f1] text-[#1a2610]'
                     }`}
                   >
                     <div className="flex items-center gap-3.5 min-w-0 flex-1">
-                      <Search className="w-4 h-4 text-slate-400 group-hover:text-emerald-600 transition shrink-0" />
-                      <span className="text-xs sm:text-sm font-semibold group-hover:text-emerald-700 truncate transition">
+                      <Search className="w-4 h-4 text-[#5b6950] group-hover:text-[#233414] transition shrink-0" />
+                      <span className="text-xs sm:text-sm font-semibold group-hover:text-[#344d15] truncate transition">
                         {query.trim()}
                       </span>
                     </div>
@@ -434,7 +433,7 @@ export default function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModal
                 );
               })()}
 
-              {/* Saran Kata Kunci Populer Riil yang Cocok (Ikon Search 🔍) */}
+              {/* Saran Kata Kunci Populer Riil yang Cocok */}
               {matchingPopularSuggestions.map((term) => {
                 const itemIndex = flattenedItems.findIndex((it) => it.id === `query-pop-${term}`);
                 const isSelected = itemIndex === selectedIndex;
@@ -445,13 +444,13 @@ export default function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModal
                     onClick={() => handleGoToSearchPage(term)}
                     className={`group flex items-center px-3 py-2.5 rounded-xl transition cursor-pointer ${
                       isSelected
-                        ? 'bg-emerald-50/90 text-emerald-900'
-                        : 'hover:bg-slate-50 text-slate-900'
+                        ? 'bg-[#e2f2c8]/70 text-[#1a2610]'
+                        : 'hover:bg-[#f4f5f1] text-[#1a2610]'
                     }`}
                   >
                     <div className="flex items-center gap-3.5 min-w-0 flex-1">
-                      <Search className="w-4 h-4 text-slate-400 group-hover:text-emerald-600 transition shrink-0" />
-                      <span className="text-xs sm:text-sm font-medium group-hover:text-emerald-700 truncate transition">
+                      <Search className="w-4 h-4 text-[#5b6950] group-hover:text-[#233414] transition shrink-0" />
+                      <span className="text-xs sm:text-sm font-medium group-hover:text-[#344d15] truncate transition">
                         {term}
                       </span>
                     </div>
@@ -459,7 +458,7 @@ export default function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModal
                 );
               })}
 
-              {/* Daftar Akun Toko/Petani yang Cocok (Avatar Bulat + Centang Biru + Alamat/Kota) Persis Gambar 1 */}
+              {/* Daftar Akun Toko/Petani yang Cocok */}
               {safeUsers.map((userItem) => {
                 const itemIndex = flattenedItems.findIndex((it) => it.id === `user-${userItem.id}`);
                 const isSelected = itemIndex === selectedIndex;
@@ -485,36 +484,36 @@ export default function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModal
                     }}
                     className={`group flex items-center justify-between px-3 py-2 rounded-xl transition cursor-pointer ${
                       isSelected
-                        ? 'bg-emerald-50/90'
-                        : 'hover:bg-slate-50'
+                        ? 'bg-[#e2f2c8]/70'
+                        : 'hover:bg-[#f4f5f1]'
                     }`}
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       {/* Avatar Bulat Akun */}
-                      <Avatar className="w-9 h-9 rounded-full border border-slate-200 shadow-2xs shrink-0">
+                      <Avatar className="w-9 h-9 rounded-full border border-[#cfd6c9] shrink-0">
                         <AvatarImage src={userItem.avatarUrl || ''} alt={userItem.name} className="object-cover" />
-                        <AvatarFallback className="bg-emerald-700 text-white font-bold text-xs">
+                        <AvatarFallback className="bg-[#233414] text-[#D4F63D] font-bold text-xs">
                           {userItem.name ? userItem.name.slice(0, 2).toUpperCase() : 'U'}
                         </AvatarFallback>
                       </Avatar>
 
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
-                          <span className="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-emerald-700 transition truncate">
+                          <span className="text-xs sm:text-sm font-bold text-[#1a2610] group-hover:text-[#344d15] transition truncate">
                             {userItem.name}
                           </span>
                           {userItem.isVerified && (
-                            <CheckCircle2 className="w-3.5 h-3.5 text-blue-500 fill-blue-500 text-white shrink-0" />
+                            <CheckCircle2 className="w-3.5 h-3.5 text-[#344d15] fill-[#e2f2c8] shrink-0" />
                           )}
                         </div>
 
-                        <div className="text-[11px] text-slate-400 truncate mt-0.2">
+                        <div className="text-[11px] text-[#5b6950] truncate mt-0.5">
                           {userItem.address ? userItem.address : (userItem.role === 'PETANI' ? 'Petani Mitra' : 'Anggota Pembeli')}
                         </div>
                       </div>
                     </div>
 
-                    <div className="text-[11px] font-bold text-emerald-700 opacity-0 group-hover:opacity-100 transition flex items-center gap-1 shrink-0">
+                    <div className="text-[11px] font-bold text-[#233414] opacity-0 group-hover:opacity-100 transition flex items-center gap-1 shrink-0">
                       <ArrowRight className="w-3.5 h-3.5" />
                     </div>
                   </Link>
