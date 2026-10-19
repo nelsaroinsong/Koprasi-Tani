@@ -124,6 +124,24 @@
   body {
     @apply bg-background text-foreground;
   }
+  .maplibregl-popup-content {
+    @apply bg-transparent! shadow-none! p-0! rounded-none!;
+  }
+  .maplibregl-popup-tip {
+    @apply hidden!;
+  }
+  .maplibregl-ctrl-attrib {
+    @apply bg-background! text-muted-foreground! border-border! rounded-md! border! shadow-sm!;
+  }
+  .maplibregl-ctrl-attrib a {
+    @apply text-muted-foreground!;
+  }
+  .maplibregl-ctrl-attrib a:hover {
+    @apply text-foreground!;
+  }
+  .maplibregl-ctrl-attrib-button {
+    @apply bg-transparent! dark:invert;
+  }
 }
 
 /* Custom classes for landing page */
@@ -131,6 +149,17 @@
   background-color: #fafbf9;
   background-image: radial-gradient(#d1d8d3 0.85px, transparent 0.85px);
   background-size: 18px 18px;
+}
+
+/* Berikan padding bawah otomatis pada mode mobile HANYA jika halaman memiliki BottomNav */
+body:has(nav[aria-label="Navigasi Bawah Layanan Koperasi"]) {
+  padding-bottom: 4.5rem;
+}
+
+@media (min-width: 1024px) {
+  body:has(nav[aria-label="Navigasi Bawah Layanan Koperasi"]) {
+    padding-bottom: 0;
+  }
 }
 
 .badge-pill {
@@ -257,5 +286,3 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
-
-

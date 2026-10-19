@@ -1,15 +1,76 @@
 'use client';
 
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { Sprout, Lightbulb, Globe, Handshake } from 'lucide-react';
+import { gsap } from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+if (typeof window !== 'undefined') {
+  gsap.registerPlugin(ScrollTrigger);
+}
 
 export default function AboutUsBento() {
+  const sectionRef = useRef<HTMLElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
+  const imageCardRef = useRef<HTMLDivElement>(null);
+  const cardsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: sectionRef.current,
+          start: 'top 85%',
+          once: true,
+        },
+      });
+
+      if (headerRef.current) {
+        tl.fromTo(
+          headerRef.current,
+          { opacity: 0, y: 30 },
+          { opacity: 1, y: 0, duration: 0.85, ease: 'power3.out' }
+        );
+      }
+
+      if (imageCardRef.current) {
+        tl.fromTo(
+          imageCardRef.current,
+          { opacity: 0, scale: 0.94, y: 20 },
+          { opacity: 1, scale: 1, y: 0, duration: 0.9, ease: 'power3.out' },
+          '-=0.5'
+        );
+      }
+
+      if (cardsRef.current) {
+        tl.fromTo(
+          cardsRef.current.children,
+          { opacity: 0, y: 35, scale: 0.95 },
+          {
+            opacity: 1,
+            y: 0,
+            scale: 1,
+            stagger: 0.12,
+            duration: 0.75,
+            ease: 'power3.out',
+          },
+          '-=0.7'
+        );
+      }
+    }, sectionRef);
+
+    return () => ctx.revert();
+  }, []);
+
   return (
-    <section id="tentang-kami" className="bg-[#f4f5f1] py-10 sm:py-16">
+    <section ref={sectionRef} id="tentang-kami" className="bg-[#f4f5f1] py-10 sm:py-16">
       <div className="w-full px-3 sm:px-6 lg:px-8 xl:px-10">
         
         {/* Top Header: Small Left Label & Big Right Heading */}
-        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 sm:gap-6 pb-6 sm:pb-8 border-b border-slate-200/60">
+        <div
+          ref={headerRef}
+          className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 sm:gap-6 pb-6 sm:pb-8 border-b border-slate-200/60 opacity-0 will-change-transform"
+        >
           <div className="md:w-1/4">
             <span className="text-[11px] font-bold tracking-widest text-slate-400 uppercase leading-relaxed block">
               MENGAPA KOPERASI<br />SINAR PAGI SEJAHTERA
@@ -26,7 +87,10 @@ export default function AboutUsBento() {
         <div className="mt-6 sm:mt-8 grid grid-cols-1 lg:grid-cols-12 gap-3.5 sm:gap-4 lg:gap-5 items-stretch">
           
           {/* Left Column: Full-width Farmer Pruning Crop Image */}
-          <div className="lg:col-span-5 rounded-2xl sm:rounded-3xl overflow-hidden relative h-[280px] sm:h-[340px] lg:h-[370px] shadow-xs group">
+          <div
+            ref={imageCardRef}
+            className="lg:col-span-5 rounded-2xl sm:rounded-3xl overflow-hidden relative h-[280px] sm:h-[340px] lg:h-[370px] shadow-xs group opacity-0 will-change-transform"
+          >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/landing/farmer-pruning.jpg"
@@ -36,10 +100,13 @@ export default function AboutUsBento() {
           </div>
 
           {/* Right Column: 2x2 Bento Cards Grid */}
-          <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 h-full">
+          <div
+            ref={cardsRef}
+            className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 h-full"
+          >
             
             {/* Card 1 (Top-Left): Deep Forest Olive Green */}
-            <div className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-[#344d15] text-white flex flex-col justify-between min-h-[140px] sm:min-h-[160px] lg:min-h-[175px] shadow-xs hover:shadow-md transition-all">
+            <div className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-[#344d15] text-white flex flex-col justify-between min-h-[140px] sm:min-h-[160px] lg:min-h-[175px] shadow-xs hover:shadow-md transition-all opacity-0 will-change-transform">
               <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
                 <Sprout className="w-4.5 h-4.5 stroke-[1.75] text-white" />
               </div>
@@ -54,7 +121,7 @@ export default function AboutUsBento() {
             </div>
 
             {/* Card 2 (Top-Right): Light Warm-Gray */}
-            <div className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-[#EAEDE7] text-slate-900 flex flex-col justify-between min-h-[140px] sm:min-h-[160px] lg:min-h-[175px] shadow-xs hover:shadow-md transition-all border border-slate-200/50">
+            <div className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-[#EAEDE7] text-slate-900 flex flex-col justify-between min-h-[140px] sm:min-h-[160px] lg:min-h-[175px] shadow-xs hover:shadow-md transition-all border border-slate-200/50 opacity-0 will-change-transform">
               <div className="w-8 h-8 rounded-lg bg-black/5 flex items-center justify-center">
                 <Lightbulb className="w-4.5 h-4.5 stroke-[1.75] text-slate-800" />
               </div>
@@ -69,7 +136,7 @@ export default function AboutUsBento() {
             </div>
 
             {/* Card 3 (Bottom-Left): Light Warm-Gray */}
-            <div className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-[#EAEDE7] text-slate-900 flex flex-col justify-between min-h-[140px] sm:min-h-[160px] lg:min-h-[175px] shadow-xs hover:shadow-md transition-all border border-slate-200/50">
+            <div className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-[#EAEDE7] text-slate-900 flex flex-col justify-between min-h-[140px] sm:min-h-[160px] lg:min-h-[175px] shadow-xs hover:shadow-md transition-all border border-slate-200/50 opacity-0 will-change-transform">
               <div className="w-8 h-8 rounded-lg bg-black/5 flex items-center justify-center">
                 <Globe className="w-4.5 h-4.5 stroke-[1.75] text-slate-800" />
               </div>
@@ -84,7 +151,7 @@ export default function AboutUsBento() {
             </div>
 
             {/* Card 4 (Bottom-Right): Medium Olive Green */}
-            <div className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-[#547318] text-white flex flex-col justify-between min-h-[140px] sm:min-h-[160px] lg:min-h-[175px] shadow-xs hover:shadow-md transition-all">
+            <div className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-[#547318] text-white flex flex-col justify-between min-h-[140px] sm:min-h-[160px] lg:min-h-[175px] shadow-xs hover:shadow-md transition-all opacity-0 will-change-transform">
               <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
                 <Handshake className="w-4.5 h-4.5 stroke-[1.75] text-white" />
               </div>

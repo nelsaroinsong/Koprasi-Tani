@@ -5,6 +5,8 @@ import { prisma } from '@/lib/prisma';
 import { verifyPassword } from '@/lib/auth-passwords';
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
+  trustHost: true,
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID,
@@ -230,5 +232,4 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     maxAge: 60 * 60, // 1 jam (3600 detik) - Sesi kedaluwarsa jika tidak ada aktivitas
     updateAge: 15 * 60, // 15 menit - Token diperbarui berkala saat pengguna aktif
   },
-  trustHost: true,
 });

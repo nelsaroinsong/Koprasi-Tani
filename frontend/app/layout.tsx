@@ -30,12 +30,20 @@ import { SessionProvider } from '@/components/providers/session-provider';
 import { ToastProvider } from '@/context/toast-context';
 import SessionTimeoutManager from '@/components/SessionTimeoutManager';
 import SmoothScrollProvider from '@/components/providers/smooth-scroll-provider';
+import { auth } from '@/auth';
 
-export default function RootLayout({children}: {children: React.ReactNode}) {
+export default async function RootLayout({children}: {children: React.ReactNode}) {
+  let session = null;
+  try {
+    session = await auth();
+  } catch (error) {
+    console.warn('[RootLayout] Warning getting session:', error);
+  }
+
   return (
     <html lang="id" className={`${dmSans.variable} font-sans`}>
-      <body className="font-sans antialiased bg-dot-pattern text-slate-800 selection:bg-emerald-100 selection:text-emerald-900 pb-16 lg:pb-0" suppressHydrationWarning>
-        <SessionProvider>
+      <body className="font-sans antialiased bg-dot-pattern text-slate-800 selection:bg-emerald-100 selection:text-emerald-900" suppressHydrationWarning>
+        <SessionProvider session={session}>
           <AuthProvider>
             <ToastProvider>
               <SmoothScrollProvider>

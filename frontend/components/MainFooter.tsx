@@ -1,15 +1,49 @@
 'use client';
 
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { Globe } from 'lucide-react';
+import { gsap } from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+if (typeof window !== 'undefined') {
+  gsap.registerPlugin(ScrollTrigger);
+}
 
 interface MainFooterProps {
   onNavClick?: (target: 'toko' | 'alsintan') => void;
 }
 
 export default function MainFooter({}: MainFooterProps) {
+  const footerRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        footerRef.current,
+        { opacity: 0, y: 20 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.8,
+          ease: 'power2.out',
+          scrollTrigger: {
+            trigger: footerRef.current,
+            start: 'top 95%',
+            once: true,
+          },
+        }
+      );
+    }, footerRef);
+
+    return () => ctx.revert();
+  }, []);
+
   return (
-    <footer id="main-footer" className="w-full bg-[#f4f5f1] text-slate-900 border-t border-slate-200/60 py-8 sm:py-10 font-sans">
+    <footer
+      ref={footerRef}
+      id="main-footer"
+      className="w-full bg-[#f4f5f1] text-slate-900 border-t border-slate-200/60 py-8 sm:py-10 font-sans will-change-transform"
+    >
       <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 space-y-4">
         {/* Baris 1: Lokasi di Kiri & Nama Brand Koperasi di Kanan */}
         <div className="flex items-center justify-between">

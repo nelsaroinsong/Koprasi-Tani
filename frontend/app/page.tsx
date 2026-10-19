@@ -3,6 +3,7 @@
 import React from 'react';
 import LandingHero from '@/components/landing/LandingHero';
 import PartnerLogos from '@/components/landing/PartnerLogos';
+import IndonesiaMapSection from '@/components/landing/IndonesiaMapSection';
 import AboutUsBento from '@/components/landing/AboutUsBento';
 import MainFooter from '@/components/MainFooter';
 
@@ -18,11 +19,14 @@ export default function Home() {
         {/* 2. Partner Logos (ICARE, Polimdo, Pemkab Minut, Balai Besar Modernisasi Pertanian) */}
         <PartnerLogos />
 
-        {/* 3. About Us / Why Choose Sustainable Solutions Bento Grid */}
+        {/* 3. Interactive Indonesia Map Section (mapcn) focused on Sulawesi Utara & Minahasa Utara */}
+        <IndonesiaMapSection />
+
+        {/* 4. About Us / Why Choose Sustainable Solutions Bento Grid */}
         <AboutUsBento />
       </main>
 
-      {/* 4. Minimalist Footer */}
+      {/* 5. Minimalist Footer */}
       <MainFooter />
     </div>
   );

@@ -3,7 +3,12 @@
 import React, { createContext, useContext, useEffect, useRef } from 'react';
 import Lenis from 'lenis';
 import { gsap } from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import 'lenis/dist/lenis.css';
+
+if (typeof window !== 'undefined') {
+  gsap.registerPlugin(ScrollTrigger);
+}
 
 interface SmoothScrollContextType {
   lenis: Lenis | null;
@@ -35,7 +40,9 @@ export default function SmoothScrollProvider({ children }: { children: React.Rea
 
     lenisRef.current = lenis;
 
-    // 2. Synchronize Lenis with GSAP ticker for ultra fluid motion
+    // 2. Synchronize Lenis with GSAP ScrollTrigger & ticker for ultra fluid motion
+    lenis.on('scroll', ScrollTrigger.update);
+
     const updateRaf = (time: number) => {
       lenis.raf(time * 1000);
     };
