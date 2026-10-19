@@ -18,6 +18,7 @@ export interface WeightSweepPreloaderProps {
   serifFamily?: string;
   monoFamily?: string;
   height?: string;
+  onReveal?: () => void;
   onComplete?: () => void;
   className?: string;
   fixed?: boolean;
@@ -32,16 +33,14 @@ const PRESETS: Record<string, { paper: string; ink: string }> = {
 };
 
 const DEFAULT_SANS =
-  '"Inter Tight", "Inter Variable", "Inter", "Segoe UI Variable Display", "SF Pro Display", "Helvetica Neue", system-ui, sans-serif';
-const DEFAULT_SERIF =
-  '"Instrument Serif", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif';
+  '"Inter Tight", "Inter Variable", "Inter", "Segoe UI Variable Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif';
 const DEFAULT_MONO =
   '"JetBrains Mono", "SF Mono", ui-monospace, Menlo, Consolas, monospace';
 
 const TICK_COUNT = 40;
-const PANEL_SLIDE_DURATION = 900;
-const PANEL_PAUSE_DURATION = 1300;
-const LIFT_DURATION = 700;
+const PANEL_SLIDE_DURATION = 800;
+const PANEL_PAUSE_DURATION = 1100;
+const LIFT_DURATION = 600;
 
 function wspClamp01(z: number): number {
   return z < 0 ? 0 : z > 1 ? 1 : z;
@@ -61,7 +60,7 @@ function wspWeight(z: number, minW: number, maxW: number): number {
 }
 
 function wspTracking(weight: number): number {
-  return -0.02 - 0.06 * wspClamp01((weight - 100) / 800);
+  return -0.02 - 0.05 * wspClamp01((weight - 100) / 800);
 }
 
 function wspTicks(z: number, maxTicks: number): number {
@@ -81,19 +80,25 @@ const WSP_STYLES = `
   isolation: isolate;
 }
 .wsp-root.wsp-fixed {
-  position: fixed;
-  inset: 0;
-  z-index: 99999;
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  z-index: 99999 !important;
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
 }
 .wsp-gate {
   position: absolute;
   inset: 0;
+  width: 100%;
+  height: 100%;
   z-index: 2;
   overflow: hidden;
-  container-type: size;
   background: var(--wsp-paper);
   color: var(--wsp-ink);
-  transition: opacity 700ms cubic-bezier(.65,0,.35,1), visibility 0s linear 700ms;
+  transition: opacity 600ms cubic-bezier(.65,0,.35,1), visibility 0s linear 600ms;
   -webkit-font-smoothing: antialiased;
   cursor: default;
 }
@@ -107,18 +112,19 @@ const WSP_STYLES = `
 }
 .wsp-hud {
   position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
+  left: clamp(18px, 4vw, 44px);
+  right: clamp(18px, 4vw, 44px);
+  top: clamp(18px, 4vh, 36px);
   display: flex;
   justify-content: space-between;
+  align-items: center;
   gap: 16px;
-  padding: clamp(18px, 3.2cqw, 34px) clamp(18px, 3.2cqw, 40px) 0;
   font-family: var(--wsp-mono);
   font-size: 11px;
   font-weight: 500;
   letter-spacing: .2em;
   text-transform: uppercase;
+  z-index: 5;
 }
 .wsp-hud span:last-child {
   opacity: .55;
@@ -127,33 +133,36 @@ const WSP_STYLES = `
 }
 .wsp-rule {
   position: absolute;
-  left: clamp(18px, 3.2cqw, 40px);
-  right: clamp(18px, 3.2cqw, 40px);
-  top: calc(clamp(18px, 3.2cqw, 34px) + 22px);
+  left: clamp(18px, 4vw, 44px);
+  right: clamp(18px, 4vw, 44px);
+  top: calc(clamp(18px, 4vh, 36px) + 24px);
   height: 0;
-  border-top: 0.5px solid currentColor;
-  opacity: .18;
+  border-top: 1px solid currentColor;
+  opacity: .15;
+  z-index: 5;
 }
 .wsp-count {
   position: absolute;
-  left: clamp(6px, 1.4cqw, 22px);
+  left: clamp(12px, 3vw, 36px);
   bottom: 0;
   margin: 0;
   font-family: var(--wsp-sans);
-  line-height: .74;
+  line-height: .76;
   white-space: nowrap;
-  font-size: min(70cqh, 43cqw);
+  font-size: clamp(120px, 34vw, 380px);
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1, "ss01" 1;
-  transform: translateY(6%);
+  transform: translateY(5%);
   will-change: font-weight;
   user-select: none;
+  pointer-events: none;
+  z-index: 1;
 }
 .wsp-foot {
   position: absolute;
-  left: clamp(18px, 3.2cqw, 40px);
-  right: clamp(18px, 3.2cqw, 40px);
-  top: calc(clamp(18px, 3.2cqw, 34px) + 38px);
+  left: clamp(18px, 4vw, 44px);
+  right: clamp(18px, 4vw, 44px);
+  top: calc(clamp(18px, 4vh, 36px) + 40px);
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
@@ -162,6 +171,7 @@ const WSP_STYLES = `
   font-size: 10px;
   letter-spacing: .2em;
   text-transform: uppercase;
+  z-index: 5;
 }
 .wsp-foot > span {
   opacity: .55;
@@ -171,7 +181,7 @@ const WSP_STYLES = `
   display: flex;
   align-items: flex-end;
   gap: 0;
-  flex: 0 1 min(46cqw, 520px);
+  flex: 0 1 min(45vw, 500px);
   justify-content: space-between;
   height: 11px;
 }
@@ -180,7 +190,7 @@ const WSP_STYLES = `
   height: 5px;
   background: currentColor;
   opacity: .2;
-  transition: opacity 180ms linear;
+  transition: opacity 160ms linear;
 }
 .wsp-tick[data-major="true"] {
   height: 11px;
@@ -194,29 +204,56 @@ const WSP_STYLES = `
   display: grid;
   place-content: center;
   justify-items: center;
-  gap: 14px;
+  gap: 12px;
   background: var(--wsp-ink);
   color: var(--wsp-paper);
   transform: translateY(101%);
-  transition: transform 900ms cubic-bezier(.76,0,.24,1);
+  transition: transform 800ms cubic-bezier(.76,0,.24,1);
   padding: 24px;
   text-align: center;
+  z-index: 10;
 }
 .wsp-gate[data-phase="panel"] .wsp-panel,
 .wsp-gate[data-phase="lift"] .wsp-panel {
   transform: none;
 }
+.wsp-line-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 500ms ease 350ms, transform 700ms cubic-bezier(.2,.7,.1,1) 350ms;
+}
+.wsp-gate[data-phase="panel"] .wsp-line-box {
+  opacity: 1;
+  transform: none;
+}
 .wsp-line {
   margin: 0;
-  font-family: var(--wsp-serif);
-  font-style: italic;
-  font-weight: 400;
-  font-size: clamp(28px, 5.8cqw, 72px);
-  line-height: 1.1;
-  letter-spacing: -.01em;
+  font-family: var(--wsp-sans);
+  font-style: normal;
+  font-weight: 500;
+  font-size: clamp(15px, 2.2vw, 22px);
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: #f4f5f1;
+}
+.wsp-tag {
+  font-family: var(--wsp-mono);
+  font-size: 10px;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: #D4F63D;
+  margin-bottom: 2px;
   opacity: 0;
-  transform: translateY(14px);
-  transition: opacity 600ms ease 420ms, transform 800ms cubic-bezier(.2,.7,.1,1) 420ms;
+  transform: translateY(8px);
+  transition: opacity 500ms ease 300ms, transform 700ms ease 300ms;
+}
+.wsp-gate[data-phase="panel"] .wsp-tag {
+  opacity: 1;
+  transform: none;
 }
 .wsp-replay {
   font-family: var(--wsp-mono);
@@ -224,14 +261,11 @@ const WSP_STYLES = `
   letter-spacing: .2em;
   text-transform: uppercase;
   opacity: 0;
-  transition: opacity 500ms ease 900ms;
-}
-.wsp-gate[data-phase="panel"] .wsp-line {
-  opacity: 1;
-  transform: none;
+  transition: opacity 500ms ease 800ms;
+  color: #a0a0a0;
 }
 .wsp-gate[data-phase="panel"][data-loop="true"] .wsp-replay {
-  opacity: .45;
+  opacity: .6;
 }
 .wsp-sr {
   position: absolute;
@@ -245,7 +279,7 @@ const WSP_STYLES = `
   .wsp-panel {
     transition: none;
   }
-  .wsp-line, .wsp-replay {
+  .wsp-line-box, .wsp-replay, .wsp-tag {
     transition: none;
     transform: none;
   }
@@ -259,7 +293,7 @@ export default function WeightSweepPreloader({
   children,
   loop = false,
   progress,
-  durationMs = 2600,
+  durationMs = 2300,
   preset = 'paper',
   palette,
   label = 'Koperasi Sinar Pagi Sejahtera',
@@ -268,9 +302,9 @@ export default function WeightSweepPreloader({
   weights = [100, 900],
   hud = true,
   fontFamily = DEFAULT_SANS,
-  serifFamily = DEFAULT_SERIF,
   monoFamily = DEFAULT_MONO,
   height = '100svh',
+  onReveal,
   onComplete,
   className = '',
   fixed = false,
@@ -285,11 +319,37 @@ export default function WeightSweepPreloader({
   const [replayKey, setReplayKey] = useState(0);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
+  const onRevealRef = useRef(onReveal);
+  onRevealRef.current = onReveal;
+
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
 
   const progressRef = useRef(progress);
   progressRef.current = progress;
+
+  // Lock body scroll and reset scroll position so there is NO jumping
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+      if ('scrollRestoration' in history) {
+        history.scrollRestoration = 'manual';
+      }
+    } catch {}
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      try {
+        if ('scrollRestoration' in history) {
+          history.scrollRestoration = 'auto';
+        }
+      } catch {}
+    };
+  }, []);
 
   // Listen for prefers-reduced-motion
   useEffect(() => {
@@ -301,7 +361,7 @@ export default function WeightSweepPreloader({
     return () => mediaQuery.removeEventListener('change', updateMotion);
   }, []);
 
-  // Simulated or real progress tracking
+  // Smooth Progress animation
   useEffect(() => {
     if (phase !== 'load') return;
 
@@ -346,7 +406,11 @@ export default function WeightSweepPreloader({
   useEffect(() => {
     if (phase === 'panel') {
       const timer = setTimeout(() => {
-        if (!loop) setPhase('lift');
+        if (!loop) {
+          // Trigger page reveal animation right as lift begins
+          onRevealRef.current?.();
+          setPhase('lift');
+        }
       }, (prefersReducedMotion ? 0 : PANEL_SLIDE_DURATION) + PANEL_PAUSE_DURATION);
       return () => clearTimeout(timer);
     }
@@ -392,7 +456,6 @@ export default function WeightSweepPreloader({
           '--wsp-paper': chosenPalette.paper,
           '--wsp-ink': chosenPalette.ink,
           '--wsp-sans': fontFamily,
-          '--wsp-serif': serifFamily,
           '--wsp-mono': monoFamily,
         } as React.CSSProperties
       }
@@ -456,10 +519,14 @@ export default function WeightSweepPreloader({
             </div>
           )}
 
-          {/* Sweeping Ink Panel with Italic Finish Line */}
+          {/* Refined Ink Panel (Matching the font of the counter numbers & smaller size) */}
           {message && (
             <div className="wsp-panel" aria-hidden={phase === 'load'}>
-              <p className="wsp-line">{message}</p>
+              <span className="wsp-tag">KOPERASI SINAR PAGI SEJAHTERA</span>
+              <div className="wsp-line-box">
+                <span className="w-2 h-2 rounded-full bg-[#D4F63D] shrink-0" />
+                <p className="wsp-line">{message}</p>
+              </div>
               {loop && (
                 <span className="wsp-replay">Klik untuk mengulang</span>
               )}

@@ -7,7 +7,7 @@ import LandingHeader from './LandingHeader';
 import { useSmoothScroll } from '@/components/providers/smooth-scroll-provider';
 import { gsap } from 'gsap';
 
-export default function LandingHero() {
+export default function LandingHero({ isReady = true }: { isReady?: boolean }) {
   const { scrollTo } = useSmoothScroll();
   const heroRef = useRef<HTMLElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -17,6 +17,8 @@ export default function LandingHero() {
   const buttonsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!isReady) return;
+
     const ctx = gsap.context(() => {
       const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
 
@@ -79,12 +81,13 @@ export default function LandingHero() {
     }, heroRef);
 
     return () => ctx.revert();
-  }, []);
+  }, [isReady]);
 
   return (
     <section
       ref={heroRef}
-      className="relative isolate w-full overflow-hidden rounded-2xl sm:rounded-3xl min-h-[580px] sm:min-h-[640px] lg:min-h-[700px] flex flex-col justify-between shadow-sm opacity-0 will-change-transform"
+      className="relative isolate w-full overflow-hidden rounded-2xl sm:rounded-3xl min-h-[580px] sm:min-h-[640px] lg:min-h-[700px] flex flex-col justify-between shadow-sm will-change-transform"
+      style={{ opacity: isReady ? 1 : 0 }}
     >
       {/* Background Image: Tractor in Field at Dusk */}
       <div className="absolute inset-0 z-0 overflow-hidden">
