@@ -669,10 +669,7 @@ export default function PetaniStorePage({
                             }`}
                           />
 
-                          {/* Top-Left Category Badge */}
-                          <div className="absolute top-1.5 left-1.5 sm:top-2.5 sm:left-2.5 bg-[#233414] text-[#D4F63D] text-[10px] sm:text-xs font-semibold px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-md sm:rounded-lg max-w-[62%] truncate z-10">
-                            {prod.kategori}
-                          </div>
+
 
                           {/* Top-Right Status Badge */}
                           <div

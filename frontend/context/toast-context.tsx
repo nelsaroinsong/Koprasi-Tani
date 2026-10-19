@@ -34,13 +34,13 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
   const showToast = useCallback((options: ToastOptions | string) => {
     if (typeof options === 'string') {
-      toast(options, { duration: 4500 });
+      toast(options, { duration: 5000 });
       return;
     }
 
     const title = options.title || options.message;
     const description = options.title ? options.message : undefined;
-    const duration = options.duration || 4500;
+    const duration = options.duration || 5000;
     const type = options.type || 'info';
 
     switch (type) {

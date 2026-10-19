@@ -378,7 +378,7 @@ export default function EquipmentDetailPage({
         </div>
       </div>
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-2 sm:py-6 lg:py-8">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-2 pb-36 sm:pb-8 sm:py-6 lg:py-8">
         <div className="bg-white sm:rounded-3xl sm:border sm:border-[#dce1d6] sm:p-6 lg:p-8">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-5 sm:gap-8 lg:gap-10 items-start">
             {/* Left Column: Clean Image Card + Pagination Dots (Gambar 5 Style) */}
@@ -601,8 +601,8 @@ export default function EquipmentDetailPage({
           </div>
         </div>
 
-        {/* Sticky Bottom Action Bar on Mobile (Gambar 5 Left Screen Bottom Bar) */}
-        <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#EAEDE7] px-4 py-3 flex items-center gap-3">
+        {/* Fixed Bottom Action Bar on Mobile (Fixed at bottom with safe area, matches Gambar 5) */}
+        <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-[#dce1d6] px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] flex items-center gap-3 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
           <button
             type="button"
             onClick={() => setIsDirectCheckoutOpen(true)}
@@ -617,7 +617,7 @@ export default function EquipmentDetailPage({
             type="button"
             onClick={handleAddToCart}
             disabled={isOutOfStock}
-            className="flex-1 h-12 rounded-2xl bg-[#344d15] hover:bg-[#233414] text-white font-bold text-sm flex items-center justify-center gap-2 transition cursor-pointer shadow-sm disabled:opacity-40"
+            className="flex-1 h-12 px-5 rounded-full bg-[#233414] hover:bg-[#344d15] text-white font-bold text-sm flex items-center justify-center gap-2 transition cursor-pointer shadow-sm disabled:opacity-40"
           >
             <span>
               {isOutOfStock

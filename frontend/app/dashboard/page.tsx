@@ -404,10 +404,7 @@ export default function DashboardPetaniPage() {
                           <span>{prod.isTersedia ? 'Aktif' : 'Off'}</span>
                         </div>
 
-                        {/* Kategori Badge di Kiri Bawah */}
-                        <div className="absolute bottom-1.5 left-1.5 bg-[#233414]/95 backdrop-blur-xs text-[#D4F63D] text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded shadow-2xs max-w-[80%] truncate z-10">
-                          {prod.kategori}
-                        </div>
+
                       </div>
 
                       {/* Content */}

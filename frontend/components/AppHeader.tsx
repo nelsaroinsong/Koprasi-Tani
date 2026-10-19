@@ -11,12 +11,10 @@ import {
   LogIn,
   User as UserIcon,
   LayoutDashboard,
-  Search,
 } from 'lucide-react';
 import UserProfileDropdown from '@/components/UserProfileDropdown';
 import { useAuth } from '@/context/auth-context';
 import BottomNav from '@/components/BottomNav';
-import GlobalSearchModal from '@/components/GlobalSearchModal';
 
 interface AppHeaderProps {
   activePage?: 'toko' | 'sewa-alat' | 'pesanan' | 'dashboard' | 'profile' | 'beranda' | 'cart' | 'none';
@@ -25,19 +23,7 @@ interface AppHeaderProps {
 export default function AppHeader({ activePage }: AppHeaderProps) {
   const pathname = usePathname();
   const { user } = useAuth();
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
-  // Shortcut keyboard Ctrl+K atau Cmd+K untuk membuka modal pencarian
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
-        setIsSearchOpen((prev) => !prev);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
 
   // Deteksi halaman aktif secara otomatis berdasarkan pathname jika props tidak spesifik
   const currentActive = useMemo(() => {
@@ -168,33 +154,22 @@ export default function AppHeader({ activePage }: AppHeaderProps) {
           {/* Right Section: Pencarian, Keranjang Belanja & Profil Dropdown */}
           <div className="flex items-center gap-2 shrink-0 z-10">
             {!user && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setIsSearchOpen(true)}
-                  className="w-9 h-9 rounded-full flex items-center justify-center transition-colors border cursor-pointer bg-[#f4f5f1] hover:bg-[#EAEDE7] text-[#233414] border-[#d5dccf]"
-                  title="Pencarian Cepat (Ctrl+K)"
-                >
-                  <Search className="w-4 h-4" />
-                </button>
-
-                <Link
-                  href="/cart"
-                  prefetch={true}
-                  className={`relative w-9 h-9 rounded-full flex items-center justify-center transition-colors border cursor-pointer ${
-                    currentActive === 'cart'
-                      ? 'bg-[#233414] text-[#D4F63D] border-[#233414]'
-                      : 'bg-[#f4f5f1] hover:bg-[#EAEDE7] text-[#233414] border-[#d5dccf]'
-                  }`}
-                  title="Keranjang Belanja"
-                >
-                  <ShoppingCart className="w-4 h-4" />
-                </Link>
-              </>
+              <Link
+                href="/cart"
+                prefetch={true}
+                className={`relative w-9 h-9 rounded-full flex items-center justify-center transition-colors border cursor-pointer ${
+                  currentActive === 'cart'
+                    ? 'bg-[#233414] text-[#D4F63D] border-[#233414]'
+                    : 'bg-[#f4f5f1] hover:bg-[#EAEDE7] text-[#233414] border-[#d5dccf]'
+                }`}
+                title="Keranjang Belanja"
+              >
+                <ShoppingCart className="w-4 h-4" />
+              </Link>
             )}
 
             {user ? (
-              <UserProfileDropdown onOpenSearch={() => setIsSearchOpen(true)} />
+              <UserProfileDropdown />
             ) : (
               <Link
                 href="/login"
@@ -207,7 +182,6 @@ export default function AppHeader({ activePage }: AppHeaderProps) {
           </div>
         </div>
       </header>
-      <GlobalSearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
       <BottomNav activePage={currentActive} />
     </>
   );

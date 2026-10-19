@@ -429,9 +429,7 @@ function SearchPageContent() {
                                 <span>Habis</span>
                               </div>
                             )}
-                            <div className="absolute top-1.5 left-1.5 bg-[#233414] text-[#D4F63D] text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 sm:px-2 sm:py-0.5 rounded-md max-w-[65%] truncate z-10">
-                              {prod.kategori}
-                            </div>
+
                           </div>
 
                           {/* Product Details */}
@@ -514,9 +512,6 @@ function SearchPageContent() {
                               <Tractor className="w-10 h-10" />
                             </div>
                           )}
-                          <div className="absolute top-1.5 left-1.5 bg-[#233414] text-[#D4F63D] text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 sm:px-2 sm:py-0.5 rounded-md max-w-[80%] truncate">
-                            {item.kategori}
-                          </div>
                         </div>
 
                         <div className="p-2.5 sm:p-3.5">

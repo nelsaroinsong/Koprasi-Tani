@@ -49,10 +49,10 @@ import {
 import { Search } from 'lucide-react';
 
 interface UserProfileDropdownProps {
-  onOpenSearch?: () => void;
+  // onOpenSearch deprecated as search is removed from navbar
 }
 
-export default function UserProfileDropdown({ onOpenSearch }: UserProfileDropdownProps = {}) {
+export default function UserProfileDropdown({}: UserProfileDropdownProps = {}) {
   const router = useRouter();
   const pathname = usePathname();
   const isCartActive = pathname === '/cart' || pathname.startsWith('/cart');
@@ -302,18 +302,6 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
   return (
     <>
       <div className="flex items-center gap-2" ref={dropdownRef}>
-        {/* Tombol Pencarian Cepat (di samping Keranjang Belanja) */}
-        {onOpenSearch && (
-          <button
-            type="button"
-            onClick={onOpenSearch}
-            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors border cursor-pointer bg-[#f4f5f1] hover:bg-[#EAEDE7] text-[#233414] border-[#d5dccf]"
-            title="Pencarian Cepat (Ctrl+K)"
-          >
-            <Search className="w-4 h-4" />
-          </button>
-        )}
-
         {/* Tombol Keranjang Belanja */}
         <Link
           href="/cart"

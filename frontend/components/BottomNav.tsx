@@ -82,15 +82,17 @@ export default function BottomNav({ activePage }: BottomNavProps) {
     },
   ];
 
+  if (activePage === 'none') {
+    return null;
+  }
+
   return (
     <nav
       aria-label="Navigasi Bawah Layanan Koperasi"
-      className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-[#dce1d6] lg:hidden pb-[env(safe-area-inset-bottom,0px)]"
+      className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#dce1d6] lg:hidden pb-[env(safe-area-inset-bottom,0px)] shadow-xs"
     >
       <div
-        className={`max-w-md mx-auto grid ${
-          isPetani ? 'grid-cols-5' : 'grid-cols-4'
-        } h-15 sm:h-16 items-center px-1.5 sm:px-2`}
+        className={`max-w-md mx-auto flex items-center justify-around h-14 sm:h-15 px-2`}
       >
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -100,14 +102,15 @@ export default function BottomNav({ activePage }: BottomNavProps) {
               key={item.key}
               href={item.href}
               prefetch={true}
-              className="focus:outline-none flex items-center justify-center p-1"
+              className="focus:outline-none flex items-center justify-center py-1 px-1.5"
               aria-label={item.label}
+              title={item.label}
             >
               <div
-                className={`flex flex-col items-center justify-center gap-0.5 w-full py-1.5 px-1 rounded-xl transition-colors duration-150 ${
+                className={`w-13 h-9 sm:w-15 sm:h-10 rounded-full flex items-center justify-center transition-colors duration-150 ${
                   item.isActive
-                    ? 'bg-[#233414] text-white font-semibold'
-                    : 'text-[#526046] hover:text-[#1a2610] bg-transparent font-medium hover:bg-[#f4f5f1]'
+                    ? 'bg-[#233414] text-[#D4F63D] shadow-xs'
+                    : 'text-[#526046] hover:text-[#1a2610] hover:bg-[#EAEDE7]'
                 }`}
               >
                 <Icon
@@ -117,13 +120,6 @@ export default function BottomNav({ activePage }: BottomNavProps) {
                       : 'text-[#526046] stroke-[1.8]'
                   }`}
                 />
-                <span
-                  className={`text-[11px] tracking-tight truncate max-w-full leading-tight ${
-                    item.isActive ? 'text-white font-semibold' : 'text-[#526046]'
-                  }`}
-                >
-                  {item.label}
-                </span>
               </div>
             </Link>
           );

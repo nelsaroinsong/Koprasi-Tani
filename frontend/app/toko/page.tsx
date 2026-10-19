@@ -10,6 +10,7 @@ import {
   Loader2,
   X,
   Store,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
@@ -35,6 +36,17 @@ export interface TabCategoryConfig {
   emoji: string;
   mobileBg: string;
 }
+
+const getCategoryIcon = (categoryName: string) => {
+  const norm = categoryName.toLowerCase().trim();
+  if (norm === 'semua' || norm === 'semua komoditas' || norm === 'semua alat') return '/categories/all.jpg';
+  if (norm.includes('kelapa')) return '/categories/kelapa.jpg';
+  if (norm.includes('jagung')) return '/categories/jagung.jpg';
+  if (norm.includes('turunan')) return '/categories/turunan.jpg';
+  if (norm.includes('olahan') || norm.includes('vco') || norm.includes('minyak')) return '/categories/olahan.jpg';
+  if (norm.includes('alat') || norm.includes('traktor') || norm.includes('mesin') || norm.includes('roda')) return '/categories/alat.jpg';
+  return '/categories/all.jpg';
+};
 
 function getInitialCategories(): CategoryItem[] {
   if (typeof window !== 'undefined') {
@@ -365,49 +377,98 @@ export default function TokoOnlinePage() {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-3.5 sm:py-5 pb-24 lg:pb-12">
-        {/* Top Filter Pills & Search Input Toolbar */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5 sm:gap-3.5 mb-4 sm:mb-6">
-          {/* Category Filter Pills */}
-          <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 md:pb-0 no-scrollbar order-2 md:order-1">
-            {dynamicKategoriConfig.map((cat) => {
-              const isSelected = selectedKategori === cat.key;
-              return (
-                <button
-                  key={cat.key}
-                  type="button"
-                  onClick={() => setSelectedKategori(cat.key)}
-                  className={`h-8 sm:h-9 px-3 sm:px-4 rounded-lg sm:rounded-xl text-xs sm:text-[13px] whitespace-nowrap transition-colors cursor-pointer border shrink-0 flex items-center gap-1.5 ${
-                    isSelected
-                      ? 'bg-[#233414] text-white border-[#233414] font-semibold'
-                      : 'bg-white text-[#233414] hover:bg-[#EAEDE7] border-[#cfd6c9] font-medium'
-                  }`}
-                >
-                  <span>{cat.pillLabel || cat.label}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Search Input */}
-          <div className="relative w-full md:w-72 lg:w-80 shrink-0 order-1 md:order-2">
-            <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#68785b] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+        {/* Search Bar matching Gambar 1 (Clean Rounded Pill with Magnifying Glass & Filter Button) */}
+        <div className="relative w-full max-w-2xl mx-auto mb-5 sm:mb-6">
+          <div className="relative flex items-center bg-white border border-[#cfd6c9] focus-within:border-[#233414] focus-within:ring-2 focus-within:ring-[#233414]/15 rounded-full shadow-xs transition-all h-11 sm:h-12 px-4">
+            <Search className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-[#68785b] shrink-0 mr-2.5 pointer-events-none" />
             <input
               type="text"
-              placeholder="Cari kelapa, jagung, kopra..."
+              placeholder="Cari komoditas kelapa, jagung, bibit, hasil tani..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full h-9 sm:h-10 pl-9 sm:pl-10 pr-8 text-xs sm:text-[13px] bg-white border border-[#cfd6c9] rounded-xl text-[#1a2610] placeholder:text-[#68785b] focus:outline-none focus:border-[#233414] focus:ring-1 focus:ring-[#233414] transition-colors"
+              className="w-full bg-transparent text-xs sm:text-sm text-[#1a2610] placeholder:text-[#68785b] focus:outline-none"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-[#EAEDE7] hover:bg-[#cfd6c9] text-[#233414] flex items-center justify-center transition-colors cursor-pointer"
-                title="Bersihkan pencarian"
+                className="w-5 h-5 rounded-full bg-[#EAEDE7] hover:bg-[#cfd6c9] text-[#233414] flex items-center justify-center transition mr-1.5 cursor-pointer shrink-0"
+                title="Bersihkan"
               >
                 <X className="w-3 h-3" />
               </button>
             )}
+            <button
+              type="button"
+              onClick={() => {
+                const inputEl = document.querySelector('input[type="text"]') as HTMLInputElement;
+                if (inputEl) inputEl.focus();
+              }}
+              className="w-8 h-8 rounded-full bg-[#f4f5f1] hover:bg-[#EAEDE7] text-[#233414] flex items-center justify-center transition shrink-0 cursor-pointer border border-[#dce1d6]"
+              title="Filter Pencarian"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5 text-[#233414]" />
+            </button>
+          </div>
+        </div>
+
+        {/* Category Section matching Gambar 3 (Title + "Lihat semua", Rounded Cards with 3D Icons) */}
+        <div className="mb-6 sm:mb-8">
+          <div className="flex items-center justify-between mb-3 px-1">
+            <h2 className="text-sm sm:text-base font-bold text-[#1a2610] tracking-tight">
+              Kategori Komoditas
+            </h2>
+            <button
+              type="button"
+              onClick={() => setSelectedKategori('SEMUA')}
+              className="text-xs font-semibold text-[#344d15] hover:text-[#1a2610] transition-colors cursor-pointer"
+            >
+              Lihat semua
+            </button>
+          </div>
+
+          <div className="flex items-start gap-3 sm:gap-4 overflow-x-auto pb-2 no-scrollbar px-1">
+            {dynamicKategoriConfig.map((cat) => {
+              const isSelected = selectedKategori.toLowerCase().trim() === cat.key.toLowerCase().trim();
+              const iconSrc = getCategoryIcon(cat.key);
+
+              return (
+                <button
+                  key={cat.key}
+                  type="button"
+                  onClick={() => setSelectedKategori(cat.key)}
+                  className="flex flex-col items-center group shrink-0 focus:outline-none cursor-pointer"
+                >
+                  <div
+                    className={`w-16 h-16 sm:w-20 sm:h-20 rounded-2xl p-2 flex items-center justify-center transition-all ${
+                      isSelected
+                        ? 'bg-[#233414] border-2 border-[#233414] shadow-md ring-2 ring-[#233414]/20'
+                        : 'bg-[#f4f5f1] hover:bg-[#EAEDE7] border border-[#dce1d6] group-hover:border-[#b8c4ae]'
+                    }`}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={iconSrc}
+                      alt={cat.label}
+                      className={`w-full h-full object-contain rounded-xl transition-transform duration-200 ${
+                        isSelected ? 'scale-105' : 'group-hover:scale-105'
+                      }`}
+                      loading="lazy"
+                    />
+                  </div>
+                  <span
+                    className={`text-[11px] sm:text-xs text-center mt-1.5 transition-colors max-w-[72px] sm:max-w-[84px] truncate ${
+                      isSelected
+                        ? 'text-[#233414] font-extrabold'
+                        : 'text-[#526046] font-semibold group-hover:text-[#1a2610]'
+                    }`}
+                    title={cat.label}
+                  >
+                    {cat.pillLabel || cat.label}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -502,10 +563,7 @@ export default function TokoOnlinePage() {
                           }}
                         />
 
-                        {/* Top-Left Category Badge (Compact on Mobile, Larger on Tablet/Desktop) */}
-                        <div className="absolute top-1.5 left-1.5 sm:top-2.5 sm:left-2.5 bg-[#233414] text-[#D4F63D] text-[10px] sm:text-xs font-semibold px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-md sm:rounded-lg max-w-[62%] truncate z-10">
-                          {prod.kategori}
-                        </div>
+
 
                         {/* Top-Right Status Badge */}
                         <div
