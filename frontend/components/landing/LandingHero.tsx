@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useLayoutEffect } from 'react';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import LandingHeader from './LandingHeader';
@@ -16,20 +16,13 @@ export default function LandingHero({ isReady = true }: { isReady?: boolean }) {
   const textRef = useRef<HTMLParagraphElement>(null);
   const buttonsRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!isReady) return;
 
     const ctx = gsap.context(() => {
       const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
 
-      // 1. Initial setup - hero container fade & scale
-      tl.fromTo(
-        heroRef.current,
-        { opacity: 0, scale: 0.985 },
-        { opacity: 1, scale: 1, duration: 1.1, ease: 'power3.out' }
-      );
-
-      // 2. Tractor image slow cinematic un-zoom & brighten
+      // 1. Tractor image slow cinematic un-zoom & brighten as preloader slides up
       if (imageRef.current) {
         tl.fromTo(
           imageRef.current,
@@ -39,7 +32,7 @@ export default function LandingHero({ isReady = true }: { isReady?: boolean }) {
         );
       }
 
-      // 3. Floating Navbar capsule drops down
+      // 2. Floating Navbar capsule drops down
       if (headerRef.current) {
         tl.fromTo(
           headerRef.current,
@@ -49,33 +42,33 @@ export default function LandingHero({ isReady = true }: { isReady?: boolean }) {
         );
       }
 
-      // 4. Headline reveals upwards
+      // 3. Headline reveals upwards
       if (headlineRef.current) {
         tl.fromTo(
           headlineRef.current,
           { y: 40, opacity: 0 },
           { y: 0, opacity: 1, duration: 1.0, ease: 'power3.out' },
-          0.5
+          0.3
         );
       }
 
-      // 5. Paragraph description
+      // 4. Paragraph description
       if (textRef.current) {
         tl.fromTo(
           textRef.current,
           { y: 25, opacity: 0 },
           { y: 0, opacity: 1, duration: 0.85, ease: 'power2.out' },
-          0.7
+          0.45
         );
       }
 
-      // 6. Action buttons staggered with slight elastic bounce
+      // 5. Action buttons staggered with slight elastic bounce
       if (buttonsRef.current) {
         tl.fromTo(
           buttonsRef.current.children,
           { y: 20, opacity: 0, scale: 0.92 },
           { y: 0, opacity: 1, scale: 1, stagger: 0.12, duration: 0.7, ease: 'back.out(1.7)' },
-          0.85
+          0.6
         );
       }
     }, heroRef);
@@ -87,7 +80,6 @@ export default function LandingHero({ isReady = true }: { isReady?: boolean }) {
     <section
       ref={heroRef}
       className="relative isolate w-full overflow-hidden rounded-2xl sm:rounded-3xl min-h-[580px] sm:min-h-[640px] lg:min-h-[700px] flex flex-col justify-between shadow-sm will-change-transform"
-      style={{ opacity: isReady ? 1 : 0 }}
     >
       {/* Background Image: Tractor in Field at Dusk */}
       <div className="absolute inset-0 z-0 overflow-hidden">
@@ -105,7 +97,7 @@ export default function LandingHero({ isReady = true }: { isReady?: boolean }) {
       </div>
 
       {/* 1. Navbar INSIDE Hero Section (Floating White Capsule) */}
-      <div ref={headerRef} className="relative z-20">
+      <div ref={headerRef} className="relative z-20" style={{ opacity: isReady ? undefined : 0 }}>
         <LandingHeader />
       </div>
 
@@ -117,6 +109,7 @@ export default function LandingHero({ isReady = true }: { isReady?: boolean }) {
           <div className="max-w-xl">
             <h1
               ref={headlineRef}
+              style={{ opacity: isReady ? undefined : 0 }}
               className="text-3xl sm:text-5xl lg:text-[52px] font-normal text-white tracking-tight leading-[1.08] will-change-transform"
             >
               Inovasi Pertanian Berkelanjutan &amp; Mandiri
@@ -127,12 +120,13 @@ export default function LandingHero({ isReady = true }: { isReady?: boolean }) {
           <div className="max-w-md flex flex-col items-start md:items-end text-left md:text-right">
             <p
               ref={textRef}
+              style={{ opacity: isReady ? undefined : 0 }}
               className="text-xs sm:text-[13px] text-white/85 font-light leading-relaxed mb-4 max-w-sm will-change-transform"
             >
               Ekosistem digital terpadu untuk memberdayakan petani Minahasa Utara melalui transparansi komoditas, bagi hasil adil, dan akses sewa alat modern.
             </p>
 
-            <div ref={buttonsRef} className="flex items-center gap-3">
+            <div ref={buttonsRef} className="flex items-center gap-3" style={{ opacity: isReady ? undefined : 0 }}>
               {/* Button 1: Vibrant Lime Pill Button (Matches 'Explore Service ->') */}
               <Link
                 href="/toko"

@@ -21,7 +21,7 @@ export default function Home() {
           preset="paper"
           label="Koperasi Sinar Pagi Sejahtera"
           caption="Memuat Ekosistem Pertanian"
-          message="Dari Minahasa Utara untuk Nusantara."
+          logoSrc="/landing/koperasi-full-white.png"
           onReveal={() => setIsHeroReady(true)}
           onComplete={() => setShowPreloader(false)}
         />

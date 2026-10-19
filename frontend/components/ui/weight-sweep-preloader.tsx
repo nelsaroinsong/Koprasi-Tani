@@ -12,6 +12,7 @@ export interface WeightSweepPreloaderProps {
   label?: string;
   caption?: string;
   message?: string;
+  logoSrc?: string;
   weights?: [number, number];
   hud?: boolean;
   fontFamily?: string;
@@ -40,7 +41,7 @@ const DEFAULT_MONO =
 const TICK_COUNT = 40;
 const PANEL_SLIDE_DURATION = 800;
 const PANEL_PAUSE_DURATION = 1100;
-const LIFT_DURATION = 600;
+const LIFT_DURATION = 800;
 
 function wspClamp01(z: number): number {
   return z < 0 ? 0 : z > 1 ? 1 : z;
@@ -88,6 +89,7 @@ const WSP_STYLES = `
   z-index: 99999 !important;
   overflow: hidden !important;
   overscroll-behavior: none !important;
+  pointer-events: none;
 }
 .wsp-gate {
   position: absolute;
@@ -98,12 +100,15 @@ const WSP_STYLES = `
   overflow: hidden;
   background: var(--wsp-paper);
   color: var(--wsp-ink);
-  transition: opacity 600ms cubic-bezier(.65,0,.35,1), visibility 0s linear 600ms;
+  transform: translateY(0);
+  will-change: transform;
+  transition: transform 800ms cubic-bezier(.76,0,.24,1), visibility 0s linear 800ms;
   -webkit-font-smoothing: antialiased;
   cursor: default;
+  pointer-events: auto;
 }
 .wsp-gate[data-phase="lift"] {
-  opacity: 0;
+  transform: translateY(-100%);
   visibility: hidden;
   pointer-events: none;
 }
@@ -204,7 +209,7 @@ const WSP_STYLES = `
   display: grid;
   place-content: center;
   justify-items: center;
-  gap: 12px;
+  gap: 16px;
   background: var(--wsp-ink);
   color: var(--wsp-paper);
   transform: translateY(101%);
@@ -217,43 +222,26 @@ const WSP_STYLES = `
 .wsp-gate[data-phase="lift"] .wsp-panel {
   transform: none;
 }
-.wsp-line-box {
+.wsp-logo-box {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
   opacity: 0;
-  transform: translateY(12px);
-  transition: opacity 500ms ease 350ms, transform 700ms cubic-bezier(.2,.7,.1,1) 350ms;
+  transform: translateY(14px) scale(0.96);
+  transition: opacity 550ms ease 300ms, transform 750ms cubic-bezier(.2,.7,.1,1) 300ms;
 }
-.wsp-gate[data-phase="panel"] .wsp-line-box {
+.wsp-gate[data-phase="panel"] .wsp-logo-box,
+.wsp-gate[data-phase="lift"] .wsp-logo-box {
   opacity: 1;
-  transform: none;
+  transform: translateY(0) scale(1);
 }
-.wsp-line {
-  margin: 0;
-  font-family: var(--wsp-sans);
-  font-style: normal;
-  font-weight: 500;
-  font-size: clamp(15px, 2.2vw, 22px);
-  line-height: 1.3;
-  letter-spacing: -0.01em;
-  color: #f4f5f1;
-}
-.wsp-tag {
-  font-family: var(--wsp-mono);
-  font-size: 10px;
-  letter-spacing: .2em;
-  text-transform: uppercase;
-  color: #D4F63D;
-  margin-bottom: 2px;
-  opacity: 0;
-  transform: translateY(8px);
-  transition: opacity 500ms ease 300ms, transform 700ms ease 300ms;
-}
-.wsp-gate[data-phase="panel"] .wsp-tag {
-  opacity: 1;
-  transform: none;
+.wsp-logo {
+  height: clamp(56px, 9vw, 92px);
+  width: auto;
+  max-width: min(78vw, 360px);
+  object-fit: contain;
+  user-select: none;
+  pointer-events: none;
 }
 .wsp-replay {
   font-family: var(--wsp-mono);
@@ -276,10 +264,11 @@ const WSP_STYLES = `
   white-space: nowrap;
 }
 @media (prefers-reduced-motion: reduce) {
+  .wsp-gate,
   .wsp-panel {
     transition: none;
   }
-  .wsp-line-box, .wsp-replay, .wsp-tag {
+  .wsp-logo-box, .wsp-replay {
     transition: none;
     transform: none;
   }
@@ -299,6 +288,7 @@ export default function WeightSweepPreloader({
   label = 'Koperasi Sinar Pagi Sejahtera',
   caption = 'Memuat Ekosistem Pertanian',
   message = 'Dari Minahasa Utara untuk Nusantara.',
+  logoSrc = '/landing/koperasi-full-white.png',
   weights = [100, 900],
   hud = true,
   fontFamily = DEFAULT_SANS,
@@ -391,7 +381,7 @@ export default function WeightSweepPreloader({
       setCurrentProgress(smoothProgress);
 
       if (smoothProgress >= 100) {
-        setPhase(message ? 'panel' : 'lift');
+        setPhase(logoSrc ? 'panel' : 'lift');
         return;
       }
 
@@ -400,7 +390,7 @@ export default function WeightSweepPreloader({
 
     animFrame = requestAnimationFrame(onTick);
     return () => cancelAnimationFrame(animFrame);
-  }, [phase, replayKey, durationMs, prefersReducedMotion, message]);
+  }, [phase, replayKey, durationMs, prefersReducedMotion, logoSrc]);
 
   // Phase transitions: panel -> lift -> done
   useEffect(() => {
@@ -519,13 +509,16 @@ export default function WeightSweepPreloader({
             </div>
           )}
 
-          {/* Refined Ink Panel (Matching the font of the counter numbers & smaller size) */}
-          {message && (
+          {/* Ink Panel with Koperasi Logo */}
+          {logoSrc && (
             <div className="wsp-panel" aria-hidden={phase === 'load'}>
-              <span className="wsp-tag">KOPERASI SINAR PAGI SEJAHTERA</span>
-              <div className="wsp-line-box">
-                <span className="w-2 h-2 rounded-full bg-[#D4F63D] shrink-0" />
-                <p className="wsp-line">{message}</p>
+              <div className="wsp-logo-box">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={logoSrc}
+                  alt={label}
+                  className="wsp-logo"
+                />
               </div>
               {loop && (
                 <span className="wsp-replay">Klik untuk mengulang</span>
@@ -535,7 +528,7 @@ export default function WeightSweepPreloader({
 
           {/* Screen Reader Support */}
           <span className="wsp-sr" aria-live="polite">
-            {phase === 'load' ? '' : message || 'Loaded'}
+            {phase === 'load' ? '' : message || label || 'Loaded'}
           </span>
         </div>
       )}
