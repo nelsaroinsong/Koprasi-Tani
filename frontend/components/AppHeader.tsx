@@ -58,29 +58,19 @@ export default function AppHeader({ activePage }: AppHeaderProps) {
     <>
       <header className="sticky top-0 z-40 bg-white border-b border-[#dce1d6]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-4 relative">
-          {/* Left: Official Koperasi Brand Emblem & Wordmark */}
+          {/* Left: Official Koperasi Full Logo (Matching Preloader & LandingHeader) */}
           <div className="flex items-center shrink-0 z-10">
             <Link
               href={user ? '/toko' : '/'}
               prefetch={true}
-              className="flex items-center gap-2.5 group focus:outline-none shrink-0"
+              className="flex items-center group focus:outline-none shrink-0"
             >
-              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[#233414] border border-[#344d15] flex items-center justify-center shrink-0">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/landing/koperasi-logo-lime.png"
-                  alt="Logo Koperasi Sinar Pagi Sejahtera"
-                  className="w-4.5 h-4.5 sm:w-5 sm:h-5 object-contain"
-                />
-              </div>
-              <div className="min-w-0">
-                <div className="text-xs sm:text-sm font-bold text-[#1a2610] leading-tight truncate">
-                  Sinar Pagi Sejahtera
-                </div>
-                <div className="text-[11px] text-[#5b6950] font-medium leading-tight">
-                  Koperasi Minahasa Utara
-                </div>
-              </div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/landing/koperasi-full-dark.png"
+                alt="Logo Koperasi Sinar Pagi Sejahtera"
+                className="h-6 sm:h-7 w-auto object-contain transition-transform duration-300 group-hover:scale-102"
+              />
             </Link>
           </div>
 

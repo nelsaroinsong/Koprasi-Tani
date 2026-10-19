@@ -456,69 +456,113 @@ Mohon info kesiapan fisik komoditas di gudang koperasi. Terima kasih!`;
   }
 
   return (
-    <div className="min-h-screen bg-[#f4f5f1] flex flex-col font-sans pb-16">
-      <AppHeader activePage="toko" />
+    <div className="min-h-screen bg-white sm:bg-[#f4f5f1] flex flex-col font-sans pb-20">
+      <div className="hidden sm:block">
+        <AppHeader activePage="toko" />
+      </div>
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 space-y-4 sm:space-y-6">
-        {/* Breadcrumb Navigation */}
-        <nav className="flex items-center gap-1.5 text-xs text-[#526046] font-medium">
-          <Link href="/" className="hover:text-[#344d15] transition font-semibold">
-            Beranda
-          </Link>
-          <span className="text-[#cfd6c9]">/</span>
-          <Link href="/cart" className="hover:text-[#344d15] transition font-semibold">
-            Keranjang Belanja
-          </Link>
-          <span className="text-[#cfd6c9]">/</span>
-          <span className="text-[#1a2610] font-bold">Konfirmasi Pesanan Toko Online</span>
-        </nav>
+      {/* Mobile Top Bar (Gambar 5 Right Screen Style: Back Arrow Left + Centered Title) */}
+      <div className="sm:hidden sticky top-0 z-40 bg-white/95 backdrop-blur-md px-4 h-14 flex items-center justify-between border-b border-[#EAEDE7]">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="w-10 h-10 -ml-1 rounded-full flex items-center justify-center text-[#1a2610] hover:bg-[#f4f5f1] transition cursor-pointer"
+          aria-label="Kembali"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </button>
 
-        {/* Page Title */}
-        <div className="bg-white p-4 sm:p-6 rounded-2xl border border-[#dce1d6] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-md bg-[#e2f2c8] text-[#233414] border border-[#c9e39e] font-bold text-[10px] uppercase tracking-wider">
-                Halaman Checkout Resmi
-              </span>
-            </div>
-            <h1 className="text-lg sm:text-2xl font-black text-[#1a2610] tracking-tight mt-1">
-              Konfirmasi Pesanan & Pengambilan Komoditas
-            </h1>
-            <p className="text-xs sm:text-sm text-[#526046] mt-0.5">
-              Periksa rincian komoditas, lokasi titik serah terima gudang, dan instruksi bayar tunai di kasir.
-            </p>
-          </div>
+        <h1 className="text-sm font-extrabold text-[#1a2610] tracking-tight">
+          Checkout Pesanan
+        </h1>
 
+        <div className="w-10" />
+      </div>
+
+      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-3 sm:py-6 space-y-4 sm:space-y-5">
+        {/* Desktop Compact Back Link */}
+        <div className="hidden sm:flex items-center justify-between">
           <Link
             href="/cart?tab=toko"
-            className="px-3.5 py-2 rounded-xl border border-[#cfd6c9] bg-white hover:bg-[#f4f5f1] text-[#1a2610] font-bold text-xs flex items-center gap-1.5 transition self-start sm:self-auto cursor-pointer"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-[#1a2610] hover:text-[#344d15] transition"
           >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Ubah Keranjang</span>
+            <ArrowLeft className="w-4 h-4" />
+            <span>Kembali ke Keranjang Belanja</span>
           </Link>
+
+          <span className="text-xs font-semibold text-[#526046] tabular-nums">
+            {totalItemsCount} Satuan ({cartItems.length} Komoditas)
+          </span>
         </div>
 
         {/* 2-Column Responsive Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-start">
-          {/* Kolom Kiri: Detail Informasi & Form Luas (8 cols) */}
-          <div className="lg:col-span-8 space-y-4">
-            {/* 1. Titik Pengambilan Resmi Gudang Koperasi */}
-            <div className="bg-white rounded-2xl border border-[#dce1d6] p-4 sm:p-6 space-y-3">
-              <div className="flex items-center gap-2.5 border-b border-[#EAEDE7] pb-3">
-                <div className="w-8 h-8 rounded-xl bg-[#e2f2c8] text-[#233414] border border-[#c9e39e] flex items-center justify-center font-bold">
-                  <Store className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-[#1a2610] text-sm sm:text-base">
-                    Titik Serah Terima Resmi Koperasi
-                  </h3>
-                  <p className="text-[11px] text-[#5b6950]">
-                    Lokasi fisik pengambilan komoditas dan loket kasir koperasi
-                  </p>
-                </div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-start">
+          {/* Kolom Kiri: Daftar Item (Gambar 5 Style) & Informasi Pengambilan */}
+          <div className="lg:col-span-7 xl:col-span-8 space-y-4">
+            {/* 1. Rincian Komoditas Yang Dipesan (Gambar 5 Flat List Style) */}
+            <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#EAEDE7] sm:border-[#dce1d6] p-4 sm:p-6">
+              <div className="flex items-center justify-between pb-3 border-b border-[#EAEDE7]">
+                <h3 className="font-bold text-[#1a2610] text-xs sm:text-sm uppercase tracking-wider">
+                  Daftar Komoditas ({cartItems.length})
+                </h3>
+                <Link
+                  href="/cart?tab=toko"
+                  className="text-xs font-bold text-[#344d15] hover:underline"
+                >
+                  Ubah
+                </Link>
               </div>
 
-              <div className="p-3.5 sm:p-4 bg-[#f4f5f1] rounded-xl border border-[#dce1d6] space-y-2">
+              <div className="divide-y divide-[#EAEDE7]">
+                {cartItems.map((item) => {
+                  const itemSubtotal = Number(item.hargaPerSatuan) * (item.quantity || 1);
+                  return (
+                    <div key={item.id} className="py-3.5 first:pt-3 last:pb-1 flex items-stretch gap-3.5">
+                      <div className="w-18 h-18 sm:w-20 sm:h-20 rounded-2xl overflow-hidden bg-[#f4f5f1] border border-[#EAEDE7] shrink-0">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={
+                            item.imageUrl ||
+                            'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=400&q=80'
+                          }
+                          alt={item.nama}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+
+                      <div className="min-w-0 flex-1 flex flex-col justify-between py-0.5">
+                        <div>
+                          <h4 className="text-sm font-bold text-[#1a2610] truncate">
+                            {item.nama}
+                          </h4>
+                          <div className="text-xs text-[#5b6950] mt-0.5 tabular-nums">
+                            Rp {Number(item.hargaPerSatuan).toLocaleString('id-ID')} / {item.satuan || 'unit'}
+                          </div>
+                        </div>
+
+                        <div className="text-sm font-extrabold text-[#1a2610] tabular-nums">
+                          Rp {itemSubtotal.toLocaleString('id-ID')}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col items-end justify-end py-0.5 shrink-0">
+                        <span className="px-3 py-1 rounded-full border border-[#dce1d6] bg-[#f4f5f1] text-xs font-extrabold text-[#1a2610] tabular-nums">
+                          ×{item.quantity} {item.satuan}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 2. Titik Pengambilan & Pembayaran Kasir (Compact Card) */}
+            <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#EAEDE7] sm:border-[#dce1d6] p-4 sm:p-6 space-y-3.5">
+              <h3 className="font-bold text-[#1a2610] text-xs sm:text-sm uppercase tracking-wider border-b border-[#EAEDE7] pb-2.5">
+                Titik Pengambilan & Pembayaran
+              </h3>
+
+              <div className="p-3.5 bg-[#f4f5f1] rounded-2xl border border-[#dce1d6] space-y-2">
                 <div className="flex items-start gap-2.5">
                   <MapPin className="w-4 h-4 text-[#233414] shrink-0 mt-0.5" />
                   <div className="text-xs leading-relaxed text-[#1a2610] font-semibold">
@@ -526,168 +570,61 @@ Mohon info kesiapan fisik komoditas di gudang koperasi. Terima kasih!`;
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-[#dce1d6] text-[11px] text-[#526046]">
-                  <div className="flex items-center gap-1.5">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-2 border-t border-[#dce1d6] text-[11px] text-[#526046]">
+                  <span className="flex items-center gap-1">
                     <Clock className="w-3.5 h-3.5 text-[#5b6950]" />
-                    <span>Jam Layanan: <strong className="text-[#1a2610]">08:00 - 17:00 WITA</strong></span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
+                    <span>08:00 - 17:00 WITA</span>
+                  </span>
+                  <span className="flex items-center gap-1 tabular-nums">
                     <Phone className="w-3.5 h-3.5 text-[#5b6950]" />
-                    <span>Kontak Kasir/Admin: <strong className="text-[#1a2610] tabular-nums">{adminPhone}</strong></span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* 2. Data Pemesan & Domisili Anggota */}
-            <div className="bg-white rounded-2xl border border-[#dce1d6] p-4 sm:p-6 space-y-3">
-              <div className="flex items-center gap-2.5 border-b border-[#EAEDE7] pb-3">
-                <div className="w-8 h-8 rounded-xl bg-[#e2f2c8] text-[#233414] border border-[#c9e39e] flex items-center justify-center font-bold">
-                  <User className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-[#1a2610] text-sm sm:text-base">
-                    Informasi Pembeli / Anggota
-                  </h3>
-                  <p className="text-[11px] text-[#5b6950]">
-                    Data identitas untuk verifikasi staf kasir saat pengambilan
-                  </p>
+                    <span>Kasir: {adminPhone}</span>
+                  </span>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                <div className="p-3 bg-[#f4f5f1] rounded-xl border border-[#dce1d6]">
-                  <div className="text-[10px] text-[#5b6950] font-bold uppercase">Nama Lengkap</div>
-                  <div className="font-bold text-[#1a2610] mt-0.5">{user?.name || '-'}</div>
-                  <div className="text-[11px] text-[#526046] mt-0.5">{user?.email || '-'}</div>
-                </div>
-
-                <div className="p-3 bg-[#f4f5f1] rounded-xl border border-[#dce1d6]">
-                  <div className="text-[10px] text-[#5b6950] font-bold uppercase">Alamat Domisili</div>
-                  <div className="font-semibold text-[#1a2610] mt-0.5 leading-snug">
-                    {user?.address || 'Belum diisi di profil pengguna'}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* 3. Metode Pembayaran Kasir */}
-            <div className="bg-white rounded-2xl border border-[#dce1d6] p-4 sm:p-6 space-y-3">
-              <div className="flex items-center gap-2.5 border-b border-[#EAEDE7] pb-3">
-                <div className="w-8 h-8 rounded-xl bg-[#e2f2c8] text-[#233414] border border-[#c9e39e] flex items-center justify-center font-bold">
-                  <Banknote className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-[#1a2610] text-sm sm:text-base">
-                    Metode Pembayaran
-                  </h3>
-                  <p className="text-[11px] text-[#5b6950]">
-                    Sistem serah terima resmi Koperasi Sinar Pagi Sejahtera
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-4 bg-[#e2f2c8]/50 border border-[#c9e39e] rounded-xl flex items-start gap-3">
-                <Banknote className="w-5 h-5 text-[#233414] shrink-0 mt-0.5" />
-                <div className="text-xs space-y-1">
-                  <div className="font-bold text-[#1a2610] flex items-center gap-2 flex-wrap">
-                    <span>Tunai (Cash) di Kasir Gudang Koperasi</span>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] bg-[#233414] text-[#D4F63D] font-black">
-                      Bebas Biaya Admin
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-[#526046] leading-relaxed">
-                    Pembayaran dilakukan secara tunai langsung kepada kasir koperasi pada saat fisik komoditas diserahkan dan ditimbang/dicek bersama.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* 4. Rincian Komoditas Yang Dipesan */}
-            <div className="bg-white rounded-2xl border border-[#dce1d6] p-4 sm:p-6 space-y-3">
-              <div className="flex items-center justify-between border-b border-[#EAEDE7] pb-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-[#233414] text-[#D4F63D] flex items-center justify-center font-bold">
-                    <ShoppingBag className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-[#1a2610] text-sm sm:text-base">
-                      Daftar Komoditas Dipesan
-                    </h3>
-                    <p className="text-[11px] text-[#5b6950] tabular-nums">
-                      {totalItemsCount} satuan barang ({cartItems.length} macam komoditas)
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="divide-y divide-[#EAEDE7]">
-                {cartItems.map((item) => (
-                  <div key={item.id} className="py-3 flex items-center gap-3">
-                    {item.imageUrl ? (
-                      <img
-                        src={item.imageUrl}
-                        alt={item.nama}
-                        className="w-14 h-14 rounded-xl object-cover border border-[#cfd6c9] shrink-0"
-                      />
-                    ) : (
-                      <div className="w-14 h-14 rounded-xl bg-[#EAEDE7] text-[#233414] flex items-center justify-center shrink-0 border border-[#cfd6c9] text-xl font-bold">
-                        🌾
-                      </div>
-                    )}
-
-                    <div className="min-w-0 flex-1">
-                      <h4 className="text-xs sm:text-sm font-bold text-[#1a2610] truncate">
-                        {item.nama}
-                      </h4>
-                      <div className="text-[11px] text-[#526046] mt-0.5 tabular-nums">
-                        {item.quantity} {item.satuan || 'unit'} × Rp{' '}
-                        {Number(item.hargaPerSatuan).toLocaleString('id-ID')}
-                      </div>
-                      {item.petaniName && (
-                        <div className="text-[10px] text-[#344d15] font-semibold mt-0.5">
-                          Mitra: {item.petaniName}
-                        </div>
-                      )}
+              <div className="p-3.5 bg-[#e2f2c8]/50 border border-[#c9e39e] rounded-2xl flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <Banknote className="w-4 h-4 text-[#233414] shrink-0" />
+                  <div className="text-xs min-w-0">
+                    <div className="font-bold text-[#1a2610] truncate">
+                      Bayar Tunai di Kasir Koperasi
                     </div>
-
-                    <div className="text-right shrink-0">
-                      <div className="text-[10px] text-[#5b6950] font-medium">Subtotal</div>
-                      <div className="text-xs sm:text-sm font-black text-[#233414] mt-0.5 tabular-nums">
-                        Rp {(Number(item.hargaPerSatuan) * (item.quantity || 1)).toLocaleString('id-ID')}
-                      </div>
+                    <div className="text-[11px] text-[#526046] truncate">
+                      Saat komoditas ditimbang & diserahterimakan
                     </div>
                   </div>
-                ))}
+                </div>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] bg-[#233414] text-[#D4F63D] font-bold shrink-0">
+                  Rp 0 Admin
+                </span>
               </div>
             </div>
 
-            {/* 5. Catatan Pengambilan (Opsional) */}
-            <div className="bg-white rounded-2xl border border-[#dce1d6] p-4 sm:p-6 space-y-3">
+            {/* 3. Catatan Pengambilan (Opsional) */}
+            <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#EAEDE7] sm:border-[#dce1d6] p-4 sm:p-6 space-y-2.5">
               <label className="block font-bold text-[#1a2610] text-xs sm:text-sm">
                 Catatan Pengambilan (Opsional)
               </label>
               <textarea
-                rows={3}
+                rows={2}
                 value={orderNotes}
                 onChange={(e) => setOrderNotes(e.target.value)}
-                placeholder="Contoh: Barang akan diambil oleh driver pikap warna hitam sekitar pukul 14:00 WITA..."
-                className="w-full p-3.5 text-xs bg-[#f4f5f1] border border-[#cfd6c9] rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#233414]/15 focus:border-[#233414] text-[#1a2610] placeholder:text-[#5b6950] transition"
+                placeholder="Contoh: Diambil sekitar pukul 14:00 WITA..."
+                className="w-full p-3 text-xs bg-[#f4f5f1] border border-[#cfd6c9] rounded-xl focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#233414] focus:border-[#233414] text-[#1a2610] placeholder:text-[#5b6950] transition"
               />
             </div>
           </div>
 
-          {/* Kolom Kanan: Ringkasan Sticky & SlideCommit (4 cols) */}
-          <div className="lg:col-span-4 sticky top-20 space-y-4">
-            <div className="bg-white border border-[#dce1d6] rounded-2xl p-5 sm:p-6 space-y-4">
-              <h3 className="font-bold text-[#1a2610] text-sm sm:text-base border-b border-[#EAEDE7] pb-3 flex items-center justify-between gap-2">
-                <span>Ringkasan Transaksi</span>
-                <span className="text-[10px] font-bold text-[#233414] bg-[#e2f2c8] px-2 py-0.5 rounded-full border border-[#c9e39e]">
-                  Resmi Koperasi
-                </span>
-              </h3>
-
-              <div className="space-y-2.5 text-xs">
+          {/* Kolom Kanan: Ringkasan Sticky & SlideCommit (Gambar 5 Bottom Summary Sheet Style) */}
+          <div className="lg:col-span-5 xl:col-span-4 lg:sticky lg:top-20">
+            <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#EAEDE7] sm:border-[#dce1d6] p-4 sm:p-6 space-y-4">
+              <div className="space-y-2 text-xs">
+                <div className="flex justify-between text-[#526046]">
+                  <span>Pemesan</span>
+                  <span className="font-semibold text-[#1a2610] truncate max-w-[180px]">
+                    {user?.name || '-'}
+                  </span>
+                </div>
                 <div className="flex justify-between text-[#526046]">
                   <span>Total Kuantitas</span>
                   <span className="font-semibold text-[#1a2610] tabular-nums">
@@ -695,26 +632,14 @@ Mohon info kesiapan fisik komoditas di gudang koperasi. Terima kasih!`;
                   </span>
                 </div>
                 <div className="flex justify-between text-[#526046]">
-                  <span>Metode Pembayaran</span>
-                  <span className="font-semibold text-[#344d15]">
-                    Tunai Kas Koperasi
-                  </span>
-                </div>
-                <div className="flex justify-between text-[#526046]">
-                  <span>Lokasi Serah Terima</span>
-                  <span className="font-semibold text-[#1a2610]">
-                    Gudang Koperasi
-                  </span>
-                </div>
-                <div className="flex justify-between text-[#526046]">
                   <span>Biaya Penanganan</span>
-                  <span className="font-semibold text-[#344d15]">Rp 0 (Gratis)</span>
+                  <span className="font-semibold text-[#344d15]">Gratis</span>
                 </div>
               </div>
 
               <div className="border-t border-[#EAEDE7] pt-3 flex justify-between items-baseline">
-                <span className="text-xs font-bold text-[#1a2610]">Total Tagihan Kasir:</span>
-                <span className="text-lg sm:text-xl font-black text-[#233414] tracking-tight tabular-nums">
+                <span className="text-sm font-semibold text-[#526046]">Total:</span>
+                <span className="text-xl sm:text-2xl font-black text-[#1a2610] tracking-tight tabular-nums">
                   Rp {finalTotalAmount.toLocaleString('id-ID')}
                 </span>
               </div>
@@ -726,9 +651,9 @@ Mohon info kesiapan fisik komoditas di gudang koperasi. Terima kasih!`;
                 </div>
               )}
 
-              <div className="pt-2">
+              <div className="pt-1">
                 <SlideCommit
-                  label="Geser untuk Buat Pesanan Resmi"
+                  label="Geser untuk Buat Pesanan"
                   onConfirm={handleConfirmOrder}
                   disabled={isSubmitting}
                   className="w-full"
@@ -737,7 +662,7 @@ Mohon info kesiapan fisik komoditas di gudang koperasi. Terima kasih!`;
 
               <div className="flex items-center gap-1.5 text-[11px] text-[#5b6950] justify-center">
                 <ShieldCheck className="w-3.5 h-3.5 text-[#344d15]" />
-                <span>Transaksi sah terdaftar di sistem koperasi</span>
+                <span>Pesanan resmi tercatat di sistem koperasi</span>
               </div>
             </div>
           </div>

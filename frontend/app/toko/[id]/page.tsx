@@ -170,7 +170,7 @@ export default function ProductDetailPage({
       });
 
       if (redirectAfter) {
-        router.push('/pesanan');
+        router.push('/checkout/toko');
       }
     } catch (e) {
       console.error('Error saving cart:', e);
@@ -311,55 +311,90 @@ export default function ProductDetailPage({
   const totalPrice = unitPrice * quantity;
   const isOutOfStock = !product.isTersedia || Number(product.stok || 0) <= 0;
 
-  // Preset options for quantity
-  const quickPresets = [1, 2, 5, 10, 25, 50].filter(
+  // Preset options for quantity pills (like 50 ml / 100 ml / 150 ml in Gambar 5)
+  const quickPresets = [1, 2, 5, 10, 25].filter(
     (val) => val <= maxStock || val === 1
   );
 
   return (
-    <div className="min-h-screen bg-[#f4f5f1] flex flex-col font-sans selection:bg-[#D4F63D] selection:text-slate-950">
-      <AppHeader activePage="toko" />
+    <div className="min-h-screen bg-white sm:bg-[#f4f5f1] flex flex-col font-sans selection:bg-[#D4F63D] selection:text-slate-950">
+      <div className="hidden sm:block">
+        <AppHeader activePage="toko" />
+      </div>
 
-      {/* Breadcrumb Navigation Bar */}
-      <div className="bg-white border-b border-[#dce1d6] sticky top-16 z-30">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2.5 flex items-center justify-between text-xs text-[#5b6950]">
-          <div className="flex items-center gap-1.5 overflow-hidden whitespace-nowrap">
-            <Link
-              href="/toko"
-              className="text-[#526046] hover:text-[#233414] font-medium flex items-center gap-1 transition-colors"
+      {/* Mobile Top Bar (Gambar 5 Left Screen Style: Back Arrow Left, Bag Icon Right) */}
+      <div className="sm:hidden sticky top-0 z-40 bg-white/95 backdrop-blur-md px-4 h-14 flex items-center justify-between border-b border-[#EAEDE7]">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="w-10 h-10 -ml-1 rounded-full flex items-center justify-center text-[#1a2610] hover:bg-[#f4f5f1] transition cursor-pointer"
+          aria-label="Kembali"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+
+        <span className="text-xs font-bold text-[#526046] truncate max-w-[180px]">
+          {product.kategori}
+        </span>
+
+        <Link
+          href="/cart"
+          className="w-10 h-10 -mr-1 rounded-full flex items-center justify-center text-[#1a2610] hover:bg-[#f4f5f1] transition relative"
+          aria-label="Keranjang Belanja"
+        >
+          <ShoppingBag className="w-5 h-5" />
+        </Link>
+      </div>
+
+      {/* Desktop Compact Back & Share Subbar */}
+      <div className="hidden sm:block bg-white border-b border-[#dce1d6]">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex items-center justify-between text-xs text-[#5b6950]">
+          <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap">
+            <button
+              type="button"
+              onClick={() => router.push('/toko')}
+              className="text-[#1a2610] hover:text-[#344d15] font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
             >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Belanja Koperasi</span>
-            </Link>
+              <ArrowLeft className="w-4 h-4" />
+              <span>Kembali ke Katalog</span>
+            </button>
             <span className="text-[#cfd6c9]">/</span>
             <span className="text-[#526046] font-medium">{product.kategori}</span>
             <span className="text-[#cfd6c9]">/</span>
-            <span className="text-[#1a2610] font-bold truncate max-w-[160px] sm:max-w-xs">
+            <span className="text-[#1a2610] font-bold truncate max-w-xs">
               {product.nama}
             </span>
           </div>
 
-          <button
-            onClick={handleShare}
-            className="flex items-center gap-1.5 text-[#526046] hover:text-[#233414] px-2.5 py-1 rounded-lg hover:bg-[#EAEDE7] transition-colors cursor-pointer text-xs font-medium shrink-0"
-            title="Bagikan Tautan Produk"
-          >
-            <Share2 className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Bagikan</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleShare}
+              className="flex items-center gap-1.5 text-[#526046] hover:text-[#233414] px-2.5 py-1 rounded-lg hover:bg-[#EAEDE7] transition-colors cursor-pointer text-xs font-medium"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+              <span>Bagikan</span>
+            </button>
+            <Link
+              href="/cart"
+              className="flex items-center gap-1.5 text-[#1a2610] hover:text-[#344d15] px-2.5 py-1 rounded-lg bg-[#f4f5f1] hover:bg-[#EAEDE7] border border-[#dce1d6] transition-colors text-xs font-semibold"
+            >
+              <ShoppingBag className="w-3.5 h-3.5 text-[#344d15]" />
+              <span>Keranjang</span>
+            </Link>
+          </div>
         </div>
       </div>
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 pb-24 lg:pb-12 space-y-5 sm:space-y-7">
-        {/* Top Product Detail Section (2 Columns) */}
-        <div className="bg-white rounded-2xl border border-[#dce1d6] p-3.5 sm:p-6 lg:p-8">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-5 sm:gap-6 lg:gap-10">
-            {/* Left Column: Product Image & Cooperative Panen Badges */}
-            <div className="md:col-span-5 flex flex-col gap-3">
+      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-2 pb-28 sm:py-6 lg:py-8 space-y-6">
+        {/* Top Product Detail Section (Gambar 5 Clean Layout on Mobile, 2 Columns on Desktop) */}
+        <div className="bg-white sm:rounded-3xl sm:border sm:border-[#dce1d6] sm:p-6 lg:p-8">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-5 sm:gap-8 lg:gap-10 items-start">
+            {/* Left Column: Clean Product Image Card + Pagination Dots (Gambar 5 Style) */}
+            <div className="md:col-span-5 flex flex-col items-center">
               <div
                 onClick={() => setIsImageModalOpen(true)}
-                className="relative aspect-square w-full rounded-xl sm:rounded-2xl overflow-hidden bg-[#EAEDE7] border border-[#dce1d6] group cursor-zoom-in"
-                title="Klik untuk melihat foto ukuran asli"
+                className="relative aspect-square w-full rounded-3xl overflow-hidden bg-[#f4f5f1] border border-[#EAEDE7] group cursor-zoom-in"
+                title="Klik untuk memperbesar foto"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -373,218 +408,109 @@ export default function ProductDetailPage({
                   className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300"
                 />
 
-                {/* Hover overlay hint */}
-                <div className="absolute inset-0 bg-[#1a2610]/25 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-                  <div className="bg-[#233414] text-white text-xs px-3 py-1.5 rounded-full flex items-center gap-1.5 border border-[#344d15] font-semibold">
-                    <Maximize2 className="w-3.5 h-3.5 text-[#D4F63D]" />
-                    <span>Lihat Ukuran Asli</span>
-                  </div>
-                </div>
-
-                {/* Floating Badges */}
-                <div className="absolute top-2.5 left-2.5 sm:top-3 sm:left-3 bg-[#233414] text-[#D4F63D] text-[10px] sm:text-xs font-semibold px-2.5 py-1 rounded-lg">
-                  {product.kategori}
-                </div>
-
-                <div
-                  className={`absolute top-2.5 right-2.5 sm:top-3 sm:right-3 text-[10px] sm:text-xs font-semibold px-2.5 py-1 rounded-lg flex items-center gap-1.5 border ${
-                    isOutOfStock
-                      ? 'bg-[#ffedea] text-[#831c1e] border-red-200'
-                      : 'bg-white text-[#1a2610] border-[#dce1d6]'
-                  }`}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsImageModalOpen(true);
+                  }}
+                  className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-white/90 backdrop-blur-xs text-[#1a2610] border border-[#dce1d6] flex items-center justify-center shadow-xs hover:bg-white transition cursor-pointer"
+                  title="Perbesar gambar"
                 >
-                  <span
-                    className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${
-                      isOutOfStock ? 'bg-[#c4242a]' : 'bg-[#547318]'
-                    }`}
-                  />
-                  <span>{product.isTersedia && !isOutOfStock ? 'Stok Tersedia' : 'Non-Aktif'}</span>
-                </div>
-
-                <div className="absolute bottom-2.5 left-2.5 sm:bottom-3 sm:left-3 bg-[#233414] border border-[#344d15] text-white text-[10px] sm:text-xs font-semibold px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg flex items-center gap-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-[#D4F63D]" />
-                  <span>Panen Koperasi Resmi</span>
-                </div>
+                  <Maximize2 className="w-3.5 h-3.5" />
+                </button>
               </div>
 
-              {/* Guarantees Box */}
-              <div className="p-3 sm:p-3.5 rounded-xl bg-[#f4f5f1] border border-[#dce1d6] flex flex-col gap-2 text-[11px] sm:text-xs text-[#1a2610]">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-[#344d15] shrink-0" />
-                  <span className="text-[#526046]">
-                    <strong className="text-[#1a2610]">100% Panen Petani Lokal:</strong> Asal Minahasa Utara terjamin.
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Warehouse className="w-4 h-4 text-[#344d15] shrink-0" />
-                  <span className="text-[#526046]">
-                    <strong className="text-[#1a2610]">Ditimbang di Gudang:</strong> Kuantitas fisik dan kualitas diverifikasi.
-                  </span>
-                </div>
+              {/* Minimal Pagination Indicator Dots under Image (Matches Gambar 5) */}
+              <div className="flex items-center justify-center gap-1.5 mt-3">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#cfd6c9]" />
+                <span className="w-5 h-1.5 rounded-full bg-[#233414]" />
+                <span className="w-1.5 h-1.5 rounded-full bg-[#cfd6c9]" />
               </div>
             </div>
 
-            {/* Right Column: Title, Price, Petani Card, Description, Quantity & Action */}
-            <div className="md:col-span-7 flex flex-col justify-between space-y-4 sm:space-y-5">
-              <div className="space-y-3">
-                {/* Title */}
-                <h1 className="text-lg sm:text-2xl lg:text-3xl font-bold text-[#1a2610] tracking-tight leading-tight">
+            {/* Right Column: Clean Product Details matching Gambar 5 */}
+            <div className="md:col-span-7 flex flex-col space-y-4">
+              {/* Brand / Category Label + Title + Rating + Price */}
+              <div>
+                <div className="text-xs font-medium text-[#5b6950]">
+                  {product.kategori} • {petani?.name || 'Petani Binaan Koperasi'}
+                </div>
+
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-[#1a2610] tracking-tight leading-snug mt-1">
                   {product.nama}
                 </h1>
 
-                {/* Rating & Terjual Summary Row */}
-                <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 text-xs text-[#526046]">
-                  {stats?.totalReviews > 0 ? (
-                    <div className="flex items-center gap-1 font-semibold text-[#1a2610] tabular-nums">
-                      <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                      <span>{stats.avgRating}</span>
-                      <span className="text-[#5b6950] font-normal">
-                        ({stats.totalReviews} ulasan)
-                      </span>
-                    </div>
-                  ) : (
-                    <span className="text-[#5b6950] text-xs">Belum ada ulasan</span>
-                  )}
-                  <span className="text-[#cfd6c9]">•</span>
-                  <div className="text-[#526046] tabular-nums">
-                    <span className="font-semibold text-[#1a2610]">
-                      {product.totalSold ? `${product.totalSold} ${product.satuan}` : '0'}
-                    </span>{' '}
-                    terjual
+                {/* Star Rating & Reviews Count (Gambar 5 style) */}
+                <div className="flex items-center gap-2 mt-2 text-xs">
+                  <div className="flex items-center gap-0.5 text-amber-400">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <Star
+                        key={s}
+                        className={`w-3.5 h-3.5 ${
+                          s <= Math.round(Number(stats?.avgRating || 5))
+                            ? 'fill-amber-400 text-amber-400'
+                            : 'fill-[#EAEDE7] text-[#cfd6c9]'
+                        }`}
+                      />
+                    ))}
                   </div>
+                  <span className="font-bold text-[#1a2610] tabular-nums">
+                    {stats?.totalReviews > 0 ? stats.avgRating : '5.0'}
+                  </span>
+                  <span className="text-[#5b6950] tabular-nums">
+                    ({stats?.totalReviews || 0} ulasan)
+                  </span>
                   <span className="text-[#cfd6c9]">•</span>
-                  <div className="text-[#344d15] font-semibold tabular-nums">
-                    Stok: <strong>{Number(product.stok).toLocaleString('id-ID')} {product.satuan}</strong>
-                  </div>
+                  <span className="text-[#526046] tabular-nums">
+                    {product.totalSold ? `${product.totalSold} ${product.satuan}` : 'Panen Baru'}
+                  </span>
                 </div>
 
-                {/* Big Price Display */}
-                <div className="p-3.5 sm:p-4 bg-[#f4f5f1] rounded-xl border border-[#dce1d6] flex items-baseline gap-2">
-                  <span className="text-xl sm:text-3xl font-extrabold text-[#233414] tracking-tight tabular-nums">
-                    Rp {Number(product.hargaPerSatuan).toLocaleString('id-ID')}
+                {/* Bold Price */}
+                <div className="mt-3 flex items-baseline gap-1.5">
+                  <span className="text-2xl sm:text-3xl font-black text-[#1a2610] tracking-tight tabular-nums">
+                    Rp {unitPrice.toLocaleString('id-ID')}
                   </span>
-                  <span className="text-xs sm:text-sm text-[#5b6950] font-medium">
-                    /{product.satuan}
+                  <span className="text-xs sm:text-sm text-[#5b6950] font-semibold">
+                    / {product.satuan}
                   </span>
                 </div>
               </div>
 
-              {/* SELLER / PETANI INFO CARD */}
-              <div className="p-3.5 sm:p-4 rounded-xl border border-[#dce1d6] bg-white hover:border-[#344d15] transition-colors">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    {/* Petani Photo Profile */}
-                    <Avatar className="w-11 h-11 sm:w-12 sm:h-12 rounded-full border border-[#cfd6c9] shrink-0">
-                      <AvatarImage src={petani?.avatarUrl || ''} alt={petani?.name} />
-                      <AvatarFallback className="bg-[#EAEDE7] text-[#233414] font-bold text-sm">
-                        {petani?.name ? petani.name.slice(0, 2).toUpperCase() : 'PT'}
-                      </AvatarFallback>
-                    </Avatar>
-
-                    {/* Petani Name & Meta */}
-                    <div className="min-w-0">
-                      <Link
-                        href={`/toko/petani/${product.petaniId}`}
-                        className="group inline-flex items-center gap-1.5"
-                      >
-                        <h2 className="text-sm sm:text-base font-bold text-[#1a2610] group-hover:text-[#344d15] transition-colors truncate">
-                          {petani?.name || 'Petani Koperasi'}
-                        </h2>
-                        {petani?.isVerified && (
-                          <span title="Petani Terverifikasi Koperasi" className="shrink-0">
-                            <CheckCircle2 className="w-4 h-4 text-[#344d15] fill-[#e2f2c8]" />
-                          </span>
-                        )}
-                      </Link>
-                      <div className="text-[11px] sm:text-xs text-[#5b6950] truncate">
-                        {petani?.address || 'Kab. Minahasa Utara, Sulawesi Utara'}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Follow Button */}
-                  <button
-                    onClick={handleToggleFollow}
-                    disabled={isFollowLoading}
-                    className={`h-8 sm:h-9 px-3.5 sm:px-4 rounded-xl text-xs font-semibold transition-colors shrink-0 cursor-pointer flex items-center gap-1.5 ${
-                      isFollowed
-                        ? 'bg-[#f4f5f1] border border-[#cfd6c9] text-[#1a2610] hover:bg-[#EAEDE7]'
-                        : 'bg-[#233414] hover:bg-[#344d15] text-white border border-[#233414]'
-                    }`}
-                  >
-                    {isFollowLoading ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : isFollowed ? (
-                      <>
-                        <Check className="w-3.5 h-3.5 text-[#344d15]" />
-                        <span>Mengikuti</span>
-                      </>
-                    ) : (
-                      <span>+ Follow</span>
-                    )}
-                  </button>
-                </div>
-
-                {/* Farmer Stats Under Card */}
-                <div className="mt-3 pt-3 border-t border-[#EAEDE7] flex flex-wrap items-center gap-3 sm:gap-4 text-xs text-[#526046]">
-                  <div className="flex items-center gap-1 tabular-nums">
-                    <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-400" />
-                    {petani?.avgRating ? (
-                      <>
-                        <span className="font-bold text-[#1a2610]">{petani.avgRating}</span>
-                        <span className="text-[#5b6950]">({petani.totalReviews} ulasan)</span>
-                      </>
-                    ) : (
-                      <span className="text-[#5b6950]">Belum ada rating</span>
-                    )}
-                  </div>
-                  <span className="text-[#cfd6c9]">•</span>
-                  <div className="flex items-center gap-1 text-[#526046] tabular-nums">
-                    <Package className="w-3.5 h-3.5 text-[#5b6950]" />
-                    <span>
-                      <strong className="text-[#1a2610]">{petani?.totalBarang || 1}</strong> total barang
-                    </span>
-                  </div>
-                  <Link
-                    href={`/toko/petani/${product.petaniId}`}
-                    className="text-[#233414] hover:text-[#344d15] font-semibold text-xs ml-auto hover:underline"
-                  >
-                    Kunjungi Toko Petani →
-                  </Link>
-                </div>
-              </div>
-
-              <Separator className="my-1 bg-[#dce1d6]" />
-
-              {/* Deskripsi Produk */}
-              <div className="space-y-2">
-                <h2 className="text-xs font-bold text-[#1a2610] uppercase tracking-wider">
-                  Deskripsi Komoditas
-                </h2>
-                <div className="text-xs sm:text-[13px] text-[#526046] leading-relaxed whitespace-pre-line bg-[#f4f5f1] p-3.5 rounded-xl border border-[#dce1d6]">
-                  {product.deskripsi ||
-                    `Komoditas segar ${product.nama} hasil panen anggota binaan Koperasi Sinar Pagi Sejahtera. Telah melewati seleksi mutu dan penimbangan resmi di gudang koperasi untuk memastikan kesegaran dan kepuasan pembeli.`}
-                </div>
-              </div>
-
-              <Separator className="my-1 bg-[#dce1d6]" />
-
-              {/* Atur Jumlah Beli & Total */}
-              <div className="space-y-3.5 bg-[#f4f5f1] p-3.5 sm:p-4 rounded-xl border border-[#dce1d6]">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-[#1a2610]">Atur Jumlah Pembelian</span>
-                  <span className="text-[11px] sm:text-xs text-[#5b6950] tabular-nums">
-                    Sisa Stok: <strong className="text-[#1a2610]">{maxStock} {product.satuan}</strong>
+              {/* Quantity / Package Pill Selector + Stepper (Gambar 5 "50 ml | 100 ml | 150 ml" style) */}
+              <div className="space-y-2.5 pt-1">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-semibold text-[#526046]">Pilih Kuantitas ({product.satuan})</span>
+                  <span className="text-[#5b6950] tabular-nums">
+                    Subtotal: <strong className="text-[#233414]">Rp {totalPrice.toLocaleString('id-ID')}</strong>
                   </span>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
-                  {/* Stepper */}
-                  <div className="flex items-center rounded-xl border border-[#cfd6c9] bg-white overflow-hidden">
+                <div className="flex flex-wrap items-center gap-2">
+                  {quickPresets.map((preset) => (
                     <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setQuantity(preset)}
+                      disabled={isOutOfStock}
+                      className={`h-9 px-3.5 rounded-xl text-xs transition-all cursor-pointer tabular-nums ${
+                        quantity === preset
+                          ? 'bg-white text-[#1a2610] border-2 border-[#1a2610] font-extrabold shadow-2xs'
+                          : 'bg-white text-[#526046] border border-[#dce1d6] hover:border-[#344d15] font-semibold'
+                      }`}
+                    >
+                      {preset} {product.satuan}
+                    </button>
+                  ))}
+
+                  {/* Custom Stepper Pill */}
+                  <div className="inline-flex items-center h-9 rounded-xl border border-[#dce1d6] bg-[#f4f5f1] px-1 ml-auto sm:ml-0">
+                    <button
+                      type="button"
                       onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
-                      disabled={quantity <= 1}
-                      className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center text-[#1a2610] hover:bg-[#EAEDE7] disabled:opacity-30 cursor-pointer transition-colors"
+                      disabled={quantity <= 1 || isOutOfStock}
+                      className="w-7 h-7 rounded-lg flex items-center justify-center text-[#1a2610] hover:bg-white disabled:opacity-30 cursor-pointer transition"
                     >
                       <Minus className="w-3.5 h-3.5" />
                     </button>
@@ -598,76 +524,148 @@ export default function ProductDetailPage({
                         if (isNaN(val) || val < 1) setQuantity(1);
                         else setQuantity(Math.min(maxStock, val));
                       }}
-                      className="w-12 sm:w-14 h-8 sm:h-9 text-center text-xs font-bold text-[#1a2610] border-x border-[#dce1d6] focus:outline-none tabular-nums"
+                      className="w-10 text-center text-xs font-extrabold text-[#1a2610] bg-transparent focus:outline-none tabular-nums"
                     />
                     <button
+                      type="button"
                       onClick={() => setQuantity((prev) => Math.min(maxStock, prev + 1))}
-                      disabled={quantity >= maxStock}
-                      className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center text-[#1a2610] hover:bg-[#EAEDE7] disabled:opacity-30 cursor-pointer transition-colors"
+                      disabled={quantity >= maxStock || isOutOfStock}
+                      className="w-7 h-7 rounded-lg flex items-center justify-center text-[#1a2610] hover:bg-white disabled:opacity-30 cursor-pointer transition"
                     >
                       <Plus className="w-3.5 h-3.5" />
                     </button>
                   </div>
-
-                  {/* Preset Buttons */}
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    {quickPresets.map((preset) => (
-                      <button
-                        key={preset}
-                        onClick={() => setQuantity(preset)}
-                        className={`h-8 sm:h-9 px-2.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer tabular-nums ${
-                          quantity === preset
-                            ? 'bg-[#233414] text-white border-[#233414]'
-                            : 'bg-white text-[#1a2610] border-[#cfd6c9] hover:bg-[#EAEDE7]'
-                        }`}
-                      >
-                        +{preset}
-                      </button>
-                    ))}
-                    {maxStock > 1 && (
-                      <button
-                        onClick={() => setQuantity(maxStock)}
-                        className="h-8 sm:h-9 px-2.5 rounded-lg text-xs font-semibold border bg-[#e2f2c8] text-[#233414] border-[#c9e39e] hover:bg-[#d4e9b2] transition-colors cursor-pointer"
-                      >
-                        Maksimal
-                      </button>
-                    )}
-                  </div>
                 </div>
+              </div>
 
-                {/* Subtotal Calculation */}
-                <div className="pt-2.5 flex items-center justify-between border-t border-[#dce1d6]">
-                  <span className="text-xs text-[#526046] font-medium">Subtotal Belanja:</span>
-                  <div className="text-right">
-                    <span className="text-lg sm:text-xl font-extrabold text-[#233414] tabular-nums">
-                      Rp {totalPrice.toLocaleString('id-ID')}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Action Buttons: Add to Cart & Buy Now */}
-                <div className="pt-1 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  <button
-                    onClick={() => handleAddToCart(false)}
-                    disabled={!product.isTersedia || maxStock <= 0}
-                    className="w-full h-10 sm:h-11 px-4 rounded-xl border border-[#233414] bg-white hover:bg-[#EAEDE7] text-[#233414] font-semibold text-xs sm:text-[13px] transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              {/* Compact Status Checklist (Gambar 5 "In stock" & "Free delivery" style) */}
+              <div className="space-y-2 pt-1">
+                <div className="flex items-center gap-2.5 text-xs text-[#1a2610]">
+                  <span
+                    className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${
+                      isOutOfStock ? 'bg-red-100 text-red-600' : 'bg-[#e2f2c8] text-[#344d15]'
+                    }`}
                   >
-                    <ShoppingCart className="w-4 h-4 text-[#233414]" />
-                    <span>+ Masuk Keranjang</span>
-                  </button>
-
-                  <button
-                    onClick={() => handleAddToCart(true)}
-                    disabled={!product.isTersedia || maxStock <= 0}
-                    className="w-full h-10 sm:h-11 px-4 rounded-xl bg-[#233414] hover:bg-[#344d15] text-white font-semibold text-xs sm:text-[13px] transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <ShoppingBag className="w-4 h-4 text-[#D4F63D]" />
-                    <span>Beli Langsung</span>
-                  </button>
+                    <span
+                      className={`w-2 h-2 rounded-full ${
+                        isOutOfStock ? 'bg-red-600' : 'bg-[#547318]'
+                      }`}
+                    />
+                  </span>
+                  <span className="font-medium">
+                    {isOutOfStock
+                      ? 'Stok habis di gudang koperasi'
+                      : `Tersedia di gudang (${maxStock.toLocaleString('id-ID')} ${product.satuan} siap ambil)`}
+                  </span>
                 </div>
+
+                <div className="flex items-center gap-2.5 text-xs text-[#526046]">
+                  <Warehouse className="w-4 h-4 text-[#5b6950] shrink-0" />
+                  <span>Serah terima fisik & bayar tunai di Kasir Koperasi (Bebas Biaya Admin)</span>
+                </div>
+              </div>
+
+              {/* Description Text (Gambar 5 Clean Paragraph Style) */}
+              <div className="pt-2 border-t border-[#EAEDE7]">
+                <p className="text-xs sm:text-[13px] text-[#526046] leading-relaxed whitespace-pre-line">
+                  {product.deskripsi ||
+                    `Komoditas segar ${product.nama} hasil panen anggota binaan Koperasi Sinar Pagi Sejahtera. Telah melewati seleksi mutu dan penimbangan resmi di gudang koperasi untuk memastikan kesegaran dan kepuasan pembeli.`}
+                </p>
+              </div>
+
+              {/* Compact Petani Info Row */}
+              <div className="p-3 rounded-2xl border border-[#EAEDE7] bg-[#f4f5f1]/70 flex items-center justify-between gap-3">
+                <Link
+                  href={`/toko/petani/${product.petaniId}`}
+                  className="flex items-center gap-2.5 min-w-0 group"
+                >
+                  <Avatar className="w-10 h-10 rounded-full border border-[#cfd6c9] shrink-0">
+                    <AvatarImage src={petani?.avatarUrl || ''} alt={petani?.name} />
+                    <AvatarFallback className="bg-[#EAEDE7] text-[#233414] font-bold text-xs">
+                      {petani?.name ? petani.name.slice(0, 2).toUpperCase() : 'PT'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs sm:text-sm font-bold text-[#1a2610] group-hover:text-[#344d15] truncate">
+                        {petani?.name || 'Petani Koperasi'}
+                      </span>
+                      {petani?.isVerified && (
+                        <CheckCircle2 className="w-3.5 h-3.5 text-[#344d15] fill-[#e2f2c8] shrink-0" />
+                      )}
+                    </div>
+                    <div className="text-[11px] text-[#5b6950] truncate">
+                      {petani?.address || 'Minahasa Utara'} • {followersCount} pengikut
+                    </div>
+                  </div>
+                </Link>
+
+                <button
+                  onClick={handleToggleFollow}
+                  disabled={isFollowLoading}
+                  className={`h-8 px-3 rounded-xl text-xs font-semibold transition shrink-0 cursor-pointer flex items-center gap-1 ${
+                    isFollowed
+                      ? 'bg-white border border-[#cfd6c9] text-[#1a2610]'
+                      : 'bg-[#233414] text-white hover:bg-[#344d15]'
+                  }`}
+                >
+                  {isFollowLoading ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : isFollowed ? (
+                    <span>Mengikuti</span>
+                  ) : (
+                    <span>+ Ikuti</span>
+                  )}
+                </button>
+              </div>
+
+              {/* Desktop Action Bar (Matching Gambar 5 Bottom Bar) */}
+              <div className="hidden sm:flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => handleAddToCart(true)}
+                  disabled={isOutOfStock}
+                  className="h-12 px-5 rounded-2xl bg-[#EAEDE7] hover:bg-[#dce1d6] text-[#1a2610] font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition cursor-pointer disabled:opacity-50"
+                  title="Beli & Langsung ke Checkout"
+                >
+                  <ShoppingBag className="w-4 h-4 text-[#233414]" />
+                  <span>Beli Langsung</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleAddToCart(false)}
+                  disabled={isOutOfStock}
+                  className="flex-1 h-12 px-6 rounded-2xl bg-[#344d15] hover:bg-[#233414] text-white font-bold text-sm flex items-center justify-center gap-2 transition cursor-pointer shadow-sm disabled:opacity-50"
+                >
+                  <ShoppingCart className="w-4 h-4 text-[#D4F63D]" />
+                  <span>+ Keranjang • Rp {totalPrice.toLocaleString('id-ID')}</span>
+                </button>
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Sticky Bottom Action Bar on Mobile (Gambar 5 Left Screen Bottom Bar) */}
+        <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#EAEDE7] px-4 py-3 flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => handleAddToCart(true)}
+            disabled={isOutOfStock}
+            className="w-12 h-12 rounded-2xl bg-[#f4f5f1] hover:bg-[#EAEDE7] border border-[#dce1d6] text-[#1a2610] flex items-center justify-center shrink-0 transition cursor-pointer disabled:opacity-40"
+            title="Beli Langsung ke Checkout"
+          >
+            <ShoppingBag className="w-5 h-5 text-[#233414]" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleAddToCart(false)}
+            disabled={isOutOfStock}
+            className="flex-1 h-12 rounded-2xl bg-[#344d15] hover:bg-[#233414] text-white font-bold text-sm flex items-center justify-center gap-2 transition cursor-pointer shadow-sm disabled:opacity-40"
+          >
+            <span>{isOutOfStock ? 'Stok Habis' : `+ Keranjang • Rp ${totalPrice.toLocaleString('id-ID')}`}</span>
+          </button>
         </div>
 
         {/* BOTTOM SECTION: ULASAN PEMBELI */}

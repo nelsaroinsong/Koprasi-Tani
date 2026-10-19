@@ -95,17 +95,7 @@ export default function MengikutiPage() {
         </div>
       </div>
 
-      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-black text-[#1a2610] tracking-tight flex items-center gap-2">
-            <Users className="w-6 h-6 text-[#233414]" />
-            <span>Petani Mitra yang Anda Ikuti</span>
-          </h1>
-          <p className="text-xs sm:text-sm text-[#526046] mt-1">
-            Daftar petani binaan Koperasi Sinar Pagi Sejahtera yang Anda pantau ketersediaan komoditas panennya.
-          </p>
-        </div>
-
+      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-4">
         {isLoading ? (
           <div className="p-16 flex flex-col items-center justify-center gap-3">
             <Loader2 className="w-8 h-8 text-[#233414] animate-spin" />

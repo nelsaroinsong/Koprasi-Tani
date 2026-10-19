@@ -577,102 +577,70 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
       <AppHeader activePage="pesanan" />
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-6 space-y-3 sm:space-y-4">
-        {/* Breadcrumb - desktop only */}
-        <nav className="hidden sm:flex items-center gap-1.5 text-[11px] sm:text-xs text-[#5b6950] font-medium">
-          <Link href="/" className="hover:text-[#233414] transition">
-            Beranda
-          </Link>
-          <ChevronRight className="w-3.5 h-3.5" />
-          <Link href="/toko" className="hover:text-[#233414] transition">
-            Toko Online
-          </Link>
-          <ChevronRight className="w-3.5 h-3.5" />
-          <span className="text-[#1a2610] font-bold">Daftar Pesanan Saya</span>
-        </nav>
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-3.5 sm:py-5 space-y-3 sm:space-y-4">
+        {/* Top Bar: Tab Switcher, Search Box & Quick Actions */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5 sm:gap-3">
+          <div className="flex items-center justify-between sm:justify-start gap-2">
+            {/* Tab Switcher: Toko Online vs Sewa Alat */}
+            <div className="grid grid-cols-2 sm:inline-flex items-center gap-1 p-1 bg-[#EAEDE7] border border-[#cfd6c9] rounded-xl flex-1 sm:flex-initial">
+              <button
+                type="button"
+                onClick={() => setActiveTypeTab('toko')}
+                className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-[11px] sm:text-xs font-bold transition flex items-center justify-center sm:justify-start gap-1.5 cursor-pointer shrink-0 ${
+                  activeTypeTab === 'toko'
+                    ? 'bg-[#233414] text-white shadow-2xs'
+                    : 'bg-transparent text-[#526046] hover:text-[#1a2610]'
+                }`}
+              >
+                <ShoppingBag className={`w-3.5 h-3.5 ${activeTypeTab === 'toko' ? 'text-[#D4F63D]' : 'text-[#526046]'}`} />
+                <span><span className="hidden xs:inline sm:inline">Pesanan </span>Toko</span>
+                <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-black tabular-nums ${
+                  activeTypeTab === 'toko'
+                    ? 'bg-[#D4F63D] text-[#1a2610]'
+                    : 'bg-white text-[#233414] border border-[#dce1d6]'
+                }`}>
+                  {orders.length}
+                </span>
+              </button>
 
-        {/* Page Title & Action Bar */}
-        <div className="flex items-center justify-between gap-2.5">
-          <div>
-            <h1 className="text-base sm:text-2xl font-extrabold text-[#1a2610] tracking-tight leading-snug">
-              Daftar Pesanan & Monitoring
-            </h1>
-            <p className="text-[11px] sm:text-xs text-[#526046] mt-0.5 line-clamp-1 hidden xs:block sm:block">
-              Pantau alur persiapan komoditas dan jadwal serah terima koperasi.
-            </p>
-          </div>
+              <button
+                type="button"
+                onClick={() => setActiveTypeTab('sewa-alat')}
+                className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-[11px] sm:text-xs font-bold transition flex items-center justify-center sm:justify-start gap-1.5 cursor-pointer shrink-0 ${
+                  activeTypeTab === 'sewa-alat'
+                    ? 'bg-[#233414] text-white shadow-2xs'
+                    : 'bg-transparent text-[#526046] hover:text-[#1a2610]'
+                }`}
+              >
+                <Tractor className={`w-3.5 h-3.5 ${activeTypeTab === 'sewa-alat' ? 'text-[#D4F63D]' : 'text-[#526046]'}`} />
+                <span>Sewa Alat</span>
+                <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-black tabular-nums ${
+                  activeTypeTab === 'sewa-alat'
+                    ? 'bg-[#D4F63D] text-[#1a2610]'
+                    : 'bg-white text-[#233414] border border-[#dce1d6]'
+                }`}>
+                  {rentalOrders.length}
+                </span>
+              </button>
+            </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <button
               onClick={() => {
                 fetchOrders();
                 fetchRentalOrders();
               }}
               disabled={isLoading || isRentalLoading}
-              className="px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-lg sm:rounded-xl bg-white hover:bg-[#EAEDE7] text-[#1a2610] hover:text-[#233414] border border-[#dce1d6] hover:border-[#cfd6c9] font-bold text-[10px] sm:text-xs flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
+              className="p-2 sm:px-3 sm:py-2 rounded-xl bg-white hover:bg-[#EAEDE7] text-[#1a2610] hover:text-[#233414] border border-[#dce1d6] hover:border-[#cfd6c9] font-bold text-xs flex items-center gap-1.5 transition cursor-pointer shadow-2xs shrink-0"
               title="Segarkan Status"
               type="button"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isLoading || isRentalLoading ? 'animate-spin text-[#344d15]' : 'text-[#526046]'}`} />
-              <span className="hidden sm:inline">Segarkan Status</span>
-            </button>
-            <Link
-              href={activeTypeTab === 'sewa-alat' ? '/sewa-alat' : '/toko'}
-              className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl bg-[#233414] hover:bg-[#344d15] text-white font-bold text-[10px] sm:text-xs flex items-center gap-1.5 transition shadow-xs"
-            >
-              <span>{activeTypeTab === 'sewa-alat' ? 'Sewa Alat Lagi' : 'Belanja Lagi'}</span>
-              <ArrowRight className="w-3.5 h-3.5 text-[#D4F63D]" />
-            </Link>
-          </div>
-        </div>
-
-        {/* Baris Tab Switcher & Search Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3">
-          {/* Tab Switcher: Toko Online vs Sewa Alat */}
-          <div className="grid grid-cols-2 sm:inline-flex items-center gap-1 p-1 bg-[#EAEDE7] border border-[#cfd6c9] rounded-xl shrink-0">
-            <button
-              type="button"
-              onClick={() => setActiveTypeTab('toko')}
-              className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-[11px] sm:text-xs font-bold transition flex items-center justify-center sm:justify-start gap-1.5 cursor-pointer shrink-0 ${
-                activeTypeTab === 'toko'
-                  ? 'bg-[#233414] text-white shadow-2xs'
-                  : 'bg-transparent text-[#526046] hover:text-[#1a2610]'
-              }`}
-            >
-              <ShoppingBag className={`w-3.5 h-3.5 ${activeTypeTab === 'toko' ? 'text-[#D4F63D]' : 'text-[#526046]'}`} />
-              <span><span className="hidden xs:inline sm:inline">Pesanan </span>Toko</span>
-              <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-black tabular-nums ${
-                activeTypeTab === 'toko'
-                  ? 'bg-[#D4F63D] text-[#1a2610]'
-                  : 'bg-white text-[#233414] border border-[#dce1d6]'
-              }`}>
-                {orders.length}
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTypeTab('sewa-alat')}
-              className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-[11px] sm:text-xs font-bold transition flex items-center justify-center sm:justify-start gap-1.5 cursor-pointer shrink-0 ${
-                activeTypeTab === 'sewa-alat'
-                  ? 'bg-[#233414] text-white shadow-2xs'
-                  : 'bg-transparent text-[#526046] hover:text-[#1a2610]'
-              }`}
-            >
-              <Tractor className={`w-3.5 h-3.5 ${activeTypeTab === 'sewa-alat' ? 'text-[#D4F63D]' : 'text-[#526046]'}`} />
-              <span>Sewa Alat</span>
-              <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-black tabular-nums ${
-                activeTypeTab === 'sewa-alat'
-                  ? 'bg-[#D4F63D] text-[#1a2610]'
-                  : 'bg-white text-[#233414] border border-[#dce1d6]'
-              }`}>
-                {rentalOrders.length}
-              </span>
+              <span className="hidden lg:inline">Segarkan</span>
             </button>
           </div>
 
           {/* Search Box */}
-          <div className="relative w-full sm:w-72 md:w-80 shrink-0">
+          <div className="relative w-full md:w-72 lg:w-80 shrink-0">
             <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#5b6950] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"

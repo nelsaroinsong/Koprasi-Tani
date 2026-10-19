@@ -328,19 +328,42 @@ export default function SewaAlatPage() {
     <div className="min-h-screen bg-[#f4f5f1] flex flex-col font-sans selection:bg-[#D4F63D] selection:text-slate-950">
       <AppHeader activePage="sewa-alat" />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 pb-24 lg:pb-12">
-        {/* Header Title & Search Toolbar */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 mb-3.5 sm:mb-5">
-          <div>
-            <h1 className="text-lg sm:text-2xl lg:text-3xl font-bold text-[#1a2610] tracking-tight leading-tight">
-              Sewa Alat Pertanian
-            </h1>
-            <p className="text-xs sm:text-[13px] text-[#526046] mt-1 max-w-2xl leading-relaxed">
-              Penyewaan mesin dan alat pertanian modern untuk pengolahan lahan dan panen anggota Koperasi Sinar Pagi Sejahtera.
-            </p>
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-3.5 sm:py-5 pb-24 lg:pb-12">
+        {/* Top Filter Pills & Search Toolbar */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5 sm:gap-3.5 mb-4 sm:mb-6">
+          <div className="flex items-center justify-between gap-2 overflow-x-auto pb-1 md:pb-0 no-scrollbar order-2 md:order-1 flex-1">
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+              {dynamicKategoriTabs.map((tab) => {
+                const active = selectedKategori.toLowerCase().trim() === tab.key.toLowerCase().trim();
+                return (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => setSelectedKategori(tab.key)}
+                    className={`h-8 sm:h-9 px-3 sm:px-4 rounded-lg sm:rounded-xl text-xs sm:text-[13px] whitespace-nowrap transition-colors cursor-pointer border shrink-0 flex items-center gap-1.5 ${
+                      active
+                        ? 'bg-[#233414] text-white border-[#233414] font-semibold'
+                        : 'bg-white text-[#233414] hover:bg-[#EAEDE7] border-[#cfd6c9] font-medium'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            <label className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-[13px] font-medium text-[#526046] hover:text-[#1a2610] cursor-pointer select-none shrink-0 ml-auto pl-2">
+              <input
+                type="checkbox"
+                checked={onlyAvailable}
+                onChange={(e) => setOnlyAvailable(e.target.checked)}
+                className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded accent-[#233414] text-[#233414] focus:ring-[#233414] border-[#cfd6c9] cursor-pointer"
+              />
+              <span className="text-[11px] sm:text-xs font-semibold">Hanya yang Siap Pakai</span>
+            </label>
           </div>
 
-          <div className="relative w-full md:w-72 lg:w-80 shrink-0">
+          <div className="relative w-full md:w-72 lg:w-80 shrink-0 order-1 md:order-2">
             <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#68785b] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
@@ -360,39 +383,6 @@ export default function SewaAlatPage() {
               </button>
             )}
           </div>
-        </div>
-
-        {/* Kategori Navigation & Filter Status */}
-        <div className="flex items-center justify-between gap-2 overflow-x-auto pb-2 mb-4 sm:mb-6 no-scrollbar">
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {dynamicKategoriTabs.map((tab) => {
-              const active = selectedKategori.toLowerCase().trim() === tab.key.toLowerCase().trim();
-              return (
-                <button
-                  key={tab.key}
-                  type="button"
-                  onClick={() => setSelectedKategori(tab.key)}
-                  className={`h-8 sm:h-9 px-3 sm:px-4 rounded-lg sm:rounded-xl text-xs sm:text-[13px] whitespace-nowrap transition-colors cursor-pointer border shrink-0 flex items-center gap-1.5 ${
-                    active
-                      ? 'bg-[#233414] text-white border-[#233414] font-semibold'
-                      : 'bg-white text-[#233414] hover:bg-[#EAEDE7] border-[#cfd6c9] font-medium'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
-
-          <label className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-[13px] font-medium text-[#526046] hover:text-[#1a2610] cursor-pointer select-none shrink-0 ml-auto pl-2">
-            <input
-              type="checkbox"
-              checked={onlyAvailable}
-              onChange={(e) => setOnlyAvailable(e.target.checked)}
-              className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded accent-[#233414] text-[#233414] focus:ring-[#233414] border-[#cfd6c9] cursor-pointer"
-            />
-            <span className="text-[11px] sm:text-xs font-semibold">Hanya yang Siap Pakai</span>
-          </label>
         </div>
 
         {/* State Kosong / Grid Alat */}

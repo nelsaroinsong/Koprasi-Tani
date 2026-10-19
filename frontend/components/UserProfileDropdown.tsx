@@ -381,14 +381,14 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/landing/koperasi-logo-lime.png"
-                alt=""
-                className="w-6 h-6 object-contain opacity-80"
+                src="/landing/koperasi-full-white.png"
+                alt="Koperasi Sinar Pagi Sejahtera"
+                className="h-5 w-auto object-contain opacity-90"
               />
             </div>
 
             {/* 2. Avatar Overlapping & Role Badge */}
-            <div className="flex items-end justify-between px-2 -mt-8 mb-2.5 relative z-10">
+            <div className="flex items-end justify-between px-2 -mt-7 mb-3 relative z-10">
               <div
                 onClick={() => {
                   setIsOpen(false);
@@ -396,7 +396,7 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
                 }}
                 className="relative cursor-pointer group"
               >
-                <div className="w-15 h-15 rounded-full bg-white ring-4 ring-white text-[#1a2610] flex items-center justify-center font-bold text-lg overflow-hidden">
+                <div className="w-16 h-16 rounded-full bg-white ring-4 ring-white text-[#1a2610] flex items-center justify-center font-bold text-lg overflow-hidden shadow-xs">
                   {user.avatarUrl ? (
                     <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" />
                   ) : (
@@ -413,8 +413,8 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
                 </div>
               </div>
 
-              {/* Role Badge */}
-              <div className="flex items-center gap-1.5 mb-1">
+              {/* Role Badge - Lowered below the banner with clean top clearance */}
+              <div className="flex items-center gap-1.5 pt-3 pb-0.5">
                 <span className="px-3 py-1 rounded-full bg-[#e2f2c8] border border-[#c9e39e] text-[#233414] text-xs font-semibold">
                   {displayRole === 'PETANI' ? 'Mitra Petani' : 'Pembeli'}
                 </span>

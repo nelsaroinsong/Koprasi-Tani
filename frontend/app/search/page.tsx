@@ -132,37 +132,11 @@ function SearchPageContent() {
     <div className="min-h-screen bg-[#f4f5f1] pb-20">
       <AppHeader />
 
-      {/* Header Banner Pencarian */}
+      {/* Header Filter Pencarian */}
       <div className="bg-white border-b border-[#dce1d6]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8">
-          <div className="max-w-3xl">
-            {/* Breadcrumb */}
-            <div className="flex items-center gap-1.5 text-xs text-[#526046] mb-2">
-              <Link href="/" className="hover:text-[#344d15] transition font-semibold">
-                Beranda
-              </Link>
-              <ChevronRight className="w-3 h-3 text-[#cfd6c9]" />
-              <span className="text-[#1a2610] font-bold">Pencarian</span>
-            </div>
-
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-[#1a2610] tracking-tight">
-              {currentQuery ? (
-                <>
-                  Hasil pencarian untuk{' '}
-                  <span className="text-[#344d15]">&quot;{currentQuery}&quot;</span>
-                </>
-              ) : (
-                'Pencarian Ekosistem Koperasi'
-              )}
-            </h1>
-
-            <p className="text-xs sm:text-sm text-[#526046] mt-1">
-              Temukan komoditas panen petani lokal, penyewaan alsintan modern, atau akun mitra koperasi.
-            </p>
-          </div>
-
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
           {/* Tab Filter Navigasi */}
-          <div className="flex items-center gap-2 overflow-x-auto pt-4 mt-5 border-t border-[#EAEDE7] no-scrollbar">
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
             <button
               type="button"
               onClick={() => handleTabChange('all')}

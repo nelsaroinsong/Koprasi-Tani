@@ -183,35 +183,7 @@ export default function DashboardPetaniPage() {
       <AppHeader activePage="dashboard" />
 
       {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-6">
-        {/* Top Header Title & Actions */}
-        <div className="flex items-start justify-between gap-2.5 mb-3.5 sm:mb-5">
-          <div className="min-w-0">
-            <h1 className="text-base sm:text-2xl font-black text-[#1a2610] tracking-tight flex items-center gap-1.5 sm:gap-2 flex-wrap">
-              <span>Dashboard Mitra Petani</span>
-              <span className="text-[10px] sm:text-xs font-bold bg-[#e2f2c8] text-[#233414] border border-[#c9e39e] px-2.5 py-0.5 rounded-full truncate max-w-[150px] sm:max-w-none">
-                {user.name}
-              </span>
-            </h1>
-            <p className="text-[11px] sm:text-xs text-[#526046] mt-0.5 line-clamp-1 sm:line-clamp-none">
-              Pantau stok panen Anda di gudang koperasi, komoditas terjual, dan pencairan tunai di kasir.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => {
-              fetchDashboardStats();
-              fetchMyProducts();
-            }}
-            className="p-2 sm:px-3.5 sm:py-2 bg-white border border-[#dce1d6] text-[#1a2610] hover:text-[#233414] hover:bg-[#EAEDE7] hover:border-[#cfd6c9] rounded-lg sm:rounded-xl transition cursor-pointer shadow-2xs flex items-center gap-1.5 text-[10px] sm:text-xs font-bold shrink-0"
-            title="Segarkan data dashboard"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoadingStats || isLoadingProducts ? 'animate-spin text-[#344d15]' : 'text-[#526046]'}`} />
-            <span className="hidden sm:inline">Segarkan</span>
-          </button>
-        </div>
-
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-3.5 sm:py-5">
         {/* 4 KPI Summary Cards (Clean, No Decorative Gradients or Tinted Icon Circles) */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3.5 mb-4 sm:mb-6">
           {/* Card 1: Stok di Gudang */}

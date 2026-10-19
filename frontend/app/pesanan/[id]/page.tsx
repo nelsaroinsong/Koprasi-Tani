@@ -508,22 +508,22 @@ export default function OrderDetailPage({
                 <div className="p-4 sm:p-5 border-b border-[#dce1d6] bg-[#f4f5f1]/40">
                   <div className="max-w-2xl mx-auto py-1">
                     <div className="grid grid-cols-4 gap-1 text-center relative">
-                      {/* Background Bar */}
-                      <div className="absolute top-3 sm:top-3.5 left-[12%] right-[12%] h-1 bg-[#dce1d6] -z-0 rounded-full" />
-                      {/* Active Bar */}
-                      <div
-                        className="absolute top-3 sm:top-3.5 left-[12%] h-1 bg-[#233414] -z-0 rounded-full transition-all duration-500"
-                        style={{
-                          width:
-                            getStatusConfig(orderData.status).step === 1
-                              ? '0%'
-                              : getStatusConfig(orderData.status).step === 2
-                              ? '38%'
-                              : getStatusConfig(orderData.status).step === 3
-                              ? '75%'
-                              : '100%',
-                        }}
-                      />
+                      {/* Background & Active Track Bar (Strictly between center of Step 1 and center of Step 4) */}
+                      <div className="absolute top-3.5 left-[12.5%] right-[12.5%] h-1 bg-[#dce1d6] z-0 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-[#233414] rounded-full transition-all duration-500"
+                          style={{
+                            width:
+                              getStatusConfig(orderData.status).step <= 1
+                                ? '0%'
+                                : getStatusConfig(orderData.status).step === 2
+                                ? '33.3333%'
+                                : getStatusConfig(orderData.status).step === 3
+                                ? '66.6667%'
+                                : '100%',
+                          }}
+                        />
+                      </div>
 
                       {/* Step 1 */}
                       <div className="flex flex-col items-center relative z-10">

@@ -10,8 +10,10 @@ import {
   Trash2,
   Plus,
   Minus,
+  ArrowLeft,
   ArrowRight,
   Loader2,
+  X,
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
@@ -231,219 +233,235 @@ function CartContent() {
   const isLoaded = activeTab === 'toko' ? isLoadedToko : isLoadedRental;
 
   return (
-    <div className="min-h-screen bg-[#f4f5f1] flex flex-col pb-24">
-      {/* App Header */}
-      <AppHeader activePage="cart" />
+    <div className="min-h-screen bg-white sm:bg-[#f4f5f1] flex flex-col pb-32 sm:pb-20 font-sans">
+      {/* Desktop App Header */}
+      <div className="hidden sm:block">
+        <AppHeader activePage="cart" />
+      </div>
+
+      {/* Mobile Top Bar (Gambar 5 Right Screen Style: Back Arrow Left + Centered "Keranjang Belanja") */}
+      <div className="sm:hidden sticky top-0 z-40 bg-white/95 backdrop-blur-md px-4 h-14 flex items-center justify-between border-b border-[#EAEDE7]">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="w-10 h-10 -ml-1 rounded-full flex items-center justify-center text-[#1a2610] hover:bg-[#f4f5f1] transition cursor-pointer"
+          aria-label="Kembali"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+
+        <h1 className="text-sm font-extrabold text-[#1a2610] tracking-tight">
+          Keranjang Belanja
+        </h1>
+
+        {activeTab === 'toko' && cartItems.length > 0 ? (
+          <button
+            type="button"
+            onClick={handleClearCart}
+            className="w-10 h-10 -mr-1 rounded-full flex items-center justify-center text-[#5b6950] hover:text-[#c4242a] transition cursor-pointer"
+            title="Kosongkan Keranjang"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        ) : activeTab === 'sewa-alat' && rentalCartItems.length > 0 ? (
+          <button
+            type="button"
+            onClick={handleClearRentalCart}
+            className="w-10 h-10 -mr-1 rounded-full flex items-center justify-center text-[#5b6950] hover:text-[#c4242a] transition cursor-pointer"
+            title="Kosongkan Sewa Alat"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        ) : (
+          <div className="w-10" />
+        )}
+      </div>
 
       {/* Main Content */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8">
-        {/* Title & Clear Action */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#1a2610] tracking-tight">
-              Keranjang Saya
-            </h1>
-            <p className="text-xs sm:text-sm text-[#526046] mt-0.5">
-              Kelola daftar belanjaan komoditas toko online dan pengajuan sewa alat pertanian Anda.
-            </p>
+      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-3 sm:py-6">
+        {/* Top Segmented Control + Clear Button on Desktop */}
+        <div className="flex items-center justify-between gap-3 mb-4 sm:mb-6">
+          <div className="grid grid-cols-2 sm:inline-flex items-center gap-1 p-1 bg-[#f4f5f1] sm:bg-[#EAEDE7] rounded-2xl w-full sm:w-fit border border-[#dce1d6]">
+            <button
+              type="button"
+              onClick={() => setActiveTab('toko')}
+              className={`flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+                activeTab === 'toko'
+                  ? 'bg-[#233414] text-white shadow-2xs'
+                  : 'text-[#526046] hover:text-[#1a2610]'
+              }`}
+            >
+              <ShoppingBag className={`w-3.5 h-3.5 ${activeTab === 'toko' ? 'text-[#D4F63D]' : ''}`} />
+              <span>Toko Online</span>
+              {cartItems.length > 0 && (
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-black tabular-nums ${
+                    activeTab === 'toko'
+                      ? 'bg-[#D4F63D] text-[#1a2610]'
+                      : 'bg-white text-[#1a2610] border border-[#cfd6c9]'
+                  }`}
+                >
+                  {cartItems.length}
+                </span>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('sewa-alat')}
+              className={`flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+                activeTab === 'sewa-alat'
+                  ? 'bg-[#233414] text-white shadow-2xs'
+                  : 'text-[#526046] hover:text-[#1a2610]'
+              }`}
+            >
+              <Tractor className={`w-3.5 h-3.5 ${activeTab === 'sewa-alat' ? 'text-[#D4F63D]' : ''}`} />
+              <span>Sewa Alat</span>
+              {rentalCartItems.length > 0 && (
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-black tabular-nums ${
+                    activeTab === 'sewa-alat'
+                      ? 'bg-[#D4F63D] text-[#1a2610]'
+                      : 'bg-white text-[#1a2610] border border-[#cfd6c9]'
+                  }`}
+                >
+                  {rentalCartItems.length}
+                </span>
+              )}
+            </button>
           </div>
 
-          {/* Tombol Kosongkan sesuai tab aktif */}
+          {/* Desktop Clear Button */}
           {activeTab === 'toko' && cartItems.length > 0 && (
             <button
               onClick={handleClearCart}
-              className="text-xs font-semibold text-[#526046] hover:text-[#831c1e] bg-white transition flex items-center gap-1.5 py-1.5 px-3 rounded-lg hover:bg-[#ffedea] border border-[#cfd6c9] hover:border-red-200 cursor-pointer self-start sm:self-auto"
+              className="hidden sm:flex text-xs font-semibold text-[#526046] hover:text-[#831c1e] bg-white transition items-center gap-1.5 py-2 px-3 rounded-xl hover:bg-[#ffedea] border border-[#cfd6c9] hover:border-red-200 cursor-pointer shrink-0"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              <span>Kosongkan Komoditas</span>
+              <span>Kosongkan</span>
             </button>
           )}
-
           {activeTab === 'sewa-alat' && rentalCartItems.length > 0 && (
             <button
               onClick={handleClearRentalCart}
-              className="text-xs font-semibold text-[#526046] hover:text-[#831c1e] bg-white transition flex items-center gap-1.5 py-1.5 px-3 rounded-lg hover:bg-[#ffedea] border border-[#cfd6c9] hover:border-red-200 cursor-pointer self-start sm:self-auto"
+              className="hidden sm:flex text-xs font-semibold text-[#526046] hover:text-[#831c1e] bg-white transition items-center gap-1.5 py-2 px-3 rounded-xl hover:bg-[#ffedea] border border-[#cfd6c9] hover:border-red-200 cursor-pointer shrink-0"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              <span>Kosongkan Sewa Alat</span>
+              <span>Kosongkan</span>
             </button>
           )}
-        </div>
-
-        {/* TAB SEGMENTED CONTROL: TOKO ONLINE & SEWA ALAT */}
-        <div className="flex items-center gap-1.5 p-1 bg-[#EAEDE7] rounded-2xl w-fit mb-6 sm:mb-8 border border-[#cfd6c9]">
-          <button
-            type="button"
-            onClick={() => setActiveTab('toko')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer ${
-              activeTab === 'toko'
-                ? 'bg-[#233414] text-white'
-                : 'text-[#526046] hover:text-[#1a2610] hover:bg-white/70'
-            }`}
-          >
-            <ShoppingBag className={`w-4 h-4 ${activeTab === 'toko' ? 'text-[#D4F63D]' : ''}`} />
-            <span>Toko Online</span>
-            {cartItems.length > 0 && (
-              <span
-                className={`text-[10px] px-1.5 py-0.5 rounded-full font-black tabular-nums ${
-                  activeTab === 'toko'
-                    ? 'bg-[#344d15] text-[#D4F63D]'
-                    : 'bg-[#cfd6c9] text-[#1a2610]'
-                }`}
-              >
-                {cartItems.length}
-              </span>
-            )}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('sewa-alat')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer ${
-              activeTab === 'sewa-alat'
-                ? 'bg-[#233414] text-white'
-                : 'text-[#526046] hover:text-[#1a2610] hover:bg-white/70'
-            }`}
-          >
-            <Tractor className={`w-4 h-4 ${activeTab === 'sewa-alat' ? 'text-[#D4F63D]' : ''}`} />
-            <span>Sewa Alat</span>
-            {rentalCartItems.length > 0 && (
-              <span
-                className={`text-[10px] px-1.5 py-0.5 rounded-full font-black tabular-nums ${
-                  activeTab === 'sewa-alat'
-                    ? 'bg-[#344d15] text-[#D4F63D]'
-                    : 'bg-[#cfd6c9] text-[#1a2610]'
-                }`}
-              >
-                {rentalCartItems.length}
-              </span>
-            )}
-          </button>
         </div>
 
         {/* Loading Spinner */}
         {!isLoaded ? (
           <div className="py-20 flex flex-col items-center justify-center gap-2">
-            <Loader2 className="w-8 h-8 text-[#233414] animate-spin" />
+            <Loader2 className="w-7 h-7 text-[#233414] animate-spin" />
             <span className="text-xs text-[#526046] font-medium">Memuat isi keranjang...</span>
           </div>
         ) : activeTab === 'toko' ? (
           /* ========================================================= */
-          /* TAB 1: KONTEN KERANJANG TOKO ONLINE                       */
+          /* TAB 1: KONTEN KERANJANG TOKO ONLINE (GAMBAR 5 STYLE)      */
           /* ========================================================= */
           cartItems.length === 0 ? (
-            /* Empty State Toko */
-            <div className="bg-white border border-[#dce1d6] rounded-2xl p-8 sm:p-14 text-center flex flex-col items-center justify-center max-w-2xl mx-auto my-4">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[#e2f2c8] border border-[#c9e39e] text-[#233414] flex items-center justify-center mb-4">
-                <ShoppingBag className="w-8 h-8 sm:w-10 sm:h-10 stroke-[1.5]" />
+            <div className="bg-white sm:border sm:border-[#dce1d6] rounded-3xl p-8 sm:p-14 text-center flex flex-col items-center justify-center max-w-xl mx-auto my-4">
+              <div className="w-16 h-16 rounded-2xl bg-[#f4f5f1] border border-[#dce1d6] text-[#233414] flex items-center justify-center mb-4">
+                <ShoppingBag className="w-7 h-7 stroke-[1.75]" />
               </div>
-              <h2 className="text-lg sm:text-xl font-bold text-[#1a2610]">
-                Keranjang Belanja Toko Kosong
+              <h2 className="text-base sm:text-lg font-bold text-[#1a2610]">
+                Keranjang Belanja Kosong
               </h2>
-              <p className="text-xs sm:text-sm text-[#526046] max-w-md mt-1 mb-6">
-                Belum ada komoditas hasil panen yang dimasukkan. Jelajahi katalog hasil tani koperasi dan dukung petani lokal kami.
+              <p className="text-xs sm:text-sm text-[#526046] max-w-sm mt-1 mb-6 leading-relaxed">
+                Belum ada komoditas hasil panen yang dimasukkan ke keranjang Anda.
               </p>
               <Link
                 href="/toko"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#233414] hover:bg-[#344d15] text-white font-bold text-xs sm:text-sm transition"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#233414] hover:bg-[#344d15] text-white font-bold text-xs sm:text-sm transition"
               >
-                <ShoppingBag className="w-4 h-4 text-[#D4F63D]" />
-                <span>Mulai Belanja Komoditas</span>
+                <span>Mulai Belanja</span>
               </Link>
             </div>
           ) : (
-            /* Layout 2 Kolom Toko Online */
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6 lg:gap-8 items-start">
-              {/* Kolom Kiri: Daftar Komoditas */}
-              <div className="md:col-span-7 lg:col-span-8 space-y-3.5">
+              {/* Left Column: Gambar 5 Style Flat Item List */}
+              <div className="md:col-span-7 lg:col-span-8 bg-white sm:rounded-3xl sm:border sm:border-[#dce1d6] sm:p-5 divide-y divide-[#EAEDE7]">
                 {cartItems.map((item) => {
                   const itemTotal = Number(item.hargaPerSatuan || 0) * (item.quantity || 1);
 
                   return (
                     <div
                       key={item.id}
-                      className="bg-white border border-[#dce1d6] hover:border-[#344d15] rounded-2xl p-3.5 sm:p-4 transition flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                      className="py-4 first:pt-1 last:pb-1 flex items-stretch gap-3.5 sm:gap-4"
                     >
-                      <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
-                        <div className="w-20 h-20 sm:w-22 sm:h-22 shrink-0 rounded-xl overflow-hidden bg-[#EAEDE7] border border-[#cfd6c9] relative aspect-square">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={
-                              item.imageUrl ||
-                              'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=400&q=80'
-                            }
-                            alt={item.nama}
-                            className="w-full h-full object-cover object-center"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src =
-                                'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=400&q=80';
-                            }}
-                          />
+                      {/* Square Rounded Thumbnail on Left */}
+                      <Link
+                        href={`/toko/${item.id}`}
+                        className="w-20 h-20 sm:w-24 sm:h-24 shrink-0 rounded-2xl overflow-hidden bg-[#f4f5f1] border border-[#EAEDE7] relative aspect-square"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={
+                            item.imageUrl ||
+                            'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=400&q=80'
+                          }
+                          alt={item.nama}
+                          className="w-full h-full object-cover object-center"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src =
+                              'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=400&q=80';
+                          }}
+                        />
+                      </Link>
+
+                      {/* Center Column: Title, Unit/Category Subtitle, Price at Bottom */}
+                      <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+                        <div>
+                          <Link
+                            href={`/toko/${item.id}`}
+                            className="font-bold text-[#1a2610] hover:text-[#344d15] text-sm sm:text-base leading-snug line-clamp-1 transition"
+                          >
+                            {item.nama}
+                          </Link>
+                          <div className="text-xs text-[#5b6950] mt-0.5 truncate">
+                            1 {item.satuan} • {item.kategori}
+                          </div>
                         </div>
 
-                        <div className="flex-1 min-w-0 flex flex-col justify-between self-stretch py-0.5">
-                          <div>
-                            <h3 className="font-bold text-[#1a2610] text-sm leading-snug line-clamp-2">
-                              {item.nama}
-                            </h3>
-                            <div className="text-[11px] text-[#526046] mt-1 flex items-center gap-1.5 flex-wrap">
-                              <span>Kategori: {item.kategori}</span>
-                              {item.petaniName && (
-                                <>
-                                  <span className="text-[#cfd6c9]">•</span>
-                                  <span>Petani: {item.petaniName}</span>
-                                </>
-                              )}
-                            </div>
-                            <div className="mt-1">
-                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#e2f2c8] text-[#233414] border border-[#c9e39e]">
-                                <span className="w-1.5 h-1.5 rounded-full bg-[#547318]" />
-                                <span>Tersedia di Gudang</span>
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-3 mt-3">
-                            <div className="inline-flex items-center rounded-lg border border-[#cfd6c9] bg-white">
-                              <button
-                                type="button"
-                                onClick={() => handleUpdateQuantity(item.id, -1)}
-                                className="w-7 h-7 flex items-center justify-center text-[#526046] hover:text-[#1a2610] hover:bg-[#f4f5f1] rounded-l-lg transition cursor-pointer"
-                                title="Kurangi Kuantitas"
-                              >
-                                <Minus className="w-3.5 h-3.5" />
-                              </button>
-                              <span className="w-8 text-center text-xs font-bold text-[#1a2610] tabular-nums">
-                                {item.quantity}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => handleUpdateQuantity(item.id, 1)}
-                                className="w-7 h-7 flex items-center justify-center text-[#526046] hover:text-[#1a2610] hover:bg-[#f4f5f1] rounded-r-lg transition cursor-pointer"
-                                title="Tambah Kuantitas"
-                              >
-                                <Plus className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveItem(item.id, item.nama)}
-                              className="text-[#5b6950] hover:text-[#c4242a] transition p-1 cursor-pointer"
-                              title="Hapus komoditas"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
+                        <div className="text-sm sm:text-base font-extrabold text-[#1a2610] tabular-nums">
+                          Rp {itemTotal.toLocaleString('id-ID')}
                         </div>
                       </div>
 
-                      <div className="flex sm:flex-col items-center sm:items-end justify-between border-t sm:border-t-0 pt-2.5 sm:pt-0 border-[#EAEDE7] shrink-0">
-                        <div className="text-[11px] text-[#5b6950] font-medium tabular-nums">
-                          Rp {Number(item.hargaPerSatuan).toLocaleString('id-ID')} / {item.satuan}
-                        </div>
-                        <div className="text-sm sm:text-base font-extrabold text-[#233414] tabular-nums">
-                          Rp {itemTotal.toLocaleString('id-ID')}
+                      {/* Right Column: Top-Right X Remove Button & Bottom-Right Pill Stepper (Gambar 5 Exact Match) */}
+                      <div className="flex flex-col items-end justify-between py-0.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveItem(item.id, item.nama)}
+                          className="text-[#5b6950] hover:text-[#1a2610] transition p-1 -mr-1 -mt-1 cursor-pointer"
+                          title="Hapus komoditas"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+
+                        <div className="inline-flex items-center h-8 rounded-full border border-[#dce1d6] bg-white px-1 shadow-2xs">
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateQuantity(item.id, -1)}
+                            className="w-6 h-6 rounded-full flex items-center justify-center text-[#526046] hover:text-[#1a2610] hover:bg-[#f4f5f1] transition cursor-pointer"
+                            title="Kurangi"
+                          >
+                            <Minus className="w-3 h-3" />
+                          </button>
+                          <span className="w-6 text-center text-xs font-bold text-[#1a2610] tabular-nums">
+                            {item.quantity}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateQuantity(item.id, 1)}
+                            className="w-6 h-6 rounded-full flex items-center justify-center text-[#526046] hover:text-[#1a2610] hover:bg-[#f4f5f1] transition cursor-pointer"
+                            title="Tambah"
+                          >
+                            <Plus className="w-3 h-3" />
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -451,31 +469,23 @@ function CartContent() {
                 })}
               </div>
 
-              {/* Kolom Kanan: Ringkasan Belanja Toko */}
-              <div className="md:col-span-5 lg:col-span-4 sticky top-20 space-y-4">
-                <div className="bg-white border border-[#dce1d6] rounded-2xl p-5 space-y-4">
-                  <h3 className="font-bold text-[#1a2610] text-sm sm:text-base border-b border-[#EAEDE7] pb-3">
-                    Ringkasan Belanja Komoditas
-                  </h3>
-
+              {/* Right Column / Bottom Summary Sheet (Gambar 5 Total + Dark Pill Button) */}
+              <div className="md:col-span-5 lg:col-span-4 md:sticky md:top-20">
+                <div className="bg-white sm:rounded-3xl sm:border sm:border-[#dce1d6] pt-4 sm:p-6 border-t border-[#EAEDE7] sm:border-t-[#dce1d6] space-y-4">
                   <div className="space-y-2 text-xs">
                     <div className="flex justify-between text-[#526046]">
                       <span>Total Kuantitas</span>
                       <span className="font-semibold text-[#1a2610] tabular-nums">{totalItemsCount} Satuan</span>
                     </div>
                     <div className="flex justify-between text-[#526046]">
-                      <span>Metode Pembayaran</span>
-                      <span className="font-semibold text-[#344d15]">Tunai Kas Koperasi</span>
-                    </div>
-                    <div className="flex justify-between text-[#526046]">
-                      <span>Lokasi Pengambilan</span>
-                      <span className="font-semibold text-[#1a2610]">Gudang Koperasi</span>
+                      <span>Serah Terima & Bayar</span>
+                      <span className="font-semibold text-[#344d15]">Tunai di Kasir Koperasi</span>
                     </div>
                   </div>
 
-                  <div className="border-t border-[#EAEDE7] pt-3 flex justify-between items-baseline">
-                    <span className="text-xs font-bold text-[#1a2610]">Total Tagihan:</span>
-                    <span className="text-lg font-black text-[#233414] tabular-nums">
+                  <div className="flex justify-between items-baseline pt-2 border-t border-[#EAEDE7]">
+                    <span className="text-sm font-semibold text-[#526046]">Total:</span>
+                    <span className="text-xl sm:text-2xl font-black text-[#1a2610] tabular-nums">
                       Rp {finalTotalAmount.toLocaleString('id-ID')}
                     </span>
                   </div>
@@ -489,10 +499,9 @@ function CartContent() {
                       }
                       router.push('/checkout/toko');
                     }}
-                    className="w-full py-3 px-4 bg-[#233414] hover:bg-[#344d15] text-white rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition cursor-pointer"
+                    className="w-full h-12 sm:h-13 px-6 bg-[#1a2610] hover:bg-[#233414] text-white rounded-full font-bold text-sm flex items-center justify-center gap-2 transition cursor-pointer shadow-sm"
                   >
-                    <span>Lanjut ke Konfirmasi Pengambilan</span>
-                    <ArrowRight className="w-4 h-4 text-[#D4F63D]" />
+                    <span>Lanjut ke Checkout</span>
                   </button>
                 </div>
               </div>
@@ -500,186 +509,149 @@ function CartContent() {
           )
         ) : (
           /* ========================================================= */
-          /* TAB 2: KONTEN KERANJANG SEWA ALAT PERTANIAN               */
+          /* TAB 2: KONTEN KERANJANG SEWA ALAT (GAMBAR 5 STYLE)        */
           /* ========================================================= */
           rentalCartItems.length === 0 ? (
-            /* Empty State Sewa Alat */
-            <div className="bg-white border border-[#dce1d6] rounded-2xl p-8 sm:p-14 text-center flex flex-col items-center justify-center max-w-2xl mx-auto my-4">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[#e2f2c8] border border-[#c9e39e] text-[#233414] flex items-center justify-center mb-4">
-                <Tractor className="w-8 h-8 sm:w-10 sm:h-10 stroke-[1.5]" />
+            <div className="bg-white sm:border sm:border-[#dce1d6] rounded-3xl p-8 sm:p-14 text-center flex flex-col items-center justify-center max-w-xl mx-auto my-4">
+              <div className="w-16 h-16 rounded-2xl bg-[#f4f5f1] border border-[#dce1d6] text-[#233414] flex items-center justify-center mb-4">
+                <Tractor className="w-7 h-7 stroke-[1.75]" />
               </div>
-              <h2 className="text-lg sm:text-xl font-bold text-[#1a2610]">
-                Keranjang Sewa Alat Masih Kosong
+              <h2 className="text-base sm:text-lg font-bold text-[#1a2610]">
+                Keranjang Sewa Alat Kosong
               </h2>
-              <p className="text-xs sm:text-sm text-[#526046] max-w-md mt-1 mb-6">
-                Belum ada unit mesin atau alat pertanian yang dipilih. Masukkan traktor, kultivator, pompa, atau mesin panen untuk disewa bersamaan.
+              <p className="text-xs sm:text-sm text-[#526046] max-w-sm mt-1 mb-6 leading-relaxed">
+                Belum ada unit mesin atau alat pertanian yang dipilih untuk disewa.
               </p>
               <Link
                 href="/sewa-alat"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#233414] hover:bg-[#344d15] text-white font-bold text-xs sm:text-sm transition"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#233414] hover:bg-[#344d15] text-white font-bold text-xs sm:text-sm transition"
               >
-                <Tractor className="w-4 h-4 text-[#D4F63D]" />
-                <span>Jelajahi Katalog Sewa Alat</span>
+                <span>Pilih Alat Pertanian</span>
               </Link>
             </div>
           ) : (
-            /* Layout 2 Kolom Sewa Multi-Alat */
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6 lg:gap-8 items-start">
-              {/* Kolom Kiri: Daftar Unit Alat yang Disewa */}
-              <div className="md:col-span-7 lg:col-span-8 space-y-3.5">
+              {/* Left Column: Gambar 5 Style Flat Item List for Rental Equipment */}
+              <div className="md:col-span-7 lg:col-span-8 bg-white sm:rounded-3xl sm:border sm:border-[#dce1d6] sm:p-5 divide-y divide-[#EAEDE7]">
                 {rentalCartItems.map((item) => {
                   const itemTotal = calculateRentalItemTotal(item);
 
                   return (
-                    <div
-                      key={item.id}
-                      className="bg-white border border-[#dce1d6] hover:border-[#344d15] rounded-2xl p-4 sm:p-5 transition space-y-3"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-xl overflow-hidden bg-[#EAEDE7] border border-[#cfd6c9] relative aspect-square">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={
-                                item.imageUrl ||
-                                'https://picsum.photos/seed/sewa-alat-koperasi/300/300'
-                              }
-                              alt={item.nama}
-                              className="w-full h-full object-cover"
-                            />
+                    <div key={item.id} className="py-4 first:pt-1 last:pb-1 space-y-3">
+                      <div className="flex items-stretch gap-3.5 sm:gap-4">
+                        {/* Square Rounded Thumbnail */}
+                        <Link
+                          href={`/sewa-alat/${item.equipmentId}`}
+                          className="w-20 h-20 sm:w-24 sm:h-24 shrink-0 rounded-2xl overflow-hidden bg-[#f4f5f1] border border-[#EAEDE7] relative aspect-square"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={
+                              item.imageUrl ||
+                              'https://picsum.photos/seed/sewa-alat-koperasi/300/300'
+                            }
+                            alt={item.nama}
+                            className="w-full h-full object-cover"
+                          />
+                        </Link>
+
+                        {/* Center Column */}
+                        <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+                          <div>
+                            <Link
+                              href={`/sewa-alat/${item.equipmentId}`}
+                              className="font-bold text-[#1a2610] hover:text-[#344d15] text-sm sm:text-base leading-snug line-clamp-1 transition"
+                            >
+                              {item.nama}
+                            </Link>
+                            <div className="text-xs text-[#5b6950] mt-0.5 truncate tabular-nums">
+                              {item.durasi} {item.satuanSewa} • Rp {item.hargaSewa.toLocaleString('id-ID')}/{item.satuanSewa}
+                            </div>
                           </div>
 
-                          <div className="min-w-0">
-                            <span className="text-[10px] font-bold text-[#D4F63D] bg-[#233414] px-2 py-0.5 rounded-md uppercase">
-                              {item.kategori}
-                            </span>
-                            <h3 className="font-bold text-[#1a2610] text-sm sm:text-base mt-1 truncate">
-                              {item.nama}
-                            </h3>
-                            <div className="text-xs text-[#526046] mt-0.5 tabular-nums">
-                              Tarif: <span className="font-bold text-[#1a2610]">Rp {item.hargaSewa.toLocaleString('id-ID')}</span> / {item.satuanSewa}
-                            </div>
+                          <div className="text-sm sm:text-base font-extrabold text-[#1a2610] tabular-nums">
+                            Rp {itemTotal.toLocaleString('id-ID')}
                           </div>
                         </div>
 
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveRentalItem(item.id, item.nama)}
-                          className="text-[#5b6950] hover:text-[#c4242a] transition p-1.5 cursor-pointer"
-                          title="Hapus alat dari sewa"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
+                        {/* Right Column: Top-Right X & Bottom-Right Unit Pill Stepper */}
+                        <div className="flex flex-col items-end justify-between py-0.5 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveRentalItem(item.id, item.nama)}
+                            className="text-[#5b6950] hover:text-[#1a2610] transition p-1 -mr-1 -mt-1 cursor-pointer"
+                            title="Hapus alat"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
 
-                      {/* Stepper Pengaturan Kuantitas & Durasi */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-[#EAEDE7]">
-                        {/* Stepper Jumlah Unit */}
-                        <div className="flex items-center justify-between sm:justify-start gap-3 bg-[#f4f5f1] p-2.5 rounded-xl border border-[#dce1d6]">
-                          <span className="text-xs font-semibold text-[#526046]">
-                            Jumlah Unit:
-                          </span>
-                          <div className="inline-flex items-center rounded-lg border border-[#cfd6c9] bg-white">
+                          <div className="inline-flex items-center h-8 rounded-full border border-[#dce1d6] bg-white px-1 shadow-2xs">
                             <button
                               type="button"
                               onClick={() => handleUpdateRentalQty(item.id, -1)}
-                              className="w-7 h-7 flex items-center justify-center text-[#526046] hover:text-[#1a2610] hover:bg-[#f4f5f1] rounded-l-lg transition cursor-pointer"
+                              className="w-6 h-6 rounded-full flex items-center justify-center text-[#526046] hover:text-[#1a2610] hover:bg-[#f4f5f1] transition cursor-pointer"
                               title="Kurangi unit"
                             >
                               <Minus className="w-3 h-3" />
                             </button>
-                            <span className="w-8 text-center text-xs font-bold text-[#1a2610] tabular-nums">
+                            <span className="w-6 text-center text-xs font-bold text-[#1a2610] tabular-nums">
                               {item.jumlahUnit}
                             </span>
                             <button
                               type="button"
                               onClick={() => handleUpdateRentalQty(item.id, 1)}
                               disabled={item.jumlahUnit >= (item.stokUnit || 99)}
-                              className="w-7 h-7 flex items-center justify-center text-[#526046] hover:text-[#1a2610] hover:bg-[#f4f5f1] rounded-r-lg transition cursor-pointer disabled:opacity-40"
+                              className="w-6 h-6 rounded-full flex items-center justify-center text-[#526046] hover:text-[#1a2610] hover:bg-[#f4f5f1] transition cursor-pointer disabled:opacity-40"
                               title="Tambah unit"
                             >
                               <Plus className="w-3 h-3" />
                             </button>
                           </div>
                         </div>
-
-                        {/* Stepper Durasi Hari */}
-                        <div className="flex items-center justify-between sm:justify-start gap-3 bg-[#f4f5f1] p-2.5 rounded-xl border border-[#dce1d6]">
-                          <span className="text-xs font-semibold text-[#526046]">
-                            Durasi ({item.satuanSewa}):
-                          </span>
-                          <div className="inline-flex items-center rounded-lg border border-[#cfd6c9] bg-white">
-                            <button
-                              type="button"
-                              onClick={() => handleUpdateRentalDurasi(item.id, -1)}
-                              disabled={item.durasi <= 1}
-                              className="w-7 h-7 flex items-center justify-center text-[#526046] hover:text-[#1a2610] hover:bg-[#f4f5f1] rounded-l-lg transition cursor-pointer disabled:opacity-40"
-                              title="Kurangi durasi"
-                            >
-                              <Minus className="w-3 h-3" />
-                            </button>
-                            <span className="w-8 text-center text-xs font-bold text-[#1a2610] tabular-nums">
-                              {item.durasi}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => handleUpdateRentalDurasi(item.id, 1)}
-                              className="w-7 h-7 flex items-center justify-center text-[#526046] hover:text-[#1a2610] hover:bg-[#f4f5f1] rounded-r-lg transition cursor-pointer"
-                              title="Tambah durasi"
-                            >
-                              <Plus className="w-3 h-3" />
-                            </button>
-                          </div>
-                        </div>
                       </div>
 
-                      {/* Checklist Operator */}
-                      {item.biayaOperator ? (
-                        <div className="p-2.5 bg-[#e2f2c8]/50 border border-[#c9e39e] rounded-xl">
-                          <label className="flex items-start gap-2.5 cursor-pointer">
+                      {/* Compact Duration & Operator Pill Bar */}
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs">
+                        <div className="inline-flex items-center gap-2 bg-[#f4f5f1] px-3 py-1 rounded-full border border-[#EAEDE7]">
+                          <span className="text-[#526046] font-medium">Durasi ({item.satuanSewa}):</span>
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateRentalDurasi(item.id, -1)}
+                            disabled={item.durasi <= 1}
+                            className="text-[#1a2610] font-bold px-1 disabled:opacity-30 cursor-pointer"
+                          >
+                            −
+                          </button>
+                          <span className="font-extrabold text-[#1a2610] tabular-nums">{item.durasi}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateRentalDurasi(item.id, 1)}
+                            className="text-[#1a2610] font-bold px-1 cursor-pointer"
+                          >
+                            +
+                          </button>
+                        </div>
+
+                        {item.biayaOperator ? (
+                          <label className="inline-flex items-center gap-1.5 text-xs text-[#1a2610] font-medium cursor-pointer">
                             <input
                               type="checkbox"
                               checked={item.includeOperator}
-                              onChange={(e) =>
-                                handleToggleRentalOperator(item.id, e.target.checked)
-                              }
-                              className="w-4 h-4 rounded accent-[#233414] border-[#cfd6c9] mt-0.5 cursor-pointer"
+                              onChange={(e) => handleToggleRentalOperator(item.id, e.target.checked)}
+                              className="w-3.5 h-3.5 rounded accent-[#233414] cursor-pointer"
                             />
-                            <div className="text-xs">
-                              <span className="font-bold text-[#1a2610] tabular-nums">
-                                Gunakan Kru Operator Koperasi (+ Rp{' '}
-                                {item.biayaOperator.toLocaleString('id-ID')} / {item.satuanSewa})
-                              </span>
-                              <p className="text-[10px] text-[#526046] mt-0.5">
-                                Operator terlatih siap mengoperasikan unit di lahan Anda.
-                              </p>
-                            </div>
+                            <span>+ Operator (Rp {item.biayaOperator.toLocaleString('id-ID')})</span>
                           </label>
-                        </div>
-                      ) : null}
-
-                      {/* Subtotal Unit Ini */}
-                      <div className="flex justify-between items-center pt-2 border-t border-[#EAEDE7] text-xs">
-                        <span className="text-[#526046] font-medium">Subtotal Estimasi:</span>
-                        <span className="font-extrabold text-sm sm:text-base text-[#233414] tabular-nums">
-                          Rp {itemTotal.toLocaleString('id-ID')}
-                        </span>
+                        ) : null}
                       </div>
                     </div>
                   );
                 })}
               </div>
 
-              {/* Kolom Kanan: Ringkasan Pengajuan Sewa Multi-Alat */}
-              <div className="md:col-span-5 lg:col-span-4 sticky top-20 space-y-4">
-                <div className="bg-white border border-[#dce1d6] rounded-2xl p-5 space-y-4">
-                  <h3 className="font-bold text-[#1a2610] text-sm sm:text-base border-b border-[#EAEDE7] pb-3 flex items-center justify-between gap-2">
-                    <span>Ringkasan Pengajuan Sewa</span>
-                    <span className="text-[10px] font-bold text-[#233414] bg-[#e2f2c8] px-2 py-0.5 rounded-full border border-[#c9e39e]">
-                      Perlu Approval Admin
-                    </span>
-                  </h3>
-
+              {/* Right Column / Bottom Summary Sheet */}
+              <div className="md:col-span-5 lg:col-span-4 md:sticky md:top-20">
+                <div className="bg-white sm:rounded-3xl sm:border sm:border-[#dce1d6] pt-4 sm:p-6 border-t border-[#EAEDE7] sm:border-t-[#dce1d6] space-y-4">
                   <div className="space-y-2 text-xs">
                     <div className="flex justify-between text-[#526046]">
                       <span>Total Unit Mesin</span>
@@ -688,22 +660,14 @@ function CartContent() {
                       </span>
                     </div>
                     <div className="flex justify-between text-[#526046]">
-                      <span>Metode Pembayaran</span>
-                      <span className="font-semibold text-[#344d15]">
-                        Tunai Kasir Koperasi
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-[#526046]">
-                      <span>Lokasi Pengambilan</span>
-                      <span className="font-semibold text-[#1a2610]">
-                        Kantor / Gudang Koperasi
-                      </span>
+                      <span>Status Pengajuan</span>
+                      <span className="font-semibold text-[#344d15]">Verifikasi Admin Koperasi</span>
                     </div>
                   </div>
 
-                  <div className="border-t border-[#EAEDE7] pt-3 flex justify-between items-baseline">
-                    <span className="text-xs font-bold text-[#1a2610]">Total Estimasi Tagihan:</span>
-                    <span className="text-lg font-black text-[#233414] tabular-nums">
+                  <div className="flex justify-between items-baseline pt-2 border-t border-[#EAEDE7]">
+                    <span className="text-sm font-semibold text-[#526046]">Total:</span>
+                    <span className="text-xl sm:text-2xl font-black text-[#1a2610] tabular-nums">
                       Rp {totalRentalAmount.toLocaleString('id-ID')}
                     </span>
                   </div>
@@ -717,10 +681,9 @@ function CartContent() {
                       }
                       router.push('/checkout/sewa-alat');
                     }}
-                    className="w-full py-3 px-4 bg-[#233414] hover:bg-[#344d15] text-white rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition cursor-pointer"
+                    className="w-full h-12 sm:h-13 px-6 bg-[#1a2610] hover:bg-[#233414] text-white rounded-full font-bold text-sm flex items-center justify-center gap-2 transition cursor-pointer shadow-sm"
                   >
-                    <span>Lanjut ke Konfirmasi Pengajuan</span>
-                    <ArrowRight className="w-4 h-4 text-[#D4F63D]" />
+                    <span>Lanjut ke Checkout Sewa</span>
                   </button>
                 </div>
               </div>

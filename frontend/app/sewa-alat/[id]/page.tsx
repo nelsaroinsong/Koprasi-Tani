@@ -307,51 +307,87 @@ export default function EquipmentDetailPage({
       : equipment.stokUnit || 1
   );
 
-  return (
-    <div className="min-h-screen bg-[#f4f5f1] pb-20 lg:pb-16 font-sans selection:bg-[#D4F63D] selection:text-slate-950">
-      <AppHeader activePage="sewa-alat" />
+  const durationPresets = [1, 2, 3, 5, 7];
 
-      <main className="max-w-6xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
-        {/* Top Navigation & Breadcrumb */}
-        <div className="flex items-center justify-between gap-3 mb-4 sm:mb-6">
-          <div className="flex items-center gap-2 text-xs font-semibold text-[#5b6950]">
+  return (
+    <div className="min-h-screen bg-white sm:bg-[#f4f5f1] pb-28 sm:pb-16 font-sans selection:bg-[#D4F63D] selection:text-slate-950">
+      <div className="hidden sm:block">
+        <AppHeader activePage="sewa-alat" />
+      </div>
+
+      {/* Mobile Top Bar (Gambar 5 Left Screen Style: Back Arrow Left, Bag Icon Right) */}
+      <div className="sm:hidden sticky top-0 z-40 bg-white/95 backdrop-blur-md px-4 h-14 flex items-center justify-between border-b border-[#EAEDE7]">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="w-10 h-10 -ml-1 rounded-full flex items-center justify-center text-[#1a2610] hover:bg-[#f4f5f1] transition cursor-pointer"
+          aria-label="Kembali"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+
+        <span className="text-xs font-bold text-[#526046] truncate max-w-[180px]">
+          {equipment.kategori}
+        </span>
+
+        <Link
+          href="/cart?tab=sewa-alat"
+          className="w-10 h-10 -mr-1 rounded-full flex items-center justify-center text-[#1a2610] hover:bg-[#f4f5f1] transition relative"
+          aria-label="Keranjang Sewa"
+        >
+          <ShoppingCart className="w-5 h-5" />
+          {rentalCartCount > 0 && (
+            <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-[#233414] text-[#D4F63D] font-black text-[9px] flex items-center justify-center tabular-nums">
+              {rentalCartCount}
+            </span>
+          )}
+        </Link>
+      </div>
+
+      {/* Desktop Compact Subbar */}
+      <div className="hidden sm:block bg-white border-b border-[#dce1d6]">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex items-center justify-between text-xs text-[#5b6950]">
+          <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap">
             <Link
               href="/sewa-alat"
-              className="inline-flex items-center gap-1.5 h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl border border-[#cfd6c9] bg-white hover:bg-[#EAEDE7] text-[#1a2610] transition-colors"
-              title="Kembali ke Katalog Sewa Alat"
+              className="text-[#1a2610] hover:text-[#344d15] font-semibold flex items-center gap-1.5 transition-colors"
             >
-              <ArrowLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#233414]" />
-              <span className="hidden sm:inline">Kembali ke Katalog</span>
+              <ArrowLeft className="w-4 h-4" />
+              <span>Kembali ke Katalog Sewa</span>
             </Link>
             <span className="text-[#cfd6c9]">/</span>
-            <span className="text-[#526046] hidden sm:inline">Sewa Alat</span>
-            <span className="text-[#cfd6c9] hidden sm:inline">/</span>
-            <span className="text-[#1a2610] font-bold truncate max-w-[180px] sm:max-w-[240px]">
+            <span className="text-[#526046] font-medium">{equipment.kategori}</span>
+            <span className="text-[#cfd6c9]">/</span>
+            <span className="text-[#1a2610] font-bold truncate max-w-xs">
               {equipment.nama}
             </span>
           </div>
 
-          {/* Quick Cart Button */}
           <Link
             href="/cart?tab=sewa-alat"
-            className="inline-flex items-center gap-2 h-8 sm:h-9 px-3 sm:px-3.5 rounded-xl bg-[#233414] hover:bg-[#344d15] text-white text-xs font-semibold transition-colors shrink-0"
+            className="inline-flex items-center gap-2 h-8 px-3 rounded-xl bg-[#233414] hover:bg-[#344d15] text-white text-xs font-semibold transition-colors shrink-0"
           >
-            <ShoppingCart className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#D4F63D]" />
+            <ShoppingCart className="w-3.5 h-3.5 text-[#D4F63D]" />
             <span>Keranjang Sewa</span>
             {rentalCartCount > 0 && (
-              <span className="w-5 h-5 rounded-full bg-[#D4F63D] text-[#1a2610] font-black text-[10px] flex items-center justify-center tabular-nums">
+              <span className="w-4.5 h-4.5 rounded-full bg-[#D4F63D] text-[#1a2610] font-black text-[10px] flex items-center justify-center tabular-nums">
                 {rentalCartCount}
               </span>
             )}
           </Link>
         </div>
+      </div>
 
-        {/* Main Grid: Foto di Kiri, Detail & Form Booking di Kanan */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-7 lg:gap-8 items-start">
-          {/* Kolom Kiri: Galeri Foto Alat */}
-          <div className="lg:col-span-6 space-y-3.5 sm:space-y-4">
-            <div className="bg-white rounded-2xl sm:rounded-3xl p-3 sm:p-4 border border-[#dce1d6]">
-              <div className="relative aspect-square w-full rounded-xl sm:rounded-2xl overflow-hidden bg-[#f4f5f1] border border-[#dce1d6] group">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-2 sm:py-6 lg:py-8">
+        <div className="bg-white sm:rounded-3xl sm:border sm:border-[#dce1d6] sm:p-6 lg:p-8">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-5 sm:gap-8 lg:gap-10 items-start">
+            {/* Left Column: Clean Image Card + Pagination Dots (Gambar 5 Style) */}
+            <div className="md:col-span-5 flex flex-col items-center">
+              <div
+                onClick={() => setIsImageModalOpen(true)}
+                className="relative aspect-square w-full rounded-3xl overflow-hidden bg-[#f4f5f1] border border-[#EAEDE7] group cursor-zoom-in"
+                title="Klik untuk memperbesar foto alat"
+              >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={
@@ -361,394 +397,234 @@ export default function EquipmentDetailPage({
                   alt={equipment.nama}
                   loading="lazy"
                   decoding="async"
-                  className="w-full h-full object-contain p-2 group-hover:scale-[1.03] transition-transform duration-300 cursor-pointer"
-                  onClick={() => setIsImageModalOpen(true)}
+                  className="w-full h-full object-contain p-3 group-hover:scale-[1.03] transition-transform duration-300"
                   onError={(e) => {
                     (e.target as HTMLImageElement).src =
                       'https://picsum.photos/seed/sewa-alat-koperasi/800/800';
                   }}
                 />
 
-                {/* Badge Ketersediaan */}
-                <div
-                  className={`absolute top-2.5 left-2.5 sm:top-3 sm:left-3 text-[11px] sm:text-xs font-semibold px-2.5 py-1 rounded-lg flex items-center gap-1.5 border ${
-                    !equipment.isTersedia || (equipment.stokTersedia !== undefined && equipment.stokTersedia <= 0)
-                      ? 'bg-[#ffedea] text-[#831c1e] border-red-200'
-                      : 'bg-white text-[#1a2610] border-[#dce1d6]'
-                  }`}
-                >
-                  <span
-                    className={`w-2 h-2 rounded-full ${
-                      !equipment.isTersedia || (equipment.stokTersedia !== undefined && equipment.stokTersedia <= 0)
-                        ? 'bg-[#c4242a]'
-                        : 'bg-[#547318]'
-                    }`}
-                  />
-                  <span>
-                    {!equipment.isTersedia || (equipment.stokTersedia !== undefined && equipment.stokTersedia <= 0)
-                      ? 'Sedang Disewa (Stok Kosong)'
-                      : 'Ready Disewakan'}
-                  </span>
-                </div>
-
-                {/* Badge Kategori */}
-                <div className="absolute bottom-2.5 left-2.5 sm:bottom-3 sm:left-3 bg-[#233414] text-[#D4F63D] text-[11px] sm:text-xs font-semibold px-2.5 py-1 rounded-lg">
-                  {equipment.kategori}
-                </div>
-
-                {/* Tombol Maximize */}
                 <button
                   type="button"
-                  onClick={() => setIsImageModalOpen(true)}
-                  className="absolute bottom-2.5 right-2.5 sm:bottom-3 sm:right-3 p-2 rounded-xl bg-white hover:bg-[#EAEDE7] text-[#1a2610] border border-[#cfd6c9] transition-colors cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsImageModalOpen(true);
+                  }}
+                  className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-white/90 backdrop-blur-xs text-[#1a2610] border border-[#dce1d6] flex items-center justify-center shadow-xs hover:bg-white transition cursor-pointer"
                   title="Lihat Foto Ukuran Asli"
                 >
-                  <Maximize2 className="w-4 h-4" />
+                  <Maximize2 className="w-3.5 h-3.5" />
                 </button>
               </div>
-            </div>
 
-            {/* Jaminan Unit Koperasi */}
-            <div className="p-3.5 sm:p-4 bg-[#e2f2c8]/60 border border-[#c9e39e] rounded-2xl space-y-1.5">
-              <div className="flex items-center gap-2 font-bold text-[#1a2610] text-xs sm:text-sm">
-                <ShieldCheck className="w-4 h-4 text-[#233414] shrink-0" />
-                <span>Pemeliharaan Resmi Koperasi Sinar Pagi Sejahtera</span>
+              {/* Minimal Pagination Indicator Dots under Image (Matches Gambar 5) */}
+              <div className="flex items-center justify-center gap-1.5 mt-3">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#cfd6c9]" />
+                <span className="w-5 h-1.5 rounded-full bg-[#233414]" />
+                <span className="w-1.5 h-1.5 rounded-full bg-[#cfd6c9]" />
               </div>
-              <p className="text-[11px] sm:text-xs text-[#344d15] leading-relaxed">
-                Setiap unit alat mesin pertanian dicek oli, bahan bakar, dan fungsi mekanikalnya oleh teknisi koperasi sebelum diserahterimakan kepada anggota.
-              </p>
             </div>
-          </div>
 
-          {/* Kolom Kanan: Rincian Info Alat & Pengajuan Sewa */}
-          <div className="lg:col-span-6 space-y-4 sm:space-y-5">
-            {/* Header Info Alat */}
-            <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-[#dce1d6] space-y-4">
+            {/* Right Column: Clean Equipment Details matching Gambar 5 */}
+            <div className="md:col-span-7 flex flex-col space-y-4">
               <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[#233414] bg-[#e2f2c8] px-2.5 py-0.5 rounded-md border border-[#c9e39e]">
-                  {equipment.kategori}
-                </span>
-                <h1 className="text-xl sm:text-2xl font-extrabold text-[#1a2610] tracking-tight mt-2 leading-snug">
+                <div className="text-xs font-medium text-[#5b6950]">
+                  {equipment.kategori} • Kondisi {equipment.kondisi || 'Sangat Baik'}
+                </div>
+
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-[#1a2610] tracking-tight leading-snug mt-1">
                   {equipment.nama}
                 </h1>
-              </div>
 
-              {/* Harga Sewa */}
-              <div className="p-3.5 sm:p-4 bg-[#f4f5f1] border border-[#dce1d6] rounded-2xl flex items-baseline justify-between gap-3">
-                <div>
-                  <div className="text-[11px] text-[#526046] font-medium">
-                    Tarif Sewa Anggota
-                  </div>
-                  <div className="flex items-baseline gap-1 mt-0.5">
-                    <span className="text-xl sm:text-2xl font-black text-[#233414] tracking-tight tabular-nums">
-                      Rp {Number(equipment.hargaSewa).toLocaleString('id-ID')}
-                    </span>
-                    <span className="text-xs text-[#5b6950] font-medium">
-                      / {equipment.satuanSewa || 'hari'}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="text-right">
-                  <div className="text-[11px] text-[#526046] font-medium">
-                    Kondisi Fisik
-                  </div>
-                  <span className="inline-block mt-0.5 px-2.5 py-1 bg-white border border-[#cfd6c9] text-[#1a2610] text-xs font-bold rounded-lg">
-                    {equipment.kondisi || 'Sangat Baik'}
+                {/* Bold Price */}
+                <div className="mt-3 flex items-baseline gap-1.5">
+                  <span className="text-2xl sm:text-3xl font-black text-[#1a2610] tracking-tight tabular-nums">
+                    Rp {Number(equipment.hargaSewa).toLocaleString('id-ID')}
+                  </span>
+                  <span className="text-xs sm:text-sm text-[#5b6950] font-semibold">
+                    / {equipment.satuanSewa || 'hari'}
                   </span>
                 </div>
               </div>
 
-              {/* Grid Status Cepat */}
-              <div className="grid grid-cols-2 gap-2.5 sm:gap-3 pt-1">
-                <div className="p-3 bg-[#f4f5f1] border border-[#dce1d6] rounded-xl space-y-0.5">
-                  <div className="text-[10px] sm:text-[11px] text-[#5b6950] font-medium">
-                    Stok Tersedia
-                  </div>
-                  <div className={`text-xs font-bold flex items-center gap-1.5 ${
-                    !equipment.isTersedia || (equipment.stokTersedia !== undefined && equipment.stokTersedia <= 0)
-                      ? 'text-[#c4242a]'
-                      : 'text-[#1a2610]'
-                  }`}>
-                    <Package className={`w-3.5 h-3.5 shrink-0 ${
-                      !equipment.isTersedia || (equipment.stokTersedia !== undefined && equipment.stokTersedia <= 0)
-                        ? 'text-[#c4242a]'
-                        : 'text-[#344d15]'
-                    }`} />
-                    <span className="truncate">
-                      {!equipment.isTersedia || (equipment.stokTersedia !== undefined && equipment.stokTersedia <= 0)
-                        ? '0 Unit (Sedang Disewa)'
-                        : `${equipment.stokTersedia ?? equipment.stokUnit ?? 1} Unit Siap Pakai`}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="p-3 bg-[#f4f5f1] border border-[#dce1d6] rounded-xl space-y-0.5">
-                  <div className="text-[10px] sm:text-[11px] text-[#5b6950] font-medium">
-                    Layanan Operator
-                  </div>
-                  <div className="text-xs font-bold text-[#1a2610] flex items-center gap-1.5 truncate">
-                    <UserCheck className="w-3.5 h-3.5 text-[#344d15] shrink-0" />
-                    <span className="truncate tabular-nums">
-                      {equipment.biayaOperator
-                        ? `+Rp ${Number(equipment.biayaOperator).toLocaleString('id-ID')}`
-                        : 'Mandiri / Bebas'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Deskripsi */}
-              {equipment.deskripsi && (
-                <div className="pt-3 border-t border-[#EAEDE7]">
-                  <h3 className="text-xs font-bold text-[#1a2610] mb-1.5 flex items-center gap-1.5">
-                    <FileText className="w-3.5 h-3.5 text-[#526046]" />
-                    <span>Deskripsi Alat</span>
-                  </h3>
-                  <p className="text-xs sm:text-[13px] text-[#526046] leading-relaxed whitespace-pre-line">
-                    {equipment.deskripsi}
-                  </p>
-                </div>
-              )}
-
-              {/* Spesifikasi Teknis */}
-              {equipment.spesifikasi && (
-                <div className="pt-3 border-t border-[#EAEDE7]">
-                  <h3 className="text-xs font-bold text-[#1a2610] mb-1.5 flex items-center gap-1.5">
-                    <Wrench className="w-3.5 h-3.5 text-[#526046]" />
-                    <span>Spesifikasi Teknis</span>
-                  </h3>
-                  <div className="p-3 bg-[#f4f5f1] border border-[#dce1d6] rounded-xl text-xs font-mono text-[#1a2610] whitespace-pre-line leading-relaxed">
-                    {equipment.spesifikasi}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Card Opsi Sewa & Tombol Aksi */}
-            <div className={`rounded-2xl sm:rounded-3xl p-4 sm:p-6 border space-y-4 transition-colors ${
-              isOutOfStock
-                ? 'bg-[#f4f5f1] border-[#cfd6c9]'
-                : 'bg-white border-[#dce1d6]'
-            }`}>
-              <div className="flex items-center justify-between">
-                <h2 className="text-sm font-bold text-[#1a2610] flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-[#233414]" />
-                  <span>Rencana Penggunaan Sewa</span>
-                </h2>
-                {isOutOfStock && (
-                  <span className="px-2.5 py-1 rounded-lg bg-[#ffedea] text-[#831c1e] text-[11px] font-bold border border-red-200">
-                    Sedang Disewa
+              {/* Duration Pill Selector + Unit Stepper (Gambar 5 Pill Selector Style) */}
+              <div className="space-y-2.5 pt-1">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-semibold text-[#526046]">
+                    Pilih Durasi Sewa ({equipment.satuanSewa || 'hari'})
                   </span>
-                )}
-              </div>
-
-              {isOutOfStock && (
-                <div className="p-3.5 bg-[#ffedea]/70 border border-red-200 rounded-2xl flex items-start gap-2.5 text-xs text-[#831c1e]">
-                  <AlertCircle className="w-4 h-4 text-[#c4242a] shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-bold">Unit Sedang Disewa Koperasi</p>
-                    <p className="text-[11px] mt-0.5 leading-relaxed">
-                      Seluruh unit alat ini saat ini sedang disewa anggota lain. Anda dapat menanyakan jadwal sewa berikutnya ke pengurus koperasi via WhatsApp di bawah.
-                    </p>
-                  </div>
+                  <span className="text-[#5b6950] tabular-nums">
+                    Estimasi: <strong className="text-[#233414]">Rp {calculatedTotal.toLocaleString('id-ID')}</strong>
+                  </span>
                 </div>
-              )}
 
-              {/* Atur Jumlah Unit & Durasi */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                {/* Stepper Jumlah Unit */}
-                <div>
-                  <label className="block font-bold text-[#1a2610] mb-1">
-                    Jumlah Unit
-                  </label>
-                  <div className="flex items-center border border-[#cfd6c9] rounded-xl bg-white overflow-hidden">
+                <div className="flex flex-wrap items-center gap-2">
+                  {durationPresets.map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setDurasi(preset)}
+                      disabled={isOutOfStock}
+                      className={`h-9 px-3.5 rounded-xl text-xs transition-all cursor-pointer tabular-nums ${
+                        durasi === preset
+                          ? 'bg-white text-[#1a2610] border-2 border-[#1a2610] font-extrabold shadow-2xs'
+                          : 'bg-white text-[#526046] border border-[#dce1d6] hover:border-[#344d15] font-semibold'
+                      }`}
+                    >
+                      {preset} {equipment.satuanSewa || 'hari'}
+                    </button>
+                  ))}
+
+                  {/* Unit Count Stepper */}
+                  <div className="inline-flex items-center h-9 rounded-xl border border-[#dce1d6] bg-[#f4f5f1] px-1 ml-auto sm:ml-0">
                     <button
                       type="button"
                       onClick={() => setJumlahUnit((prev) => Math.max(1, prev - 1))}
                       disabled={isOutOfStock || jumlahUnit <= 1}
-                      className="p-2.5 hover:bg-[#EAEDE7] text-[#1a2610] transition-colors disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
+                      className="w-7 h-7 rounded-lg flex items-center justify-center text-[#1a2610] hover:bg-white disabled:opacity-30 cursor-pointer transition"
+                      title="Kurangi Unit"
                     >
                       <Minus className="w-3.5 h-3.5" />
                     </button>
-                    <input
-                      type="number"
-                      min={1}
-                      max={maxUnits || 1}
-                      disabled={isOutOfStock}
-                      value={jumlahUnit}
-                      onChange={(e) =>
-                        setJumlahUnit(
-                          Math.max(
-                            1,
-                            Math.min(
-                              maxUnits || 1,
-                              Number(e.target.value) || 1
-                            )
-                          )
-                        )
-                      }
-                      className="w-full text-center font-bold text-[#1a2610] bg-transparent focus:outline-none disabled:text-[#68785b] tabular-nums"
-                    />
+                    <span className="px-2 text-xs font-extrabold text-[#1a2610] tabular-nums">
+                      {jumlahUnit} unit
+                    </span>
                     <button
                       type="button"
-                      onClick={() =>
-                        setJumlahUnit((prev) =>
-                          Math.min(maxUnits || 1, prev + 1)
-                        )
-                      }
+                      onClick={() => setJumlahUnit((prev) => Math.min(maxUnits || 1, prev + 1))}
                       disabled={isOutOfStock || jumlahUnit >= maxUnits}
-                      className="p-2.5 hover:bg-[#EAEDE7] text-[#1a2610] transition-colors disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
+                      className="w-7 h-7 rounded-lg flex items-center justify-center text-[#1a2610] hover:bg-white disabled:opacity-30 cursor-pointer transition"
+                      title="Tambah Unit"
                     >
                       <Plus className="w-3.5 h-3.5" />
                     </button>
                   </div>
-                  <span className={`text-[10px] mt-1 block font-medium ${isOutOfStock ? 'text-[#c4242a] font-bold' : 'text-[#5b6950]'}`}>
-                    {isOutOfStock
-                      ? 'Stok kosong di koperasi'
-                      : `Maksimal ${maxUnits} unit tersedia`}
-                  </span>
-                </div>
-
-                {/* Stepper Durasi Pemakaian */}
-                <div>
-                  <label className="block font-bold text-[#1a2610] mb-1">
-                    Durasi ({equipment.satuanSewa || 'hari'})
-                  </label>
-                  <div className="flex items-center border border-[#cfd6c9] rounded-xl bg-white overflow-hidden">
-                    <button
-                      type="button"
-                      onClick={() => setDurasi((prev) => Math.max(1, prev - 1))}
-                      disabled={isOutOfStock || durasi <= 1}
-                      className="p-2.5 hover:bg-[#EAEDE7] text-[#1a2610] transition-colors disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
-                    >
-                      <Minus className="w-3.5 h-3.5" />
-                    </button>
-                    <input
-                      type="number"
-                      min={1}
-                      disabled={isOutOfStock}
-                      value={durasi}
-                      onChange={(e) =>
-                        setDurasi(Math.max(1, Number(e.target.value) || 1))
-                      }
-                      className="w-full text-center font-bold text-[#1a2610] bg-transparent focus:outline-none disabled:text-[#68785b] tabular-nums"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setDurasi((prev) => prev + 1)}
-                      disabled={isOutOfStock}
-                      className="p-2.5 hover:bg-[#EAEDE7] text-[#1a2610] transition-colors disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                  <span className="text-[10px] text-[#5b6950] mt-1 block">
-                    Hitungan per {equipment.satuanSewa || 'hari'}
-                  </span>
                 </div>
               </div>
 
-              {/* Opsi Layanan Operator */}
+              {/* Optional Operator Toggle */}
               {equipment.biayaOperator ? (
-                <div className="p-3 bg-[#f4f5f1] border border-[#dce1d6] rounded-xl">
-                  <label className="flex items-start gap-2.5 cursor-pointer">
+                <label className="flex items-center justify-between gap-3 p-3 rounded-2xl border border-[#dce1d6] bg-[#f4f5f1]/70 cursor-pointer">
+                  <div className="flex items-center gap-2.5 min-w-0">
                     <input
                       type="checkbox"
                       checked={includeOperator}
                       disabled={isOutOfStock}
                       onChange={(e) => setIncludeOperator(e.target.checked)}
-                      className="w-4 h-4 rounded accent-[#233414] text-[#233414] focus:ring-[#233414] border-[#cfd6c9] mt-0.5 cursor-pointer disabled:cursor-not-allowed"
+                      className="w-4 h-4 rounded accent-[#233414] border-[#cfd6c9] cursor-pointer"
                     />
-                    <div className="text-xs">
-                      <div className="font-bold text-[#1a2610]">
-                        Gunakan Tenaga Operator Koperasi (+ Rp{' '}
-                        {Number(equipment.biayaOperator).toLocaleString('id-ID')} /{' '}
-                        {equipment.satuanSewa})
+                    <div className="min-w-0">
+                      <div className="text-xs font-bold text-[#1a2610]">
+                        Gunakan Kru Operator Koperasi
                       </div>
-                      <div className="text-[10px] text-[#526046] mt-0.5">
-                        Disediakan kru terlatih koperasi untuk mengoperasikan unit di lahan Anda.
+                      <div className="text-[11px] text-[#526046] tabular-nums">
+                        + Rp {Number(equipment.biayaOperator).toLocaleString('id-ID')} / {equipment.satuanSewa || 'hari'}
                       </div>
                     </div>
-                  </label>
-                </div>
+                  </div>
+                  <UserCheck className="w-4 h-4 text-[#344d15] shrink-0" />
+                </label>
               ) : null}
 
-              {/* Rincian Estimasi Biaya */}
-              <div className="p-3.5 bg-[#f4f5f1] border border-[#dce1d6] rounded-xl space-y-1.5 text-xs">
-                <div className="flex justify-between text-[#526046] text-[11px]">
-                  <span>
-                    Tarif Pokok ({jumlahUnit} unit × {durasi} {equipment.satuanSewa}):
+              {/* Compact Status Checklist (Gambar 5 "In stock" & "Free delivery" style) */}
+              <div className="space-y-2 pt-1">
+                <div className="flex items-center gap-2.5 text-xs text-[#1a2610]">
+                  <span
+                    className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${
+                      isOutOfStock ? 'bg-red-100 text-red-600' : 'bg-[#e2f2c8] text-[#344d15]'
+                    }`}
+                  >
+                    <span
+                      className={`w-2 h-2 rounded-full ${
+                        isOutOfStock ? 'bg-red-600' : 'bg-[#547318]'
+                      }`}
+                    />
                   </span>
-                  <span className="font-bold text-[#1a2610] tabular-nums">
-                    Rp{' '}
-                    {(
-                      equipment.hargaSewa *
-                      durasi *
-                      jumlahUnit
-                    ).toLocaleString('id-ID')}
+                  <span className="font-medium">
+                    {isOutOfStock
+                      ? 'Sedang disewa anggota lain (0 unit tersedia)'
+                      : `Siap disewakan (${maxUnits} unit tersedia di gudang koperasi)`}
                   </span>
                 </div>
-                {includeOperator && equipment.biayaOperator ? (
-                  <div className="flex justify-between text-[#526046] text-[11px]">
-                    <span>
-                      Jasa Operator ({jumlahUnit} unit × {durasi} {equipment.satuanSewa}):
-                    </span>
-                    <span className="font-bold text-[#1a2610] tabular-nums">
-                      Rp{' '}
-                      {(
-                        equipment.biayaOperator *
-                        durasi *
-                        jumlahUnit
-                      ).toLocaleString('id-ID')}
-                    </span>
-                  </div>
-                ) : null}
-                <div className="pt-2 border-t border-[#cfd6c9] flex justify-between items-center font-black">
-                  <span className="text-[#1a2610]">Estimasi Biaya Alat Ini:</span>
-                  <span className="text-base text-[#233414] tabular-nums">
-                    Rp {calculatedTotal.toLocaleString('id-ID')}
-                  </span>
+
+                <div className="flex items-center gap-2.5 text-xs text-[#526046]">
+                  <ShieldCheck className="w-4 h-4 text-[#5b6950] shrink-0" />
+                  <span>Pemeliharaan rutin & dicek mekanik koperasi sebelum serah terima</span>
                 </div>
               </div>
 
-              {/* Dua Tombol Aksi Utama: Tambah ke Keranjang Sewa & Sewa Sekarang */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-                <button
-                  type="button"
-                  onClick={handleAddToCart}
-                  disabled={isOutOfStock}
-                  className="w-full h-10 sm:h-11 px-3 rounded-xl border border-[#c9e39e] bg-[#e2f2c8] hover:bg-[#d5ebae] text-[#233414] font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-[#EAEDE7] disabled:border-[#cfd6c9] disabled:text-[#68785b]"
-                >
-                  <ShoppingCart className="w-4 h-4 shrink-0" />
-                  <span className="truncate">{isOutOfStock ? 'Stok Sewa Kosong' : '+ Keranjang Sewa (Banyak)'}</span>
-                </button>
+              {/* Description & Technical Specs */}
+              <div className="pt-2 border-t border-[#EAEDE7] space-y-3">
+                {equipment.deskripsi && (
+                  <p className="text-xs sm:text-[13px] text-[#526046] leading-relaxed whitespace-pre-line">
+                    {equipment.deskripsi}
+                  </p>
+                )}
 
+                {equipment.spesifikasi && (
+                  <div className="p-3 bg-[#f4f5f1] border border-[#dce1d6] rounded-2xl text-xs text-[#1a2610] whitespace-pre-line leading-relaxed">
+                    <span className="font-bold block text-[11px] uppercase tracking-wider text-[#526046] mb-1">
+                      Spesifikasi Teknis
+                    </span>
+                    {equipment.spesifikasi}
+                  </div>
+                )}
+              </div>
+
+              {/* Desktop Action Bar (Matching Gambar 5 Bottom Bar) */}
+              <div className="hidden sm:flex items-center gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setIsDirectCheckoutOpen(true)}
                   disabled={isOutOfStock}
-                  className="w-full h-10 sm:h-11 px-3 rounded-xl bg-[#233414] hover:bg-[#344d15] text-white font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-[#EAEDE7] disabled:text-[#68785b]"
+                  className="h-12 px-5 rounded-2xl bg-[#EAEDE7] hover:bg-[#dce1d6] text-[#1a2610] font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition cursor-pointer disabled:opacity-50"
                 >
-                  <Calendar className="w-4 h-4 text-[#D4F63D] shrink-0" />
-                  <span className="truncate">{isOutOfStock ? 'Sedang Disewa (Habis)' : 'Sewa Alat Ini Sekarang'}</span>
+                  <Calendar className="w-4 h-4 text-[#233414]" />
+                  <span>Sewa Langsung</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleAddToCart}
+                  disabled={isOutOfStock}
+                  className="flex-1 h-12 px-6 rounded-2xl bg-[#344d15] hover:bg-[#233414] text-white font-bold text-sm flex items-center justify-center gap-2 transition cursor-pointer shadow-sm disabled:opacity-50"
+                >
+                  <ShoppingCart className="w-4 h-4 text-[#D4F63D]" />
+                  <span>
+                    {isOutOfStock
+                      ? 'Stok Kosong'
+                      : `+ Keranjang Sewa • Rp ${calculatedTotal.toLocaleString('id-ID')}`}
+                  </span>
                 </button>
               </div>
-
-              {/* Link WhatsApp Pengurus */}
-              <a
-                href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(
-                  `Halo Pengurus Koperasi Sinar Pagi Sejahtera, saya tertarik menyewa alat "${equipment.nama}". Mohon info jadwal ketersediaannya.`
-                )}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full h-10 px-3 rounded-xl border border-[#cfd6c9] bg-white hover:bg-[#EAEDE7] text-[#1a2610] font-semibold text-xs flex items-center justify-center gap-2 transition-colors"
-              >
-                <MessageCircle className="w-4 h-4 text-[#344d15]" />
-                <span>Tanya Pengurus via WhatsApp</span>
-              </a>
             </div>
           </div>
+        </div>
+
+        {/* Sticky Bottom Action Bar on Mobile (Gambar 5 Left Screen Bottom Bar) */}
+        <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#EAEDE7] px-4 py-3 flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setIsDirectCheckoutOpen(true)}
+            disabled={isOutOfStock}
+            className="w-12 h-12 rounded-2xl bg-[#f4f5f1] hover:bg-[#EAEDE7] border border-[#dce1d6] text-[#1a2610] flex items-center justify-center shrink-0 transition cursor-pointer disabled:opacity-40"
+            title="Ajukan Sewa Langsung"
+          >
+            <Calendar className="w-5 h-5 text-[#233414]" />
+          </button>
+
+          <button
+            type="button"
+            onClick={handleAddToCart}
+            disabled={isOutOfStock}
+            className="flex-1 h-12 rounded-2xl bg-[#344d15] hover:bg-[#233414] text-white font-bold text-sm flex items-center justify-center gap-2 transition cursor-pointer shadow-sm disabled:opacity-40"
+          >
+            <span>
+              {isOutOfStock
+                ? 'Sedang Disewa'
+                : `+ Keranjang Sewa • Rp ${calculatedTotal.toLocaleString('id-ID')}`}
+            </span>
+          </button>
         </div>
       </main>
 
