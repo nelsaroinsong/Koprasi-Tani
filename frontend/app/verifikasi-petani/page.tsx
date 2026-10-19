@@ -1,29 +1,30 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import {
   Clock,
   CheckCircle2,
-  Sprout,
   ShieldCheck,
   RefreshCw,
   LogOut,
-  Phone,
-  MapPin,
-  Mail,
-  User,
   MessageCircle,
+  ArrowLeft,
+  ArrowRight,
+  Loader2,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export default function VerifikasiPetaniPage() {
   const { data: session, status, update: updateSession } = useSession();
   const router = useRouter();
+  const hasInitializedRef = useRef(false);
   const [adminPhone, setAdminPhone] = useState<string | null>(null);
   const [isChecking, setIsChecking] = useState(false);
   const [isEnteringToko, setIsEnteringToko] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [lastCheckedMessage, setLastCheckedMessage] = useState<string | null>(null);
   const [profileData, setProfileData] = useState<{
     name: string;
     email: string;
@@ -36,10 +37,14 @@ export default function VerifikasiPetaniPage() {
   } | null>(null);
 
   // Fetch status profil terbaru dari database
-  const checkStatus = async () => {
+  const checkStatus = async (isManualCheck = false) => {
     try {
       setIsChecking(true);
-      const res = await fetch('/api/user/profile');
+      if (isManualCheck) {
+        setLastCheckedMessage(null);
+      }
+
+      const res = await fetch('/api/user/profile', { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         setProfileData(data.user);
@@ -47,15 +52,11 @@ export default function VerifikasiPetaniPage() {
           setAdminPhone(data.adminContact.phone);
         }
 
-        // Sinkronisasi status profil terbaru ke local storage dan session
+        // Sinkronisasi status profil terbaru ke local storage
         try {
           localStorage.setItem('koperasi_auth_user', JSON.stringify(data.user));
           window.dispatchEvent(new CustomEvent('user-updated'));
         } catch {}
-
-        if (updateSession) {
-          await updateSession({ user: data.user });
-        }
 
         // Jika belum onboarding, harus lengkapi identitas dulu
         if (!data.user.isOnboarded) {
@@ -72,33 +73,68 @@ export default function VerifikasiPetaniPage() {
           window.location.replace('/toko');
           return;
         }
-        // Jika petani sudah di-ACC oleh admin, langsung masuk ke portal toko/sewa alat
+        // Jika petani sudah di-ACC oleh admin, update session lalu langsung masuk ke portal toko/sewa alat
         if (data.user.role === 'PETANI' && data.user.isVerified) {
+          if (updateSession) {
+            try {
+              await updateSession({ user: data.user });
+            } catch {}
+          }
           window.location.replace('/toko');
           return;
         }
+
+        if (isManualCheck) {
+          const now = new Date().toLocaleTimeString('id-ID', {
+            hour: '2-digit',
+            minute: '2-digit',
+          });
+          setLastCheckedMessage(
+            `Status diperbarui pukul ${now} — permohonan masih dalam peninjauan pengurus.`
+          );
+        }
       }
     } catch (err) {
-      console.error('Error saat memeriksa status verifikasi:', err);
+      console.warn('Error saat memeriksa status verifikasi:', err);
     } finally {
       setIsChecking(false);
+    }
+  };
+
+  // Keluar dari akun / kembali ke halaman login untuk ganti akun
+  const handleLogoutOrSwitchAccount = async () => {
+    try {
+      setIsLoggingOut(true);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('koperasi_user');
+        localStorage.removeItem('koperasi_auth_user');
+        localStorage.removeItem('koperasi_token');
+        localStorage.removeItem('koperasi_last_active');
+      }
+      await signOut({ redirect: false });
+      window.location.replace('/login');
+    } catch {
+      window.location.replace('/login');
     }
   };
 
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.replace('/login');
-    } else if (status === 'authenticated') {
-      checkStatus();
+    } else if (status === 'authenticated' && !hasInitializedRef.current) {
+      hasInitializedRef.current = true;
+      checkStatus(false);
     }
-  }, [status]);
+  }, [status, router]);
 
-  if (status === 'loading' || !profileData) {
+  if (!profileData) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-2.5">
-          <div className="w-7 h-7 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
-          <span className="text-[11px] text-slate-500 font-medium">Memeriksa status akun...</span>
+      <div className="min-h-screen bg-[#f4f5f1] flex items-center justify-center font-sans">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-7 h-7 border-2 border-[#233414] border-t-transparent rounded-full animate-spin" />
+          <span className="text-[13px] text-[#344d15] font-medium">
+            Memeriksa status verifikasi...
+          </span>
         </div>
       </div>
     );
@@ -121,29 +157,32 @@ export default function VerifikasiPetaniPage() {
     };
 
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center px-3 sm:px-4 py-6 sm:py-10">
-        <div className="max-w-sm w-full bg-white border border-emerald-200 rounded-2xl p-5 sm:p-6 shadow-xs text-center">
-          <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-3 border border-emerald-100">
-            <CheckCircle2 className="w-6 h-6" />
+      <div className="min-h-screen bg-[#f4f5f1] flex flex-col justify-center items-center px-4 py-10 sm:py-12 font-sans selection:bg-[#D4F63D] selection:text-slate-950">
+        <div className="max-w-[440px] w-full bg-white border border-[#dce1d6] rounded-[32px] p-7 sm:p-9 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-[#233414] border border-[#344d15] flex items-center justify-center mx-auto mb-6">
+            <CheckCircle2 className="w-7 h-7 text-[#D4F63D]" />
           </div>
-          <h1 className="text-base sm:text-lg font-bold text-slate-900 mb-1">
+          <h1 className="text-2xl sm:text-[26px] font-bold text-[#1a2610] tracking-tight leading-tight">
             Akun Petani Terverifikasi!
           </h1>
-          <p className="text-[11px] text-slate-600 mb-4 leading-relaxed">
+          <p className="text-[13px] sm:text-sm text-[#526046] mt-2 mb-7 leading-relaxed">
             Selamat, permohonan kemitraan Petani Anda telah resmi disetujui oleh pengurus Koperasi Sinar Pagi Sejahtera.
           </p>
           <button
             onClick={handleMasukToko}
             disabled={isEnteringToko}
-            className="w-full py-2 px-3.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[11px] sm:text-xs transition cursor-pointer shadow-2xs flex items-center justify-center gap-2 disabled:opacity-75"
+            className="w-full h-11 sm:h-12 px-4 rounded-xl bg-[#233414] hover:bg-[#344d15] text-white font-semibold text-[13px] sm:text-sm transition-colors cursor-pointer flex items-center justify-center gap-2 disabled:opacity-70 group"
           >
             {isEnteringToko ? (
               <>
-                <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin text-[#D4F63D]" />
                 <span>Membuka Toko...</span>
               </>
             ) : (
-              <span>Masuk ke Toko & Layanan Petani</span>
+              <>
+                <span>Masuk ke Toko & Layanan Petani</span>
+                <ArrowRight className="w-4 h-4 transition-transform duration-150 group-hover:translate-x-0.5" />
+              </>
             )}
           </button>
         </div>
@@ -152,142 +191,174 @@ export default function VerifikasiPetaniPage() {
   }
 
   const userInitial = (profileData.name || 'P').charAt(0).toUpperCase();
+  const rawPhone = adminPhone || '081944078924';
+  const cleanPhone = rawPhone.replace(/\D/g, '').replace(/^0/, '62');
+  const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
+    `Halo Pengurus Koperasi Sinar Pagi Sejahtera, saya ${profileData.name} (${profileData.email}) ingin mengonfirmasi status verifikasi pendaftaran akun Mitra Petani saya.`
+  )}`;
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center px-3 sm:px-4 py-4 sm:py-8">
-      <div className="max-w-md w-full bg-white border border-slate-200/90 rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-xs">
-        {/* Brand Header Compact */}
-        <div className="flex items-center justify-between pb-3 sm:pb-3.5 border-b border-slate-100 mb-3 sm:mb-4">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-emerald-700 flex items-center justify-center text-white shadow-2xs shrink-0">
-              <Sprout className="w-4 h-4 text-emerald-200" />
-            </div>
-            <div>
-              <h2 className="text-xs sm:text-sm font-bold text-slate-900 leading-tight">
-                Koperasi Sinar Pagi Sejahtera
-              </h2>
-              <p className="text-[10px] text-slate-500">Minahasa Utara • Kemitraan Petani</p>
-            </div>
-          </div>
+    <div className="min-h-screen bg-[#f4f5f1] flex flex-col justify-center items-center px-4 py-10 sm:py-12 font-sans selection:bg-[#D4F63D] selection:text-slate-950">
+      <div className="max-w-[440px] w-full">
+        {/* Top Navigation: Kembali ke Login / Ganti Akun */}
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={handleLogoutOrSwitchAccount}
+            disabled={isLoggingOut}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#344d15] hover:text-[#233414] px-3 py-1.5 rounded-full bg-[#EAEDE7] hover:bg-[#dfe4da] border border-[#d5dccf] transition-colors cursor-pointer disabled:opacity-60"
+          >
+            {isLoggingOut ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <ArrowLeft className="w-3.5 h-3.5" />
+            )}
+            <span>{isLoggingOut ? 'Mengalihkan...' : 'Kembali ke Login / Ganti Akun'}</span>
+          </button>
 
-          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-[10px] font-bold shrink-0">
-            <Clock className="w-3 h-3 text-amber-600 animate-pulse" />
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#fffbeb] border border-[#fde68a] text-[#92400e] text-xs font-semibold">
+            <Clock className="w-3.5 h-3.5 text-amber-700" />
             <span>Tahap Verifikasi</span>
-          </div>
+          </span>
         </div>
 
-        {/* Main Status Banner Compact */}
-        <div className="p-3 sm:p-3.5 rounded-xl sm:rounded-2xl bg-amber-50/70 border border-amber-200/80 mb-3 sm:mb-4">
-          <div className="flex items-start gap-2.5">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center shrink-0 mt-0.5">
-              <ShieldCheck className="w-4 h-4" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h1 className="text-xs sm:text-sm font-bold text-slate-900 leading-snug">
-                Akun Petani Anda Masih Dalam Tahap Verifikasi
-              </h1>
-              <p className="text-[10px] sm:text-[11px] text-slate-600 mt-0.5 leading-relaxed">
-                Pendaftaran kemitraan Petani Anda telah diterima dan saat ini sedang dalam peninjauan resmi oleh Pengurus Koperasi Sinar Pagi Sejahtera Minahasa Utara.
-              </p>
-              <div className="mt-1 text-[10px] text-amber-800 font-medium">
-                ⏱️ Proses verifikasi biasanya memerlukan waktu 1–2 hari kerja.
+        {/* Main Card matching /login & /onboarding */}
+        <div className="w-full bg-white border border-[#dce1d6] rounded-[32px] p-6 sm:p-9">
+          {/* Top Centered Logo Badge matching /login & /onboarding */}
+          <div className="w-14 h-14 rounded-2xl bg-[#233414] border border-[#344d15] flex items-center justify-center mx-auto mb-6">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/landing/koperasi-logo-lime.png"
+              alt="Logo Koperasi Sinar Pagi Sejahtera"
+              className="w-7 h-7 object-contain"
+            />
+          </div>
+
+          {/* Headline & Subtitle */}
+          <div className="text-center mb-6">
+            <h1 className="text-2xl sm:text-[26px] font-bold text-[#1a2610] tracking-tight leading-tight">
+              Verifikasi Mitra Petani
+            </h1>
+            <p className="text-[13px] sm:text-sm text-[#526046] mt-2 font-normal">
+              Koperasi Sinar Pagi Sejahtera ·{' '}
+              <span className="font-semibold text-[#233414]">Minahasa Utara</span>
+            </p>
+          </div>
+
+          {/* Status Banner */}
+          <div className="p-4 rounded-2xl bg-[#fffbeb] border border-[#fde68a] mb-5">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-xl bg-[#fef3c7] border border-[#fde68a] text-[#92400e] flex items-center justify-center shrink-0 mt-0.5">
+                <ShieldCheck className="w-4 h-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-[13px] sm:text-sm font-bold text-[#78350f] leading-snug">
+                  Menunggu Persetujuan Pengurus
+                </h2>
+                <p className="text-[13px] text-[#92400e] mt-1 leading-relaxed">
+                  Pendaftaran kemitraan Petani Anda telah diterima dan sedang ditinjau oleh pengurus koperasi.
+                </p>
+                <div className="mt-2.5 pt-2.5 border-t border-[#fde68a]/80 flex items-center gap-1.5 text-xs text-[#92400e] font-semibold">
+                  <Clock className="w-3.5 h-3.5 shrink-0" />
+                  <span>Estimasi verifikasi 1–2 hari kerja</span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Identitas Terdaftar Compact */}
-        <div className="space-y-1.5 mb-3 sm:mb-4">
-          <h3 className="text-[10px] sm:text-[11px] font-bold text-slate-800 uppercase tracking-wider px-0.5">
-            Rincian Data Pendaftaran Anda
-          </h3>
+          {/* Rincian Data Pendaftaran Ledger matching Step 4 Onboarding */}
+          <div className="mb-5">
+            <div className="text-xs font-bold text-[#344d15] uppercase tracking-wider mb-2 px-0.5">
+              Rincian Data Pendaftaran
+            </div>
 
-          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1.5 text-[10px] sm:text-[11px]">
-            <div className="flex items-center justify-between pb-1.5 border-b border-slate-200/70">
-              <span className="text-slate-500 font-medium flex items-center gap-1.5">
-                <User className="w-3 h-3 text-slate-400 shrink-0" />
-                Nama Petani:
-              </span>
-              <div className="flex items-center gap-1.5">
-                <Avatar className="w-5 h-5 border border-slate-200">
-                  {profileData.avatarUrl && (
-                    <AvatarImage src={profileData.avatarUrl} alt={profileData.name} />
-                  )}
-                  <AvatarFallback className="bg-emerald-100 text-emerald-800 text-[9px] font-bold">
-                    {userInitial}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="font-bold text-slate-900 truncate max-w-[150px]">{profileData.name}</span>
+            <div className="px-4 bg-[#f4f5f1] rounded-2xl border border-[#dce1d6] divide-y divide-[#dce1d6] text-[13px]">
+              <div className="py-3 flex items-center justify-between gap-4">
+                <span className="text-[#526046] shrink-0">Nama Petani</span>
+                <div className="flex items-center gap-2 min-w-0">
+                  <Avatar className="w-5 h-5 border border-[#cfd6c9] shrink-0">
+                    {profileData.avatarUrl ? (
+                      <AvatarImage src={profileData.avatarUrl} alt={profileData.name} />
+                    ) : null}
+                    <AvatarFallback className="bg-[#233414] text-[#D4F63D] text-[10px] font-bold">
+                      {userInitial}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="font-semibold text-[#1a2610] truncate">
+                    {profileData.name}
+                  </span>
+                </div>
+              </div>
+
+              <div className="py-3 flex items-center justify-between gap-4">
+                <span className="text-[#526046] shrink-0">Email Akun</span>
+                <span className="font-medium text-[#233414] truncate">
+                  {profileData.email}
+                </span>
+              </div>
+
+              <div className="py-3 flex items-center justify-between gap-4">
+                <span className="text-[#526046] shrink-0">Nomor WhatsApp</span>
+                <span className="font-semibold text-[#1a2610] tabular-nums">
+                  {profileData.phone || '—'}
+                </span>
+              </div>
+
+              <div className="py-3 flex items-start justify-between gap-4">
+                <span className="text-[#526046] shrink-0">Alamat Domisili</span>
+                <span className="font-medium text-[#233414] text-right max-w-[220px] line-clamp-2">
+                  {profileData.address || '—'}
+                </span>
               </div>
             </div>
-
-            <div className="flex items-center justify-between pb-1.5 border-b border-slate-200/70">
-              <span className="text-slate-500 font-medium flex items-center gap-1.5">
-                <Mail className="w-3 h-3 text-slate-400 shrink-0" />
-                Email Akun:
-              </span>
-              <span className="font-medium text-slate-800 truncate max-w-[170px]">{profileData.email}</span>
-            </div>
-
-            <div className="flex items-center justify-between pb-1.5 border-b border-slate-200/70">
-              <span className="text-slate-500 font-medium flex items-center gap-1.5">
-                <Phone className="w-3 h-3 text-slate-400 shrink-0" />
-                Nomor WhatsApp:
-              </span>
-              <span className="font-semibold text-slate-800">{profileData.phone || '-'}</span>
-            </div>
-
-            <div className="flex items-start justify-between pt-0.5">
-              <span className="text-slate-500 font-medium flex items-center gap-1.5 shrink-0">
-                <MapPin className="w-3 h-3 text-slate-400 shrink-0 mt-0.5" />
-                Alamat Domisili:
-              </span>
-              <span className="font-medium text-slate-800 truncate max-w-[170px] text-right">
-                {profileData.address || '-'}
-              </span>
-            </div>
           </div>
-        </div>
 
-        {/* Action Buttons Compact */}
-        <div className="space-y-1.5 sm:space-y-2">
-          <button
-            onClick={checkStatus}
-            disabled={isChecking}
-            className="w-full py-2 px-3 rounded-lg sm:rounded-xl bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white font-bold text-[11px] sm:text-xs flex items-center justify-center gap-1.5 shadow-2xs transition cursor-pointer disabled:opacity-60"
-          >
-            <RefreshCw className={`w-3 h-3 ${isChecking ? 'animate-spin' : ''}`} />
-            <span>{isChecking ? 'Memeriksa...' : 'Periksa Status Verifikasi Sekarang'}</span>
-          </button>
+          {/* Feedback saat tombol Periksa Status ditekan */}
+          {lastCheckedMessage && (
+            <div className="mb-4 px-3.5 py-2.5 rounded-xl bg-[#f4f5f1] border border-[#cfd6c9] text-xs text-[#233414] font-medium flex items-center gap-2 animate-in fade-in duration-150">
+              <CheckCircle2 className="w-4 h-4 text-[#344d15] shrink-0" />
+              <span>{lastCheckedMessage}</span>
+            </div>
+          )}
 
-          {(() => {
-            const rawPhone = adminPhone || '081944078924';
-            const cleanPhone = rawPhone.replace(/\D/g, '').replace(/^0/, '62');
-            return (
-              <a
-                href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(
-                  `Halo Pengurus Koperasi Sinar Pagi Sejahtera, saya ${profileData.name} (${profileData.email}) ingin mengonfirmasi status verifikasi pendaftaran akun Petani saya.`
-                )}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full py-2 px-3 rounded-lg sm:rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-[11px] sm:text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-2xs hover:border-emerald-500/40"
+          {/* Action Buttons */}
+          <div className="space-y-2.5">
+            <button
+              type="button"
+              onClick={() => checkStatus(true)}
+              disabled={isChecking}
+              className="w-full h-11 sm:h-12 px-4 rounded-xl bg-[#233414] hover:bg-[#344d15] text-white font-semibold text-[13px] sm:text-sm flex items-center justify-center gap-2 transition-colors duration-150 active:scale-[0.99] cursor-pointer disabled:opacity-60"
+            >
+              <RefreshCw
+                className={`w-4 h-4 text-[#D4F63D] ${isChecking ? 'animate-spin' : ''}`}
+              />
+              <span>
+                {isChecking ? 'Memeriksa Status...' : 'Periksa Status Verifikasi Sekarang'}
+              </span>
+            </button>
+
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full h-11 sm:h-12 px-4 rounded-xl border border-[#cfd6c9] bg-[#f4f5f1] hover:bg-[#EAEDE7] text-[#233414] font-semibold text-[13px] sm:text-sm flex items-center justify-center gap-2 transition-colors duration-150 cursor-pointer"
+            >
+              <MessageCircle className="w-4 h-4 text-[#344d15]" />
+              <span>Konfirmasi Cepat via WhatsApp Pengurus</span>
+            </a>
+
+            <div className="pt-2 text-center">
+              <button
+                type="button"
+                onClick={handleLogoutOrSwitchAccount}
+                disabled={isLoggingOut}
+                className="inline-flex items-center justify-center gap-1.5 py-1.5 px-3 text-xs font-semibold text-[#5b6950] hover:text-[#c4242a] transition-colors cursor-pointer disabled:opacity-60"
               >
-                <MessageCircle className="w-3 h-3 text-emerald-600" />
-                <span>Konfirmasi Cepat via WhatsApp Pengurus</span>
-              </a>
-            );
-          })()}
-
-          <button
-            onClick={async () => {
-              await signOut({ redirect: false });
-              window.location.replace('/login');
-            }}
-            className="w-full py-1.5 px-3 text-[10px] sm:text-[11px] font-semibold text-slate-500 hover:text-red-600 flex items-center justify-center gap-1 transition cursor-pointer"
-          >
-            <LogOut className="w-3 h-3" />
-            <span>Keluar dari Akun (Logout)</span>
-          </button>
+                <LogOut className="w-3.5 h-3.5" />
+                <span>{isLoggingOut ? 'Keluar dari akun...' : 'Keluar dari Akun (Logout)'}</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

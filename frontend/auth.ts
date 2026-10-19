@@ -11,6 +11,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      authorization: {
+        params: {
+          prompt: 'select_account',
+        },
+      },
     }),
     Credentials({
       id: 'admin-credentials',
@@ -120,7 +125,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         // Return true agar NextAuth mengizinkan login dan menerbitkan session token resmi
         return true;
       } catch (error) {
-        console.error('Error saat memproses user Google ke database:', error);
+        console.warn('[Auth SignIn] Database belum siap saat memproses user Google, melanjutkan sesi:', error);
         return true;
       }
     },
@@ -187,7 +192,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             token.address = dbUser.address;
           }
         } catch (e) {
-          console.error('Error fetching user for JWT token:', e);
+          console.warn('[Auth JWT] Database belum terjangkau di localhost:5433, menggunakan data sesi sementara.');
         }
       }
 
