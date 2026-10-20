@@ -374,13 +374,6 @@ export default function ProductDetailPage({
               <Share2 className="w-3.5 h-3.5" />
               <span>Bagikan</span>
             </button>
-            <Link
-              href="/cart"
-              className="flex items-center gap-1.5 text-[#1a2610] hover:text-[#344d15] px-2.5 py-1 rounded-lg bg-[#f4f5f1] hover:bg-[#EAEDE7] border border-[#dce1d6] transition-colors text-xs font-semibold"
-            >
-              <ShoppingBag className="w-3.5 h-3.5 text-[#344d15]" />
-              <span>Keranjang</span>
-            </Link>
           </div>
         </div>
       </div>
@@ -625,7 +618,7 @@ export default function ProductDetailPage({
                   type="button"
                   onClick={() => handleAddToCart(true)}
                   disabled={isOutOfStock}
-                  className="h-12 px-5 rounded-2xl bg-[#EAEDE7] hover:bg-[#dce1d6] text-[#1a2610] font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition cursor-pointer disabled:opacity-50"
+                  className="h-12 px-5 rounded-2xl bg-[#EAEDE7] hover:bg-[#dce1d6] text-[#1a2610] font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   title="Beli & Langsung ke Checkout"
                 >
                   <ShoppingBag className="w-4 h-4 text-[#233414]" />
@@ -636,10 +629,18 @@ export default function ProductDetailPage({
                   type="button"
                   onClick={() => handleAddToCart(false)}
                   disabled={isOutOfStock}
-                  className="flex-1 h-12 px-6 rounded-2xl bg-[#344d15] hover:bg-[#233414] text-white font-bold text-sm flex items-center justify-center gap-2 transition cursor-pointer shadow-sm disabled:opacity-50"
+                  className={`flex-1 h-12 px-6 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition shadow-sm ${
+                    isOutOfStock
+                      ? 'bg-[#83917d] text-white cursor-not-allowed opacity-80 shadow-none'
+                      : 'bg-[#344d15] hover:bg-[#233414] text-white cursor-pointer'
+                  }`}
                 >
-                  <ShoppingCart className="w-4 h-4 text-[#D4F63D]" />
-                  <span>+ Keranjang • Rp {totalPrice.toLocaleString('id-ID')}</span>
+                  <ShoppingCart className={`w-4 h-4 ${isOutOfStock ? 'text-white/80' : 'text-[#D4F63D]'}`} />
+                  <span>
+                    {isOutOfStock
+                      ? 'Stok Kosong'
+                      : `+ Keranjang • Rp ${totalPrice.toLocaleString('id-ID')}`}
+                  </span>
                 </button>
               </div>
             </div>
@@ -652,7 +653,7 @@ export default function ProductDetailPage({
             type="button"
             onClick={() => handleAddToCart(true)}
             disabled={isOutOfStock}
-            className="w-12 h-12 rounded-2xl bg-[#f4f5f1] hover:bg-[#EAEDE7] border border-[#dce1d6] text-[#1a2610] flex items-center justify-center shrink-0 transition cursor-pointer disabled:opacity-40"
+            className="w-12 h-12 rounded-2xl bg-[#f4f5f1] hover:bg-[#EAEDE7] border border-[#dce1d6] text-[#1a2610] flex items-center justify-center shrink-0 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             title="Beli Langsung ke Checkout"
           >
             <ShoppingBag className="w-5 h-5 text-[#233414]" />
@@ -662,9 +663,17 @@ export default function ProductDetailPage({
             type="button"
             onClick={() => handleAddToCart(false)}
             disabled={isOutOfStock}
-            className="flex-1 h-12 px-5 rounded-full bg-[#233414] hover:bg-[#344d15] text-white font-bold text-sm flex items-center justify-center gap-2 transition cursor-pointer shadow-sm disabled:opacity-40"
+            className={`flex-1 h-12 px-5 rounded-full font-bold text-sm flex items-center justify-center gap-2 transition shadow-sm ${
+              isOutOfStock
+                ? 'bg-[#83917d] text-white cursor-not-allowed opacity-80 shadow-none'
+                : 'bg-[#233414] hover:bg-[#344d15] text-white cursor-pointer'
+            }`}
           >
-            <span>{isOutOfStock ? 'Stok Habis' : `+ Keranjang • Rp ${totalPrice.toLocaleString('id-ID')}`}</span>
+            <span>
+              {isOutOfStock
+                ? 'Stok Kosong'
+                : `+ Keranjang • Rp ${totalPrice.toLocaleString('id-ID')}`}
+            </span>
           </button>
         </div>
 

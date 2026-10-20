@@ -535,17 +535,7 @@ export default function TokoOnlinePage() {
                 return (
                   <article
                     key={prod.id}
-                    onClick={() => {
-                      if (isOutOfStock) {
-                        showToast({
-                          title: 'Stok Habis',
-                          message: `Komoditas "${prod.nama}" saat ini sedang kosong/habis.`,
-                          type: 'warning',
-                        });
-                        return;
-                      }
-                      router.push(`/toko/${prod.id}`);
-                    }}
+                    onClick={() => router.push(`/toko/${prod.id}`)}
                     className={`border rounded-[20px] sm:rounded-[24px] p-1 sm:p-1.5 shadow-[0_2px_8px_rgba(0,0,0,0.02)] hover:shadow-[0_12px_28px_rgba(35,52,20,0.09)] transition-all duration-300 flex flex-col justify-between group cursor-pointer h-full relative overflow-hidden ${
                       isOutOfStock
                         ? 'grayscale opacity-75 bg-[#f4f5f1] border-[#d5dccf]'

@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { readEquipmentsFromFile, type EquipmentItem } from '@/lib/equipments';
 import { getActiveRentedUnitsMap } from '@/lib/equipment-rentals';
+import {
+  readEquipmentReviewsFromFile,
+  calculateEquipmentStats,
+} from '@/lib/equipment-reviews';
 
 export const dynamic = 'force-dynamic';
 
@@ -77,7 +81,17 @@ export async function GET(
       isTersedia: isAvailable,
     };
 
-    return NextResponse.json({ success: true, equipment: enrichedEquipment });
+    // Ambil ulasan & statistik ulasan alat
+    const allReviews = readEquipmentReviewsFromFile();
+    const reviews = allReviews.filter((r) => r.equipmentId === equipment.id);
+    const stats = calculateEquipmentStats(reviews);
+
+    return NextResponse.json({
+      success: true,
+      equipment: enrichedEquipment,
+      reviews,
+      stats,
+    });
   } catch (error: any) {
     console.error('Error fetching equipment detail:', error);
     return NextResponse.json(

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Bell,
@@ -30,6 +30,18 @@ export default function NotificationDropdown() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const pathname = usePathname();
+  const isNotifPage = pathname === '/notifikasi';
+
+  const handleBellClick = () => {
+    // Di mode mobile (< 640px), navigasi langsung ke halaman khusus notifikasi
+    if (typeof window !== 'undefined' && window.innerWidth < 640) {
+      router.push('/notifikasi');
+      return;
+    }
+    // Di mode desktop (>= 640px), tampilkan dropdown panel beranimasi ke bawah
+    setIsOpen((prev) => !prev);
+  };
 
   // Load and sync transactions into notifications
   const syncNotifications = useCallback(async () => {
@@ -97,11 +109,13 @@ export default function NotificationDropdown() {
     window.addEventListener('koperasi-new-transaction', handleTxUpdate);
     window.addEventListener('order-created', handleTxUpdate);
     window.addEventListener('rental-created', handleTxUpdate);
+    window.addEventListener('koperasi-notifications-updated', handleTxUpdate);
 
     return () => {
       window.removeEventListener('koperasi-new-transaction', handleTxUpdate);
       window.removeEventListener('order-created', handleTxUpdate);
       window.removeEventListener('rental-created', handleTxUpdate);
+      window.removeEventListener('koperasi-notifications-updated', handleTxUpdate);
     };
   }, [syncNotifications]);
 
@@ -201,9 +215,9 @@ export default function NotificationDropdown() {
       {/* Trigger Button: Rounded Pill matching Cart */}
       <button
         type="button"
-        onClick={() => setIsOpen((prev) => !prev)}
+        onClick={handleBellClick}
         className={`relative w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors border cursor-pointer ${
-          isOpen
+          isOpen || isNotifPage
             ? 'bg-[#233414] text-[#D4F63D] border-[#233414]'
             : 'bg-[#f4f5f1] hover:bg-[#EAEDE7] text-[#233414] border-[#d5dccf]'
         }`}
@@ -218,7 +232,7 @@ export default function NotificationDropdown() {
         )}
       </button>
 
-      {/* Dropdown Panel with Smooth Downward Animation & Scrollable List */}
+      {/* Dropdown Panel with Smooth Downward Animation (Desktop Only, Mobile uses dedicated /notifikasi page) */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -230,7 +244,7 @@ export default function NotificationDropdown() {
             data-lenis-prevent="true"
             data-lenis-prevent-wheel="true"
             data-lenis-prevent-touch="true"
-            className="fixed sm:absolute top-16 sm:top-[calc(100%+20px)] left-3 right-3 sm:left-auto sm:right-0 sm:w-80 md:w-96 bg-white rounded-2xl border border-[#dce1d6] shadow-2xl z-50 flex flex-col max-h-[82vh] sm:max-h-[500px] overflow-hidden"
+            className="hidden sm:flex sm:absolute sm:top-[calc(100%+20px)] sm:right-0 sm:w-80 md:w-96 bg-white rounded-2xl border border-[#dce1d6] shadow-2xl z-50 flex-col max-h-[500px] overflow-hidden"
           >
           {/* Header (Pinned) */}
           <div className="p-3.5 sm:p-4 border-b border-[#e6ebdf] bg-[#f9faf7] flex items-center justify-between shrink-0 rounded-t-2xl">
