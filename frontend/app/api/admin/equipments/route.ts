@@ -110,7 +110,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const newId = `alst-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
+    const newId = crypto.randomUUID();
     const nowIso = new Date().toISOString();
 
     const newEquipment: EquipmentItem = {

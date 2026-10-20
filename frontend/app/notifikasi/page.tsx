@@ -28,30 +28,36 @@ import {
   buildNotificationsFromTransactions,
   getStoredReadIds,
   saveReadIds,
+  getCachedNotifications,
+  setCachedNotifications,
 } from '@/lib/notifications';
 
 type FilterType = 'all' | 'unread' | 'transaksi' | 'system';
 
 export default function NotifikasiPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, isLoading: isAuthLoading } = useAuth();
 
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<FilterType>('all');
-  const [notifications, setNotifications] = useState<AppNotification[]>([
-    INITIAL_SYSTEM_NOTIFICATION,
-  ]);
+  const [notifications, setNotifications] = useState<AppNotification[]>(() => {
+    return getCachedNotifications(user?.id);
+  });
 
   // Load and sync notifications
   const syncNotifications = useCallback(async () => {
+    if (isAuthLoading) return;
+
     if (!user) {
       const readMap = getStoredReadIds(null);
-      setNotifications([
+      const guestNotifs = [
         {
           ...INITIAL_SYSTEM_NOTIFICATION,
           isRead: Boolean(readMap[INITIAL_SYSTEM_NOTIFICATION.id]),
         },
-      ]);
+      ];
+      setNotifications(guestNotifs);
+      setCachedNotifications(guestNotifs, null);
       setIsLoading(false);
       return;
     }
@@ -81,23 +87,32 @@ export default function NotifikasiPage() {
 
       const built = buildNotificationsFromTransactions(ordersList, rentalsList, user.id);
       setNotifications(built);
+      setCachedNotifications(built, user.id);
     } catch (e) {
       console.error('Error syncing notifications:', e);
       const readMap = getStoredReadIds(user.id);
-      setNotifications([
+      const fallbackNotifs = [
         {
           ...INITIAL_SYSTEM_NOTIFICATION,
           isRead: Boolean(readMap[INITIAL_SYSTEM_NOTIFICATION.id]),
         },
-      ]);
+      ];
+      setNotifications(fallbackNotifs);
+      setCachedNotifications(fallbackNotifs, user.id);
     } finally {
       setIsLoading(false);
     }
-  }, [user]);
+  }, [user, isAuthLoading]);
 
   useEffect(() => {
-    syncNotifications();
-  }, [syncNotifications]);
+    if (!isAuthLoading) {
+      const cached = getCachedNotifications(user?.id);
+      if (cached.length > 0) {
+        setNotifications(cached);
+      }
+      syncNotifications();
+    }
+  }, [syncNotifications, isAuthLoading, user?.id]);
 
   // Listen to transaction and notification updates live
   useEffect(() => {
@@ -138,7 +153,9 @@ export default function NotifikasiPage() {
     });
     saveReadIds(readMap, user?.id);
 
-    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    const updated = notifications.map((n) => ({ ...n, isRead: true }));
+    setNotifications(updated);
+    setCachedNotifications(updated, user?.id);
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('koperasi-notifications-updated'));
     }
@@ -149,9 +166,9 @@ export default function NotifikasiPage() {
     readMap[notif.id] = true;
     saveReadIds(readMap, user?.id);
 
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === notif.id ? { ...n, isRead: true } : n))
-    );
+    const updated = notifications.map((n) => (n.id === notif.id ? { ...n, isRead: true } : n));
+    setNotifications(updated);
+    setCachedNotifications(updated, user?.id);
 
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('koperasi-notifications-updated'));

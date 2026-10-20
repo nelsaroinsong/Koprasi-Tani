@@ -20,13 +20,17 @@ import {
   buildNotificationsFromTransactions,
   getStoredReadIds,
   saveReadIds,
+  getCachedNotifications,
+  setCachedNotifications,
 } from '@/lib/notifications';
 
 export default function NotificationDropdown() {
-  const { user } = useAuth();
+  const { user, isLoading: isAuthLoading } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
-  const [notifications, setNotifications] = useState<AppNotification[]>([INITIAL_SYSTEM_NOTIFICATION]);
+  const [notifications, setNotifications] = useState<AppNotification[]>(() => {
+    return getCachedNotifications(user?.id);
+  });
   const dropdownRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -45,15 +49,22 @@ export default function NotificationDropdown() {
 
   // Load and sync transactions into notifications
   const syncNotifications = useCallback(async () => {
+    // Jika status auth masih memuat, jangan fallback ke mode tamu agar badge tidak kedap-kedip
+    if (isAuthLoading) {
+      return;
+    }
+
     if (!user) {
       // Guest: Only initial system notification
       const readMap = getStoredReadIds(null);
-      setNotifications([
+      const guestNotifs = [
         {
           ...INITIAL_SYSTEM_NOTIFICATION,
           isRead: Boolean(readMap[INITIAL_SYSTEM_NOTIFICATION.id]),
         },
-      ]);
+      ];
+      setNotifications(guestNotifs);
+      setCachedNotifications(guestNotifs, null);
       return;
     }
 
@@ -83,22 +94,31 @@ export default function NotificationDropdown() {
       // Build notifications: At start of account -> only system notif. If transactions exist -> transaction notifs + system notif!
       const built = buildNotificationsFromTransactions(ordersList, rentalsList, user.id);
       setNotifications(built);
+      setCachedNotifications(built, user.id);
     } catch (e) {
       console.error('Error syncing notifications:', e);
       const readMap = getStoredReadIds(user.id);
-      setNotifications([
+      const fallbackNotifs = [
         {
           ...INITIAL_SYSTEM_NOTIFICATION,
           isRead: Boolean(readMap[INITIAL_SYSTEM_NOTIFICATION.id]),
         },
-      ]);
+      ];
+      setNotifications(fallbackNotifs);
+      setCachedNotifications(fallbackNotifs, user.id);
     }
-  }, [user]);
+  }, [user, isAuthLoading]);
 
-  // Sync on mount and when user changes
+  // Sync on mount and when user / auth state changes
   useEffect(() => {
-    syncNotifications();
-  }, [syncNotifications]);
+    if (!isAuthLoading) {
+      const cached = getCachedNotifications(user?.id);
+      if (cached.length > 0) {
+        setNotifications(cached);
+      }
+      syncNotifications();
+    }
+  }, [syncNotifications, isAuthLoading, user?.id]);
 
   // Listen to transaction events to update notifications live
   useEffect(() => {
@@ -177,7 +197,12 @@ export default function NotificationDropdown() {
     });
     saveReadIds(readMap, user?.id);
 
-    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    const updated = notifications.map((n) => ({ ...n, isRead: true }));
+    setNotifications(updated);
+    setCachedNotifications(updated, user?.id);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('koperasi-notifications-updated'));
+    }
   };
 
   const handleNotificationClick = (notif: AppNotification) => {
@@ -185,9 +210,12 @@ export default function NotificationDropdown() {
     readMap[notif.id] = true;
     saveReadIds(readMap, user?.id);
 
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === notif.id ? { ...n, isRead: true } : n))
-    );
+    const updated = notifications.map((n) => (n.id === notif.id ? { ...n, isRead: true } : n));
+    setNotifications(updated);
+    setCachedNotifications(updated, user?.id);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('koperasi-notifications-updated'));
+    }
 
     setIsOpen(false);
     if (notif.href) {

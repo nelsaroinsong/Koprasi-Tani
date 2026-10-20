@@ -43,6 +43,41 @@ export function saveReadIds(readMap: Record<string, boolean>, userId?: string | 
   } catch {}
 }
 
+let memoryCachedNotifications: AppNotification[] = [];
+
+export function getCachedNotifications(userId?: string | null): AppNotification[] {
+  if (memoryCachedNotifications.length > 0) {
+    return memoryCachedNotifications;
+  }
+  if (typeof window !== 'undefined') {
+    try {
+      const raw = localStorage.getItem(getStorageKey(userId));
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const readMap = getStoredReadIds(userId);
+          const synced = parsed.map((item: AppNotification) => ({
+            ...item,
+            isRead: Boolean(readMap[item.id] || item.isRead),
+          }));
+          memoryCachedNotifications = synced;
+          return synced;
+        }
+      }
+    } catch {}
+  }
+  return [];
+}
+
+export function setCachedNotifications(items: AppNotification[], userId?: string | null) {
+  memoryCachedNotifications = items;
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(getStorageKey(userId), JSON.stringify(items));
+    } catch {}
+  }
+}
+
 export function formatTimeAgo(dateString?: string): string {
   if (!dateString) return 'Baru saja';
   try {

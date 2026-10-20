@@ -31,13 +31,13 @@ const INITIAL_REVIEWS: EquipmentReviewItem[] = [
   {
     id: 'rev-eq-1',
     equipmentId: 'alst-musanrfk-t7fs',
-    userId: 'user-petani-demo',
-    userName: 'Pak Johanis Pangemanan',
-    userAvatar: null,
+    userId: '8d11ac72-d1a6-4103-9260-9f81203ffe82',
+    userName: 'nelsaroinsong',
+    userAvatar: '/api/images/profiles/nelsaroinsong_gmail_com-1791906682472.png',
     rating: 5,
     komentar:
-      'Unit Traktor Roda 4 sangat prima dan bertenaga. Sangat membantu pengolahan lahan jagung seluas 1.5 hektar lebih cepat selesai. Kondisi mesin bersih dan BBM solar irit.',
-    createdAt: '2026-10-18T09:30:00.000Z',
+      'Unit Traktor Roda 4 sangat prima dan bertenaga. Sangat membantu pengolahan lahan lebih cepat selesai dan bahan bakar efisien.',
+    createdAt: '2026-10-15T12:00:00.000Z',
   },
 ];
 

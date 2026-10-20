@@ -695,7 +695,7 @@ export default function ProductDetailPage({
                 <span>Ulasan Pembeli</span>
               </h2>
               <p className="text-xs text-[#526046] mt-0.5">
-                Pengalaman nyata pembeli komoditas dari petani binaan Koperasi
+                Pengalaman nyata pembeli komoditas dari petani binaan Koperasi Sinar Pagi Sejahtera
               </p>
             </div>
 
@@ -794,7 +794,7 @@ export default function ProductDetailPage({
                     <Star className="w-8 h-8 sm:w-9 sm:h-9 fill-amber-400 text-amber-400 shrink-0" />
                     <div className="flex items-baseline gap-1 tabular-nums">
                       <span className="text-3xl sm:text-4xl font-extrabold text-[#1a2610] tracking-tight">
-                        {stats.avgRating}
+                        {Number(stats.avgRating || 5).toFixed(1)}
                       </span>
                       <span className="text-sm sm:text-base font-semibold text-[#5b6950]">/ 5.0</span>
                     </div>
@@ -903,7 +903,7 @@ export default function ProductDetailPage({
                         </span>
                       </div>
 
-                      {/* User Info (Avatar + Name) */}
+                      {/* User Info (Avatar + Name + Badge) */}
                       <div className="flex items-center gap-2.5">
                         <Avatar className="w-7 h-7 rounded-full border border-[#cfd6c9]">
                           <AvatarImage src={rev.user?.avatarUrl || ''} alt={rev.user?.name} />
@@ -914,11 +914,15 @@ export default function ProductDetailPage({
                         <span className="text-xs font-bold text-[#1a2610]">
                           {rev.user?.name || 'Pembeli Terverifikasi'}
                         </span>
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#233414] bg-[#e2f2c8] px-2 py-0.5 rounded-full border border-[#c9e39e]">
+                          <CheckCircle2 className="w-3 h-3 text-[#344d15]" />
+                          <span>Pembeli Terverifikasi</span>
+                        </span>
                       </div>
 
-                      {/* Purchased Variant Info */}
+                      {/* Product Tag Info */}
                       <div className="text-[11px] text-[#5b6950] font-medium">
-                        Varian: {product.satuan} • Panen Koperasi
+                        Komoditas: {product.nama} • {product.satuan}
                       </div>
 
                       {/* Review Text */}
@@ -940,31 +944,19 @@ export default function ProductDetailPage({
                         </div>
                       )}
 
-                      {/* Footer Actions: Thumbs Up "Membantu" */}
-                      <div className="pt-1 flex items-center justify-between">
+                      {/* Helpful Button */}
+                      <div className="flex items-center gap-2 pt-1 text-[11px] text-[#5b6950]">
                         <button
+                          type="button"
                           onClick={() => toggleHelpful(rev.id)}
-                          className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-lg border transition-colors cursor-pointer ${
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs transition-colors cursor-pointer ${
                             isHelpful
-                              ? 'text-[#233414] bg-[#e2f2c8] border-[#c9e39e]'
-                              : 'text-[#526046] border-transparent hover:text-[#1a2610] hover:bg-[#f4f5f1]'
+                              ? 'bg-[#e2f2c8] text-[#233414] border-[#c9e39e] font-semibold'
+                              : 'bg-white text-[#526046] border-[#dce1d6] hover:bg-[#EAEDE7]'
                           }`}
                         >
-                          <ThumbsUp className={`w-3.5 h-3.5 ${isHelpful ? 'fill-[#233414]' : ''}`} />
+                          <ThumbsUp className={`w-3.5 h-3.5 ${isHelpful ? 'fill-[#233414] text-[#233414]' : ''}`} />
                           <span>Membantu {isHelpful ? '(1)' : ''}</span>
-                        </button>
-
-                        <button
-                          onClick={() => {
-                            showToast({
-                              title: 'Balasan',
-                              message: 'Fitur tanggapan petani akan segera hadir.',
-                              type: 'info',
-                            });
-                          }}
-                          className="text-xs text-[#5b6950] hover:text-[#1a2610] transition-colors cursor-pointer"
-                        >
-                          Lihat Balasan
                         </button>
                       </div>
                     </div>
