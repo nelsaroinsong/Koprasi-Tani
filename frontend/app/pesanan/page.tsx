@@ -10,7 +10,6 @@ import {
   Clock,
   CheckCircle2,
   AlertCircle,
-  RefreshCw,
   Search,
   MessageCircle,
   ArrowRight,
@@ -31,6 +30,7 @@ import {
   Star,
   X,
   Tractor,
+  Truck,
   FileText,
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
@@ -324,42 +324,48 @@ export default function PesananPage() {
       case 'MENUNGGU_PEMBAYARAN':
         return {
           label: 'Pesanan Masuk',
-          badgeClass: 'bg-amber-50 text-amber-900 border-amber-300 font-bold',
+          badgeClass: 'bg-amber-50 text-amber-900 border-amber-200/80',
+          dotClass: 'bg-amber-500',
           step: 1,
           hint: 'Pesanan telah diterima sistem koperasi dan masuk antrean pengecekan staf gudang.',
         };
       case 'DIPROSES':
         return {
-          label: 'Sedang Disiapkan Gudang',
-          badgeClass: 'bg-[#EAEDE7] text-[#233414] border-[#cfd6c9] font-bold',
+          label: 'Disiapkan Gudang',
+          badgeClass: 'bg-emerald-50 text-emerald-900 border-emerald-200/80',
+          dotClass: 'bg-emerald-500',
           step: 2,
           hint: 'Staf gudang koperasi sedang mengecek fisik dan mengemas komoditas pesanan Anda.',
         };
       case 'SIAP_DIAMBIL':
         return {
           label: 'Bayar di Kasir',
-          badgeClass: 'bg-[#233414] text-[#D4F63D] border-[#233414] font-bold',
+          badgeClass: 'bg-[#233414]/10 text-[#233414] border-[#233414]/20',
+          dotClass: 'bg-[#233414]',
           step: 3,
           hint: 'Komoditas telah siap di kasir. Silakan bayar di kasir koperasi (24 jam) sebelum serah terima.',
         };
       case 'SELESAI':
         return {
-          label: 'Pesanan Selesai & Lunas',
-          badgeClass: 'bg-[#e2f2c8] text-[#233414] border-[#c9e39e] font-bold',
+          label: 'Selesai & Lunas',
+          badgeClass: 'bg-green-50 text-green-800 border-green-200',
+          dotClass: 'bg-green-600',
           step: 4,
           hint: 'Komoditas telah diserahkan dan pembayaran telah sah dicatat oleh kasir koperasi.',
         };
       case 'DIBATALKAN':
         return {
           label: 'Dibatalkan',
-          badgeClass: 'bg-red-50 text-red-700 border-red-200 font-bold',
+          badgeClass: 'bg-rose-50 text-rose-800 border-rose-200',
+          dotClass: 'bg-rose-500',
           step: 0,
           hint: 'Pesanan telah dibatalkan dan alokasi stok komoditas telah dikembalikan ke gudang koperasi.',
         };
       default:
         return {
           label: status,
-          badgeClass: 'bg-[#f4f5f1] text-[#1a2610] border-[#dce1d6]',
+          badgeClass: 'bg-neutral-50 text-neutral-800 border-neutral-200',
+          dotClass: 'bg-neutral-500',
           step: 1,
           hint: '',
         };
@@ -400,50 +406,58 @@ Mohon info kesiapan fisik komoditas di gudang koperasi. Terima kasih.`;
     switch (status) {
       case 'MENUNGGU_PERSETUJUAN_ADMIN':
         return {
-          label: 'Menunggu Persetujuan Admin',
-          badgeClass: 'bg-amber-50 text-amber-900 border-amber-300 font-bold',
+          label: 'Menunggu Persetujuan',
+          badgeClass: 'bg-amber-50 text-amber-900 border-amber-200/80',
+          dotClass: 'bg-amber-500',
           hint: 'Pengajuan sewa alat Anda sedang ditinjau oleh staf / pengurus Koperasi Sinar Pagi Sejahtera.',
         };
       case 'DISETUJUI':
         return {
-          label: 'Disetujui Admin Koperasi',
-          badgeClass: 'bg-[#e2f2c8] text-[#233414] border-[#c9e39e] font-bold',
+          label: 'Disetujui Admin',
+          badgeClass: 'bg-emerald-50 text-emerald-900 border-emerald-200/80',
+          dotClass: 'bg-emerald-500',
           hint: 'Pengajuan sewa telah disetujui! Unit mesin sedang disiapkan dan dicek oleh tim operasional.',
         };
       case 'SIAP_DIAMBIL':
         return {
           label: 'Siap Diambil di Koperasi',
-          badgeClass: 'bg-[#233414] text-[#D4F63D] border-[#233414] font-bold',
+          badgeClass: 'bg-[#233414]/10 text-[#233414] border-[#233414]/20',
+          dotClass: 'bg-[#233414]',
           hint: 'Unit alat pertanian siap diambil di gudang/kantor koperasi. Tunjukkan nomor sewa ke pengurus.',
         };
       case 'SEDANG_DISEWA':
         return {
           label: 'Sedang Digunakan di Lahan',
-          badgeClass: 'bg-[#344d15] text-white border-[#233414] font-bold',
+          badgeClass: 'bg-[#344d15]/10 text-[#344d15] border-[#344d15]/20',
+          dotClass: 'bg-[#344d15]',
           hint: 'Unit alat sedang aktif dalam masa sewa di lokasi lahan pertanian Anda.',
         };
       case 'SELESAI':
         return {
-          label: 'Sewa Selesai & Unit Kembali',
-          badgeClass: 'bg-[#EAEDE7] text-[#1a2610] border-[#cfd6c9] font-bold',
+          label: 'Sewa Selesai & Kembali',
+          badgeClass: 'bg-green-50 text-green-800 border-green-200',
+          dotClass: 'bg-green-600',
           hint: 'Masa sewa selesai dan fisik alat telah dikembalikan dalam kondisi baik ke koperasi.',
         };
       case 'DIBATALKAN':
         return {
           label: 'Dibatalkan',
-          badgeClass: 'bg-red-50 text-red-700 border-red-200 font-bold',
+          badgeClass: 'bg-rose-50 text-rose-800 border-rose-200',
+          dotClass: 'bg-rose-500',
           hint: 'Pengajuan sewa alat ini telah dibatalkan oleh pemohon.',
         };
       case 'DITOLAK':
         return {
           label: 'Pengajuan Ditolak',
-          badgeClass: 'bg-red-50 text-red-700 border-red-200 font-bold',
+          badgeClass: 'bg-rose-50 text-rose-800 border-rose-200',
+          dotClass: 'bg-rose-500',
           hint: 'Pengajuan belum dapat disetujui karena jadwal tumpang tindih atau kuota unit penuh.',
         };
       default:
         return {
           label: status,
-          badgeClass: 'bg-[#f4f5f1] text-[#1a2610] border-[#dce1d6]',
+          badgeClass: 'bg-neutral-50 text-neutral-800 border-neutral-200',
+          dotClass: 'bg-neutral-500',
           hint: '',
         };
     }
@@ -581,71 +595,55 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
       <AppHeader activePage="pesanan" />
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-3.5 sm:py-5 space-y-3 sm:space-y-4">
-        {/* Top Bar: Tab Switcher, Search Box & Quick Actions */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5 sm:gap-3">
-          <div className="flex items-center justify-between sm:justify-start gap-2">
-            {/* Tab Switcher: Toko Online vs Sewa Alat */}
-            <div className="grid grid-cols-2 sm:inline-flex items-center gap-1 p-1 bg-[#EAEDE7] border border-[#cfd6c9] rounded-xl flex-1 sm:flex-initial">
-              <button
-                type="button"
-                onClick={() => setActiveTypeTab('toko')}
-                className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-[11px] sm:text-xs font-bold transition flex items-center justify-center sm:justify-start gap-1.5 cursor-pointer shrink-0 ${
-                  activeTypeTab === 'toko'
-                    ? 'bg-[#233414] text-white shadow-2xs'
-                    : 'bg-transparent text-[#526046] hover:text-[#1a2610]'
-                }`}
-              >
-                <ShoppingBag className={`w-3.5 h-3.5 ${activeTypeTab === 'toko' ? 'text-[#D4F63D]' : 'text-[#526046]'}`} />
-                <span><span className="hidden xs:inline sm:inline">Pesanan </span>Toko</span>
-                <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-black tabular-nums ${
-                  activeTypeTab === 'toko'
-                    ? 'bg-[#D4F63D] text-[#1a2610]'
-                    : 'bg-white text-[#233414] border border-[#dce1d6]'
-                }`}>
-                  {orders.length}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTypeTab('sewa-alat')}
-                className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-[11px] sm:text-xs font-bold transition flex items-center justify-center sm:justify-start gap-1.5 cursor-pointer shrink-0 ${
-                  activeTypeTab === 'sewa-alat'
-                    ? 'bg-[#233414] text-white shadow-2xs'
-                    : 'bg-transparent text-[#526046] hover:text-[#1a2610]'
-                }`}
-              >
-                <Tractor className={`w-3.5 h-3.5 ${activeTypeTab === 'sewa-alat' ? 'text-[#D4F63D]' : 'text-[#526046]'}`} />
-                <span>Sewa Alat</span>
-                <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-black tabular-nums ${
-                  activeTypeTab === 'sewa-alat'
-                    ? 'bg-[#D4F63D] text-[#1a2610]'
-                    : 'bg-white text-[#233414] border border-[#dce1d6]'
-                }`}>
-                  {rentalOrders.length}
-                </span>
-              </button>
-            </div>
+      <main className="flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-8 lg:px-12 xl:px-16 py-4 sm:py-6 lg:py-8 space-y-6">
+        {/* Top Bar: Tab Switcher & Search Box */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4">
+          {/* Tab Switcher: Toko Online vs Sewa Alat */}
+          <div className="grid grid-cols-2 sm:inline-flex items-center gap-1 p-1 bg-[#EAEDE7] border border-[#cfd6c9] rounded-2xl w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={() => setActiveTypeTab('toko')}
+              className={`px-3.5 sm:px-4 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shrink-0 ${
+                activeTypeTab === 'toko'
+                  ? 'bg-[#233414] text-white shadow-2xs'
+                  : 'bg-transparent text-[#526046] hover:text-[#1a2610]'
+              }`}
+            >
+              <ShoppingBag className={`w-3.5 h-3.5 ${activeTypeTab === 'toko' ? 'text-[#D4F63D]' : 'text-[#526046]'}`} />
+              <span>Pesanan Toko</span>
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black tabular-nums ${
+                activeTypeTab === 'toko'
+                  ? 'bg-[#D4F63D] text-[#1a2610]'
+                  : 'bg-white text-[#233414] border border-[#dce1d6]'
+              }`}>
+                {orders.length}
+              </span>
+            </button>
 
             <button
-              onClick={() => {
-                fetchOrders();
-                fetchRentalOrders();
-              }}
-              disabled={isLoading || isRentalLoading}
-              className="p-2 sm:px-3 sm:py-2 rounded-xl bg-white hover:bg-[#EAEDE7] text-[#1a2610] hover:text-[#233414] border border-[#dce1d6] hover:border-[#cfd6c9] font-bold text-xs flex items-center gap-1.5 transition cursor-pointer shadow-2xs shrink-0"
-              title="Segarkan Status"
               type="button"
+              onClick={() => setActiveTypeTab('sewa-alat')}
+              className={`px-3.5 sm:px-4 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shrink-0 ${
+                activeTypeTab === 'sewa-alat'
+                  ? 'bg-[#233414] text-white shadow-2xs'
+                  : 'bg-transparent text-[#526046] hover:text-[#1a2610]'
+              }`}
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${isLoading || isRentalLoading ? 'animate-spin text-[#344d15]' : 'text-[#526046]'}`} />
-              <span className="hidden lg:inline">Segarkan</span>
+              <Tractor className={`w-3.5 h-3.5 ${activeTypeTab === 'sewa-alat' ? 'text-[#D4F63D]' : 'text-[#526046]'}`} />
+              <span>Sewa Alat</span>
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black tabular-nums ${
+                activeTypeTab === 'sewa-alat'
+                  ? 'bg-[#D4F63D] text-[#1a2610]'
+                  : 'bg-white text-[#233414] border border-[#dce1d6]'
+              }`}>
+                {rentalOrders.length}
+              </span>
             </button>
           </div>
 
           {/* Search Box */}
-          <div className="relative w-full md:w-72 lg:w-80 shrink-0">
-            <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#5b6950] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <div className="relative w-full md:w-80 lg:w-96 shrink-0">
+            <Search className="w-4 h-4 text-[#5b6950] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               value={activeTypeTab === 'toko' ? searchQuery : rentalSearchQuery}
@@ -658,10 +656,10 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
               }}
               placeholder={
                 activeTypeTab === 'toko'
-                  ? 'Cari no. invoice, komoditas...'
+                  ? 'Cari no. pesanan, komoditas...'
                   : 'Cari no. pengajuan, alat...'
               }
-              className="w-full text-[11px] sm:text-xs pl-8 sm:pl-9 pr-7 sm:pr-8 py-1.5 sm:py-2 bg-white border border-[#cfd6c9] rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-[#233414]/15 focus:border-[#233414] shadow-2xs text-[#1a2610] placeholder:text-[#5b6950] transition"
+              className="w-full text-xs pl-10 pr-8 py-2.5 bg-white border border-[#cfd6c9] rounded-full focus:outline-none focus:ring-2 focus:ring-[#233414]/15 focus:border-[#233414] shadow-2xs text-[#1a2610] placeholder:text-[#5b6950] transition"
             />
             {(activeTypeTab === 'toko' ? searchQuery : rentalSearchQuery) && (
               <button
@@ -670,7 +668,7 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
                   if (activeTypeTab === 'toko') setSearchQuery('');
                   else setRentalSearchQuery('');
                 }}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#5b6950] hover:text-[#1a2610] text-[10px] sm:text-xs font-bold cursor-pointer"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#5b6950] hover:text-[#1a2610] text-xs font-bold cursor-pointer"
               >
                 ✕
               </button>
@@ -678,421 +676,470 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
           </div>
         </div>
 
+        {/* 2-Column Layout matching Gambar 1 */}
         {activeTypeTab === 'toko' ? (
-          <div className="space-y-2.5 sm:space-y-4">
-            {/* Status Filter Tabs */}
-            <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 no-scrollbar text-[10px] sm:text-xs font-medium sm:font-semibold">
-              {STATUS_FILTERS.map((tab) => {
-                const isActive = activeFilter === tab.key;
-                return (
-                  <button
-                    key={tab.key}
-                    type="button"
-                    onClick={() => setActiveFilter(tab.key)}
-                    className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition cursor-pointer shadow-2xs shrink-0 flex items-center gap-1.5 border ${
-                      isActive
-                        ? 'bg-[#233414] border-[#233414] text-white font-bold shadow-xs'
-                        : 'bg-white border-[#dce1d6] hover:bg-[#EAEDE7] text-[#526046] hover:text-[#1a2610]'
-                    }`}
-                  >
-                    <span>{tab.label}</span>
-                    {tab.key === 'DIBATALKAN' && stats.dibatalkanCount > 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-8 items-start">
+            {/* Left Column: Filter Pills (Horizontal scrolling badges on mobile, sidebar on desktop) */}
+            <div className="lg:col-span-4 xl:col-span-3 lg:sticky lg:top-24">
+              <div className="flex lg:flex-col gap-1.5 sm:gap-2 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0 scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
+                {[
+                  { key: 'ALL' as OrderStatus, label: 'Semua Pesanan', count: stats.total },
+                  { key: 'MENUNGGU_PEMBAYARAN' as OrderStatus, label: 'Pesanan Masuk', count: stats.pendingCount },
+                  { key: 'DIPROSES' as OrderStatus, label: 'Disiapkan Gudang', count: stats.diprosesCount },
+                  { key: 'SIAP_DIAMBIL' as OrderStatus, label: 'Bayar di Kasir', count: stats.siapDiambilCount },
+                  { key: 'SELESAI' as OrderStatus, label: 'Selesai', count: stats.selesaiCount },
+                  { key: 'DIBATALKAN' as OrderStatus, label: 'Dibatalkan', count: stats.dibatalkanCount },
+                ].map((tab) => {
+                  const isActive = activeFilter === tab.key;
+                  return (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      onClick={() => setActiveFilter(tab.key)}
+                      className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 sm:px-4 sm:py-2 lg:w-full lg:flex lg:items-center lg:justify-between lg:px-5 lg:py-3.5 rounded-full text-xs lg:text-sm font-semibold transition cursor-pointer shrink-0 whitespace-nowrap lg:whitespace-normal ${
+                        isActive
+                          ? 'bg-[#1a2610] text-white shadow-xs'
+                          : 'bg-white text-neutral-700 hover:bg-neutral-50 border border-neutral-200/90 hover:border-neutral-300'
+                      }`}
+                    >
+                      <span>{tab.label}</span>
                       <span
-                        className={`px-1.5 py-0.2 rounded-full text-[9px] font-black tabular-nums ${
-                          isActive ? 'bg-white/20 text-white' : 'bg-red-100 text-red-700'
+                        className={`min-w-[18px] h-[18px] lg:w-6 lg:h-6 rounded-full text-[10px] lg:text-xs font-bold flex items-center justify-center shrink-0 ml-1.5 lg:ml-3 tabular-nums ${
+                          isActive
+                            ? 'bg-white text-[#1a2610]'
+                            : 'bg-neutral-100 text-neutral-600'
                         }`}
                       >
-                        {stats.dibatalkanCount}
+                        {tab.count}
                       </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Daftar Kartu Pesanan */}
-            {isLoading ? (
-              <div className="py-20 flex flex-col items-center justify-center gap-3 text-[#526046]">
-                <Loader2 className="w-8 h-8 text-[#233414] animate-spin" />
-                <span className="text-xs font-semibold">Memuat riwayat transaksi dari sistem koperasi...</span>
-              </div>
-            ) : filteredOrders.length === 0 ? (
-              <div className="bg-white p-10 sm:p-12 rounded-2xl sm:rounded-3xl border border-[#dce1d6] text-center shadow-2xs">
-                <div className="w-16 h-16 rounded-2xl bg-[#f4f5f1] border border-[#dce1d6] text-[#233414] flex items-center justify-center mx-auto mb-3">
-                  <Package className="w-8 h-8 stroke-1" />
-                </div>
-                <h3 className="text-base font-bold text-[#1a2610]">Tidak ada pesanan yang sesuai</h3>
-                <p className="text-xs text-[#526046] max-w-sm mx-auto mt-1 leading-relaxed">
-                  {searchQuery || activeFilter !== 'ALL'
-                    ? 'Coba ganti filter status atau kata kunci pencarian Anda untuk melihat transaksi lainnya.'
-                    : 'Anda belum memiliki transaksi pesanan komoditas di Koperasi Sinar Pagi Sejahtera.'}
-                </p>
-                <div className="mt-5 flex items-center justify-center gap-2.5">
-                  {(searchQuery || activeFilter !== 'ALL') && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSearchQuery('');
-                        setActiveFilter('ALL');
-                      }}
-                      className="px-4 py-2 rounded-xl bg-[#f4f5f1] hover:bg-[#EAEDE7] border border-[#cfd6c9] text-[#1a2610] text-xs font-bold transition cursor-pointer"
-                    >
-                      Reset Filter
                     </button>
-                  )}
-                  <Link
-                    href="/toko"
-                    className="px-5 py-2 rounded-xl bg-[#233414] hover:bg-[#344d15] text-white text-xs font-bold shadow-xs transition"
-                  >
-                    Mulai Belanja di Toko
-                  </Link>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-2.5 sm:space-y-3">
-                {filteredOrders.map((order) => {
-                  const statusCfg = getStatusConfig(order.status);
-                  const firstItem = order.items?.[0];
-                  const extraItemsCount = (order.items?.length || 1) - 1;
-
-                  return (
-                    <div
-                      key={order.id}
-                      onClick={() => router.push(`/pesanan/${order.id}`)}
-                      className="bg-white rounded-xl sm:rounded-2xl border border-[#dce1d6] shadow-2xs overflow-hidden hover:border-[#344d15] hover:shadow-xs transition duration-200 cursor-pointer group"
-                    >
-                      {/* Header Kartu: Toko, Tanggal, Invoice, Status */}
-                      <div className="p-2.5 sm:p-3.5 border-b border-[#dce1d6]/80 bg-[#f4f5f1]/70 flex flex-wrap items-center justify-between gap-2 text-xs">
-                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                          <div className="flex items-center gap-1.5 font-bold text-[#1a2610] text-[11px] sm:text-xs">
-                            <Store className="w-3.5 h-3.5 text-[#233414]" />
-                            <span>Koperasi Sinar Pagi Sejahtera</span>
-                          </div>
-                          <span className="text-[#cfd6c9] hidden sm:inline">•</span>
-                          <div className="text-[#526046] text-[10px] sm:text-[11px] flex items-center gap-1">
-                            <Calendar className="w-3.5 h-3.5 text-[#5b6950]" />
-                            <span>
-                              {new Date(order.createdAt).toLocaleDateString('id-ID', {
-                                day: 'numeric',
-                                month: 'short',
-                                year: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
-                            </span>
-                          </div>
-                          <span className="text-[#cfd6c9] hidden sm:inline">•</span>
-                          <span className="font-mono text-[10px] sm:text-[11px] text-[#233414] font-bold">
-                            #{order.orderNumber}
-                          </span>
-                        </div>
-
-                        <span
-                          className={`px-2.5 py-0.5 rounded-lg text-[10px] sm:text-xs font-extrabold border ${statusCfg.badgeClass}`}
-                        >
-                          {statusCfg.label}
-                        </span>
-                      </div>
-
-                      {/* Compact Summary Bar */}
-                      <div className="p-2.5 sm:p-3.5 flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0 flex-1">
-                          {/* Thumbnail */}
-                          {firstItem?.product?.imageUrl ? (
-                            <img
-                              src={firstItem.product.imageUrl}
-                              alt={firstItem.namaProduk || firstItem.product?.nama || 'Produk'}
-                              className="w-11 h-11 sm:w-12 sm:h-12 rounded-lg object-cover border border-[#dce1d6] shrink-0 shadow-2xs group-hover:scale-105 transition duration-200"
-                            />
-                          ) : (
-                            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-lg bg-[#e2f2c8]/60 text-[#233414] flex items-center justify-center shrink-0 border border-[#c9e39e] text-base sm:text-lg font-bold shadow-2xs">
-                              🌾
-                            </div>
-                          )}
-
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <h4 className="text-xs sm:text-sm font-bold text-[#1a2610] truncate group-hover:text-[#344d15] transition">
-                                {firstItem?.namaProduk || firstItem?.product?.nama || 'Komoditas Pertanian'}
-                              </h4>
-                              {extraItemsCount > 0 && (
-                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-[#e2f2c8] text-[#233414] border border-[#c9e39e] shrink-0">
-                                  +{extraItemsCount} lainnya
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-[10px] sm:text-xs text-[#526046] mt-0.5 flex items-center gap-2 flex-wrap">
-                              <span>
-                                {firstItem?.quantity || 1} {firstItem?.satuan || firstItem?.product?.satuan || 'unit'}
-                              </span>
-                              {firstItem?.petani?.name && (
-                                <>
-                                  <span className="text-[#cfd6c9]">•</span>
-                                  <span className="text-[#233414] font-semibold truncate">
-                                    Mitra: {firstItem.petani.name}
-                                  </span>
-                                </>
-                              )}
-                            </div>
-                            {/* Mobile inline total */}
-                            <div className="sm:hidden text-xs font-black text-[#233414] mt-1 tabular-nums">
-                              Rp {Number(order.totalAmount).toLocaleString('id-ID')}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Right: Total Belanja (Desktop/Tablet) + Tombol "Batalkan" & "Lihat" */}
-                        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-                          <div className="hidden sm:block text-right">
-                            <span className="text-[10px] text-[#5b6950] font-medium block">Total Pembayaran</span>
-                            <span className="text-sm font-black text-[#233414] tracking-tight tabular-nums">
-                              Rp {Number(order.totalAmount).toLocaleString('id-ID')}
-                            </span>
-                          </div>
-
-                          {/* Tombol Batalkan hanya berlaku jika masih sebagai Pesanan Masuk */}
-                          {order.status === 'MENUNGGU_PEMBAYARAN' && (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setCancelTarget({
-                                  type: 'order',
-                                  id: order.id,
-                                  orderNumber: order.orderNumber,
-                                  title: firstItem?.namaProduk || firstItem?.product?.nama || 'Komoditas Pertanian',
-                                });
-                              }}
-                              className="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 transition cursor-pointer shrink-0 shadow-2xs hover:border-red-300 flex items-center gap-1"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                              <span>Batalkan</span>
-                            </button>
-                          )}
-
-                          <Link
-                            href={`/pesanan/${order.id}`}
-                            onClick={(e) => e.stopPropagation()}
-                            className="flex items-center gap-1 px-3 sm:px-4 py-1.5 rounded-lg text-xs font-bold text-white bg-[#233414] hover:bg-[#344d15] transition shadow-xs shrink-0"
-                          >
-                            <span>Lihat</span>
-                            <ChevronRight className="w-3.5 h-3.5 text-[#D4F63D]" />
-                          </Link>
-                        </div>
-                      </div>
-                    </div>
                   );
                 })}
               </div>
-            )}
+            </div>
+
+            {/* Right Column: Order Cards matching Gambar 1 */}
+            <div className="lg:col-span-8 xl:col-span-9 space-y-4 sm:space-y-5">
+              {isLoading ? (
+                <div className="py-20 flex flex-col items-center justify-center gap-3 text-[#526046]">
+                  <Loader2 className="w-8 h-8 text-[#233414] animate-spin" />
+                  <span className="text-xs font-semibold">Memuat riwayat transaksi dari sistem koperasi...</span>
+                </div>
+              ) : filteredOrders.length === 0 ? (
+                <div className="bg-white p-8 sm:p-14 rounded-3xl border border-neutral-200/90 text-center shadow-2xs">
+                  <div className="w-16 h-16 rounded-2xl bg-[#f4f5f1] border border-neutral-200 text-[#233414] flex items-center justify-center mx-auto mb-3">
+                    <Package className="w-8 h-8 stroke-1" />
+                  </div>
+                  <h3 className="text-base font-bold text-neutral-900">Tidak ada pesanan yang sesuai</h3>
+                  <p className="text-xs text-neutral-500 max-w-sm mx-auto mt-1 leading-relaxed">
+                    {searchQuery || activeFilter !== 'ALL'
+                      ? 'Coba ganti filter status atau kata kunci pencarian Anda untuk melihat transaksi lainnya.'
+                      : 'Anda belum memiliki transaksi pesanan komoditas di Koperasi Sinar Pagi Sejahtera.'}
+                  </p>
+                  <div className="mt-5 flex items-center justify-center gap-2.5">
+                    {(searchQuery || activeFilter !== 'ALL') && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearchQuery('');
+                          setActiveFilter('ALL');
+                        }}
+                        className="px-4 py-2 rounded-full bg-[#f4f5f1] hover:bg-[#EAEDE7] border border-[#cfd6c9] text-[#1a2610] text-xs font-bold transition cursor-pointer"
+                      >
+                        Reset Filter
+                      </button>
+                    )}
+                    <Link
+                      href="/toko"
+                      className="px-6 py-2.5 rounded-full bg-[#1a2610] hover:bg-[#233414] text-white text-xs font-bold shadow-xs transition"
+                    >
+                      Mulai Belanja di Toko
+                    </Link>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4 sm:space-y-5">
+                  {filteredOrders.map((order) => {
+                    const statusCfg = getStatusConfig(order.status);
+                    const formattedDate = new Date(order.createdAt).toLocaleDateString('id-ID', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                    });
+
+                    return (
+                      <div
+                        key={order.id}
+                        className="bg-white rounded-3xl border border-neutral-200/90 shadow-2xs hover:shadow-xs transition duration-200 overflow-hidden"
+                      >
+                        <div className="p-4 sm:p-7 space-y-3.5 sm:space-y-4">
+                          {/* Top Header Row: Order ID on left, Date & Status on right */}
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div>
+                              <span className="text-[10px] sm:text-[11px] font-medium text-neutral-400 block tracking-wide uppercase">
+                                No. Pesanan
+                              </span>
+                              <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5">
+                                <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#1a2610]" />
+                                <span className="text-sm sm:text-lg font-bold text-neutral-900 font-mono tracking-tight">
+                                  #{order.orderNumber}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 sm:gap-3">
+                              <span className="text-xs text-neutral-400 font-medium hidden sm:inline">
+                                Tanggal: {formattedDate}
+                              </span>
+                              <span className={`inline-flex items-center px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-[11px] sm:text-xs font-semibold border ${statusCfg.badgeClass}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${statusCfg.dotClass}`} />
+                                <span>{statusCfg.label}</span>
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Origin -> Destination Tracker Row */}
+                          <div className="flex items-center justify-between text-[11px] sm:text-xs text-neutral-700 bg-[#fafafa] p-2.5 sm:px-4 rounded-2xl border border-neutral-100 gap-2">
+                            <div className="flex items-center gap-1.5 font-medium text-neutral-800 shrink min-w-0">
+                              <Truck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#233414] shrink-0" />
+                              <span className="truncate">Gudang Koperasi</span>
+                            </div>
+
+                            <div className="flex-1 flex items-center justify-center overflow-hidden text-neutral-300 font-mono text-[10px] select-none px-1">
+                              <span className="truncate">••••••••••••••••••••••••</span>
+                              <span className="ml-1 text-neutral-400">▸</span>
+                            </div>
+
+                            <div className="flex items-center gap-1.5 font-medium text-neutral-800 shrink min-w-0 text-right justify-end">
+                              <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#233414] shrink-0" />
+                              <span className="truncate max-w-[130px] sm:max-w-none">
+                                {order.paymentMethod === 'CASH_KOPERASI' ? 'Kasir Koperasi (Ambil di Tempat)' : (order.shippingAddress || 'Alamat Penerima')}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Items List */}
+                          <div className="space-y-2 sm:space-y-2.5">
+                            {order.items?.map((item: any, idx: number) => {
+                              const itemImg = item.product?.imageUrl || 'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=400&q=80';
+                              const unitPrice = Number(item.hargaPerSatuan || 0);
+
+                              return (
+                                <div
+                                  key={item.id || idx}
+                                  className="flex items-center gap-3 sm:gap-4 p-2.5 sm:p-3.5 rounded-2xl bg-[#fafafa] border border-neutral-100"
+                                >
+                                  <div className="w-14 h-14 sm:w-18 sm:h-18 rounded-xl sm:rounded-2xl overflow-hidden bg-white border border-neutral-200/80 shrink-0">
+                                    <img
+                                      src={itemImg}
+                                      alt={item.namaProduk || item.product?.nama || 'Produk'}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  </div>
+
+                                  <div className="flex-1 min-w-0">
+                                    <h4 className="text-xs sm:text-base font-bold text-neutral-900 leading-snug truncate">
+                                      {item.namaProduk || item.product?.nama || 'Komoditas Pertanian'}
+                                    </h4>
+                                    <p className="text-xs sm:text-sm font-semibold text-neutral-800 mt-0.5 tabular-nums">
+                                      Rp {unitPrice.toLocaleString('id-ID')} <span className="text-neutral-400 font-normal">x{item.quantity || 1}</span>
+                                    </p>
+                                    <p className="text-[11px] sm:text-xs text-neutral-400 mt-0.5 truncate">
+                                      {item.satuan || item.product?.satuan || 'kg'} • {item.product?.kategori || 'Komoditas'} {item.petani?.name ? `• Petani: ${item.petani.name}` : ''}
+                                    </p>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Card Footer Row */}
+                        <div className="px-4 py-3 sm:px-7 sm:py-4 bg-[#fbfcf9] border-t border-neutral-100 flex items-center justify-between gap-3">
+                          <div className="text-xs sm:text-sm text-neutral-600">
+                            <span>Total Tagihan: </span>
+                            <span className="font-extrabold text-neutral-900 text-xs sm:text-base tabular-nums">
+                              Rp {Number(order.totalAmount).toLocaleString('id-ID')}
+                            </span>
+                            <span className="text-neutral-400 font-medium ml-1">
+                              ({order.items?.length || 1} produk)
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            {order.status === 'MENUNGGU_PEMBAYARAN' && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setCancelTarget({
+                                    type: 'order',
+                                    id: order.id,
+                                    orderNumber: order.orderNumber,
+                                    title: order.items?.[0]?.namaProduk || 'Pesanan',
+                                  });
+                                }}
+                                className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs font-semibold text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 transition cursor-pointer"
+                              >
+                                Batalkan
+                              </button>
+                            )}
+
+                            {order.status === 'SELESAI' && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenReviewModal(order.items?.[0]);
+                                }}
+                                className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs font-semibold text-[#233414] bg-[#e2f2c8] hover:bg-[#d4f63d] transition cursor-pointer border border-[#c9e39e]"
+                              >
+                                Beri Ulasan
+                              </button>
+                            )}
+
+                            <Link
+                              href={`/pesanan/${order.id}`}
+                              className="px-4 py-2 sm:px-6 sm:py-2 rounded-full bg-[#1a2610] hover:bg-[#233414] text-white text-xs font-bold transition shadow-xs cursor-pointer inline-flex items-center gap-1.5"
+                            >
+                              <span>Lihat Detail</span>
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         ) : (
-          /* TAB 2: PENGAJUAN SEWA ALAT */
-          <div className="space-y-2.5 sm:space-y-4">
-            {/* Status Filter Tabs Sewa Alat */}
-            <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 no-scrollbar text-[10px] sm:text-xs font-medium sm:font-semibold">
-              {RENTAL_STATUS_FILTERS.map((tab) => {
-                const isActive = rentalActiveFilter === tab.key;
-                return (
-                  <button
-                    key={tab.key}
-                    type="button"
-                    onClick={() => setRentalActiveFilter(tab.key)}
-                    className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition cursor-pointer shadow-2xs shrink-0 flex items-center gap-1.5 border ${
-                      isActive
-                        ? 'bg-[#233414] border-[#233414] text-white font-bold shadow-xs'
-                        : 'bg-white border-[#dce1d6] hover:bg-[#EAEDE7] text-[#526046] hover:text-[#1a2610]'
-                    }`}
-                  >
-                    <span>{tab.label}</span>
-                    {tab.key === 'DIBATALKAN' && rentalStats.dibatalkanCount > 0 && (
+          /* TAB 2: PENGAJUAN SEWA ALAT (2-Column Layout matching Gambar 1) */
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+            {/* Left Column: Filter Sidebar Pills for Rental */}
+            <div className="lg:col-span-4 xl:col-span-3 lg:sticky lg:top-24 space-y-2.5">
+              <div className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0 no-scrollbar">
+                {[
+                  { key: 'ALL', label: 'Semua Pengajuan', count: rentalStats.total },
+                  { key: 'MENUNGGU_PERSETUJUAN_ADMIN', label: 'Menunggu Persetujuan', count: rentalStats.pendingCount },
+                  { key: 'DISETUJUI', label: 'Disetujui', count: rentalStats.disetujuiCount },
+                  { key: 'SIAP_DIAMBIL', label: 'Siap Diambil', count: rentalStats.siapCount },
+                  { key: 'SEDANG_DISEWA', label: 'Sedang Disewa', count: rentalStats.aktifCount },
+                  { key: 'SELESAI', label: 'Selesai', count: rentalStats.selesaiCount },
+                  { key: 'DIBATALKAN', label: 'Dibatalkan', count: rentalStats.dibatalkanCount },
+                  { key: 'DITOLAK', label: 'Ditolak', count: rentalStats.ditolakCount },
+                ].map((tab) => {
+                  const isActive = rentalActiveFilter === tab.key;
+                  return (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      onClick={() => setRentalActiveFilter(tab.key)}
+                      className={`w-full flex items-center justify-between px-5 py-3.5 rounded-full text-xs sm:text-sm font-semibold transition cursor-pointer shrink-0 lg:shrink whitespace-nowrap lg:whitespace-normal ${
+                        isActive
+                          ? 'bg-[#1a2610] text-white shadow-xs'
+                          : 'bg-white text-neutral-700 hover:bg-neutral-50 border border-neutral-200/90 hover:border-neutral-300'
+                      }`}
+                    >
+                      <span>{tab.label}</span>
                       <span
-                        className={`px-1.5 py-0.2 rounded-full text-[9px] font-black tabular-nums ${
-                          isActive ? 'bg-white/20 text-white' : 'bg-red-100 text-red-700'
+                        className={`w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center shrink-0 ml-3 tabular-nums ${
+                          isActive
+                            ? 'bg-white text-[#1a2610]'
+                            : 'bg-neutral-100 text-neutral-600'
                         }`}
                       >
-                        {rentalStats.dibatalkanCount}
+                        {tab.count}
                       </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* List Pengajuan Sewa Alat */}
-            {isRentalLoading ? (
-              <div className="py-20 flex flex-col items-center justify-center gap-3 text-[#526046]">
-                <Loader2 className="w-8 h-8 text-[#233414] animate-spin" />
-                <span className="text-xs font-semibold">Memuat riwayat pengajuan sewa alat pertanian...</span>
-              </div>
-            ) : filteredRentals.length === 0 ? (
-              <div className="bg-white p-10 sm:p-12 rounded-2xl sm:rounded-3xl border border-[#dce1d6] text-center shadow-2xs">
-                <div className="w-16 h-16 rounded-2xl bg-[#f4f5f1] border border-[#dce1d6] text-[#233414] flex items-center justify-center mx-auto mb-3">
-                  <Tractor className="w-8 h-8 stroke-1 text-[#233414]" />
-                </div>
-                <h3 className="text-base font-bold text-[#1a2610]">Belum ada pengajuan sewa alat</h3>
-                <p className="text-xs text-[#526046] max-w-sm mx-auto mt-1 leading-relaxed">
-                  {rentalSearchQuery || rentalActiveFilter !== 'ALL'
-                    ? 'Tidak ditemukan pengajuan sewa alat dengan filter yang dipilih.'
-                    : 'Anda belum mengajukan sewa alat mesin pertanian di Koperasi Sinar Pagi Sejahtera.'}
-                </p>
-                <div className="mt-5 flex items-center justify-center gap-2.5">
-                  {(rentalSearchQuery || rentalActiveFilter !== 'ALL') && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setRentalSearchQuery('');
-                        setRentalActiveFilter('ALL');
-                      }}
-                      className="px-4 py-2 rounded-xl bg-[#f4f5f1] hover:bg-[#EAEDE7] border border-[#cfd6c9] text-[#1a2610] text-xs font-bold transition cursor-pointer"
-                    >
-                      Reset Filter
                     </button>
-                  )}
-                  <Link
-                    href="/sewa-alat"
-                    className="px-5 py-2 rounded-xl bg-[#233414] hover:bg-[#344d15] text-white text-xs font-bold shadow-xs transition"
-                  >
-                    Buka Katalog Sewa Alat
-                  </Link>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-2.5 sm:space-y-3">
-                {filteredRentals.map((rental) => {
-                  const statusCfg = getRentalStatusConfig(rental.status);
-                  const firstItem = rental.items?.[0] || {};
-                  const extraItemsCount = (rental.items?.length || 1) - 1;
-                  const firstItemName = firstItem.nama || firstItem.equipmentName || 'Alat Pertanian';
-                  const firstItemQty = Number(firstItem.jumlahUnit || firstItem.quantity) || 1;
-                  const firstItemDuration = Number(firstItem.durasi || firstItem.rentalDays || rental.durationDays || rental.durasi) || 1;
-                  const firstItemUnit = firstItem.satuanSewa || 'hari';
-
-                  return (
-                    <div
-                      key={rental.id}
-                      onClick={() => router.push(`/pesanan/${rental.id}?type=sewa`)}
-                      className="bg-white rounded-xl sm:rounded-2xl border border-[#dce1d6] shadow-2xs overflow-hidden hover:border-[#344d15] hover:shadow-xs transition duration-200 cursor-pointer group"
-                    >
-                      {/* Header Kartu: Traktor, Tanggal, Kode Sewa, Status */}
-                      <div className="p-2.5 sm:p-3.5 border-b border-[#dce1d6]/80 bg-[#f4f5f1]/70 flex flex-wrap items-center justify-between gap-2 text-xs">
-                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                          <div className="flex items-center gap-1.5 font-bold text-[#1a2610] text-[11px] sm:text-xs">
-                            <Tractor className="w-3.5 h-3.5 text-[#233414]" />
-                            <span>Koperasi Sinar Pagi Sejahtera</span>
-                          </div>
-                          <span className="text-[#cfd6c9] hidden sm:inline">•</span>
-                          <div className="text-[#526046] text-[10px] sm:text-[11px] flex items-center gap-1">
-                            <Calendar className="w-3.5 h-3.5 text-[#5b6950]" />
-                            <span>
-                              {new Date(rental.createdAt).toLocaleDateString('id-ID', {
-                                day: 'numeric',
-                                month: 'short',
-                                year: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
-                            </span>
-                          </div>
-                          <span className="text-[#cfd6c9] hidden sm:inline">•</span>
-                          <span className="font-mono text-[10px] sm:text-[11px] text-[#233414] font-bold">
-                            #{rental.rentalCode || rental.rentalNumber || rental.id}
-                          </span>
-                        </div>
-
-                        <span
-                          className={`px-2.5 py-0.5 rounded-lg text-[10px] sm:text-xs font-extrabold border ${statusCfg.badgeClass}`}
-                        >
-                          {statusCfg.label}
-                        </span>
-                      </div>
-
-                      {/* Compact Summary Bar */}
-                      <div className="p-2.5 sm:p-3.5 flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0 flex-1">
-                          {/* Thumbnail Alat */}
-                          {firstItem.imageUrl ? (
-                            <img
-                              src={firstItem.imageUrl}
-                              alt={firstItemName}
-                              className="w-11 h-11 sm:w-12 sm:h-12 rounded-lg object-cover border border-[#dce1d6] shrink-0 shadow-2xs group-hover:scale-105 transition duration-200"
-                            />
-                          ) : (
-                            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-lg bg-[#e2f2c8]/60 text-[#233414] flex items-center justify-center shrink-0 border border-[#c9e39e] text-base sm:text-lg font-bold shadow-2xs">
-                              🚜
-                            </div>
-                          )}
-
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <h4 className="text-xs sm:text-sm font-bold text-[#1a2610] truncate group-hover:text-[#344d15] transition">
-                                {firstItemName}
-                              </h4>
-                              {extraItemsCount > 0 && (
-                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-[#e2f2c8] text-[#233414] border border-[#c9e39e] shrink-0">
-                                  +{extraItemsCount} alat lainnya
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-[10px] sm:text-xs text-[#526046] mt-0.5 flex items-center gap-2 flex-wrap">
-                              <span>
-                                {firstItemQty} unit • {firstItemDuration} {firstItemUnit}
-                              </span>
-                              <span className="text-[#cfd6c9]">•</span>
-                              <span className="text-[#233414] font-semibold truncate">
-                                Mulai: {rental.startDate}
-                              </span>
-                            </div>
-                            {/* Mobile inline total */}
-                            <div className="sm:hidden text-xs font-black text-[#233414] mt-1 tabular-nums">
-                              Rp {Number(rental.totalEstimasi ?? rental.totalAmount ?? 0).toLocaleString('id-ID')}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Right: Total Biaya Sewa + Tombol "Batalkan" & "Lihat" */}
-                        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-                          <div className="hidden sm:block text-right">
-                            <span className="text-[10px] text-[#5b6950] font-medium block">Total Biaya Sewa</span>
-                            <span className="text-sm font-black text-[#233414] tracking-tight tabular-nums">
-                              Rp {Number(rental.totalEstimasi ?? rental.totalAmount ?? 0).toLocaleString('id-ID')}
-                            </span>
-                          </div>
-
-                          {rental.status === 'MENUNGGU_PERSETUJUAN_ADMIN' && (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setCancelTarget({
-                                  type: 'rental',
-                                  id: rental.id,
-                                  orderNumber: rental.rentalCode || rental.rentalNumber,
-                                  title: firstItemName || 'Alat Pertanian',
-                                });
-                              }}
-                              className="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 transition cursor-pointer shrink-0 shadow-2xs hover:border-red-300 flex items-center gap-1"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                              <span>Batalkan</span>
-                            </button>
-                          )}
-
-                          <Link
-                            href={`/pesanan/${rental.id}?type=sewa`}
-                            onClick={(e) => e.stopPropagation()}
-                            className="flex items-center gap-1 px-3 sm:px-4 py-1.5 rounded-lg text-xs font-bold text-white bg-[#233414] hover:bg-[#344d15] transition shadow-xs shrink-0"
-                          >
-                            <span>Lihat</span>
-                            <ChevronRight className="w-3.5 h-3.5 text-[#D4F63D]" />
-                          </Link>
-                        </div>
-                      </div>
-                    </div>
                   );
                 })}
               </div>
-            )}
+            </div>
+
+            {/* Right Column: Rental Cards */}
+            <div className="lg:col-span-8 xl:col-span-9 space-y-5">
+              {isRentalLoading ? (
+                <div className="py-20 flex flex-col items-center justify-center gap-3 text-[#526046]">
+                  <Loader2 className="w-8 h-8 text-[#233414] animate-spin" />
+                  <span className="text-xs font-semibold">Memuat riwayat pengajuan sewa alat pertanian...</span>
+                </div>
+              ) : filteredRentals.length === 0 ? (
+                <div className="bg-white p-10 sm:p-14 rounded-3xl border border-neutral-200/90 text-center shadow-2xs">
+                  <div className="w-16 h-16 rounded-2xl bg-[#f4f5f1] border border-neutral-200 text-[#233414] flex items-center justify-center mx-auto mb-3">
+                    <Tractor className="w-8 h-8 stroke-1 text-[#233414]" />
+                  </div>
+                  <h3 className="text-base font-bold text-neutral-900">Belum ada pengajuan sewa alat</h3>
+                  <p className="text-xs text-neutral-500 max-w-sm mx-auto mt-1 leading-relaxed">
+                    {rentalSearchQuery || rentalActiveFilter !== 'ALL'
+                      ? 'Tidak ditemukan pengajuan sewa alat dengan filter yang dipilih.'
+                      : 'Anda belum mengajukan sewa alat mesin pertanian di Koperasi Sinar Pagi Sejahtera.'}
+                  </p>
+                  <div className="mt-5 flex items-center justify-center gap-2.5">
+                    {(rentalSearchQuery || rentalActiveFilter !== 'ALL') && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRentalSearchQuery('');
+                          setRentalActiveFilter('ALL');
+                        }}
+                        className="px-4 py-2 rounded-full bg-[#f4f5f1] hover:bg-[#EAEDE7] border border-[#cfd6c9] text-[#1a2610] text-xs font-bold transition cursor-pointer"
+                      >
+                        Reset Filter
+                      </button>
+                    )}
+                    <Link
+                      href="/sewa-alat"
+                      className="px-6 py-2.5 rounded-full bg-[#1a2610] hover:bg-[#233414] text-white text-xs font-bold shadow-xs transition"
+                    >
+                      Buka Katalog Sewa Alat
+                    </Link>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-5">
+                  {filteredRentals.map((rental) => {
+                    const statusCfg = getRentalStatusConfig(rental.status);
+                    const formattedDate = new Date(rental.createdAt).toLocaleDateString('id-ID', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                    });
+
+                    return (
+                      <div
+                        key={rental.id}
+                        className="bg-white rounded-3xl border border-neutral-200/90 shadow-2xs hover:shadow-xs transition duration-200 overflow-hidden"
+                      >
+                        <div className="p-5 sm:p-7 space-y-4">
+                          {/* Top Header Row */}
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <span className="text-[11px] font-medium text-neutral-400 block tracking-wide uppercase">
+                                No. Pengajuan Sewa
+                              </span>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <Tractor className="w-4 h-4 text-[#1a2610]" />
+                                <span className="text-base sm:text-lg font-bold text-neutral-900 font-mono tracking-tight">
+                                  #{rental.rentalCode || rental.rentalNumber || rental.id}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                              <span className="text-xs text-neutral-400 font-medium hidden sm:inline">
+                                Tanggal: {formattedDate}
+                              </span>
+                              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${statusCfg.badgeClass}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${statusCfg.dotClass}`} />
+                                <span>{statusCfg.label}</span>
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Origin -> Destination Tracker Row */}
+                          <div className="flex items-center justify-between text-xs sm:text-[13px] text-neutral-700 bg-[#fafafa] p-3 sm:px-4 rounded-2xl border border-neutral-100">
+                            <div className="flex items-center gap-2 font-medium text-neutral-800 shrink-0">
+                              <Store className="w-4 h-4 text-[#233414]" />
+                              <span>Gudang Alsintan Koperasi</span>
+                            </div>
+
+                            <div className="flex-1 mx-3 flex items-center justify-center overflow-hidden text-neutral-300 font-mono text-xs select-none">
+                              <span className="truncate">••••••••••••••••••••••••••••••••••••••</span>
+                              <span className="ml-1">▸</span>
+                            </div>
+
+                            <div className="flex items-center gap-1.5 font-medium text-neutral-800 shrink-0 text-right">
+                              <MapPin className="w-4 h-4 text-[#233414]" />
+                              <span>{rental.lokasiLahan || rental.farmLocationAddress || rental.location || 'Lokasi Lahan Anggota'}</span>
+                            </div>
+                          </div>
+
+                          {/* Rental Items List */}
+                          <div className="space-y-2.5">
+                            {rental.items?.map((item: any, idx: number) => {
+                              const itemImg = item.imageUrl || 'https://picsum.photos/seed/sewa-alat-koperasi/300/300';
+                              const name = item.nama || item.equipmentName || 'Alat Pertanian';
+                              const qty = item.jumlahUnit || item.quantity || 1;
+                              const durasi = item.durasi || item.rentalDays || rental.durationDays || rental.durasi || 1;
+                              const satuan = item.satuanSewa || 'hari';
+                              const harga = Number(item.hargaSewa || 0);
+
+                              return (
+                                <div
+                                  key={item.id || idx}
+                                  className="flex items-center gap-3.5 sm:gap-4 p-3 sm:p-3.5 rounded-2xl bg-[#fafafa] border border-neutral-100"
+                                >
+                                  <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl overflow-hidden bg-white border border-neutral-200/80 shrink-0">
+                                    <img
+                                      src={itemImg}
+                                      alt={name}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  </div>
+
+                                  <div className="flex-1 min-w-0">
+                                    <h4 className="text-sm sm:text-base font-bold text-neutral-900 leading-snug truncate">
+                                      {name}
+                                    </h4>
+                                    <p className="text-xs sm:text-sm font-semibold text-neutral-800 mt-0.5 tabular-nums">
+                                      Rp {harga.toLocaleString('id-ID')}/{satuan} <span className="text-neutral-400 font-normal">x{qty} unit</span>
+                                    </p>
+                                    <p className="text-xs text-neutral-400 mt-0.5 truncate">
+                                      Durasi: {durasi} {satuan} • Mulai: {rental.startDate} {item.includeOperator ? '• Termasuk Operator' : ''}
+                                    </p>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Card Footer Row */}
+                        <div className="px-5 sm:px-7 py-3.5 sm:py-4 bg-[#fbfcf9] border-t border-neutral-100 flex items-center justify-between gap-4">
+                          <div className="text-xs sm:text-sm text-neutral-600">
+                            <span>Total Biaya Sewa: </span>
+                            <span className="font-extrabold text-neutral-900 text-sm sm:text-base tabular-nums">
+                              Rp {Number(rental.totalEstimasi ?? rental.totalAmount ?? 0).toLocaleString('id-ID')}
+                            </span>
+                            <span className="text-neutral-400 font-medium ml-1.5">
+                              ({rental.items?.length || 1} unit)
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            {rental.status === 'MENUNGGU_PERSETUJUAN_ADMIN' && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setCancelTarget({
+                                    type: 'rental',
+                                    id: rental.id,
+                                    orderNumber: rental.rentalCode || rental.rentalNumber,
+                                    title: rental.items?.[0]?.nama || 'Pengajuan Sewa',
+                                  });
+                                }}
+                                className="px-4 py-2 rounded-full text-xs font-semibold text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 transition cursor-pointer"
+                              >
+                                Batalkan
+                              </button>
+                            )}
+
+                            <Link
+                              href={`/pesanan/${rental.id}?type=sewa`}
+                              className="px-6 py-2 rounded-full bg-[#1a2610] hover:bg-[#233414] text-white text-xs font-bold transition shadow-xs cursor-pointer inline-flex items-center gap-1.5"
+                            >
+                              <span>Lihat Detail</span>
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </main>

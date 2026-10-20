@@ -14,7 +14,6 @@ import {
   ArrowRight,
   Loader2,
   X,
-  ShieldCheck,
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
@@ -138,45 +137,9 @@ function CartContent() {
     );
   }, [cartItems]);
 
-  // Voucher / Promo State
-  const [voucherCode, setVoucherCode] = useState('');
-  const [appliedVoucher, setAppliedVoucher] = useState<string | null>(null);
-
-  const handleApplyVoucher = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!voucherCode.trim()) {
-      showToast({
-        title: 'Kode Voucher Kosong',
-        message: 'Silakan masukkan kode voucher diskon Anda.',
-        type: 'info',
-      });
-      return;
-    }
-    const code = voucherCode.trim().toUpperCase();
-    if (code === 'PANENHEMAT' || code === 'KOPERASI' || code === 'DISKON10') {
-      setAppliedVoucher(code);
-      showToast({
-        title: 'Voucher Berhasil Diterapkan!',
-        message: 'Potongan diskon 10% telah diaplikasikan ke pesanan Anda.',
-        type: 'success',
-      });
-    } else {
-      showToast({
-        title: 'Voucher Tidak Valid',
-        message: 'Kode voucher tidak ditemukan atau sudah tidak berlaku.',
-        type: 'error',
-      });
-    }
-  };
-
-  const discountAmount = useMemo(() => {
-    if (!appliedVoucher) return 0;
-    return Math.round(subtotalAmount * 0.1);
-  }, [appliedVoucher, subtotalAmount]);
-
   const finalTotalAmount = useMemo(() => {
-    return Math.max(0, subtotalAmount - discountAmount);
-  }, [subtotalAmount, discountAmount]);
+    return subtotalAmount;
+  }, [subtotalAmount]);
 
   // ==========================================
   // 2. STATE & HANDLERS: SEWA ALAT PERTANIAN
@@ -423,12 +386,12 @@ function CartContent() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
               {/* Left Column: Table of Cart Items (Gambar 2 Style) */}
               <div className="lg:col-span-8 bg-white rounded-3xl border border-[#EAEDE7] sm:border-[#dce1d6] p-4 sm:p-6 lg:p-8 shadow-2xs">
-                {/* Table Header Row (Gambar 2 Style: Product Code / Quantity / Total / Action) */}
+                {/* Table Header Row */}
                 <div className="hidden sm:grid grid-cols-12 gap-4 pb-4 border-b border-[#EAEDE7] text-xs font-bold text-[#526046] uppercase tracking-wider">
-                  <div className="col-span-6">Product Code</div>
-                  <div className="col-span-3 text-center">Quantity</div>
+                  <div className="col-span-6">Produk</div>
+                  <div className="col-span-3 text-center">Kuantitas</div>
                   <div className="col-span-2 text-right">Total</div>
-                  <div className="col-span-1 text-right">Action</div>
+                  <div className="col-span-1 text-right">Aksi</div>
                 </div>
 
                 <div className="divide-y divide-[#EAEDE7]">
@@ -592,63 +555,26 @@ function CartContent() {
                 </div>
               </div>
 
-              {/* Right Column: Order Summary Card (Gambar 2 Exact Match) */}
+              {/* Right Column: Ringkasan Belanja */}
               <div className="lg:col-span-4 lg:sticky lg:top-24">
                 <div className="bg-white rounded-3xl border border-[#EAEDE7] sm:border-[#dce1d6] p-5 sm:p-6 lg:p-7 shadow-2xs space-y-5">
                   <h2 className="text-base sm:text-lg font-bold text-[#1a2610] tracking-tight">
-                    Order Summary
+                    Ringkasan Belanja
                   </h2>
 
-                  {/* Discount Voucher Input (Gambar 2 style) */}
-                  <form onSubmit={handleApplyVoucher} className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={voucherCode}
-                      onChange={(e) => setVoucherCode(e.target.value)}
-                      placeholder="Discount voucher"
-                      className="flex-1 h-11 px-4 text-xs sm:text-sm rounded-full border border-[#cfd6c9] bg-[#fbfcf9] text-[#1a2610] placeholder:text-[#83917d] focus:outline-none focus:border-[#233414] focus:ring-1 focus:ring-[#233414] transition"
-                    />
-                    <button
-                      type="submit"
-                      className="h-11 px-5 rounded-full border border-[#1a2610] bg-white hover:bg-[#1a2610] hover:text-white text-[#1a2610] text-xs font-bold transition cursor-pointer shrink-0"
-                    >
-                      Apply
-                    </button>
-                  </form>
-
-                  {appliedVoucher && (
-                    <div className="flex items-center justify-between text-xs bg-[#e2f2c8]/60 text-[#344d15] px-3.5 py-2 rounded-xl border border-[#c4e095]">
-                      <span className="font-semibold">Voucher &quot;{appliedVoucher}&quot; Aktif</span>
-                      <button
-                        type="button"
-                        onClick={() => setAppliedVoucher(null)}
-                        className="font-bold hover:underline cursor-pointer"
-                      >
-                        Hapus
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Price Breakdown */}
+                  {/* Rincian Biaya */}
                   <div className="space-y-3 pt-2 text-xs sm:text-[13px] border-t border-[#EAEDE7]">
                     <div className="flex justify-between text-[#526046]">
-                      <span>Sub Total</span>
+                      <span>Subtotal</span>
                       <span className="font-semibold text-[#1a2610] tabular-nums">
                         Rp {subtotalAmount.toLocaleString('id-ID')}
                       </span>
                     </div>
 
                     <div className="flex justify-between text-[#526046]">
-                      <span>Discount {appliedVoucher ? '(10%)' : ''}</span>
-                      <span className={`font-semibold tabular-nums ${appliedVoucher ? 'text-[#344d15]' : 'text-[#83917d]'}`}>
-                        {appliedVoucher ? `-Rp ${discountAmount.toLocaleString('id-ID')}` : '-'}
-                      </span>
-                    </div>
-
-                    <div className="flex justify-between text-[#526046]">
-                      <span>Delivery fee</span>
+                      <span>Biaya Layanan</span>
                       <span className="font-semibold text-[#344d15]">
-                        Rp 0 (Ambil di Kasir)
+                        Gratis (Rp 0 - Ambil di Kasir)
                       </span>
                     </div>
 
@@ -660,23 +586,15 @@ function CartContent() {
                     </div>
                   </div>
 
-                  {/* Total */}
+                  {/* Total Tagihan */}
                   <div className="border-t border-[#EAEDE7] pt-4 flex items-baseline justify-between">
-                    <span className="text-sm sm:text-base font-bold text-[#1a2610]">Total</span>
+                    <span className="text-sm sm:text-base font-bold text-[#1a2610]">Total Tagihan</span>
                     <span className="text-xl sm:text-2xl font-black text-[#1a2610] tabular-nums">
                       Rp {finalTotalAmount.toLocaleString('id-ID')}
                     </span>
                   </div>
 
-                  {/* Warranty / Guarantee note with check icon (Gambar 2 style) */}
-                  <div className="flex items-start gap-2.5 p-3 rounded-2xl bg-[#f4f5f1] border border-[#EAEDE7] text-xs text-[#526046]">
-                    <ShieldCheck className="w-4 h-4 text-[#344d15] shrink-0 mt-0.5" />
-                    <p className="leading-relaxed">
-                      <strong className="text-[#1a2610] font-semibold">Jaminan Kualitas Komoditas</strong> langsung dipetik dari petani binaan resmi Koperasi Sinar Pagi Sejahtera.
-                    </p>
-                  </div>
-
-                  {/* Checkout Now Pill Button (Gambar 2 style) */}
+                  {/* Tombol Lanjut ke Checkout */}
                   <button
                     type="button"
                     onClick={() => {
@@ -688,7 +606,7 @@ function CartContent() {
                     }}
                     className="w-full h-12 sm:h-14 bg-[#1a2610] hover:bg-[#233414] text-white rounded-full font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition cursor-pointer shadow-sm active:scale-[0.99]"
                   >
-                    <span>Checkout Now</span>
+                    <span>Lanjut ke Checkout</span>
                   </button>
                 </div>
               </div>
@@ -722,10 +640,10 @@ function CartContent() {
               <div className="lg:col-span-8 bg-white rounded-3xl border border-[#EAEDE7] sm:border-[#dce1d6] p-4 sm:p-6 lg:p-8 shadow-2xs">
                 {/* Table Header Row */}
                 <div className="hidden sm:grid grid-cols-12 gap-4 pb-4 border-b border-[#EAEDE7] text-xs font-bold text-[#526046] uppercase tracking-wider">
-                  <div className="col-span-5">Product Code</div>
-                  <div className="col-span-4 text-center">Quantity &amp; Durasi</div>
-                  <div className="col-span-2 text-right">Total</div>
-                  <div className="col-span-1 text-right">Action</div>
+                  <div className="col-span-5">Alat Pertanian</div>
+                  <div className="col-span-4 text-center">Unit &amp; Durasi</div>
+                  <div className="col-span-2 text-right">Total Biaya</div>
+                  <div className="col-span-1 text-right">Aksi</div>
                 </div>
 
                 <div className="divide-y divide-[#EAEDE7]">
@@ -935,11 +853,11 @@ function CartContent() {
                 </div>
               </div>
 
-              {/* Right Column / Order Summary Sheet for Rental */}
+              {/* Right Column / Ringkasan Sewa Alat */}
               <div className="lg:col-span-4 lg:sticky lg:top-24">
                 <div className="bg-white rounded-3xl border border-[#EAEDE7] sm:border-[#dce1d6] p-5 sm:p-6 lg:p-7 shadow-2xs space-y-5">
                   <h2 className="text-base sm:text-lg font-bold text-[#1a2610] tracking-tight">
-                    Order Summary
+                    Ringkasan Sewa Alat
                   </h2>
 
                   <div className="space-y-3 text-xs sm:text-[13px]">
@@ -966,17 +884,10 @@ function CartContent() {
                   </div>
 
                   <div className="border-t border-[#EAEDE7] pt-4 flex items-baseline justify-between">
-                    <span className="text-sm sm:text-base font-bold text-[#1a2610]">Total</span>
+                    <span className="text-sm sm:text-base font-bold text-[#1a2610]">Total Estimasi Biaya</span>
                     <span className="text-xl sm:text-2xl font-black text-[#1a2610] tabular-nums">
                       Rp {totalRentalAmount.toLocaleString('id-ID')}
                     </span>
-                  </div>
-
-                  <div className="flex items-start gap-2.5 p-3 rounded-2xl bg-[#f4f5f1] border border-[#EAEDE7] text-xs text-[#526046]">
-                    <ShieldCheck className="w-4 h-4 text-[#344d15] shrink-0 mt-0.5" />
-                    <p className="leading-relaxed">
-                      <strong className="text-[#1a2610] font-semibold">Alat Siap Operasional</strong> lolos uji mekanik dan garansi pendampingan operasional oleh dinas koperasi.
-                    </p>
                   </div>
 
                   <button
@@ -990,7 +901,7 @@ function CartContent() {
                     }}
                     className="w-full h-12 sm:h-14 bg-[#1a2610] hover:bg-[#233414] text-white rounded-full font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition cursor-pointer shadow-sm active:scale-[0.99]"
                   >
-                    <span>Checkout Now</span>
+                    <span>Lanjut ke Checkout Sewa</span>
                   </button>
                 </div>
               </div>
