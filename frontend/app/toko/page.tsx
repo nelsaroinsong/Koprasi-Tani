@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import AppHeader from '@/components/AppHeader';
 import {
   ShoppingBag,
@@ -11,6 +11,8 @@ import {
   X,
   Store,
   ArrowUpRight,
+  SlidersHorizontal,
+  CheckCircle2,
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
@@ -72,10 +74,11 @@ let cachedTokoCatalog: {
   timestamp: number;
 } | null = null;
 
-export default function TokoOnlinePage() {
+function TokoOnlineContent() {
   const { user, isLoading: authLoading } = useAuth();
   const { showToast } = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const isPetani = user?.role === 'PETANI';
 
   // Dynamic Categories State from Admin
@@ -135,8 +138,34 @@ export default function TokoOnlinePage() {
 
   // Filter & Search States
   const [selectedKategori, setSelectedKategori] = useState('SEMUA');
+  const [onlyAvailable, setOnlyAvailable] = useState(false);
+  const [minPrice, setMinPrice] = useState(5000);
+  const [maxPrice, setMaxPrice] = useState(250000);
+  const [sortBy, setSortBy] = useState('default');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  // Sync filter states from URL search params
+  useEffect(() => {
+    const kat = searchParams.get('kategori') || 'SEMUA';
+    setSelectedKategori(kat);
+    setOnlyAvailable(searchParams.get('onlyAvailable') === 'true');
+
+    const minP = Number(searchParams.get('minPrice'));
+    setMinPrice(!isNaN(minP) && minP >= 5000 ? minP : 5000);
+
+    const maxP = Number(searchParams.get('maxPrice'));
+    setMaxPrice(!isNaN(maxP) && maxP <= 250000 && maxP >= 5000 ? maxP : 250000);
+
+    setSortBy(searchParams.get('sortBy') || 'default');
+  }, [searchParams]);
+
+  const hasActiveFilters =
+    selectedKategori !== 'SEMUA' ||
+    onlyAvailable ||
+    minPrice > 5000 ||
+    maxPrice < 250000 ||
+    sortBy !== 'default';
 
   // Products & Pagination State
   const [products, setProducts] = useState<any[]>(() =>
@@ -360,6 +389,32 @@ export default function TokoOnlinePage() {
     [products]
   );
 
+  // Filter & Urutan Komprehensif Produk
+  const displayedProducts = useMemo(() => {
+    let list = [...products];
+
+    if (onlyAvailable) {
+      list = list.filter((p) => p.isTersedia && Number(p.stok || 0) > 0);
+    }
+
+    if (minPrice > 5000 || maxPrice < 250000) {
+      list = list.filter((p) => {
+        const price = Number(p.hargaPerSatuan) || 0;
+        return price >= minPrice && (maxPrice >= 250000 || price <= maxPrice);
+      });
+    }
+
+    if (sortBy === 'termurah') {
+      list.sort((a, b) => (Number(a.hargaPerSatuan) || 0) - (Number(b.hargaPerSatuan) || 0));
+    } else if (sortBy === 'termahal') {
+      list.sort((a, b) => (Number(b.hargaPerSatuan) || 0) - (Number(a.hargaPerSatuan) || 0));
+    } else if (sortBy === 'terbaru') {
+      list.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+    }
+
+    return list;
+  }, [products, onlyAvailable, minPrice, maxPrice, sortBy]);
+
   if (authLoading || !user || !user.isOnboarded || (user.role === 'PETANI' && !user.isVerified)) {
     return (
       <div className="min-h-screen bg-[#f4f5f1] flex items-center justify-center font-sans">
@@ -402,22 +457,55 @@ export default function TokoOnlinePage() {
           </div>
         </div>
 
-        {/* Category Section - Mobile Mode (matching Gambar 3: Title + "Lihat semua", Clean Rounded Cards without green bg) */}
+        {/* Category Section - Mobile Mode (UI seperti Toko dengan Image Generate 3D & Filter Icon di Paling Kiri) */}
         <div className="mb-6 md:hidden">
-          <div className="flex items-center justify-between mb-3 px-1">
+          <div className="mb-3 px-1">
             <h2 className="text-sm font-bold text-[#1a2610] tracking-tight">
               Kategori Komoditas
             </h2>
-            <button
-              type="button"
-              onClick={() => setSelectedKategori('SEMUA')}
-              className="text-xs font-semibold text-[#344d15] hover:text-[#1a2610] transition-colors cursor-pointer"
-            >
-              Lihat semua
-            </button>
           </div>
 
           <div className="flex items-start gap-2.5 overflow-x-auto pb-2 no-scrollbar px-1">
+            {/* 1. Tombol Filter Mode Mobile: Di Paling Kiri, Icon Saja (Membuka /toko/filter) */}
+            <button
+              type="button"
+              onClick={() => {
+                const p = new URLSearchParams();
+                if (selectedKategori && selectedKategori !== 'SEMUA') p.set('kategori', selectedKategori);
+                if (onlyAvailable) p.set('onlyAvailable', 'true');
+                if (minPrice && minPrice > 5000) p.set('minPrice', String(minPrice));
+                if (maxPrice && maxPrice < 250000) p.set('maxPrice', String(maxPrice));
+                if (sortBy && sortBy !== 'default') p.set('sortBy', sortBy);
+                router.push(`/toko/filter?${p.toString()}`);
+              }}
+              className="flex flex-col items-center group shrink-0 focus:outline-none cursor-pointer"
+              aria-label="Filter Komoditas"
+              title="Buka Filter Komoditas"
+            >
+              <div
+                className={`w-15 h-15 rounded-2xl p-1.5 flex items-center justify-center transition-all relative ${
+                  hasActiveFilters
+                    ? 'bg-[#1a2610] text-[#D4F63D] border-2 border-[#1a2610] shadow-xs'
+                    : 'bg-white hover:bg-[#EAEDE7] border border-[#dce1d6] text-[#233414] shadow-2xs'
+                }`}
+              >
+                <SlidersHorizontal className="w-5.5 h-5.5" />
+                {hasActiveFilters && (
+                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[#D4F63D] border-2 border-white ring-1 ring-[#1a2610]" />
+                )}
+              </div>
+              <span
+                className={`text-[11px] text-center mt-1.5 transition-colors leading-tight ${
+                  hasActiveFilters
+                    ? 'text-[#1a2610] font-bold'
+                    : 'text-[#526046] font-medium group-hover:text-[#1a2610]'
+                }`}
+              >
+                Filter
+              </span>
+            </button>
+
+            {/* 2. Kartu Kategori Komoditas: Image Generate 3D */}
             {dynamicKategoriConfig.map((cat) => {
               const isSelected = selectedKategori.toLowerCase().trim() === cat.key.toLowerCase().trim();
               const iconSrc = getCategoryIcon(cat.key);
@@ -462,6 +550,95 @@ export default function TokoOnlinePage() {
           </div>
         </div>
 
+        {/* Active Filter Chips (Mode Mobile & Desktop) */}
+        {hasActiveFilters && (
+          <div className="flex items-center gap-2 overflow-x-auto pb-2.5 mb-3 px-1 no-scrollbar text-xs">
+            <span className="text-[11px] font-bold text-[#526046] uppercase shrink-0">Filter Aktif:</span>
+            {selectedKategori !== 'SEMUA' && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-[#dce1d6] text-xs font-semibold text-[#1a2610] shadow-2xs shrink-0">
+                <span>{selectedKategori}</span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedKategori('SEMUA')}
+                  className="hover:text-red-600 cursor-pointer"
+                  title="Hapus filter kategori"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+            {onlyAvailable && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#e2f2c8] border border-[#c9e39e] text-xs font-bold text-[#233414] shadow-2xs shrink-0">
+                <CheckCircle2 className="w-3 h-3 text-[#344d15]" />
+                <span>Stok Tersedia</span>
+                <button
+                  type="button"
+                  onClick={() => setOnlyAvailable(false)}
+                  className="hover:text-red-600 cursor-pointer"
+                  title="Hapus filter stok tersedia"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+            {(minPrice > 5000 || maxPrice < 250000) && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-[#dce1d6] text-xs font-semibold text-[#1a2610] shadow-2xs shrink-0">
+                <span>
+                  {minPrice >= 1000000 ? `Rp ${(minPrice / 1000000).toFixed(1)}jt` : `Rp ${Math.round(minPrice / 1000)}rb`} -{' '}
+                  {maxPrice >= 250000 ? 'Maksimal' : maxPrice >= 1000000 ? `Rp ${(maxPrice / 1000000).toFixed(1)}jt` : `Rp ${Math.round(maxPrice / 1000)}rb`}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMinPrice(5000);
+                    setMaxPrice(250000);
+                  }}
+                  className="hover:text-red-600 cursor-pointer"
+                  title="Reset rentang harga"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+            {sortBy !== 'default' && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-[#dce1d6] text-xs font-semibold text-[#1a2610] shadow-2xs shrink-0">
+                <span>
+                  Urut:{' '}
+                  {sortBy === 'termurah'
+                    ? 'Harga Terendah'
+                    : sortBy === 'termahal'
+                    ? 'Harga Tertinggi'
+                    : sortBy === 'terbaru'
+                    ? 'Komoditas Terbaru'
+                    : sortBy}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setSortBy('default')}
+                  className="hover:text-red-600 cursor-pointer"
+                  title="Reset urutan"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedKategori('SEMUA');
+                setOnlyAvailable(false);
+                setMinPrice(5000);
+                setMaxPrice(250000);
+                setSortBy('default');
+                router.replace('/toko');
+              }}
+              className="text-xs font-semibold text-red-600 hover:text-red-700 underline underline-offset-2 ml-1 cursor-pointer shrink-0"
+            >
+              Reset Semua
+            </button>
+          </div>
+        )}
+
         {/* Category Section - Desktop Mode (matching Gambar 1: Rounded Pill Filter Chips) */}
         <div className="hidden md:block mb-8">
           <div className="flex items-center gap-2.5 overflow-x-auto no-scrollbar py-1">
@@ -494,7 +671,7 @@ export default function TokoOnlinePage() {
               Memuat katalog komoditas...
             </span>
           </div>
-        ) : products.length === 0 ? (
+        ) : displayedProducts.length === 0 ? (
           /* Empty State */
           <div className="bg-white border border-[#dce1d6] rounded-2xl sm:rounded-3xl p-6 sm:p-12 text-center flex flex-col items-center justify-center min-h-[240px] sm:min-h-[300px]">
             <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-[#f4f5f1] border border-[#dce1d6] text-[#233414] flex items-center justify-center mb-3 sm:mb-4">
@@ -506,12 +683,17 @@ export default function TokoOnlinePage() {
             <p className="text-xs sm:text-[13px] text-[#526046] max-w-sm mt-1 leading-relaxed">
               Belum ada komoditas yang sesuai dengan filter atau kata kunci pencarian Anda.
             </p>
-            {(selectedKategori !== 'SEMUA' || searchQuery) && (
+            {(selectedKategori !== 'SEMUA' || searchQuery || hasActiveFilters) && (
               <button
                 type="button"
                 onClick={() => {
                   setSelectedKategori('SEMUA');
                   setSearchQuery('');
+                  setOnlyAvailable(false);
+                  setMinPrice(5000);
+                  setMaxPrice(250000);
+                  setSortBy('default');
+                  router.replace('/toko');
                 }}
                 className="mt-4 px-4 py-2 rounded-xl bg-[#233414] hover:bg-[#344d15] text-white text-xs font-semibold transition-colors cursor-pointer"
               >
@@ -526,7 +708,7 @@ export default function TokoOnlinePage() {
                 - Tablet (sm/md): 2 - 3 Kolom Modern (gap-4)
                 - Desktop (lg/xl): 4 Kolom Editorial Taste (gap-5) */}
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
-              {products.map((prod) => {
+              {displayedProducts.map((prod) => {
                 const isOutOfStock = !prod.isTersedia || Number(prod.stok || 0) <= 0;
                 const farmerName =
                   prod.petani?.name ||
@@ -632,7 +814,7 @@ export default function TokoOnlinePage() {
                   )}
                 </button>
                 <span className="text-[11px] sm:text-xs text-[#5b6950] tabular-nums">
-                  Menampilkan {products.length} dari {totalProductsCount} komoditas
+                  Menampilkan {displayedProducts.length} dari {totalProductsCount} komoditas
                 </span>
               </div>
             )}
@@ -640,5 +822,19 @@ export default function TokoOnlinePage() {
         )}
       </main>
     </div>
+  );
+}
+
+export default function TokoOnlinePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#f4f5f1] flex items-center justify-center font-sans">
+          <div className="w-6 h-6 border-2 border-[#233414] border-t-transparent rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <TokoOnlineContent />
+    </Suspense>
   );
 }

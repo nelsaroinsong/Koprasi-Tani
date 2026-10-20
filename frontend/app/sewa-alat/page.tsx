@@ -426,17 +426,10 @@ function SewaAlatContent() {
 
         {/* Category Section - Mobile Mode (UI seperti Toko dengan Image Generate 3D & Filter Icon di Paling Kiri) */}
         <div className="mb-6 md:hidden">
-          <div className="flex items-center justify-between mb-3 px-1">
+          <div className="mb-3 px-1">
             <h2 className="text-sm font-bold text-[#1a2610] tracking-tight">
               Kategori Sewa Alat
             </h2>
-            <button
-              type="button"
-              onClick={() => setSelectedKategori('SEMUA')}
-              className="text-xs font-semibold text-[#344d15] hover:text-[#1a2610] transition-colors cursor-pointer"
-            >
-              Lihat semua
-            </button>
           </div>
 
           <div className="flex items-start gap-2.5 overflow-x-auto pb-2 no-scrollbar px-1">
