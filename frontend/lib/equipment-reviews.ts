@@ -30,7 +30,7 @@ const REVIEWS_FILE = path.join(process.cwd(), 'data', 'equipment-reviews.json');
 const INITIAL_REVIEWS: EquipmentReviewItem[] = [
   {
     id: 'rev-eq-1',
-    equipmentId: 'alst-musanrfk-t7fs',
+    equipmentId: '9a9096e8-1384-4eb3-872c-115b3064d32e',
     userId: '8d11ac72-d1a6-4103-9260-9f81203ffe82',
     userName: 'nelsaroinsong',
     userAvatar: '/api/images/profiles/nelsaroinsong_gmail_com-1791906682472.png',

@@ -39,13 +39,14 @@ export interface TabCategoryConfig {
 
 const getCategoryIcon = (categoryName: string) => {
   const norm = categoryName.toLowerCase().trim();
-  if (norm === 'semua' || norm === 'semua komoditas' || norm === 'semua alat') return '/categories/all.jpg';
-  if (norm.includes('kelapa')) return '/categories/kelapa.jpg';
-  if (norm.includes('jagung')) return '/categories/jagung.jpg';
-  if (norm.includes('turunan')) return '/categories/turunan.jpg';
-  if (norm.includes('olahan') || norm.includes('vco') || norm.includes('minyak')) return '/categories/olahan.jpg';
-  if (norm.includes('alat') || norm.includes('traktor') || norm.includes('mesin') || norm.includes('roda')) return '/categories/alat.jpg';
-  return '/categories/all.jpg';
+  if (norm === 'semua' || norm === 'semua komoditas') return '/api/images/categories/all.jpg';
+  if (norm === 'semua alat') return '/api/images/categories/semua-alat.jpg';
+  if (norm.includes('kelapa')) return '/api/images/categories/kelapa.jpg';
+  if (norm.includes('jagung')) return '/api/images/categories/jagung.jpg';
+  if (norm.includes('turunan')) return '/api/images/categories/turunan.jpg';
+  if (norm.includes('olahan') || norm.includes('vco') || norm.includes('minyak')) return '/api/images/categories/olahan.jpg';
+  if (norm.includes('alat') || norm.includes('traktor') || norm.includes('mesin') || norm.includes('roda')) return '/api/images/categories/alat.jpg';
+  return '/api/images/categories/all.jpg';
 };
 
 function getInitialCategories(): CategoryItem[] {

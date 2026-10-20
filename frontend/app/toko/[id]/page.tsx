@@ -332,8 +332,8 @@ export default function ProductDetailPage({
         <AppHeader activePage="toko" />
       </div>
 
-      {/* Mobile Top Bar (Gambar 5 Left Screen Style: Back Arrow Left, Bag Icon Right) */}
-      <div className="sm:hidden sticky top-0 z-40 bg-white/95 backdrop-blur-md px-4 h-14 flex items-center justify-between border-b border-[#EAEDE7]">
+      {/* Mobile Top Bar (Fixed di top, solid white, anti-tembus) */}
+      <div className="sm:hidden fixed top-0 left-0 right-0 z-40 bg-white px-4 h-14 flex items-center justify-between border-b border-[#EAEDE7] shadow-2xs">
         <button
           type="button"
           onClick={() => router.back()}
@@ -355,6 +355,8 @@ export default function ProductDetailPage({
           <ShoppingBag className="w-5 h-5" />
         </Link>
       </div>
+      {/* Spacer placeholder mode mobile agar konten tidak tertutup fixed navbar */}
+      <div className="sm:hidden h-14 shrink-0 pointer-events-none" aria-hidden="true" />
 
       {/* Desktop Compact Back & Share Subbar */}
       <div className="hidden sm:block bg-white border-b border-[#dce1d6]">
@@ -657,36 +659,6 @@ export default function ProductDetailPage({
           </div>
         </div>
 
-        {/* Fixed Bottom Action Bar on Mobile (Fixed at bottom with safe area, matches Gambar 5) */}
-        <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-[#dce1d6] px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] flex items-center gap-3 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
-          <button
-            type="button"
-            onClick={() => handleAddToCart(true)}
-            disabled={isOutOfStock}
-            className="w-12 h-12 rounded-2xl bg-[#f4f5f1] hover:bg-[#EAEDE7] border border-[#dce1d6] text-[#1a2610] flex items-center justify-center shrink-0 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-            title="Beli Langsung ke Checkout"
-          >
-            <ShoppingBag className="w-5 h-5 text-[#233414]" />
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleAddToCart(false)}
-            disabled={isOutOfStock}
-            className={`flex-1 h-12 px-5 rounded-full font-bold text-sm flex items-center justify-center gap-2 transition shadow-sm ${
-              isOutOfStock
-                ? 'bg-[#83917d] text-white cursor-not-allowed opacity-80 shadow-none'
-                : 'bg-[#233414] hover:bg-[#344d15] text-white cursor-pointer'
-            }`}
-          >
-            <span>
-              {isOutOfStock
-                ? 'Stok Kosong'
-                : `+ Keranjang • Rp ${totalPrice.toLocaleString('id-ID')}`}
-            </span>
-          </button>
-        </div>
-
         {/* BOTTOM SECTION: ULASAN PEMBELI */}
         <section className="bg-white rounded-2xl border border-[#dce1d6] p-3.5 sm:p-6 lg:p-8 space-y-5 sm:space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#dce1d6] pb-4">
@@ -699,7 +671,7 @@ export default function ProductDetailPage({
               </p>
             </div>
 
-            {productData.userState?.hasPurchased ? (
+            {productData.userState?.hasPurchased && (
               <button
                 onClick={() => setIsReviewFormOpen(!isReviewFormOpen)}
                 className="h-9 px-4 rounded-xl bg-[#233414] hover:bg-[#344d15] text-white text-xs font-semibold transition-colors flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
@@ -707,11 +679,6 @@ export default function ProductDetailPage({
                 <MessageSquare className="w-3.5 h-3.5 text-[#D4F63D]" />
                 <span>{isReviewFormOpen ? 'Tutup Formulir' : 'Tulis Ulasan'}</span>
               </button>
-            ) : (
-              <div className="text-[11px] sm:text-xs text-[#526046] bg-[#f4f5f1] border border-[#dce1d6] px-3 py-1.5 rounded-xl flex items-center gap-1.5 self-start sm:self-auto">
-                <CheckCircle2 className="w-3.5 h-3.5 text-[#5b6950] shrink-0" />
-                <span>Ulasan dapat diberikan setelah pesanan Anda selesai diterima</span>
-              </div>
             )}
           </div>
 
@@ -854,7 +821,7 @@ export default function ProductDetailPage({
               <p className="text-xs text-[#526046] max-w-md mx-auto mt-1 mb-4 leading-relaxed">
                 Komoditas ini belum memiliki ulasan dari pembeli. Beli sekarang dan berikan penilaian setelah pesanan Anda selesai!
               </p>
-              {productData.userState?.hasPurchased ? (
+              {productData.userState?.hasPurchased && (
                 <button
                   onClick={() => setIsReviewFormOpen(true)}
                   className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl bg-[#233414] hover:bg-[#344d15] text-white text-xs font-semibold transition-colors cursor-pointer"
@@ -862,11 +829,6 @@ export default function ProductDetailPage({
                   <MessageSquare className="w-3.5 h-3.5 text-[#D4F63D]" />
                   <span>Beri Ulasan Pertama</span>
                 </button>
-              ) : (
-                <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white border border-[#dce1d6] text-[#526046] text-xs font-medium">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-[#344d15]" />
-                  <span>Ulasan dapat diberikan setelah Anda membeli komoditas ini dan pesanan selesai</span>
-                </div>
               )}
             </div>
           )}
@@ -968,45 +930,64 @@ export default function ProductDetailPage({
         </section>
       </main>
 
-      {/* Lightbox / Modal Tampilan Gambar Resolusi Penuh (Ukuran Asli) */}
+      {/* Fixed Bottom Action Bar on Mobile: OUTSIDE <main>, anchored directly to the viewport */}
+      <div className="sm:hidden fixed bottom-0 inset-x-0 z-50 bg-white border-t border-[#dce1d6] px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex items-center gap-3 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
+        <button
+          type="button"
+          onClick={() => handleAddToCart(true)}
+          disabled={isOutOfStock}
+          className="w-12 h-12 rounded-2xl bg-[#f4f5f1] hover:bg-[#EAEDE7] border border-[#dce1d6] text-[#1a2610] flex items-center justify-center shrink-0 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          title="Beli Langsung ke Checkout"
+        >
+          <ShoppingBag className="w-5 h-5 text-[#233414]" />
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleAddToCart(false)}
+          disabled={isOutOfStock}
+          className={`flex-1 h-12 px-5 rounded-full font-bold text-sm flex items-center justify-center gap-2 transition shadow-sm ${
+            isOutOfStock
+              ? 'bg-[#83917d] text-white cursor-not-allowed opacity-80 shadow-none'
+              : 'bg-[#233414] hover:bg-[#344d15] text-white cursor-pointer'
+          }`}
+        >
+          <span>
+            {isOutOfStock
+              ? 'Stok Kosong'
+              : `+ Keranjang • Rp ${totalPrice.toLocaleString('id-ID')}`}
+          </span>
+        </button>
+      </div>
+
+      {/* Lightbox / Modal Tampilan Gambar Resolusi Penuh (Format Bersih Identik dengan Sewa Alat) */}
       {isImageModalOpen && (
         <div
+          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 cursor-zoom-out"
           onClick={() => setIsImageModalOpen(false)}
-          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 animate-in fade-in-0 duration-200 cursor-zoom-out"
         >
           <div
+            className="relative max-w-4xl max-h-[90vh] bg-white border border-[#dce1d6] rounded-3xl overflow-hidden shadow-2xl p-2 cursor-default"
             onClick={(e) => e.stopPropagation()}
-            className="relative max-w-4xl w-full max-h-[92vh] bg-[#1a2610] rounded-2xl overflow-hidden flex flex-col border border-[#344d15] cursor-default"
           >
-            {/* Header Modal */}
-            <div className="px-4 py-3 bg-[#233414] text-white flex items-center justify-between border-b border-[#344d15]">
-              <div className="flex items-center gap-2 text-xs font-bold truncate pr-4">
-                <span className="truncate">{product.nama}</span>
-                <span className="text-[#D4F63D] font-normal">| Tampilan Ukuran Asli</span>
-              </div>
-              <button
-                onClick={() => setIsImageModalOpen(false)}
-                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer"
-                title="Tutup (Esc)"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Container Foto Full Size */}
-            <div className="overflow-auto flex-1 flex items-center justify-center p-3 sm:p-6 bg-black/60">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={
-                  product.imageUrl ||
-                  'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=1200&q=90'
-                }
-                alt={product.nama}
-                loading="lazy"
-                decoding="async"
-                className="max-w-full max-h-[78vh] object-contain rounded-xl"
-              />
-            </div>
+            <button
+              onClick={() => setIsImageModalOpen(false)}
+              className="absolute top-4 right-4 z-10 p-2 rounded-full bg-[#233414] hover:bg-[#344d15] text-white transition-colors cursor-pointer"
+              title="Tutup (Esc)"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={
+                product.imageUrl ||
+                'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=1200&q=90'
+              }
+              alt={product.nama}
+              loading="lazy"
+              decoding="async"
+              className="max-h-[82vh] w-auto object-contain mx-auto rounded-2xl"
+            />
           </div>
         </div>
       )}

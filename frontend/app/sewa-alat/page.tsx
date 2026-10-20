@@ -10,6 +10,7 @@ import {
   ArrowRight,
   Search,
   Filter,
+  SlidersHorizontal,
   CheckCircle2,
   AlertCircle,
   Phone,
@@ -58,12 +59,12 @@ import {
 
 const getCategoryIcon = (categoryName: string) => {
   const norm = categoryName.toLowerCase().trim();
-  if (norm === 'semua' || norm === 'semua alat') return '/categories/alat.jpg';
-  if (norm.includes('kelapa')) return '/categories/kelapa.jpg';
-  if (norm.includes('jagung')) return '/categories/jagung.jpg';
-  if (norm.includes('turunan')) return '/categories/turunan.jpg';
-  if (norm.includes('olahan')) return '/categories/olahan.jpg';
-  return '/categories/alat.jpg';
+  if (norm === 'semua' || norm === 'semua alat') return '/api/images/categories/semua-alat.jpg';
+  if (norm.includes('kelapa')) return '/api/images/categories/kelapa.jpg';
+  if (norm.includes('jagung')) return '/api/images/categories/jagung.jpg';
+  if (norm.includes('turunan')) return '/api/images/categories/turunan.jpg';
+  if (norm.includes('olahan')) return '/api/images/categories/olahan.jpg';
+  return '/api/images/categories/alat.jpg';
 };
 
 // Kategori akan dimuat dinamis dari data admin kelola kategori
@@ -81,6 +82,7 @@ export default function SewaAlatPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedKategori, setSelectedKategori] = useState('SEMUA');
   const [onlyAvailable, setOnlyAvailable] = useState(false);
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
 
@@ -364,101 +366,53 @@ export default function SewaAlatPage() {
           </div>
         </div>
 
-        {/* Category Section - Mobile Mode (matching Gambar 2: Title + "Lihat semua", Rounded Cards with 3D Icons) */}
-        <div className="mb-6 md:hidden">
-          <div className="flex items-center justify-between mb-3 px-1 flex-wrap gap-2">
-            <h2 className="text-sm font-bold text-[#1a2610] tracking-tight">
-              Kategori Sewa Alat
-            </h2>
-            <div className="flex items-center gap-3">
-              <label className="flex items-center gap-1.5 text-xs font-medium text-[#526046] hover:text-[#1a2610] cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={onlyAvailable}
-                  onChange={(e) => setOnlyAvailable(e.target.checked)}
-                  className="w-3.5 h-3.5 rounded accent-[#233414] text-[#233414] focus:ring-[#233414] border-[#cfd6c9] cursor-pointer"
-                />
-                <span className="text-[11px] font-semibold">Siap Pakai</span>
-              </label>
-              <button
-                type="button"
-                onClick={() => setSelectedKategori('SEMUA')}
-                className="text-xs font-semibold text-[#344d15] hover:text-[#1a2610] transition-colors cursor-pointer"
-              >
-                Lihat semua
-              </button>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-2.5 overflow-x-auto pb-2 no-scrollbar px-1">
-            {dynamicKategoriTabs.map((tab) => {
+        {/* Category & Filter Bar (Mode Mobile: Icon Filter disamping Kategori Semua Alat; Desktop: Checkbox Siap Pakai) */}
+        <div className="flex items-center justify-between gap-3 mb-6 sm:mb-8">
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+            {dynamicKategoriTabs.map((tab, idx) => {
               const isSelected = selectedKategori.toLowerCase().trim() === tab.key.toLowerCase().trim();
-              const iconSrc = getCategoryIcon(tab.key);
 
               return (
-                <button
-                  key={tab.key}
-                  type="button"
-                  onClick={() => setSelectedKategori(tab.key)}
-                  className="flex flex-col items-center group shrink-0 focus:outline-none cursor-pointer"
-                >
-                  <div
-                    className={`w-15 h-15 rounded-2xl p-1.5 flex items-center justify-center transition-all ${
+                <React.Fragment key={tab.key}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedKategori(tab.key)}
+                    className={`px-4 sm:px-5 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all duration-150 shrink-0 cursor-pointer border select-none ${
                       isSelected
-                        ? 'bg-white border-2 border-[#233414] shadow-xs'
-                        : 'bg-[#f4f5f1] hover:bg-[#EAEDE7] border border-[#dce1d6] group-hover:border-[#b8c4ae]'
+                        ? 'bg-[#233414] text-white border-[#233414] shadow-xs'
+                        : 'bg-white text-[#233414] border-[#cfd6c9] hover:bg-[#EAEDE7] hover:border-[#b8c4ae] shadow-2xs'
                     }`}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={iconSrc}
-                      alt={tab.label}
-                      className={`w-full h-full object-contain rounded-xl transition-transform duration-200 ${
-                        isSelected ? 'scale-105' : 'group-hover:scale-105'
-                      }`}
-                      loading="lazy"
-                    />
-                  </div>
-                  <span
-                    className={`text-[11px] text-center mt-1.5 transition-colors max-w-[70px] truncate ${
-                      isSelected
-                        ? 'text-[#233414] font-bold'
-                        : 'text-[#526046] font-medium group-hover:text-[#1a2610]'
-                    }`}
-                    title={tab.label}
                   >
                     {tab.label}
-                  </span>
-                </button>
+                  </button>
+
+                  {/* Icon Filter Mode Mobile: Tepat disamping Kategori Semua Alat */}
+                  {idx === 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setIsMobileFilterOpen(true)}
+                      className={`md:hidden relative flex items-center justify-center gap-1.5 h-8.5 px-3 rounded-full text-xs font-semibold transition-all shrink-0 cursor-pointer border select-none ${
+                        onlyAvailable
+                          ? 'bg-[#233414] text-[#D4F63D] border-[#233414] shadow-xs'
+                          : 'bg-white text-[#233414] border-[#cfd6c9] hover:bg-[#EAEDE7]'
+                      }`}
+                      aria-label="Filter Alat"
+                      title="Filter Alat"
+                    >
+                      <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
+                      <span>Filter</span>
+                      {onlyAvailable && (
+                        <span className="w-2 h-2 rounded-full bg-[#D4F63D] shrink-0" />
+                      )}
+                    </button>
+                  )}
+                </React.Fragment>
               );
             })}
           </div>
-        </div>
 
-        {/* Category Section - Desktop Mode (matching Gambar 1: Rounded Pill Filter Chips) */}
-        <div className="hidden md:flex items-center justify-between gap-4 mb-8">
-          <div className="flex items-center gap-2.5 overflow-x-auto no-scrollbar py-1">
-            {dynamicKategoriTabs.map((tab) => {
-              const isSelected = selectedKategori.toLowerCase().trim() === tab.key.toLowerCase().trim();
-
-              return (
-                <button
-                  key={tab.key}
-                  type="button"
-                  onClick={() => setSelectedKategori(tab.key)}
-                  className={`px-5 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all duration-150 shrink-0 cursor-pointer border select-none ${
-                    isSelected
-                      ? 'bg-[#233414] text-white border-[#233414] shadow-xs'
-                      : 'bg-white text-[#233414] border-[#cfd6c9] hover:bg-[#EAEDE7] hover:border-[#b8c4ae] shadow-2xs'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
-
-          <label className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-[#526046] hover:text-[#1a2610] cursor-pointer select-none bg-white border border-[#cfd6c9] px-4 py-2 rounded-full shrink-0 shadow-2xs hover:bg-[#EAEDE7] transition-all">
+          {/* Desktop Filter Checkbox: Siap Pakai Saja (Gambar 3 Style) */}
+          <label className="hidden md:flex items-center gap-2 text-xs sm:text-sm font-semibold text-[#526046] hover:text-[#1a2610] cursor-pointer select-none bg-white border border-[#cfd6c9] px-4 py-2 rounded-full shrink-0 shadow-2xs hover:bg-[#EAEDE7] transition-all">
             <input
               type="checkbox"
               checked={onlyAvailable}
@@ -857,6 +811,102 @@ export default function SewaAlatPage() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL FILTER SEWA ALAT (Mobile Mode - Filter Siap Pakai & Kategori) */}
+      <Dialog open={isMobileFilterOpen} onOpenChange={setIsMobileFilterOpen}>
+        <DialogContent className="max-w-md w-[92vw] sm:w-full rounded-3xl p-5 sm:p-6 bg-white border border-[#dce1d6] shadow-2xl">
+          <DialogHeader className="border-b border-[#EAEDE7] pb-3">
+            <DialogTitle className="text-base font-bold text-[#1a2610] flex items-center gap-2">
+              <SlidersHorizontal className="w-4 h-4 text-[#233414]" />
+              <span>Filter Alat Pertanian</span>
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="py-4 space-y-4">
+            {/* Filter Ketersediaan: Siap Pakai Saja */}
+            <div>
+              <h4 className="text-xs font-bold text-[#1a2610] uppercase tracking-wider mb-2">
+                Ketersediaan Unit
+              </h4>
+              <div
+                onClick={() => setOnlyAvailable(!onlyAvailable)}
+                className={`flex items-start gap-3 p-3.5 rounded-2xl border transition-all cursor-pointer ${
+                  onlyAvailable
+                    ? 'bg-[#f4f7ee] border-[#233414] shadow-xs'
+                    : 'bg-white border-[#dce1d6] hover:bg-[#f9faf7]'
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={onlyAvailable}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    setOnlyAvailable(e.target.checked);
+                  }}
+                  className="w-4 h-4 mt-0.5 rounded accent-[#233414] text-[#233414] focus:ring-[#233414] border-[#cfd6c9] cursor-pointer"
+                />
+                <div className="flex-1">
+                  <div className="text-xs font-bold text-[#1a2610] flex items-center gap-1.5">
+                    <span>Siap Pakai Saja</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#D4F63D] text-[#1a2610] font-bold">
+                      Tersedia
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[#526046] mt-0.5 leading-relaxed">
+                    Hanya tampilkan unit alsintan yang siap disewa dan belum dibooking.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Filter Kategori Alat */}
+            <div>
+              <h4 className="text-xs font-bold text-[#1a2610] uppercase tracking-wider mb-2">
+                Kategori Alat
+              </h4>
+              <div className="flex flex-wrap gap-2">
+                {dynamicKategoriTabs.map((tab) => {
+                  const isSelected = selectedKategori.toLowerCase().trim() === tab.key.toLowerCase().trim();
+                  return (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      onClick={() => setSelectedKategori(tab.key)}
+                      className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer border select-none ${
+                        isSelected
+                          ? 'bg-[#233414] text-white border-[#233414] shadow-xs'
+                          : 'bg-white text-[#233414] border-[#cfd6c9] hover:bg-[#EAEDE7]'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="border-t border-[#EAEDE7] pt-3 flex flex-row items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setOnlyAvailable(false);
+                setSelectedKategori('SEMUA');
+              }}
+              className="px-4 py-2 rounded-xl text-xs font-semibold text-[#526046] hover:text-[#1a2610] hover:bg-[#EAEDE7] transition cursor-pointer"
+            >
+              Reset
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsMobileFilterOpen(false)}
+              className="px-5 py-2 rounded-xl bg-[#233414] hover:bg-[#344d15] text-white text-xs font-bold shadow-xs transition cursor-pointer"
+            >
+              Terapkan Filter
+            </button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

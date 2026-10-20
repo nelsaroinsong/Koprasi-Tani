@@ -223,8 +223,8 @@ export default function NotifikasiPage() {
         <AppHeader activePage="none" />
       </div>
 
-      {/* Mobile Top App Bar (Sticky) */}
-      <header className="sm:hidden sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-[#e2e7dc] px-4 h-14 flex items-center justify-between">
+      {/* Mobile Top App Bar (Fixed di top, solid white, anti-tembus) */}
+      <header className="sm:hidden fixed top-0 left-0 right-0 z-40 bg-white border-b border-[#e2e7dc] px-4 h-14 flex items-center justify-between shadow-2xs">
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -262,6 +262,8 @@ export default function NotifikasiPage() {
           </button>
         )}
       </header>
+      {/* Spacer placeholder mode mobile agar konten tidak tertutup fixed navbar */}
+      <div className="sm:hidden h-14 shrink-0 pointer-events-none" aria-hidden="true" />
 
       {/* Main Content */}
       <main className="flex-1 max-w-3xl w-full mx-auto px-4 py-4 sm:py-8 pb-28 sm:pb-16">

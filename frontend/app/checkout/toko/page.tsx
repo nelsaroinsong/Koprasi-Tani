@@ -464,8 +464,8 @@ Mohon info kesiapan fisik komoditas di gudang koperasi. Terima kasih!`;
         <AppHeader activePage="toko" />
       </div>
 
-      {/* Mobile Top Bar (Gambar 5 Right Screen Style: Back Arrow Left + Centered Title) */}
-      <div className="sm:hidden sticky top-0 z-40 bg-white/95 backdrop-blur-md px-4 h-14 flex items-center justify-between border-b border-[#EAEDE7]">
+      {/* Mobile Top Bar (Fixed di top, solid white, anti-tembus) */}
+      <div className="sm:hidden fixed top-0 left-0 right-0 z-40 bg-white px-4 h-14 flex items-center justify-between border-b border-[#EAEDE7] shadow-2xs">
         <button
           type="button"
           onClick={() => router.back()}
@@ -481,6 +481,8 @@ Mohon info kesiapan fisik komoditas di gudang koperasi. Terima kasih!`;
 
         <div className="w-10" />
       </div>
+      {/* Spacer placeholder mode mobile agar konten tidak tertutup fixed navbar */}
+      <div className="sm:hidden h-14 shrink-0 pointer-events-none" aria-hidden="true" />
 
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-3 sm:py-6 space-y-4 sm:space-y-5">
         {/* Desktop Compact Back Link */}

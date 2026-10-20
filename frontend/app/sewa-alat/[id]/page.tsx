@@ -432,8 +432,8 @@ export default function EquipmentDetailPage({
         <AppHeader activePage="sewa-alat" />
       </div>
 
-      {/* Mobile Top Bar (Gambar 5 Left Screen Style: Back Arrow Left, Bag Icon Right) */}
-      <div className="sm:hidden sticky top-0 z-40 bg-white/95 backdrop-blur-md px-4 h-14 flex items-center justify-between border-b border-[#EAEDE7]">
+      {/* Mobile Top Bar (Fixed di top, solid white, anti-tembus) */}
+      <div className="sm:hidden fixed top-0 left-0 right-0 z-40 bg-white px-4 h-14 flex items-center justify-between border-b border-[#EAEDE7] shadow-2xs">
         <button
           type="button"
           onClick={() => router.back()}
@@ -460,6 +460,8 @@ export default function EquipmentDetailPage({
           )}
         </Link>
       </div>
+      {/* Spacer placeholder mode mobile agar konten tidak tertutup fixed navbar */}
+      <div className="sm:hidden h-14 shrink-0 pointer-events-none" aria-hidden="true" />
 
       {/* Desktop Compact Subbar */}
       <div className="hidden sm:block bg-white border-b border-[#dce1d6]">
@@ -738,7 +740,7 @@ export default function EquipmentDetailPage({
               </p>
             </div>
 
-            {hasRented ? (
+            {hasRented && (
               <button
                 onClick={() => setIsReviewFormOpen(!isReviewFormOpen)}
                 className="h-9 px-4 rounded-xl bg-[#233414] hover:bg-[#344d15] text-white text-xs font-semibold transition-colors flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
@@ -746,11 +748,6 @@ export default function EquipmentDetailPage({
                 <MessageSquare className="w-3.5 h-3.5 text-[#D4F63D]" />
                 <span>{isReviewFormOpen ? 'Tutup Formulir' : 'Tulis Ulasan'}</span>
               </button>
-            ) : (
-              <div className="text-[11px] sm:text-xs text-[#526046] bg-[#f4f5f1] border border-[#dce1d6] px-3 py-1.5 rounded-xl flex items-center gap-1.5 self-start sm:self-auto">
-                <CheckCircle2 className="w-3.5 h-3.5 text-[#5b6950] shrink-0" />
-                <span>Ulasan dapat diberikan setelah masa sewa alat selesai</span>
-              </div>
             )}
           </div>
 
@@ -893,7 +890,7 @@ export default function EquipmentDetailPage({
               <p className="text-xs text-[#526046] max-w-md mx-auto mt-1 mb-4 leading-relaxed">
                 Unit alsintan ini belum memiliki ulasan dari penyewa. Sewa sekarang dan berikan ulasan setelah pemakaian alat selesai!
               </p>
-              {hasRented ? (
+              {hasRented && (
                 <button
                   onClick={() => setIsReviewFormOpen(true)}
                   className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl bg-[#233414] hover:bg-[#344d15] text-white text-xs font-semibold transition-colors cursor-pointer"
@@ -901,11 +898,6 @@ export default function EquipmentDetailPage({
                   <MessageSquare className="w-3.5 h-3.5 text-[#D4F63D]" />
                   <span>Beri Ulasan Pertama</span>
                 </button>
-              ) : (
-                <div className="inline-flex items-center gap-1.5 text-xs text-[#526046] bg-white border border-[#dce1d6] px-3.5 py-2 rounded-xl">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-[#5b6950] shrink-0" />
-                  <span>Ulasan dapat diberikan setelah transaksi sewa alat selesai</span>
-                </div>
               )}
             </div>
           )}
@@ -991,33 +983,33 @@ export default function EquipmentDetailPage({
             </div>
           )}
         </section>
-
-        {/* Fixed Bottom Action Bar on Mobile (Fixed at bottom with safe area, matches Gambar 5) */}
-        <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-[#dce1d6] px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] flex items-center gap-3 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
-          <button
-            type="button"
-            onClick={() => setIsDirectCheckoutOpen(true)}
-            disabled={isOutOfStock}
-            className="w-12 h-12 rounded-2xl bg-[#f4f5f1] hover:bg-[#EAEDE7] border border-[#dce1d6] text-[#1a2610] flex items-center justify-center shrink-0 transition cursor-pointer disabled:opacity-40"
-            title="Ajukan Sewa Langsung"
-          >
-            <Calendar className="w-5 h-5 text-[#233414]" />
-          </button>
-
-          <button
-            type="button"
-            onClick={handleAddToCart}
-            disabled={isOutOfStock}
-            className="flex-1 h-12 px-5 rounded-full bg-[#233414] hover:bg-[#344d15] text-white font-bold text-sm flex items-center justify-center gap-2 transition cursor-pointer shadow-sm disabled:opacity-40"
-          >
-            <span>
-              {isOutOfStock
-                ? 'Sedang Disewa'
-                : `+ Keranjang Sewa • Rp ${calculatedTotal.toLocaleString('id-ID')}`}
-            </span>
-          </button>
-        </div>
       </main>
+
+      {/* Fixed Bottom Action Bar on Mobile: OUTSIDE <main>, anchored directly to the viewport */}
+      <div className="sm:hidden fixed bottom-0 inset-x-0 z-50 bg-white border-t border-[#dce1d6] px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex items-center gap-3 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
+        <button
+          type="button"
+          onClick={() => setIsDirectCheckoutOpen(true)}
+          disabled={isOutOfStock}
+          className="w-12 h-12 rounded-2xl bg-[#f4f5f1] hover:bg-[#EAEDE7] border border-[#dce1d6] text-[#1a2610] flex items-center justify-center shrink-0 transition cursor-pointer disabled:opacity-40"
+          title="Ajukan Sewa Langsung"
+        >
+          <Calendar className="w-5 h-5 text-[#233414]" />
+        </button>
+
+        <button
+          type="button"
+          onClick={handleAddToCart}
+          disabled={isOutOfStock}
+          className="flex-1 h-12 px-5 rounded-full bg-[#233414] hover:bg-[#344d15] text-white font-bold text-sm flex items-center justify-center gap-2 transition cursor-pointer shadow-sm disabled:opacity-40"
+        >
+          <span>
+            {isOutOfStock
+              ? 'Sedang Disewa'
+              : `+ Keranjang Sewa • Rp ${calculatedTotal.toLocaleString('id-ID')}`}
+          </span>
+        </button>
+      </div>
 
       {/* MODAL 1: Lightbox Foto Ukuran Asli */}
       {isImageModalOpen && (

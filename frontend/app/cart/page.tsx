@@ -239,8 +239,8 @@ function CartContent() {
         <AppHeader activePage="cart" />
       </div>
 
-      {/* Mobile Top Bar (Gambar 5 Right Screen Style: Back Arrow Left + Centered "Keranjang Belanja") */}
-      <div className="sm:hidden sticky top-0 z-40 bg-white/95 backdrop-blur-md px-4 h-14 flex items-center justify-between border-b border-[#EAEDE7]">
+      {/* Mobile Top Bar (Fixed di top, solid white, anti-tembus) */}
+      <div className="sm:hidden fixed top-0 left-0 right-0 z-40 bg-white px-4 h-14 flex items-center justify-between border-b border-[#EAEDE7] shadow-2xs">
         <button
           type="button"
           onClick={() => router.back()}
@@ -276,6 +276,8 @@ function CartContent() {
           <div className="w-10" />
         )}
       </div>
+      {/* Spacer placeholder mode mobile agar konten tidak tertutup fixed navbar */}
+      <div className="sm:hidden h-14 shrink-0 pointer-events-none" aria-hidden="true" />
 
       {/* Main Content */}
       <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-3 sm:py-6">

@@ -27,14 +27,20 @@ export default function SmoothScrollProvider({ children }: { children: React.Rea
 
   useEffect(() => {
     // 1. Initialize Lenis Smooth Scroll
+    // On touch devices (iOS / Android), avoid hijacking touch events
+    // so fixed position elements (bottom action bars) stay solidly anchored to the screen.
+    const isTouchDevice =
+      typeof window !== 'undefined' &&
+      ('ontouchstart' in window || navigator.maxTouchPoints > 0 || window.innerWidth < 768);
+
     const lenis = new Lenis({
       duration: 1.2,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       orientation: 'vertical',
       gestureOrientation: 'vertical',
-      smoothWheel: true,
+      smoothWheel: !isTouchDevice,
       wheelMultiplier: 1,
-      touchMultiplier: 1.5,
+      touchMultiplier: 0,
       infinite: false,
     });
 
