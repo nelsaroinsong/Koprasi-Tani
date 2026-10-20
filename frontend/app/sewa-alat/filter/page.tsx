@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, Suspense } from 'react';
+import React, { useState, useEffect, useMemo, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   X,
   Check,
@@ -13,11 +14,42 @@ import {
   Layers,
   RotateCcw,
   Sparkles,
+  ChevronDown,
+  TrendingDown,
+  TrendingUp,
+  Clock,
 } from 'lucide-react';
 
 const MIN_LIMIT = 50000;
 const MAX_LIMIT = 2500000;
 const STEP = 25000;
+
+const SORT_OPTIONS = [
+  {
+    value: 'default',
+    label: 'Paling Relevan',
+    desc: 'Rekomendasi terbaik unit alsintan',
+    icon: Sparkles,
+  },
+  {
+    value: 'termurah',
+    label: 'Tarif Terendah',
+    desc: 'Mulai dari biaya sewa paling hemat',
+    icon: TrendingDown,
+  },
+  {
+    value: 'termahal',
+    label: 'Tarif Tertinggi',
+    desc: 'Kapasitas performa & daya kerja tinggi',
+    icon: TrendingUp,
+  },
+  {
+    value: 'terbaru',
+    label: 'Unit Terbaru',
+    desc: 'Baru ditambahkan ke garasi koperasi',
+    icon: Clock,
+  },
+];
 
 function formatRupiahShort(value: number): string {
   if (value >= 1000000) {
@@ -62,6 +94,27 @@ function FilterContent() {
   const [sortBy, setSortBy] = useState<string>(() => {
     return searchParams.get('sortBy') || 'default';
   });
+
+  const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
+  const sortDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        sortDropdownRef.current &&
+        !sortDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsSortDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const currentSortOption =
+    SORT_OPTIONS.find((opt) => opt.value === sortBy) || SORT_OPTIONS[0];
+  const CurrentSortIcon = currentSortOption.icon;
 
   // Data alat & kategori untuk penghitungan live result count
   const [equipments, setEquipments] = useState<any[]>([]);
@@ -434,26 +487,94 @@ function FilterContent() {
             </div>
           </section>
 
-          {/* 4. SECTION: Location -> Urutkan Hasil (Single Rounded Selector matching Mockup) */}
-          <section className="space-y-2.5">
+          {/* 4. SECTION: Urutkan Berdasarkan (Custom Taste Skills Dropdown) */}
+          <section className="space-y-2.5" ref={sortDropdownRef}>
             <h2 className="text-xs font-bold text-[#526046] uppercase tracking-wider">
               Urutkan Berdasarkan
             </h2>
 
             <div className="relative">
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="w-full h-12 px-4 rounded-2xl bg-white border border-[#dce1d6] text-xs font-semibold text-[#1a2610] appearance-none focus:outline-none focus:border-[#1a2610] focus:ring-1 focus:ring-[#1a2610] shadow-2xs transition-all cursor-pointer"
+              <button
+                type="button"
+                onClick={() => setIsSortDropdownOpen((prev) => !prev)}
+                className={`w-full h-12 px-4 rounded-2xl bg-white border flex items-center justify-between text-xs font-semibold transition-all shadow-2xs cursor-pointer select-none ${
+                  isSortDropdownOpen
+                    ? 'border-[#1a2610] ring-2 ring-[#1a2610]/10 text-[#1a2610]'
+                    : 'border-[#dce1d6] hover:border-[#1a2610] text-[#1a2610]'
+                }`}
+                aria-expanded={isSortDropdownOpen}
               >
-                <option value="default">Paling Relevan</option>
-                <option value="termurah">Tarif Terendah</option>
-                <option value="termahal">Tarif Tertinggi</option>
-                <option value="terbaru">Unit Terbaru Ditambahkan</option>
-              </select>
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#526046]">
-                <ArrowUpDown className="w-4 h-4" />
-              </div>
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-6 h-6 rounded-lg bg-[#EAEDE7] text-[#1a2610] flex items-center justify-center shrink-0">
+                    <CurrentSortIcon className="w-3.5 h-3.5 text-[#233414]" />
+                  </div>
+                  <span className="truncate">{currentSortOption.label}</span>
+                </div>
+                <ChevronDown
+                  className={`w-4 h-4 text-[#526046] transition-transform duration-200 shrink-0 ${
+                    isSortDropdownOpen ? 'rotate-180 text-[#1a2610]' : ''
+                  }`}
+                />
+              </button>
+
+              <AnimatePresence>
+                {isSortDropdownOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                    transition={{ duration: 0.16, ease: 'easeOut' }}
+                    className="absolute top-full left-0 right-0 mt-2 z-30 rounded-2xl bg-white border border-[#dce1d6] shadow-xl p-1.5 space-y-1 overflow-hidden"
+                  >
+                    {SORT_OPTIONS.map((opt) => {
+                      const isSelected = sortBy === opt.value;
+                      const OptIcon = opt.icon;
+
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => {
+                            setSortBy(opt.value);
+                            setIsSortDropdownOpen(false);
+                          }}
+                          className={`w-full p-2.5 rounded-xl flex items-center justify-between gap-3 text-left transition-all cursor-pointer ${
+                            isSelected
+                              ? 'bg-[#1a2610] text-white font-bold shadow-xs'
+                              : 'hover:bg-[#f4f5f1] text-[#1a2610]'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div
+                              className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                                isSelected
+                                  ? 'bg-white/15 text-[#D4F63D]'
+                                  : 'bg-[#EAEDE7] text-[#526046]'
+                              }`}
+                            >
+                              <OptIcon className="w-3.5 h-3.5" />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-xs truncate">{opt.label}</div>
+                              <div
+                                className={`text-[10px] truncate ${
+                                  isSelected ? 'text-[#cfd6c9]' : 'text-[#68785b]'
+                                }`}
+                              >
+                                {opt.desc}
+                              </div>
+                            </div>
+                          </div>
+
+                          {isSelected && (
+                            <Check className="w-4 h-4 text-[#D4F63D] shrink-0" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </section>
         </main>
