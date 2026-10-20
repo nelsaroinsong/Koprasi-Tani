@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
+import { readEquipmentRentals } from '@/lib/equipment-rentals';
 import {
   readEquipmentReviewsFromFile,
   saveEquipmentReviewToFile,
@@ -74,6 +75,27 @@ export async function POST(
       );
     }
 
+    // Validasi ketat: Hanya penyewa yang transaksinya sudah SELESAI yang boleh memberikan ulasan
+    const allRentals = readEquipmentRentals();
+    const userEmailLower = session.user.email.trim().toLowerCase();
+    const hasCompletedRental = allRentals.some(
+      (r) =>
+        ((userId && r.userId === userId) ||
+          (r.userEmail && r.userEmail.trim().toLowerCase() === userEmailLower)) &&
+        r.status === 'SELESAI' &&
+        r.items?.some((item) => item.equipmentId === id)
+    );
+
+    if (!hasCompletedRental) {
+      return NextResponse.json(
+        {
+          error:
+            'Ulasan hanya dapat diberikan setelah Anda berhasil menyewa dan masa sewa unit alsintan ini berstatus Selesai.',
+        },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const rating = Math.min(5, Math.max(1, parseInt(body.rating, 10) || 5));
     const komentar = typeof body.komentar === 'string' ? body.komentar.trim() : '';
@@ -105,6 +127,7 @@ export async function POST(
     return NextResponse.json({
       success: true,
       review: newReview,
+      reviews,
       stats,
     });
   } catch (error: any) {

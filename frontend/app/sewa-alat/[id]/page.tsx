@@ -99,6 +99,7 @@ export default function EquipmentDetailPage({
   // Review & Rating State
   const [reviews, setReviews] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
+  const [hasRented, setHasRented] = useState<boolean>(false);
   const [isReviewFormOpen, setIsReviewFormOpen] = useState(false);
   const [newRating, setNewRating] = useState(5);
   const [newComment, setNewComment] = useState('');
@@ -130,6 +131,16 @@ export default function EquipmentDetailPage({
         type: 'info',
       });
       router.push('/login');
+      return;
+    }
+
+    if (!hasRented) {
+      showToast({
+        title: 'Tidak Dapat Mengirim Ulasan',
+        message: 'Ulasan hanya dapat diberikan setelah transaksi sewa unit alsintan berstatus Selesai.',
+        type: 'error',
+      });
+      setIsReviewFormOpen(false);
       return;
     }
     try {
@@ -231,6 +242,11 @@ export default function EquipmentDetailPage({
       setEquipment(data.equipment);
       if (data.reviews) setReviews(data.reviews);
       if (data.stats) setStats(data.stats);
+      if (data.userState) {
+        setHasRented(Boolean(data.userState.hasRented));
+      } else {
+        setHasRented(false);
+      }
       setJumlahUnit(1);
       setDurasi(1);
     } catch (err: any) {
@@ -243,7 +259,7 @@ export default function EquipmentDetailPage({
 
   useEffect(() => {
     fetchDetail();
-  }, [fetchDetail]);
+  }, [fetchDetail, user?.id]);
 
   // Perhitungan Subtotal untuk Alat Ini
   const calculatedTotal = React.useMemo(() => {
@@ -722,17 +738,24 @@ export default function EquipmentDetailPage({
               </p>
             </div>
 
-            <button
-              onClick={() => setIsReviewFormOpen(!isReviewFormOpen)}
-              className="h-9 px-4 rounded-xl bg-[#233414] hover:bg-[#344d15] text-white text-xs font-semibold transition-colors flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
-            >
-              <MessageSquare className="w-3.5 h-3.5 text-[#D4F63D]" />
-              <span>{isReviewFormOpen ? 'Tutup Formulir' : 'Tulis Ulasan'}</span>
-            </button>
+            {hasRented ? (
+              <button
+                onClick={() => setIsReviewFormOpen(!isReviewFormOpen)}
+                className="h-9 px-4 rounded-xl bg-[#233414] hover:bg-[#344d15] text-white text-xs font-semibold transition-colors flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
+              >
+                <MessageSquare className="w-3.5 h-3.5 text-[#D4F63D]" />
+                <span>{isReviewFormOpen ? 'Tutup Formulir' : 'Tulis Ulasan'}</span>
+              </button>
+            ) : (
+              <div className="text-[11px] sm:text-xs text-[#526046] bg-[#f4f5f1] border border-[#dce1d6] px-3 py-1.5 rounded-xl flex items-center gap-1.5 self-start sm:self-auto">
+                <CheckCircle2 className="w-3.5 h-3.5 text-[#5b6950] shrink-0" />
+                <span>Ulasan dapat diberikan setelah masa sewa alat selesai</span>
+              </div>
+            )}
           </div>
 
           {/* Form Tulis Ulasan (Collapsible) */}
-          {isReviewFormOpen && (
+          {isReviewFormOpen && hasRented && (
             <form
               onSubmit={handleSubmitReview}
               className="p-4 sm:p-5 rounded-2xl bg-[#f4f5f1] border border-[#dce1d6] space-y-4"
@@ -870,13 +893,20 @@ export default function EquipmentDetailPage({
               <p className="text-xs text-[#526046] max-w-md mx-auto mt-1 mb-4 leading-relaxed">
                 Unit alsintan ini belum memiliki ulasan dari penyewa. Sewa sekarang dan berikan ulasan setelah pemakaian alat selesai!
               </p>
-              <button
-                onClick={() => setIsReviewFormOpen(true)}
-                className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl bg-[#233414] hover:bg-[#344d15] text-white text-xs font-semibold transition-colors cursor-pointer"
-              >
-                <MessageSquare className="w-3.5 h-3.5 text-[#D4F63D]" />
-                <span>Beri Ulasan Pertama</span>
-              </button>
+              {hasRented ? (
+                <button
+                  onClick={() => setIsReviewFormOpen(true)}
+                  className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl bg-[#233414] hover:bg-[#344d15] text-white text-xs font-semibold transition-colors cursor-pointer"
+                >
+                  <MessageSquare className="w-3.5 h-3.5 text-[#D4F63D]" />
+                  <span>Beri Ulasan Pertama</span>
+                </button>
+              ) : (
+                <div className="inline-flex items-center gap-1.5 text-xs text-[#526046] bg-white border border-[#dce1d6] px-3.5 py-2 rounded-xl">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-[#5b6950] shrink-0" />
+                  <span>Ulasan dapat diberikan setelah transaksi sewa alat selesai</span>
+                </div>
+              )}
             </div>
           )}
 

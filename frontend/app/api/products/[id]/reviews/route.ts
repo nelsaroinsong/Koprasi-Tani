@@ -116,7 +116,7 @@ export async function POST(
       },
     });
 
-    if (completedPurchaseCount === 0 && currentUser.role !== 'ADMIN') {
+    if (completedPurchaseCount === 0) {
       return NextResponse.json(
         {
           error:

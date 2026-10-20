@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { readEquipmentsFromFile, type EquipmentItem } from '@/lib/equipments';
-import { getActiveRentedUnitsMap } from '@/lib/equipment-rentals';
+import { getActiveRentedUnitsMap, readEquipmentRentals } from '@/lib/equipment-rentals';
 import {
   readEquipmentReviewsFromFile,
   calculateEquipmentStats,
 } from '@/lib/equipment-reviews';
+import { auth } from '@/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -86,11 +87,46 @@ export async function GET(
     const reviews = allReviews.filter((r) => r.equipmentId === equipment.id);
     const stats = calculateEquipmentStats(reviews);
 
+    // Cek apakah user sedang login dan sudah menyelesaikan sewa alat ini
+    let hasRented = false;
+    let isAuthenticated = false;
+
+    try {
+      const session = await auth();
+      if (session?.user?.email) {
+        isAuthenticated = true;
+        let currentUserId = '';
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { email: session.user.email },
+            select: { id: true },
+          });
+          if (dbUser) currentUserId = dbUser.id;
+        } catch {}
+
+        const allRentals = readEquipmentRentals();
+        const userEmailLower = session.user.email.trim().toLowerCase();
+        hasRented = allRentals.some(
+          (r) =>
+            ((currentUserId && r.userId === currentUserId) ||
+              (r.userEmail && r.userEmail.trim().toLowerCase() === userEmailLower)) &&
+            r.status === 'SELESAI' &&
+            r.items?.some((item) => item.equipmentId === equipment!.id)
+        );
+      }
+    } catch (authErr) {
+      console.warn('Error checking equipment rental auth state:', authErr);
+    }
+
     return NextResponse.json({
       success: true,
       equipment: enrichedEquipment,
       reviews,
       stats,
+      userState: {
+        isAuthenticated,
+        hasRented,
+      },
     });
   } catch (error: any) {
     console.error('Error fetching equipment detail:', error);

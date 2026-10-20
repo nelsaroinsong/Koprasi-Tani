@@ -95,7 +95,7 @@ export default function ProductDetailPage({
 
   useEffect(() => {
     fetchProductDetail();
-  }, [fetchProductDetail]);
+  }, [fetchProductDetail, user?.id]);
 
   const handleToggleFollow = async () => {
     if (!user) {
@@ -186,6 +186,16 @@ export default function ProductDetailPage({
         type: 'info',
       });
       router.push('/login');
+      return;
+    }
+
+    if (!productData?.userState?.hasPurchased) {
+      showToast({
+        title: 'Tidak Dapat Memberikan Ulasan',
+        message: 'Ulasan hanya dapat diberikan setelah Anda berhasil membeli dan pesanan komoditas ini berstatus Selesai.',
+        type: 'error',
+      });
+      setIsReviewFormOpen(false);
       return;
     }
 
@@ -706,7 +716,7 @@ export default function ProductDetailPage({
           </div>
 
           {/* Form Tulis Ulasan (Collapsible) */}
-          {isReviewFormOpen && (
+          {isReviewFormOpen && productData.userState?.hasPurchased && (
             <form
               onSubmit={handleSubmitReview}
               className="p-4 sm:p-5 rounded-2xl bg-[#f4f5f1] border border-[#dce1d6] space-y-4"
@@ -855,7 +865,7 @@ export default function ProductDetailPage({
               ) : (
                 <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white border border-[#dce1d6] text-[#526046] text-xs font-medium">
                   <CheckCircle2 className="w-3.5 h-3.5 text-[#344d15]" />
-                  <span>Ulasan dapat diberikan setelah Anda membeli komoditas ini</span>
+                  <span>Ulasan dapat diberikan setelah Anda membeli komoditas ini dan pesanan selesai</span>
                 </div>
               )}
             </div>
