@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import AppHeader from '@/components/AppHeader';
 import LocationMapPreview from '@/components/LocationMapPreview';
 import {
@@ -34,6 +34,7 @@ import {
   Minus,
   Trash2,
   ArrowUpRight,
+  UserCheck,
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
@@ -69,10 +70,11 @@ const getCategoryIcon = (categoryName: string) => {
 
 // Kategori akan dimuat dinamis dari data admin kelola kategori
 
-export default function SewaAlatPage() {
+function SewaAlatContent() {
   const { user } = useAuth();
   const { showToast } = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   // State Data (Instant rendering dengan initial data dari seed lokal)
   const [equipments, setEquipments] = useState<EquipmentItem[]>(
@@ -80,11 +82,44 @@ export default function SewaAlatPage() {
   );
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedKategori, setSelectedKategori] = useState('SEMUA');
-  const [onlyAvailable, setOnlyAvailable] = useState(false);
-  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+  const [selectedKategori, setSelectedKategori] = useState<string>(
+    () => searchParams.get('kategori') || 'SEMUA'
+  );
+  const [onlyAvailable, setOnlyAvailable] = useState<boolean>(
+    () => searchParams.get('onlyAvailable') === 'true'
+  );
+  const [operatorOnly, setOperatorOnly] = useState<boolean>(
+    () => searchParams.get('operatorOnly') === 'true'
+  );
+  const [minPrice, setMinPrice] = useState<number>(() => {
+    const p = Number(searchParams.get('minPrice'));
+    return !isNaN(p) && p > 50000 ? p : 50000;
+  });
+  const [maxPrice, setMaxPrice] = useState<number>(() => {
+    const p = Number(searchParams.get('maxPrice'));
+    return !isNaN(p) && p < 2500000 && p > 50000 ? p : 2500000;
+  });
+  const [sortBy, setSortBy] = useState<string>(
+    () => searchParams.get('sortBy') || 'default'
+  );
 
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+
+  // Sinkronisasi filter saat query params berubah (misal kembali dari /sewa-alat/filter)
+  useEffect(() => {
+    const kat = searchParams.get('kategori') || 'SEMUA';
+    setSelectedKategori(kat);
+    setOnlyAvailable(searchParams.get('onlyAvailable') === 'true');
+    setOperatorOnly(searchParams.get('operatorOnly') === 'true');
+
+    const minP = Number(searchParams.get('minPrice'));
+    setMinPrice(!isNaN(minP) && minP > 50000 ? minP : 50000);
+
+    const maxP = Number(searchParams.get('maxPrice'));
+    setMaxPrice(!isNaN(maxP) && maxP < 2500000 && maxP > 50000 ? maxP : 2500000);
+
+    setSortBy(searchParams.get('sortBy') || 'default');
+  }, [searchParams]);
 
   // Fetch Kategori Sewa Alat dari Data Kelola Kategori Admin
   useEffect(() => {
@@ -159,21 +194,44 @@ export default function SewaAlatPage() {
     fetchEquipments();
   }, [fetchEquipments]);
 
-  // Filter Data
+  // Filter Data Komprehensif (Kategori, Ketersediaan, Operator, Rentang Biaya, Pencarian, & Urutan)
   const filteredEquipments = useMemo(() => {
-    return equipments.filter((item) => {
+    let list = equipments.filter((item) => {
       const matchKategori =
         selectedKategori === 'SEMUA' ||
         (item.kategori && item.kategori.toLowerCase().trim() === selectedKategori.toLowerCase().trim());
       const matchAvailable = !onlyAvailable || item.isTersedia;
+      const matchOperator = !operatorOnly || (item.biayaOperator !== null && item.biayaOperator !== undefined);
+      const price = Number(item.hargaSewa) || 0;
+      const matchMinPrice = price >= minPrice;
+      const matchMaxPrice = maxPrice >= 2500000 || price <= maxPrice;
       const matchSearch =
         !searchQuery.trim() ||
         item.nama.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (item.spesifikasi && item.spesifikasi.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (item.deskripsi && item.deskripsi.toLowerCase().includes(searchQuery.toLowerCase()));
-      return matchKategori && matchAvailable && matchSearch;
+
+      return matchKategori && matchAvailable && matchOperator && matchMinPrice && matchMaxPrice && matchSearch;
     });
-  }, [equipments, selectedKategori, onlyAvailable, searchQuery]);
+
+    if (sortBy === 'termurah') {
+      list.sort((a, b) => (Number(a.hargaSewa) || 0) - (Number(b.hargaSewa) || 0));
+    } else if (sortBy === 'termahal') {
+      list.sort((a, b) => (Number(b.hargaSewa) || 0) - (Number(a.hargaSewa) || 0));
+    } else if (sortBy === 'terbaru') {
+      list.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+    }
+
+    return list;
+  }, [equipments, selectedKategori, onlyAvailable, operatorOnly, minPrice, maxPrice, searchQuery, sortBy]);
+
+  const hasActiveFilters =
+    selectedKategori !== 'SEMUA' ||
+    onlyAvailable ||
+    operatorOnly ||
+    minPrice > 50000 ||
+    maxPrice < 2500000 ||
+    sortBy !== 'default';
 
   // Masukkan langsung ke keranjang sewa multi-alat saat tombol '+ Sewa Alat' ditekan
   const handleAddToCartDirectly = (item: EquipmentItem, e: React.MouseEvent) => {
@@ -366,53 +424,217 @@ export default function SewaAlatPage() {
           </div>
         </div>
 
-        {/* Category & Filter Bar (Mode Mobile: Icon Filter disamping Kategori Semua Alat; Desktop: Checkbox Siap Pakai) */}
-        <div className="flex items-center justify-between gap-3 mb-6 sm:mb-8">
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
-            {dynamicKategoriTabs.map((tab, idx) => {
+        {/* Category Section - Mobile Mode (UI seperti Toko dengan Image Generate 3D & Filter Icon di Paling Kiri) */}
+        <div className="mb-6 md:hidden">
+          <div className="flex items-center justify-between mb-3 px-1">
+            <h2 className="text-sm font-bold text-[#1a2610] tracking-tight">
+              Kategori Sewa Alat
+            </h2>
+            <button
+              type="button"
+              onClick={() => setSelectedKategori('SEMUA')}
+              className="text-xs font-semibold text-[#344d15] hover:text-[#1a2610] transition-colors cursor-pointer"
+            >
+              Lihat semua
+            </button>
+          </div>
+
+          <div className="flex items-start gap-2.5 overflow-x-auto pb-2 no-scrollbar px-1">
+            {/* 1. Tombol Filter Mode Mobile: Di Paling Kiri, Icon Saja (Membuka /sewa-alat/filter) */}
+            <button
+              type="button"
+              onClick={() => {
+                const p = new URLSearchParams();
+                if (selectedKategori && selectedKategori !== 'SEMUA') p.set('kategori', selectedKategori);
+                if (onlyAvailable) p.set('onlyAvailable', 'true');
+                if (operatorOnly) p.set('operatorOnly', 'true');
+                if (minPrice && minPrice > 50000) p.set('minPrice', String(minPrice));
+                if (maxPrice && maxPrice < 2500000) p.set('maxPrice', String(maxPrice));
+                if (sortBy && sortBy !== 'default') p.set('sortBy', sortBy);
+                router.push(`/sewa-alat/filter?${p.toString()}`);
+              }}
+              className="flex flex-col items-center group shrink-0 focus:outline-none cursor-pointer"
+              aria-label="Filter Alat"
+              title="Buka Filter Alat"
+            >
+              <div
+                className={`w-15 h-15 rounded-2xl p-1.5 flex items-center justify-center transition-all relative ${
+                  hasActiveFilters
+                    ? 'bg-[#1a2610] text-[#D4F63D] border-2 border-[#1a2610] shadow-xs'
+                    : 'bg-white hover:bg-[#EAEDE7] border border-[#dce1d6] text-[#233414] shadow-2xs'
+                }`}
+              >
+                <SlidersHorizontal className="w-5.5 h-5.5" />
+                {hasActiveFilters && (
+                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[#D4F63D] border-2 border-white ring-1 ring-[#1a2610]" />
+                )}
+              </div>
+              <span
+                className={`text-[11px] text-center mt-1.5 transition-colors leading-tight ${
+                  hasActiveFilters
+                    ? 'text-[#1a2610] font-bold'
+                    : 'text-[#526046] font-medium group-hover:text-[#1a2610]'
+                }`}
+              >
+                Filter
+              </span>
+            </button>
+
+            {/* 2. Kartu Kategori Sewa Alat: UI Seperti Toko dengan Image Generate 3D */}
+            {dynamicKategoriTabs.map((tab) => {
+              const isSelected = selectedKategori.toLowerCase().trim() === tab.key.toLowerCase().trim();
+              const iconSrc = getCategoryIcon(tab.key);
+
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setSelectedKategori(tab.key)}
+                  className="flex flex-col items-center group shrink-0 focus:outline-none cursor-pointer"
+                >
+                  <div
+                    className={`w-15 h-15 rounded-2xl p-1.5 flex items-center justify-center transition-all ${
+                      isSelected
+                        ? 'bg-white border-2 border-[#233414] shadow-xs'
+                        : 'bg-[#f4f5f1] hover:bg-[#EAEDE7] border border-[#dce1d6] group-hover:border-[#b8c4ae]'
+                    }`}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={iconSrc}
+                      alt={tab.label}
+                      className={`w-full h-full object-contain rounded-xl transition-transform duration-200 ${
+                        isSelected ? 'scale-105' : 'group-hover:scale-105'
+                      }`}
+                      loading="lazy"
+                    />
+                  </div>
+                  <span
+                    className={`text-[11px] text-center mt-1.5 transition-colors max-w-[70px] truncate leading-tight ${
+                      isSelected
+                        ? 'text-[#233414] font-bold'
+                        : 'text-[#526046] font-medium group-hover:text-[#1a2610]'
+                    }`}
+                    title={tab.label}
+                  >
+                    {tab.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Active Filter Chips (Mode Mobile & Desktop) */}
+        {hasActiveFilters && (
+          <div className="flex items-center gap-2 overflow-x-auto pb-2.5 mb-3 px-1 no-scrollbar text-xs">
+            <span className="text-[11px] font-bold text-[#526046] uppercase shrink-0">Filter Aktif:</span>
+            {selectedKategori !== 'SEMUA' && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-[#dce1d6] text-xs font-semibold text-[#1a2610] shadow-2xs shrink-0">
+                <span>{selectedKategori}</span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedKategori('SEMUA')}
+                  className="hover:text-red-600 cursor-pointer"
+                  title="Hapus filter kategori"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+            {onlyAvailable && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#e2f2c8] border border-[#c9e39e] text-xs font-bold text-[#233414] shadow-2xs shrink-0">
+                <CheckCircle2 className="w-3 h-3 text-[#344d15]" />
+                <span>Siap Pakai</span>
+                <button
+                  type="button"
+                  onClick={() => setOnlyAvailable(false)}
+                  className="hover:text-red-600 cursor-pointer"
+                  title="Hapus filter siap pakai"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+            {operatorOnly && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-[#dce1d6] text-xs font-semibold text-[#1a2610] shadow-2xs shrink-0">
+                <UserCheck className="w-3 h-3 text-[#344d15]" />
+                <span>Dengan Operator</span>
+                <button
+                  type="button"
+                  onClick={() => setOperatorOnly(false)}
+                  className="hover:text-red-600 cursor-pointer"
+                  title="Hapus filter operator"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+            {(minPrice > 50000 || maxPrice < 2500000) && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-[#dce1d6] text-xs font-semibold text-[#1a2610] shadow-2xs shrink-0">
+                <span>
+                  {minPrice >= 1000000 ? `Rp ${(minPrice / 1000000).toFixed(1)}jt` : `Rp ${Math.round(minPrice / 1000)}rb`} -{' '}
+                  {maxPrice >= 2500000
+                    ? '2.5jt+'
+                    : maxPrice >= 1000000
+                    ? `Rp ${(maxPrice / 1000000).toFixed(1)}jt`
+                    : `Rp ${Math.round(maxPrice / 1000)}rb`}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMinPrice(50000);
+                    setMaxPrice(2500000);
+                  }}
+                  className="hover:text-red-600 cursor-pointer"
+                  title="Hapus filter tarif"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedKategori('SEMUA');
+                setOnlyAvailable(false);
+                setOperatorOnly(false);
+                setMinPrice(50000);
+                setMaxPrice(2500000);
+                setSortBy('default');
+                router.push('/sewa-alat');
+              }}
+              className="text-[11px] text-[#526046] hover:text-red-600 font-semibold underline shrink-0 cursor-pointer ml-1"
+            >
+              Reset
+            </button>
+          </div>
+        )}
+
+        {/* Category Section - Desktop Mode (Pill Chips dengan Checkbox Siap Pakai di Kanan) */}
+        <div className="hidden md:flex items-center justify-between gap-4 mb-8">
+          <div className="flex items-center gap-2.5 overflow-x-auto no-scrollbar py-1">
+            {dynamicKategoriTabs.map((tab) => {
               const isSelected = selectedKategori.toLowerCase().trim() === tab.key.toLowerCase().trim();
 
               return (
-                <React.Fragment key={tab.key}>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedKategori(tab.key)}
-                    className={`px-4 sm:px-5 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all duration-150 shrink-0 cursor-pointer border select-none ${
-                      isSelected
-                        ? 'bg-[#233414] text-white border-[#233414] shadow-xs'
-                        : 'bg-white text-[#233414] border-[#cfd6c9] hover:bg-[#EAEDE7] hover:border-[#b8c4ae] shadow-2xs'
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-
-                  {/* Icon Filter Mode Mobile: Tepat disamping Kategori Semua Alat */}
-                  {idx === 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setIsMobileFilterOpen(true)}
-                      className={`md:hidden relative flex items-center justify-center gap-1.5 h-8.5 px-3 rounded-full text-xs font-semibold transition-all shrink-0 cursor-pointer border select-none ${
-                        onlyAvailable
-                          ? 'bg-[#233414] text-[#D4F63D] border-[#233414] shadow-xs'
-                          : 'bg-white text-[#233414] border-[#cfd6c9] hover:bg-[#EAEDE7]'
-                      }`}
-                      aria-label="Filter Alat"
-                      title="Filter Alat"
-                    >
-                      <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
-                      <span>Filter</span>
-                      {onlyAvailable && (
-                        <span className="w-2 h-2 rounded-full bg-[#D4F63D] shrink-0" />
-                      )}
-                    </button>
-                  )}
-                </React.Fragment>
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setSelectedKategori(tab.key)}
+                  className={`px-5 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all duration-150 shrink-0 cursor-pointer border select-none ${
+                    isSelected
+                      ? 'bg-[#233414] text-white border-[#233414] shadow-xs'
+                      : 'bg-white text-[#233414] border-[#cfd6c9] hover:bg-[#EAEDE7] hover:border-[#b8c4ae] shadow-2xs'
+                  }`}
+                >
+                  {tab.label}
+                </button>
               );
             })}
           </div>
 
-          {/* Desktop Filter Checkbox: Siap Pakai Saja (Gambar 3 Style) */}
-          <label className="hidden md:flex items-center gap-2 text-xs sm:text-sm font-semibold text-[#526046] hover:text-[#1a2610] cursor-pointer select-none bg-white border border-[#cfd6c9] px-4 py-2 rounded-full shrink-0 shadow-2xs hover:bg-[#EAEDE7] transition-all">
+          <label className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-[#526046] hover:text-[#1a2610] cursor-pointer select-none bg-white border border-[#cfd6c9] px-4 py-2 rounded-full shrink-0 shadow-2xs hover:bg-[#EAEDE7] transition-all">
             <input
               type="checkbox"
               checked={onlyAvailable}
@@ -813,102 +1035,20 @@ export default function SewaAlatPage() {
           )}
         </DialogContent>
       </Dialog>
-
-      {/* MODAL FILTER SEWA ALAT (Mobile Mode - Filter Siap Pakai & Kategori) */}
-      <Dialog open={isMobileFilterOpen} onOpenChange={setIsMobileFilterOpen}>
-        <DialogContent className="max-w-md w-[92vw] sm:w-full rounded-3xl p-5 sm:p-6 bg-white border border-[#dce1d6] shadow-2xl">
-          <DialogHeader className="border-b border-[#EAEDE7] pb-3">
-            <DialogTitle className="text-base font-bold text-[#1a2610] flex items-center gap-2">
-              <SlidersHorizontal className="w-4 h-4 text-[#233414]" />
-              <span>Filter Alat Pertanian</span>
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="py-4 space-y-4">
-            {/* Filter Ketersediaan: Siap Pakai Saja */}
-            <div>
-              <h4 className="text-xs font-bold text-[#1a2610] uppercase tracking-wider mb-2">
-                Ketersediaan Unit
-              </h4>
-              <div
-                onClick={() => setOnlyAvailable(!onlyAvailable)}
-                className={`flex items-start gap-3 p-3.5 rounded-2xl border transition-all cursor-pointer ${
-                  onlyAvailable
-                    ? 'bg-[#f4f7ee] border-[#233414] shadow-xs'
-                    : 'bg-white border-[#dce1d6] hover:bg-[#f9faf7]'
-                }`}
-              >
-                <input
-                  type="checkbox"
-                  checked={onlyAvailable}
-                  onChange={(e) => {
-                    e.stopPropagation();
-                    setOnlyAvailable(e.target.checked);
-                  }}
-                  className="w-4 h-4 mt-0.5 rounded accent-[#233414] text-[#233414] focus:ring-[#233414] border-[#cfd6c9] cursor-pointer"
-                />
-                <div className="flex-1">
-                  <div className="text-xs font-bold text-[#1a2610] flex items-center gap-1.5">
-                    <span>Siap Pakai Saja</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#D4F63D] text-[#1a2610] font-bold">
-                      Tersedia
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-[#526046] mt-0.5 leading-relaxed">
-                    Hanya tampilkan unit alsintan yang siap disewa dan belum dibooking.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Filter Kategori Alat */}
-            <div>
-              <h4 className="text-xs font-bold text-[#1a2610] uppercase tracking-wider mb-2">
-                Kategori Alat
-              </h4>
-              <div className="flex flex-wrap gap-2">
-                {dynamicKategoriTabs.map((tab) => {
-                  const isSelected = selectedKategori.toLowerCase().trim() === tab.key.toLowerCase().trim();
-                  return (
-                    <button
-                      key={tab.key}
-                      type="button"
-                      onClick={() => setSelectedKategori(tab.key)}
-                      className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer border select-none ${
-                        isSelected
-                          ? 'bg-[#233414] text-white border-[#233414] shadow-xs'
-                          : 'bg-white text-[#233414] border-[#cfd6c9] hover:bg-[#EAEDE7]'
-                      }`}
-                    >
-                      {tab.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter className="border-t border-[#EAEDE7] pt-3 flex flex-row items-center justify-between gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setOnlyAvailable(false);
-                setSelectedKategori('SEMUA');
-              }}
-              className="px-4 py-2 rounded-xl text-xs font-semibold text-[#526046] hover:text-[#1a2610] hover:bg-[#EAEDE7] transition cursor-pointer"
-            >
-              Reset
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsMobileFilterOpen(false)}
-              className="px-5 py-2 rounded-xl bg-[#233414] hover:bg-[#344d15] text-white text-xs font-bold shadow-xs transition cursor-pointer"
-            >
-              Terapkan Filter
-            </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
+  );
+}
+
+export default function SewaAlatPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#f4f5f1] flex items-center justify-center font-sans">
+          <div className="w-6 h-6 border-2 border-[#233414] border-t-transparent rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <SewaAlatContent />
+    </Suspense>
   );
 }

@@ -107,3 +107,18 @@ export function calculateEquipmentStats(reviews: EquipmentReviewItem[]): Equipme
     breakdown,
   };
 }
+
+export function deleteEquipmentReviewFromFile(reviewId: string): boolean {
+  try {
+    const reviews = readEquipmentReviewsFromFile();
+    const updated = reviews.filter((r) => r.id !== reviewId);
+    if (updated.length !== reviews.length) {
+      fs.writeFileSync(REVIEWS_FILE, JSON.stringify(updated, null, 2), 'utf-8');
+      return true;
+    }
+    return false;
+  } catch (err) {
+    console.error('Error deleting equipment review from file:', err);
+    return false;
+  }
+}

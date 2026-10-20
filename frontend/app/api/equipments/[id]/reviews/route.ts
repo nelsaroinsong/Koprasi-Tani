@@ -5,6 +5,7 @@ import { readEquipmentRentals } from '@/lib/equipment-rentals';
 import {
   readEquipmentReviewsFromFile,
   saveEquipmentReviewToFile,
+  deleteEquipmentReviewFromFile,
   calculateEquipmentStats,
   type EquipmentReviewItem,
 } from '@/lib/equipment-reviews';
@@ -134,6 +135,75 @@ export async function POST(
     console.error('Error submitting equipment review:', error);
     return NextResponse.json(
       { error: error?.message || 'Gagal menyimpan ulasan' },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE: Hapus ulasan alat milik penyewa sendiri
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    if (!id) {
+      return NextResponse.json({ error: 'ID alat diperlukan' }, { status: 400 });
+    }
+
+    const session = await auth();
+    if (!session?.user?.email) {
+      return NextResponse.json(
+        { error: 'Silakan login terlebih dahulu untuk menghapus ulasan.' },
+        { status: 401 }
+      );
+    }
+
+    const currentUser = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: { id: true, role: true },
+    });
+
+    if (!currentUser) {
+      return NextResponse.json({ error: 'Pengguna tidak ditemukan.' }, { status: 404 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const reviewId = searchParams.get('reviewId');
+
+    if (!reviewId) {
+      return NextResponse.json({ error: 'ID ulasan diperlukan.' }, { status: 400 });
+    }
+
+    const allReviews = readEquipmentReviewsFromFile();
+    const review = allReviews.find((r) => r.id === reviewId && r.equipmentId === id);
+
+    if (!review) {
+      return NextResponse.json({ error: 'Ulasan tidak ditemukan.' }, { status: 404 });
+    }
+
+    if (review.userId !== currentUser.id && currentUser.role !== 'ADMIN') {
+      return NextResponse.json(
+        { error: 'Anda hanya dapat menghapus ulasan milik akun Anda sendiri.' },
+        { status: 403 }
+      );
+    }
+
+    deleteEquipmentReviewFromFile(reviewId);
+
+    const updatedReviews = readEquipmentReviewsFromFile().filter((r) => r.equipmentId === id);
+    const stats = calculateEquipmentStats(updatedReviews);
+
+    return NextResponse.json({
+      success: true,
+      message: 'Ulasan berhasil dihapus.',
+      reviews: updatedReviews,
+      stats,
+    });
+  } catch (error: any) {
+    console.error('Error deleting equipment review:', error);
+    return NextResponse.json(
+      { error: error?.message || 'Gagal menghapus ulasan' },
       { status: 500 }
     );
   }

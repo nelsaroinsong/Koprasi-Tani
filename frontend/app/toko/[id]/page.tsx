@@ -26,6 +26,8 @@ import {
   AlertCircle,
   X,
   Maximize2,
+  Trash2,
+  ChevronRight,
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -67,6 +69,7 @@ export default function ProductDetailPage({
 
   // Helpful reaction counts state (local state map)
   const [helpfulLikes, setHelpfulLikes] = useState<{ [id: string]: boolean }>({});
+  const [deletingReviewId, setDeletingReviewId] = useState<string | null>(null);
 
   const fetchProductDetail = useCallback(async () => {
     try {
@@ -234,6 +237,40 @@ export default function ProductDetailPage({
     }
   };
 
+  const handleDeleteReview = async (reviewId: string) => {
+    if (!window.confirm('Apakah Anda yakin ingin menghapus ulasan ini?')) return;
+    try {
+      setDeletingReviewId(reviewId);
+      const res = await fetch(`/api/products/${productId}/reviews?reviewId=${reviewId}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast({
+          title: 'Ulasan Dihapus',
+          message: 'Ulasan Anda berhasil dihapus.',
+          type: 'success',
+        });
+        fetchProductDetail();
+      } else {
+        showToast({
+          title: 'Gagal Menghapus Ulasan',
+          message: data.error || 'Terjadi kesalahan saat menghapus ulasan.',
+          type: 'error',
+        });
+      }
+    } catch (err) {
+      console.error('Error delete review:', err);
+      showToast({
+        title: 'Gagal Menghapus Ulasan',
+        message: 'Terjadi kendala koneksi ke server.',
+        type: 'error',
+      });
+    } finally {
+      setDeletingReviewId(null);
+    }
+  };
+
   const handleShare = () => {
     if (navigator.share) {
       navigator.share({
@@ -347,13 +384,7 @@ export default function ProductDetailPage({
           {product.kategori}
         </span>
 
-        <Link
-          href="/cart"
-          className="w-10 h-10 -mr-1 rounded-full flex items-center justify-center text-[#1a2610] hover:bg-[#f4f5f1] transition relative"
-          aria-label="Keranjang Belanja"
-        >
-          <ShoppingBag className="w-5 h-5" />
-        </Link>
+        <div className="w-10" />
       </div>
       {/* Spacer placeholder mode mobile agar konten tidak tertutup fixed navbar */}
       <div className="sm:hidden h-14 shrink-0 pointer-events-none" aria-hidden="true" />
@@ -833,16 +864,30 @@ export default function ProductDetailPage({
             </div>
           )}
 
-          {/* LIST OF REVIEWS */}
+          {/* LIST OF REVIEWS (Maksimal 3 ulasan ditampilkan di halaman detail) */}
           {reviews && reviews.length > 0 && (
             <div className="space-y-4 pt-2">
-              <h3 className="text-xs font-bold text-[#1a2610] uppercase tracking-wider">
-                Semua Ulasan ({reviews.length})
-              </h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-bold text-[#1a2610] uppercase tracking-wider">
+                  Ulasan Terbaru ({Math.min(reviews.length, 3)} dari {reviews.length})
+                </h3>
+                {reviews.length > 3 && (
+                  <Link
+                    href={`/toko/${product.id}/ulasan`}
+                    className="text-xs font-bold text-[#233414] hover:text-[#344d15] flex items-center gap-1 transition-colors"
+                  >
+                    <span>Lihat Semua ({reviews.length})</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </Link>
+                )}
+              </div>
 
               <div className="divide-y divide-[#EAEDE7]">
-                {reviews.map((rev: any) => {
+                {reviews.slice(0, 3).map((rev: any) => {
                   const isHelpful = Boolean(helpfulLikes[rev.id]);
+                  const isOwnReview =
+                    Boolean(user?.id) &&
+                    (rev.userId === user?.id || rev.user?.id === user?.id);
 
                   return (
                     <div key={rev.id} className="py-4 space-y-2">
@@ -865,7 +910,7 @@ export default function ProductDetailPage({
                         </span>
                       </div>
 
-                      {/* User Info (Avatar + Name + Badge) */}
+                      {/* User Info (Avatar + Name + Delete button if own review) */}
                       <div className="flex items-center gap-2.5">
                         <Avatar className="w-7 h-7 rounded-full border border-[#cfd6c9]">
                           <AvatarImage src={rev.user?.avatarUrl || ''} alt={rev.user?.name} />
@@ -874,12 +919,25 @@ export default function ProductDetailPage({
                           </AvatarFallback>
                         </Avatar>
                         <span className="text-xs font-bold text-[#1a2610]">
-                          {rev.user?.name || 'Pembeli Terverifikasi'}
+                          {rev.user?.name || 'Pembeli Koperasi'}
                         </span>
-                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#233414] bg-[#e2f2c8] px-2 py-0.5 rounded-full border border-[#c9e39e]">
-                          <CheckCircle2 className="w-3 h-3 text-[#344d15]" />
-                          <span>Pembeli Terverifikasi</span>
-                        </span>
+
+                        {isOwnReview && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteReview(rev.id)}
+                            disabled={deletingReviewId === rev.id}
+                            className="ml-auto inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-red-600 hover:bg-red-50 hover:text-red-700 transition cursor-pointer text-xs font-medium border border-red-200 disabled:opacity-50"
+                            title="Hapus Ulasan Anda"
+                          >
+                            {deletingReviewId === rev.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-3.5 h-3.5" />
+                            )}
+                            <span className="text-[11px]">Hapus</span>
+                          </button>
+                        )}
                       </div>
 
                       {/* Product Tag Info */}
@@ -925,6 +983,19 @@ export default function ProductDetailPage({
                   );
                 })}
               </div>
+
+              {/* Tombol Lihat Semua Ulasan jika ulasan lebih dari 3 */}
+              {reviews.length > 3 && (
+                <div className="pt-2">
+                  <Link
+                    href={`/toko/${product.id}/ulasan`}
+                    className="w-full py-3 px-4 rounded-xl border border-[#dce1d6] bg-[#f4f5f1] hover:bg-[#EAEDE7] text-[#1a2610] text-xs font-bold flex items-center justify-center gap-2 transition-colors group"
+                  >
+                    <span>Lihat Semua {reviews.length} Ulasan</span>
+                    <ChevronRight className="w-4 h-4 text-[#526046] group-hover:translate-x-0.5 transition-transform" />
+                  </Link>
+                </div>
+              )}
             </div>
           )}
         </section>

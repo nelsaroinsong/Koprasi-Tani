@@ -207,3 +207,84 @@ export async function POST(
     return NextResponse.json({ error: error.message || 'Gagal mengirim ulasan' }, { status: 500 });
   }
 }
+
+// DELETE: Hapus ulasan milik pengguna sendiri
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id: productId } = await params;
+    const session = await auth();
+
+    if (!session?.user?.email) {
+      return NextResponse.json(
+        { error: 'Silakan login terlebih dahulu untuk menghapus ulasan.' },
+        { status: 401 }
+      );
+    }
+
+    const currentUser = await prisma.user.findUnique({
+      where: { email: session.user.email },
+    });
+
+    if (!currentUser) {
+      return NextResponse.json({ error: 'Pengguna tidak ditemukan.' }, { status: 404 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const reviewId = searchParams.get('reviewId');
+
+    if (!reviewId) {
+      return NextResponse.json({ error: 'ID ulasan diperlukan.' }, { status: 400 });
+    }
+
+    let review: any;
+    if ((prisma as any).review) {
+      review = await (prisma as any).review.findUnique({
+        where: { id: reviewId },
+      });
+    } else {
+      const rows: any[] = await prisma.$queryRawUnsafe(
+        `SELECT id, "userId", "productId" FROM reviews WHERE id = $1`,
+        reviewId
+      );
+      review = rows[0] || null;
+    }
+
+    if (!review) {
+      return NextResponse.json({ error: 'Ulasan tidak ditemukan.' }, { status: 404 });
+    }
+
+    if (review.userId !== currentUser.id && currentUser.role !== 'ADMIN') {
+      return NextResponse.json(
+        { error: 'Anda hanya dapat menghapus ulasan milik akun Anda sendiri.' },
+        { status: 403 }
+      );
+    }
+
+    if ((prisma as any).review) {
+      await (prisma as any).review.delete({
+        where: { id: reviewId },
+      });
+    } else {
+      await prisma.$executeRawUnsafe(`DELETE FROM reviews WHERE id = $1`, reviewId);
+    }
+
+    // Invalidate review cache, product detail cache, and farmer profile cache
+    await Promise.all([
+      delCache(`reviews:product:${productId}`),
+      delCache(`product:detail:${productId}:public`),
+      delCachePattern('products:*'),
+      delCachePattern(`petani:*`),
+    ]).catch(() => {});
+
+    return NextResponse.json({
+      success: true,
+      message: 'Ulasan berhasil dihapus.',
+    });
+  } catch (error: any) {
+    console.error('Error delete review:', error);
+    return NextResponse.json({ error: error.message || 'Gagal menghapus ulasan' }, { status: 500 });
+  }
+}

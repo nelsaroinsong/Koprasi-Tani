@@ -16,7 +16,6 @@ import {
   Loader2,
   ChevronRight,
   Store,
-  ArrowLeft,
   LocateFixed,
   Receipt,
 } from 'lucide-react';
@@ -308,18 +307,6 @@ export default function ProfilePage() {
       <AppHeader activePage="profile" />
 
       <main className="max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 pt-3 sm:pt-6">
-        {/* Tombol Navigasi Kembali */}
-        <div className="mb-2.5 sm:mb-4">
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#526046] hover:text-[#1a2610] transition cursor-pointer"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Kembali</span>
-          </button>
-        </div>
-
         {/* Master Profile Container Card */}
         <div className="bg-white rounded-xl sm:rounded-2xl border border-[#dce1d6] overflow-hidden">
           {/* 1. Header Banner Flat Deep Forest Green */}

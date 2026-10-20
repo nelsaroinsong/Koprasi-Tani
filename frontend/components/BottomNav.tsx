@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   Store,
   Tractor,
@@ -43,7 +44,7 @@ export default function BottomNav({ activePage }: BottomNavProps) {
   const navItems = [
     {
       key: 'toko',
-      label: 'Toko Online',
+      label: 'Toko',
       href: '/toko',
       icon: Store,
       isActive: isToko,
@@ -91,9 +92,7 @@ export default function BottomNav({ activePage }: BottomNavProps) {
       aria-label="Navigasi Bawah Layanan Koperasi"
       className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#dce1d6] lg:hidden pb-[env(safe-area-inset-bottom,0px)] shadow-xs"
     >
-      <div
-        className={`max-w-md mx-auto flex items-center justify-around h-14 sm:h-15 px-2`}
-      >
+      <div className="max-w-md mx-auto flex items-center justify-around h-14 sm:h-15 px-2">
         {navItems.map((item) => {
           const Icon = item.icon;
 
@@ -102,25 +101,47 @@ export default function BottomNav({ activePage }: BottomNavProps) {
               key={item.key}
               href={item.href}
               prefetch={true}
-              className="focus:outline-none flex items-center justify-center py-1 px-1.5"
+              className="focus:outline-none flex items-center justify-center py-1"
               aria-label={item.label}
               title={item.label}
             >
-              <div
-                className={`w-13 h-9 sm:w-15 sm:h-10 rounded-full flex items-center justify-center transition-colors duration-150 ${
+              <motion.div
+                layout
+                transition={{
+                  type: 'spring',
+                  stiffness: 450,
+                  damping: 35,
+                }}
+                className={`h-10 rounded-full flex items-center justify-center select-none cursor-pointer ${
                   item.isActive
-                    ? 'bg-[#233414] text-[#D4F63D] shadow-xs'
-                    : 'text-[#526046] hover:text-[#1a2610] hover:bg-[#EAEDE7]'
+                    ? 'bg-[#1a2610] text-white px-3.5 sm:px-4 shadow-sm gap-2'
+                    : 'w-10 h-10 text-[#526046] hover:text-[#1a2610] hover:bg-[#EAEDE7]'
                 }`}
               >
                 <Icon
-                  className={`w-5 h-5 ${
+                  className={`w-5 h-5 shrink-0 transition-colors ${
                     item.isActive
-                      ? 'text-[#D4F63D] stroke-[2.2]'
+                      ? 'text-white stroke-[2.2]'
                       : 'text-[#526046] stroke-[1.8]'
                   }`}
                 />
-              </div>
+                <AnimatePresence initial={false}>
+                  {item.isActive && (
+                    <motion.span
+                      initial={{ opacity: 0, width: 0 }}
+                      animate={{ opacity: 1, width: 'auto' }}
+                      exit={{ opacity: 0, width: 0 }}
+                      transition={{
+                        opacity: { duration: 0.18 },
+                        width: { duration: 0.22, ease: 'easeOut' },
+                      }}
+                      className="text-xs font-bold text-white whitespace-nowrap overflow-hidden"
+                    >
+                      {item.label}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </motion.div>
             </Link>
           );
         })}
