@@ -517,35 +517,41 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
       {/* Spacer placeholder mode mobile agar konten tidak tertutup fixed navbar */}
       <div className="sm:hidden h-14 shrink-0 pointer-events-none" aria-hidden="true" />
 
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-3 sm:py-6 space-y-4 sm:space-y-5">
+      <main className="flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-8 lg:px-12 xl:px-16 py-4 sm:py-6 lg:py-8 space-y-5 sm:space-y-6">
         {/* Desktop Compact Back Link */}
-        <div className="hidden sm:flex items-center justify-between">
+        <div className="hidden sm:flex items-center justify-between pb-1">
           <Link
             href="/cart?tab=sewa-alat"
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-[#1a2610] hover:text-[#344d15] transition"
+            className="inline-flex items-center gap-2.5 text-xs sm:text-sm font-bold text-[#1a2610] hover:text-[#344d15] transition group"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <div className="w-8 h-8 rounded-full bg-white border border-[#cfd6c9] flex items-center justify-center text-[#1a2610] group-hover:bg-[#EAEDE7] transition shadow-2xs">
+              <ArrowLeft className="w-4 h-4" />
+            </div>
             <span>Kembali ke Keranjang Sewa</span>
           </Link>
 
-          <span className="text-xs font-semibold text-[#526046] tabular-nums">
-            {totalRentalUnits} Unit ({rentalCartItems.length} Jenis Alat)
-          </span>
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-[#dce1d6] text-xs font-semibold text-[#526046] shadow-2xs tabular-nums">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#344d15]" />
+            <span>{totalRentalUnits} Unit ({rentalCartItems.length} Jenis Alat)</span>
+          </div>
         </div>
 
         {/* 2-Column Responsive Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-start">
-          {/* Kolom Kiri: Daftar Alat (Gambar 5 Style) & Formulir Jadwal/Lahan */}
-          <div className="lg:col-span-7 xl:col-span-8 space-y-4">
-            {/* 1. Daftar Unit Alat Yang Diajukan (Gambar 5 Flat List Style) */}
-            <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#EAEDE7] sm:border-[#dce1d6] p-4 sm:p-6">
-              <div className="flex items-center justify-between pb-3 border-b border-[#EAEDE7]">
-                <h3 className="font-bold text-[#1a2610] text-xs sm:text-sm uppercase tracking-wider">
-                  Unit Alat Pertanian ({rentalCartItems.length})
-                </h3>
+          {/* Kolom Kiri: Daftar Alat & Formulir Jadwal/Lahan */}
+          <div className="lg:col-span-7 xl:col-span-8 space-y-5">
+            {/* 1. Daftar Unit Alat Yang Diajukan */}
+            <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#EAEDE7] sm:border-[#dce1d6] p-5 sm:p-7 shadow-2xs">
+              <div className="flex items-center justify-between pb-4 border-b border-[#EAEDE7]">
+                <div className="flex items-center gap-2">
+                  <Tractor className="w-4 h-4 text-[#233414]" />
+                  <h3 className="font-extrabold text-[#1a2610] text-xs sm:text-sm uppercase tracking-wider">
+                    Unit Alat Pertanian ({rentalCartItems.length})
+                  </h3>
+                </div>
                 <Link
                   href="/cart?tab=sewa-alat"
-                  className="text-xs font-bold text-[#344d15] hover:underline"
+                  className="px-3 py-1 rounded-full text-xs font-bold text-[#344d15] bg-[#e2f2c8]/60 hover:bg-[#e2f2c8] border border-[#c9e39e] transition cursor-pointer"
                 >
                   Ubah
                 </Link>
@@ -555,8 +561,8 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
                 {rentalCartItems.map((item) => {
                   const itemTotal = calculateRentalItemTotal(item);
                   return (
-                    <div key={item.id} className="py-3.5 first:pt-3 last:pb-1 flex items-stretch gap-3.5">
-                      <div className="w-18 h-18 sm:w-20 sm:h-20 rounded-2xl overflow-hidden bg-[#f4f5f1] border border-[#EAEDE7] shrink-0">
+                    <div key={item.id} className="py-4 first:pt-4 last:pb-1 flex items-center gap-4">
+                      <div className="w-18 h-18 sm:w-22 sm:h-22 rounded-2xl overflow-hidden bg-[#f4f5f1] border border-[#EAEDE7] shrink-0">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={
@@ -568,25 +574,22 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
                         />
                       </div>
 
-                      <div className="min-w-0 flex-1 flex flex-col justify-between py-0.5">
-                        <div>
-                          <h4 className="text-sm font-bold text-[#1a2610] truncate">
-                            {item.nama}
-                          </h4>
-                          <div className="text-xs text-[#5b6950] mt-0.5 tabular-nums">
-                            {item.durasi} {item.satuanSewa || 'hari'} × Rp{' '}
-                            {Number(item.hargaSewa).toLocaleString('id-ID')}
-                            {item.includeOperator ? ' (+Operator)' : ''}
-                          </div>
+                      <div className="min-w-0 flex-1 py-0.5 space-y-1">
+                        <h4 className="text-sm sm:text-base font-bold text-[#1a2610] truncate">
+                          {item.nama}
+                        </h4>
+                        <div className="text-xs text-[#5b6950] tabular-nums">
+                          {item.durasi} {item.satuanSewa || 'hari'} × Rp{' '}
+                          {Number(item.hargaSewa).toLocaleString('id-ID')}
+                          {item.includeOperator ? ' (+Operator)' : ''}
                         </div>
-
-                        <div className="text-sm font-extrabold text-[#1a2610] tabular-nums">
+                        <div className="text-sm sm:text-base font-black text-[#1a2610] tabular-nums pt-1">
                           Rp {itemTotal.toLocaleString('id-ID')}
                         </div>
                       </div>
 
-                      <div className="flex flex-col items-end justify-end py-0.5 shrink-0">
-                        <span className="px-3 py-1 rounded-full border border-[#dce1d6] bg-[#f4f5f1] text-xs font-extrabold text-[#1a2610] tabular-nums">
+                      <div className="flex flex-col items-end justify-center shrink-0">
+                        <span className="px-3.5 py-1.5 rounded-full border border-[#dce1d6] bg-[#f4f5f1] text-xs font-bold text-[#1a2610] tabular-nums shadow-2xs">
                           ×{item.jumlahUnit} unit
                         </span>
                       </div>
@@ -597,10 +600,13 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
             </div>
 
             {/* 2. Jadwal Penggunaan & Lokasi Lahan */}
-            <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#EAEDE7] sm:border-[#dce1d6] p-4 sm:p-6 space-y-4">
-              <h3 className="font-bold text-[#1a2610] text-xs sm:text-sm uppercase tracking-wider border-b border-[#EAEDE7] pb-2.5">
-                Jadwal & Lokasi Lahan Kebun
-              </h3>
+            <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#EAEDE7] sm:border-[#dce1d6] p-5 sm:p-7 space-y-4 shadow-2xs">
+              <div className="flex items-center gap-2 border-b border-[#EAEDE7] pb-3">
+                <Calendar className="w-4 h-4 text-[#233414]" />
+                <h3 className="font-extrabold text-[#1a2610] text-xs sm:text-sm uppercase tracking-wider">
+                  Jadwal & Lokasi Lahan Kebun
+                </h3>
+              </div>
 
               <div>
                 <label className="block text-xs font-bold text-[#1a2610] mb-1.5">
@@ -611,7 +617,7 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
                   required
                   value={rentalStartDate}
                   onChange={(e) => setRentalStartDate(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-[#f4f5f1] border border-[#cfd6c9] rounded-xl focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#233414] focus:border-[#233414] font-semibold text-xs text-[#1a2610] transition tabular-nums"
+                  className="w-full px-3.5 py-2.5 bg-[#f8f9f6] border border-[#cfd6c9] rounded-2xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#233414]/15 focus:border-[#233414] font-semibold text-xs sm:text-sm text-[#1a2610] transition tabular-nums"
                 />
               </div>
 
@@ -626,7 +632,7 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
               </div>
 
               <div>
-                <label className="block font-bold text-[#1a2610] text-xs mb-1.5">
+                <label className="block font-bold text-[#1a2610] text-xs sm:text-sm mb-1.5">
                   Catatan Operasional (Opsional)
                 </label>
                 <textarea
@@ -634,16 +640,20 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
                   value={rentalCatatan}
                   onChange={(e) => setRentalCatatan(e.target.value)}
                   placeholder="Contoh: Luas lahan sekitar 1 hektar..."
-                  className="w-full p-3 text-xs bg-[#f4f5f1] border border-[#cfd6c9] rounded-xl focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#233414] focus:border-[#233414] text-[#1a2610] placeholder:text-[#5b6950] transition"
+                  className="w-full p-3.5 text-xs sm:text-sm bg-[#fafafa] border border-[#cfd6c9] rounded-2xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#233414]/15 focus:border-[#233414] text-[#1a2610] placeholder:text-[#5b6950] transition"
                 />
               </div>
             </div>
           </div>
 
-          {/* Kolom Kanan: Ringkasan Sticky & SlideCommit (Gambar 5 Bottom Summary Sheet Style) */}
-          <div className="lg:col-span-5 xl:col-span-4 lg:sticky lg:top-20">
-            <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#EAEDE7] sm:border-[#dce1d6] p-4 sm:p-6 space-y-4">
-              <div className="space-y-2 text-xs">
+          {/* Kolom Kanan: Ringkasan Sticky & SlideCommit */}
+          <div className="lg:col-span-5 xl:col-span-4 lg:sticky lg:top-24">
+            <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#EAEDE7] sm:border-[#dce1d6] p-5 sm:p-7 space-y-5 shadow-2xs">
+              <h2 className="text-base sm:text-lg font-bold text-[#1a2610] tracking-tight border-b border-[#EAEDE7] pb-3">
+                Ringkasan Sewa Alat
+              </h2>
+
+              <div className="space-y-3 text-xs sm:text-[13px]">
                 <div className="flex justify-between text-[#526046]">
                   <span>Total Unit Mesin</span>
                   <span className="font-semibold text-[#1a2610] tabular-nums">
@@ -664,9 +674,9 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
                 </div>
               </div>
 
-              <div className="border-t border-[#EAEDE7] pt-3 flex justify-between items-baseline">
-                <span className="text-sm font-semibold text-[#526046]">Total:</span>
-                <span className="text-xl sm:text-2xl font-black text-[#1a2610] tracking-tight tabular-nums">
+              <div className="border-t border-[#EAEDE7] pt-4 flex justify-between items-baseline">
+                <span className="text-sm sm:text-base font-bold text-[#1a2610]">Total Estimasi Biaya:</span>
+                <span className="text-2xl sm:text-3xl font-black text-[#1a2610] tracking-tight tabular-nums">
                   Rp {totalRentalAmount.toLocaleString('id-ID')}
                 </span>
               </div>
@@ -678,17 +688,22 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
                 </div>
               )}
 
-              <div className="pt-1">
+              <div className="pt-2">
                 <SlideCommit
                   label="Geser untuk Ajukan Sewa Alat"
                   onConfirm={handleConfirmRentalOrder}
                   disabled={isSubmitting}
-                  className="w-full"
+                  trackColor="#1a2610"
+                  handleColor="#ffffff"
+                  successColor="#233414"
+                  height={54}
+                  radius={27}
+                  className="w-full shadow-sm"
                 />
               </div>
 
-              <div className="flex items-center gap-1.5 text-[11px] text-[#5b6950] justify-center">
-                <ShieldCheck className="w-3.5 h-3.5 text-[#344d15]" />
+              <div className="flex items-center gap-1.5 text-xs text-[#526046] justify-center pt-1">
+                <ShieldCheck className="w-4 h-4 text-[#344d15]" />
                 <span>Pengajuan resmi diverifikasi staf koperasi</span>
               </div>
             </div>

@@ -915,10 +915,10 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
           </div>
         ) : (
           /* TAB 2: PENGAJUAN SEWA ALAT (2-Column Layout matching Gambar 1) */
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
-            {/* Left Column: Filter Sidebar Pills for Rental */}
-            <div className="lg:col-span-4 xl:col-span-3 lg:sticky lg:top-24 space-y-2.5">
-              <div className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0 no-scrollbar">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-8 items-start">
+            {/* Left Column: Filter Pills for Rental (Horizontal scrolling badges on mobile, sidebar on desktop) */}
+            <div className="lg:col-span-4 xl:col-span-3 lg:sticky lg:top-24">
+              <div className="flex lg:flex-col gap-1.5 sm:gap-2 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0 scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
                 {[
                   { key: 'ALL', label: 'Semua Pengajuan', count: rentalStats.total },
                   { key: 'MENUNGGU_PERSETUJUAN_ADMIN', label: 'Menunggu Persetujuan', count: rentalStats.pendingCount },
@@ -935,7 +935,7 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
                       key={tab.key}
                       type="button"
                       onClick={() => setRentalActiveFilter(tab.key)}
-                      className={`w-full flex items-center justify-between px-5 py-3.5 rounded-full text-xs sm:text-sm font-semibold transition cursor-pointer shrink-0 lg:shrink whitespace-nowrap lg:whitespace-normal ${
+                      className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 sm:px-4 sm:py-2 lg:w-full lg:flex lg:items-center lg:justify-between lg:px-5 lg:py-3.5 rounded-full text-xs lg:text-sm font-semibold transition cursor-pointer shrink-0 whitespace-nowrap lg:whitespace-normal ${
                         isActive
                           ? 'bg-[#1a2610] text-white shadow-xs'
                           : 'bg-white text-neutral-700 hover:bg-neutral-50 border border-neutral-200/90 hover:border-neutral-300'
@@ -943,7 +943,7 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
                     >
                       <span>{tab.label}</span>
                       <span
-                        className={`w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center shrink-0 ml-3 tabular-nums ${
+                        className={`min-w-[18px] h-[18px] lg:w-6 lg:h-6 rounded-full text-[10px] lg:text-xs font-bold flex items-center justify-center shrink-0 ml-1.5 lg:ml-3 tabular-nums ${
                           isActive
                             ? 'bg-white text-[#1a2610]'
                             : 'bg-neutral-100 text-neutral-600'
@@ -958,14 +958,14 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
             </div>
 
             {/* Right Column: Rental Cards */}
-            <div className="lg:col-span-8 xl:col-span-9 space-y-5">
+            <div className="lg:col-span-8 xl:col-span-9 space-y-4 sm:space-y-5">
               {isRentalLoading ? (
                 <div className="py-20 flex flex-col items-center justify-center gap-3 text-[#526046]">
                   <Loader2 className="w-8 h-8 text-[#233414] animate-spin" />
                   <span className="text-xs font-semibold">Memuat riwayat pengajuan sewa alat pertanian...</span>
                 </div>
               ) : filteredRentals.length === 0 ? (
-                <div className="bg-white p-10 sm:p-14 rounded-3xl border border-neutral-200/90 text-center shadow-2xs">
+                <div className="bg-white p-8 sm:p-14 rounded-3xl border border-neutral-200/90 text-center shadow-2xs">
                   <div className="w-16 h-16 rounded-2xl bg-[#f4f5f1] border border-neutral-200 text-[#233414] flex items-center justify-center mx-auto mb-3">
                     <Tractor className="w-8 h-8 stroke-1 text-[#233414]" />
                   </div>
@@ -997,7 +997,7 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
                   </div>
                 </div>
               ) : (
-                <div className="space-y-5">
+                <div className="space-y-4 sm:space-y-5">
                   {filteredRentals.map((rental) => {
                     const statusCfg = getRentalStatusConfig(rental.status);
                     const formattedDate = new Date(rental.createdAt).toLocaleDateString('id-ID', {
@@ -1011,26 +1011,26 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
                         key={rental.id}
                         className="bg-white rounded-3xl border border-neutral-200/90 shadow-2xs hover:shadow-xs transition duration-200 overflow-hidden"
                       >
-                        <div className="p-5 sm:p-7 space-y-4">
+                        <div className="p-4 sm:p-7 space-y-3.5 sm:space-y-4">
                           {/* Top Header Row */}
-                          <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
                             <div>
-                              <span className="text-[11px] font-medium text-neutral-400 block tracking-wide uppercase">
+                              <span className="text-[10px] sm:text-[11px] font-medium text-neutral-400 block tracking-wide uppercase">
                                 No. Pengajuan Sewa
                               </span>
-                              <div className="flex items-center gap-2 mt-0.5">
-                                <Tractor className="w-4 h-4 text-[#1a2610]" />
-                                <span className="text-base sm:text-lg font-bold text-neutral-900 font-mono tracking-tight">
+                              <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5">
+                                <Tractor className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#1a2610]" />
+                                <span className="text-sm sm:text-lg font-bold text-neutral-900 font-mono tracking-tight">
                                   #{rental.rentalCode || rental.rentalNumber || rental.id}
                                 </span>
                               </div>
                             </div>
 
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2 sm:gap-3">
                               <span className="text-xs text-neutral-400 font-medium hidden sm:inline">
                                 Tanggal: {formattedDate}
                               </span>
-                              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${statusCfg.badgeClass}`}>
+                              <span className={`inline-flex items-center px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-[11px] sm:text-xs font-semibold border ${statusCfg.badgeClass}`}>
                                 <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${statusCfg.dotClass}`} />
                                 <span>{statusCfg.label}</span>
                               </span>
@@ -1038,25 +1038,27 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
                           </div>
 
                           {/* Origin -> Destination Tracker Row */}
-                          <div className="flex items-center justify-between text-xs sm:text-[13px] text-neutral-700 bg-[#fafafa] p-3 sm:px-4 rounded-2xl border border-neutral-100">
-                            <div className="flex items-center gap-2 font-medium text-neutral-800 shrink-0">
-                              <Store className="w-4 h-4 text-[#233414]" />
-                              <span>Gudang Alsintan Koperasi</span>
+                          <div className="flex items-center justify-between text-[11px] sm:text-xs text-neutral-700 bg-[#fafafa] p-2.5 sm:px-4 rounded-2xl border border-neutral-100 gap-2">
+                            <div className="flex items-center gap-1.5 font-medium text-neutral-800 shrink min-w-0">
+                              <Store className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#233414]" />
+                              <span className="truncate">Gudang Alsintan</span>
                             </div>
 
-                            <div className="flex-1 mx-3 flex items-center justify-center overflow-hidden text-neutral-300 font-mono text-xs select-none">
-                              <span className="truncate">••••••••••••••••••••••••••••••••••••••</span>
-                              <span className="ml-1">▸</span>
+                            <div className="flex-1 flex items-center justify-center overflow-hidden text-neutral-300 font-mono text-[10px] select-none px-1">
+                              <span className="truncate">••••••••••••••••••••••••</span>
+                              <span className="ml-1 text-neutral-400">▸</span>
                             </div>
 
-                            <div className="flex items-center gap-1.5 font-medium text-neutral-800 shrink-0 text-right">
-                              <MapPin className="w-4 h-4 text-[#233414]" />
-                              <span>{rental.lokasiLahan || rental.farmLocationAddress || rental.location || 'Lokasi Lahan Anggota'}</span>
+                            <div className="flex items-center gap-1.5 font-medium text-neutral-800 shrink min-w-0 text-right justify-end">
+                              <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#233414]" />
+                              <span className="truncate max-w-[130px] sm:max-w-none">
+                                {rental.lokasiLahan || rental.farmLocationAddress || rental.location || 'Lokasi Lahan Anggota'}
+                              </span>
                             </div>
                           </div>
 
                           {/* Rental Items List */}
-                          <div className="space-y-2.5">
+                          <div className="space-y-2 sm:space-y-2.5">
                             {rental.items?.map((item: any, idx: number) => {
                               const itemImg = item.imageUrl || 'https://picsum.photos/seed/sewa-alat-koperasi/300/300';
                               const name = item.nama || item.equipmentName || 'Alat Pertanian';
@@ -1068,9 +1070,9 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
                               return (
                                 <div
                                   key={item.id || idx}
-                                  className="flex items-center gap-3.5 sm:gap-4 p-3 sm:p-3.5 rounded-2xl bg-[#fafafa] border border-neutral-100"
+                                  className="flex items-center gap-3 sm:gap-4 p-2.5 sm:p-3.5 rounded-2xl bg-[#fafafa] border border-neutral-100"
                                 >
-                                  <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl overflow-hidden bg-white border border-neutral-200/80 shrink-0">
+                                  <div className="w-14 h-14 sm:w-18 sm:h-18 rounded-xl sm:rounded-2xl overflow-hidden bg-white border border-neutral-200/80 shrink-0">
                                     <img
                                       src={itemImg}
                                       alt={name}
@@ -1079,13 +1081,13 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
                                   </div>
 
                                   <div className="flex-1 min-w-0">
-                                    <h4 className="text-sm sm:text-base font-bold text-neutral-900 leading-snug truncate">
+                                    <h4 className="text-xs sm:text-base font-bold text-neutral-900 leading-snug truncate">
                                       {name}
                                     </h4>
                                     <p className="text-xs sm:text-sm font-semibold text-neutral-800 mt-0.5 tabular-nums">
                                       Rp {harga.toLocaleString('id-ID')}/{satuan} <span className="text-neutral-400 font-normal">x{qty} unit</span>
                                     </p>
-                                    <p className="text-xs text-neutral-400 mt-0.5 truncate">
+                                    <p className="text-[11px] sm:text-xs text-neutral-400 mt-0.5 truncate">
                                       Durasi: {durasi} {satuan} • Mulai: {rental.startDate} {item.includeOperator ? '• Termasuk Operator' : ''}
                                     </p>
                                   </div>
@@ -1096,18 +1098,18 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
                         </div>
 
                         {/* Card Footer Row */}
-                        <div className="px-5 sm:px-7 py-3.5 sm:py-4 bg-[#fbfcf9] border-t border-neutral-100 flex items-center justify-between gap-4">
+                        <div className="px-4 py-3 sm:px-7 sm:py-4 bg-[#fbfcf9] border-t border-neutral-100 flex items-center justify-between gap-3">
                           <div className="text-xs sm:text-sm text-neutral-600">
                             <span>Total Biaya Sewa: </span>
-                            <span className="font-extrabold text-neutral-900 text-sm sm:text-base tabular-nums">
+                            <span className="font-extrabold text-neutral-900 text-xs sm:text-base tabular-nums">
                               Rp {Number(rental.totalEstimasi ?? rental.totalAmount ?? 0).toLocaleString('id-ID')}
                             </span>
-                            <span className="text-neutral-400 font-medium ml-1.5">
+                            <span className="text-neutral-400 font-medium ml-1">
                               ({rental.items?.length || 1} unit)
                             </span>
                           </div>
 
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 shrink-0">
                             {rental.status === 'MENUNGGU_PERSETUJUAN_ADMIN' && (
                               <button
                                 type="button"
@@ -1120,7 +1122,7 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
                                     title: rental.items?.[0]?.nama || 'Pengajuan Sewa',
                                   });
                                 }}
-                                className="px-4 py-2 rounded-full text-xs font-semibold text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 transition cursor-pointer"
+                                className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs font-semibold text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 transition cursor-pointer"
                               >
                                 Batalkan
                               </button>
@@ -1128,7 +1130,7 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
 
                             <Link
                               href={`/pesanan/${rental.id}?type=sewa`}
-                              className="px-6 py-2 rounded-full bg-[#1a2610] hover:bg-[#233414] text-white text-xs font-bold transition shadow-xs cursor-pointer inline-flex items-center gap-1.5"
+                              className="px-4 py-2 sm:px-6 sm:py-2 rounded-full bg-[#1a2610] hover:bg-[#233414] text-white text-xs font-bold transition shadow-xs cursor-pointer inline-flex items-center gap-1.5"
                             >
                               <span>Lihat Detail</span>
                             </Link>

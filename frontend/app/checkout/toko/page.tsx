@@ -484,35 +484,41 @@ Mohon info kesiapan fisik komoditas di gudang koperasi. Terima kasih!`;
       {/* Spacer placeholder mode mobile agar konten tidak tertutup fixed navbar */}
       <div className="sm:hidden h-14 shrink-0 pointer-events-none" aria-hidden="true" />
 
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-3 sm:py-6 space-y-4 sm:space-y-5">
+      <main className="flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-8 lg:px-12 xl:px-16 py-4 sm:py-6 lg:py-8 space-y-5 sm:space-y-6">
         {/* Desktop Compact Back Link */}
-        <div className="hidden sm:flex items-center justify-between">
+        <div className="hidden sm:flex items-center justify-between pb-1">
           <Link
             href="/cart?tab=toko"
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-[#1a2610] hover:text-[#344d15] transition"
+            className="inline-flex items-center gap-2.5 text-xs sm:text-sm font-bold text-[#1a2610] hover:text-[#344d15] transition group"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <div className="w-8 h-8 rounded-full bg-white border border-[#cfd6c9] flex items-center justify-center text-[#1a2610] group-hover:bg-[#EAEDE7] transition shadow-2xs">
+              <ArrowLeft className="w-4 h-4" />
+            </div>
             <span>Kembali ke Keranjang Belanja</span>
           </Link>
 
-          <span className="text-xs font-semibold text-[#526046] tabular-nums">
-            {totalItemsCount} Satuan ({cartItems.length} Komoditas)
-          </span>
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-[#dce1d6] text-xs font-semibold text-[#526046] shadow-2xs tabular-nums">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#344d15]" />
+            <span>{totalItemsCount} Satuan ({cartItems.length} Komoditas)</span>
+          </div>
         </div>
 
         {/* 2-Column Responsive Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-start">
-          {/* Kolom Kiri: Daftar Item (Gambar 5 Style) & Informasi Pengambilan */}
-          <div className="lg:col-span-7 xl:col-span-8 space-y-4">
-            {/* 1. Rincian Komoditas Yang Dipesan (Gambar 5 Flat List Style) */}
-            <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#EAEDE7] sm:border-[#dce1d6] p-4 sm:p-6">
-              <div className="flex items-center justify-between pb-3 border-b border-[#EAEDE7]">
-                <h3 className="font-bold text-[#1a2610] text-xs sm:text-sm uppercase tracking-wider">
-                  Daftar Komoditas ({cartItems.length})
-                </h3>
+          {/* Kolom Kiri: Daftar Item & Informasi Pengambilan */}
+          <div className="lg:col-span-7 xl:col-span-8 space-y-5">
+            {/* 1. Rincian Komoditas Yang Dipesan */}
+            <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#EAEDE7] sm:border-[#dce1d6] p-5 sm:p-7 shadow-2xs">
+              <div className="flex items-center justify-between pb-4 border-b border-[#EAEDE7]">
+                <div className="flex items-center gap-2">
+                  <ShoppingBag className="w-4 h-4 text-[#233414]" />
+                  <h3 className="font-extrabold text-[#1a2610] text-xs sm:text-sm uppercase tracking-wider">
+                    Daftar Komoditas ({cartItems.length})
+                  </h3>
+                </div>
                 <Link
                   href="/cart?tab=toko"
-                  className="text-xs font-bold text-[#344d15] hover:underline"
+                  className="px-3 py-1 rounded-full text-xs font-bold text-[#344d15] bg-[#e2f2c8]/60 hover:bg-[#e2f2c8] border border-[#c9e39e] transition cursor-pointer"
                 >
                   Ubah
                 </Link>
@@ -522,8 +528,8 @@ Mohon info kesiapan fisik komoditas di gudang koperasi. Terima kasih!`;
                 {cartItems.map((item) => {
                   const itemSubtotal = Number(item.hargaPerSatuan) * (item.quantity || 1);
                   return (
-                    <div key={item.id} className="py-3.5 first:pt-3 last:pb-1 flex items-stretch gap-3.5">
-                      <div className="w-18 h-18 sm:w-20 sm:h-20 rounded-2xl overflow-hidden bg-[#f4f5f1] border border-[#EAEDE7] shrink-0">
+                    <div key={item.id} className="py-4 first:pt-4 last:pb-1 flex items-center gap-4">
+                      <div className="w-18 h-18 sm:w-22 sm:h-22 rounded-2xl overflow-hidden bg-[#f4f5f1] border border-[#EAEDE7] shrink-0">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={
@@ -535,23 +541,20 @@ Mohon info kesiapan fisik komoditas di gudang koperasi. Terima kasih!`;
                         />
                       </div>
 
-                      <div className="min-w-0 flex-1 flex flex-col justify-between py-0.5">
-                        <div>
-                          <h4 className="text-sm font-bold text-[#1a2610] truncate">
-                            {item.nama}
-                          </h4>
-                          <div className="text-xs text-[#5b6950] mt-0.5 tabular-nums">
-                            Rp {Number(item.hargaPerSatuan).toLocaleString('id-ID')} / {item.satuan || 'unit'}
-                          </div>
+                      <div className="min-w-0 flex-1 py-0.5 space-y-1">
+                        <h4 className="text-sm sm:text-base font-bold text-[#1a2610] truncate">
+                          {item.nama}
+                        </h4>
+                        <div className="text-xs text-[#5b6950] tabular-nums">
+                          Rp {Number(item.hargaPerSatuan).toLocaleString('id-ID')} / {item.satuan || 'unit'}
                         </div>
-
-                        <div className="text-sm font-extrabold text-[#1a2610] tabular-nums">
+                        <div className="text-sm sm:text-base font-black text-[#1a2610] tabular-nums pt-1">
                           Rp {itemSubtotal.toLocaleString('id-ID')}
                         </div>
                       </div>
 
-                      <div className="flex flex-col items-end justify-end py-0.5 shrink-0">
-                        <span className="px-3 py-1 rounded-full border border-[#dce1d6] bg-[#f4f5f1] text-xs font-extrabold text-[#1a2610] tabular-nums">
+                      <div className="flex flex-col items-end justify-center shrink-0">
+                        <span className="px-3.5 py-1.5 rounded-full border border-[#dce1d6] bg-[#f4f5f1] text-xs font-bold text-[#1a2610] tabular-nums shadow-2xs">
                           ×{item.quantity} {item.satuan}
                         </span>
                       </div>
@@ -561,53 +564,62 @@ Mohon info kesiapan fisik komoditas di gudang koperasi. Terima kasih!`;
               </div>
             </div>
 
-            {/* 2. Titik Pengambilan & Pembayaran Kasir (Compact Card) */}
-            <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#EAEDE7] sm:border-[#dce1d6] p-4 sm:p-6 space-y-3.5">
-              <h3 className="font-bold text-[#1a2610] text-xs sm:text-sm uppercase tracking-wider border-b border-[#EAEDE7] pb-2.5">
-                Titik Pengambilan & Pembayaran
-              </h3>
+            {/* 2. Titik Pengambilan & Pembayaran Kasir */}
+            <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#EAEDE7] sm:border-[#dce1d6] p-5 sm:p-7 space-y-4 shadow-2xs">
+              <div className="flex items-center gap-2 border-b border-[#EAEDE7] pb-3">
+                <Store className="w-4 h-4 text-[#233414]" />
+                <h3 className="font-extrabold text-[#1a2610] text-xs sm:text-sm uppercase tracking-wider">
+                  Titik Pengambilan & Pembayaran
+                </h3>
+              </div>
 
-              <div className="p-3.5 bg-[#f4f5f1] rounded-2xl border border-[#dce1d6] space-y-2">
-                <div className="flex items-start gap-2.5">
-                  <MapPin className="w-4 h-4 text-[#233414] shrink-0 mt-0.5" />
-                  <div className="text-xs leading-relaxed text-[#1a2610] font-semibold">
-                    {warehouseAddress}
+              <div className="p-4 bg-[#f8f9f6] rounded-2xl border border-[#dce1d6] space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-white border border-[#cfd6c9] flex items-center justify-center text-[#233414] shrink-0 shadow-2xs">
+                    <MapPin className="w-4 h-4 text-[#233414]" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs sm:text-sm leading-relaxed text-[#1a2610] font-bold">
+                      {warehouseAddress}
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-2 border-t border-[#dce1d6] text-[11px] text-[#526046]">
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-3.5 h-3.5 text-[#5b6950]" />
+                <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 pt-2.5 border-t border-[#e2e7dd] text-xs text-[#526046]">
+                  <span className="flex items-center gap-1.5 font-medium">
+                    <Clock className="w-3.5 h-3.5 text-[#344d15]" />
                     <span>08:00 - 17:00 WITA</span>
                   </span>
-                  <span className="flex items-center gap-1 tabular-nums">
-                    <Phone className="w-3.5 h-3.5 text-[#5b6950]" />
+                  <span className="flex items-center gap-1.5 tabular-nums font-medium">
+                    <Phone className="w-3.5 h-3.5 text-[#344d15]" />
                     <span>Kasir: {adminPhone}</span>
                   </span>
                 </div>
               </div>
 
-              <div className="p-3.5 bg-[#e2f2c8]/50 border border-[#c9e39e] rounded-2xl flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <Banknote className="w-4 h-4 text-[#233414] shrink-0" />
+              <div className="p-4 bg-[#e2f2c8]/40 border border-[#c9e39e] rounded-2xl flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-8 h-8 rounded-xl bg-white border border-[#c9e39e] flex items-center justify-center text-[#233414] shrink-0 shadow-2xs">
+                    <Banknote className="w-4 h-4 text-[#233414]" />
+                  </div>
                   <div className="text-xs min-w-0">
-                    <div className="font-bold text-[#1a2610] truncate">
+                    <div className="font-bold text-[#1a2610] text-xs sm:text-sm truncate">
                       Bayar Tunai di Kasir Koperasi
                     </div>
-                    <div className="text-[11px] text-[#526046] truncate">
+                    <div className="text-[11px] sm:text-xs text-[#526046] truncate">
                       Saat komoditas ditimbang & diserahterimakan
                     </div>
                   </div>
                 </div>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] bg-[#233414] text-[#D4F63D] font-bold shrink-0">
+                <span className="px-3 py-1 rounded-full text-[11px] bg-[#233414] text-[#D4F63D] font-extrabold shrink-0 shadow-2xs">
                   Rp 0 Admin
                 </span>
               </div>
             </div>
 
             {/* 3. Catatan Pengambilan (Opsional) */}
-            <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#EAEDE7] sm:border-[#dce1d6] p-4 sm:p-6 space-y-2.5">
-              <label className="block font-bold text-[#1a2610] text-xs sm:text-sm">
+            <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#EAEDE7] sm:border-[#dce1d6] p-5 sm:p-7 space-y-3 shadow-2xs">
+              <label className="block font-extrabold text-[#1a2610] text-xs sm:text-sm">
                 Catatan Pengambilan (Opsional)
               </label>
               <textarea
@@ -615,15 +627,19 @@ Mohon info kesiapan fisik komoditas di gudang koperasi. Terima kasih!`;
                 value={orderNotes}
                 onChange={(e) => setOrderNotes(e.target.value)}
                 placeholder="Contoh: Diambil sekitar pukul 14:00 WITA..."
-                className="w-full p-3 text-xs bg-[#f4f5f1] border border-[#cfd6c9] rounded-xl focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#233414] focus:border-[#233414] text-[#1a2610] placeholder:text-[#5b6950] transition"
+                className="w-full p-3.5 text-xs sm:text-sm bg-[#fafafa] border border-[#cfd6c9] rounded-2xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#233414]/15 focus:border-[#233414] text-[#1a2610] placeholder:text-[#5b6950] transition"
               />
             </div>
           </div>
 
-          {/* Kolom Kanan: Ringkasan Sticky & SlideCommit (Gambar 5 Bottom Summary Sheet Style) */}
-          <div className="lg:col-span-5 xl:col-span-4 lg:sticky lg:top-20">
-            <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#EAEDE7] sm:border-[#dce1d6] p-4 sm:p-6 space-y-4">
-              <div className="space-y-2 text-xs">
+          {/* Kolom Kanan: Ringkasan Sticky & SlideCommit */}
+          <div className="lg:col-span-5 xl:col-span-4 lg:sticky lg:top-24">
+            <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#EAEDE7] sm:border-[#dce1d6] p-5 sm:p-7 space-y-5 shadow-2xs">
+              <h2 className="text-base sm:text-lg font-bold text-[#1a2610] tracking-tight border-b border-[#EAEDE7] pb-3">
+                Ringkasan Belanja
+              </h2>
+
+              <div className="space-y-3 text-xs sm:text-[13px]">
                 <div className="flex justify-between text-[#526046]">
                   <span>Pemesan</span>
                   <span className="font-semibold text-[#1a2610] truncate max-w-[180px]">
@@ -637,14 +653,14 @@ Mohon info kesiapan fisik komoditas di gudang koperasi. Terima kasih!`;
                   </span>
                 </div>
                 <div className="flex justify-between text-[#526046]">
-                  <span>Biaya Penanganan</span>
-                  <span className="font-semibold text-[#344d15]">Gratis</span>
+                  <span>Biaya Layanan</span>
+                  <span className="font-semibold text-[#344d15]">Gratis (Rp 0 - Ambil di Kasir)</span>
                 </div>
               </div>
 
-              <div className="border-t border-[#EAEDE7] pt-3 flex justify-between items-baseline">
-                <span className="text-sm font-semibold text-[#526046]">Total:</span>
-                <span className="text-xl sm:text-2xl font-black text-[#1a2610] tracking-tight tabular-nums">
+              <div className="border-t border-[#EAEDE7] pt-4 flex justify-between items-baseline">
+                <span className="text-sm sm:text-base font-bold text-[#1a2610]">Total Tagihan:</span>
+                <span className="text-2xl sm:text-3xl font-black text-[#1a2610] tracking-tight tabular-nums">
                   Rp {finalTotalAmount.toLocaleString('id-ID')}
                 </span>
               </div>
@@ -656,17 +672,22 @@ Mohon info kesiapan fisik komoditas di gudang koperasi. Terima kasih!`;
                 </div>
               )}
 
-              <div className="pt-1">
+              <div className="pt-2">
                 <SlideCommit
                   label="Geser untuk Buat Pesanan"
                   onConfirm={handleConfirmOrder}
                   disabled={isSubmitting}
-                  className="w-full"
+                  trackColor="#1a2610"
+                  handleColor="#ffffff"
+                  successColor="#233414"
+                  height={54}
+                  radius={27}
+                  className="w-full shadow-sm"
                 />
               </div>
 
-              <div className="flex items-center gap-1.5 text-[11px] text-[#5b6950] justify-center">
-                <ShieldCheck className="w-3.5 h-3.5 text-[#344d15]" />
+              <div className="flex items-center gap-1.5 text-xs text-[#526046] justify-center pt-1">
+                <ShieldCheck className="w-4 h-4 text-[#344d15] shrink-0" />
                 <span>Pesanan resmi tercatat di sistem koperasi</span>
               </div>
             </div>

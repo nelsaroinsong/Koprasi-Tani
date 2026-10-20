@@ -321,7 +321,7 @@ export default function ProfilePage() {
 
           {/* 2. Avatar & Header Profile Details */}
           <div className="px-4 sm:px-8 pb-4 sm:pb-6 border-b border-[#EAEDE7]">
-            <div className="flex items-end justify-between gap-3 -mt-10 sm:-mt-14 mb-3 sm:mb-5">
+            <div className="flex items-end justify-between gap-3 -mt-10 sm:-mt-14 mb-3.5 sm:mb-5">
               {/* Avatar dengan border putih tebal & Camera trigger */}
               <div className="relative group self-start shrink-0">
                 <div className="w-18 h-18 sm:w-28 sm:h-28 rounded-full bg-[#EAEDE7] border-3 sm:border-4 border-white shadow-sm text-[#233414] flex items-center justify-center font-black text-2xl sm:text-4xl overflow-hidden">
@@ -354,10 +354,10 @@ export default function ProfilePage() {
               </div>
 
               {/* Action Buttons di Kanan */}
-              <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2 translate-y-3 sm:translate-y-0">
                 <Link
                   href="/profile/mengikuti"
-                  className="px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-lg sm:rounded-xl border border-[#cfd6c9] bg-white hover:bg-[#f4f5f1] text-[11px] sm:text-xs font-semibold text-[#1a2610] transition inline-flex items-center gap-1.5"
+                  className="px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl border border-[#cfd6c9] bg-white hover:bg-[#f4f5f1] text-xs font-semibold text-[#1a2610] shadow-2xs transition inline-flex items-center gap-1.5"
                 >
                   <Users className="w-3.5 h-3.5 text-[#344d15]" />
                   <span>Petani Diikuti</span>
@@ -365,7 +365,7 @@ export default function ProfilePage() {
                 {isPetani && (
                   <Link
                     href="/dashboard"
-                    className="px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-lg sm:rounded-xl bg-[#233414] hover:bg-[#344d15] text-[11px] sm:text-xs font-semibold text-white transition inline-flex items-center gap-1.5"
+                    className="px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-[#233414] hover:bg-[#344d15] text-xs font-semibold text-white shadow-2xs transition inline-flex items-center gap-1.5"
                   >
                     <Store className="w-3.5 h-3.5 text-[#D4F63D]" />
                     <span>Dashboard</span>
