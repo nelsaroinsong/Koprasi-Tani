@@ -503,7 +503,7 @@ export default function SewaAlatPage() {
                 <article
                   key={item.id}
                   onClick={() => router.push(`/sewa-alat/${item.id}`)}
-                  className={`border rounded-[20px] sm:rounded-[24px] p-1 sm:p-1.5 shadow-[0_2px_8px_rgba(0,0,0,0.02)] hover:shadow-[0_12px_28px_rgba(35,52,20,0.09)] transition-all duration-300 flex flex-col justify-between group cursor-pointer h-full relative overflow-hidden ${
+                  className={`border rounded-[20px] sm:rounded-[24px] p-1 sm:p-1.5 shadow-[0_2px_8px_rgba(0,0,0,0.02)] hover:shadow-[0_12px_28px_rgba(35,52,20,0.09)] transition-all duration-300 flex flex-col group cursor-pointer h-full relative overflow-hidden ${
                     isOutOfStock
                       ? 'grayscale opacity-75 bg-[#f4f5f1] border-[#d5dccf]'
                       : 'bg-white border-[#e2e7dc] hover:border-[#344d15]'
@@ -514,16 +514,16 @@ export default function SewaAlatPage() {
                       : `Klik untuk melihat detail lengkap unit "${item.nama}"`
                   }
                 >
-                  {/* Top Header Text Section (Matching Gambar 3: Title & Subtitle on top) */}
-                  <div className="px-2.5 pt-2 pb-1 sm:px-3 sm:pt-2.5 sm:pb-1.5">
+                  {/* Top Header Text Section (Title & Subtitle on top, tight 1px-1.5px interlinear gap, balanced breathing space to image) */}
+                  <div className="px-2.5 pt-2 pb-2 sm:px-3 sm:pt-2.5 sm:pb-2.5">
                     <h3
-                      className="text-xs sm:text-base lg:text-[17px] font-bold text-[#1a2610] tracking-tight leading-tight line-clamp-1 group-hover:text-[#344d15] transition-colors"
+                      className="text-xs sm:text-base lg:text-[17px] font-bold text-[#1a2610] tracking-tight leading-none line-clamp-1 group-hover:text-[#344d15] transition-colors"
                       title={item.nama}
                     >
                       {item.nama}
                     </h3>
 
-                    <p className="text-[10px] sm:text-xs text-[#73826a] font-medium mt-0.5 sm:mt-1 truncate">
+                    <p className="text-[10px] sm:text-xs text-[#73826a] font-medium mt-[1px] sm:mt-[1.5px] leading-tight truncate">
                       {item.kategori || 'Alsintan'} • {item.kondisi || 'Sangat Baik'}
                     </p>
                   </div>
