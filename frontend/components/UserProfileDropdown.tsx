@@ -38,6 +38,7 @@ import {
 import { useAuth } from '@/context/auth-context';
 import { getCart, saveCart, clearCart } from '@/lib/cart';
 import { getRentalCart } from '@/lib/rental-cart';
+import { motion, AnimatePresence } from 'motion/react';
 import SlideCommit from '@/components/ui/SlideCommit';
 import NotificationDropdown from '@/components/NotificationDropdown';
 import {
@@ -217,6 +218,9 @@ export default function UserProfileDropdown({}: UserProfileDropdownProps = {}) {
 
       setCreatedOrderResult(data.order);
       setCartStep('SUCCESS');
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('order-created'));
+      }
 
       // Bersihkan keranjang belanja akun ini
       clearCart(user);
@@ -275,9 +279,11 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
         setIsOpen(false);
       }
     }
-    document.addEventListener('mousedown', handleClickOutside);
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [isOpen]);
 
   if (!user) return null;
 
@@ -302,7 +308,7 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
 
   return (
     <>
-      <div className="flex items-center gap-2" ref={dropdownRef}>
+      <div className="flex items-center gap-2">
         {/* Fitur Notifikasi di Samping Kiri Cart */}
         <NotificationDropdown />
 
@@ -331,12 +337,13 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
           )}
         </Link>
 
-        {/* Profile Trigger Pill - Hanya di Desktop (>= lg), di mobile & tablet sudah ada di BottomNav */}
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="hidden lg:flex items-center gap-2.5 p-1 pr-3 rounded-full border border-[#d5dccf] hover:border-[#b8c4ae] bg-[#f4f5f1] hover:bg-[#EAEDE7] transition-colors cursor-pointer group"
-          type="button"
-        >
+        {/* Profile Trigger Pill & Dropdown Panel - Hanya di Desktop (>= lg), di mobile & tablet sudah ada di BottomNav */}
+        <div ref={dropdownRef}>
+          <button
+            onClick={() => setIsOpen((prev) => !prev)}
+            className="hidden lg:flex items-center gap-2.5 p-1 pr-3 rounded-full border border-[#d5dccf] hover:border-[#b8c4ae] bg-[#f4f5f1] hover:bg-[#EAEDE7] transition-colors cursor-pointer group"
+            type="button"
+          >
           <div className="w-8 h-8 rounded-full bg-[#233414] text-[#D4F63D] font-bold text-xs flex items-center justify-center overflow-hidden shrink-0 border border-[#344d15]">
             {user.avatarUrl ? (
               <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" />
@@ -359,9 +366,17 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
           </div>
         </button>
 
-        {/* Dropdown Card - Beranda Forest Olive Green Theme */}
-        {isOpen && (
-          <div className="absolute right-3 sm:right-6 top-16 sm:top-18 z-50 w-[320px] sm:w-[340px] bg-white rounded-[28px] shadow-xl border border-[#dce1d6] p-3.5 overflow-hidden animate-in fade-in-50 zoom-in-95 duration-150">
+        {/* Dropdown Card - Beranda Forest Olive Green Theme with Smooth Downward Animation */}
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div
+              key="user-profile-dropdown-card"
+              initial={{ opacity: 0, y: -12, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -8, scale: 0.98 }}
+              transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+              className="absolute right-3 sm:right-6 top-16 sm:top-18 z-50 w-[320px] sm:w-[340px] bg-white rounded-[28px] shadow-xl border border-[#dce1d6] p-3.5 overflow-hidden"
+            >
             {/* 1. Flat Deep Forest Olive Banner */}
             <div
               onClick={() => {
@@ -499,8 +514,10 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
                 className="w-full"
               />
             </div>
-          </div>
+          </motion.div>
         )}
+      </AnimatePresence>
+        </div>
       </div>
 
       {/* Interactive Modal for Selected Menu Item */}

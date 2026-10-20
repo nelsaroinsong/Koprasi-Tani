@@ -1,131 +1,109 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   Bell,
   CheckCheck,
-  Store,
-  Tractor,
-  PackageCheck,
+  Receipt,
   Sparkles,
   ChevronRight,
   X,
-  ShieldCheck,
-  BarChart3,
-  Truck,
+  PackageCheck,
+  Tractor,
 } from 'lucide-react';
-
-export interface AppNotification {
-  id: string;
-  title: string;
-  message: string;
-  type: 'toko' | 'pesanan' | 'alsintan' | 'system' | 'delivery' | 'analytics' | 'verification';
-  time: string;
-  href?: string;
-  isRead: boolean;
-}
-
-const DEFAULT_NOTIFICATIONS: AppNotification[] = [
-  {
-    id: 'notif-1',
-    title: 'Hasil Panen Baru di Toko',
-    message: 'Kelapa Butir Grade A dan Jagung Pipil Kering baru saja tiba di gudang koperasi siap diorder.',
-    type: 'toko',
-    time: '15 menit lalu',
-    href: '/toko',
-    isRead: false,
-  },
-  {
-    id: 'notif-2',
-    title: 'Pembaruan Status Pesanan',
-    message: 'Pesanan komoditas Anda telah diverifikasi oleh pengurus koperasi dan siap untuk dikirim.',
-    type: 'pesanan',
-    time: '1 jam lalu',
-    href: '/pesanan',
-    isRead: false,
-  },
-  {
-    id: 'notif-3',
-    title: 'Katalog Sewa Alsintan Siap Pakai',
-    message: 'Traktor roda empat Kubota dan Power Thresher telah melalui inspeksi berkala dan siap disewa.',
-    type: 'alsintan',
-    time: 'Kemarin, 14:20',
-    href: '/sewa-alat',
-    isRead: true,
-  },
-  {
-    id: 'notif-4',
-    title: 'Selamat Datang di Koperasi Tani',
-    message: 'Nikmati kemudahan jual-beli hasil panen dan sewa alsintan modern bersama Sinar Pagi Sejahtera.',
-    type: 'system',
-    time: '2 hari lalu',
-    href: '/profile',
-    isRead: true,
-  },
-  {
-    id: 'notif-5',
-    title: 'Armada Pengiriman Siap Jalan',
-    message: 'Rute pengiriman komoditas area Minahasa Utara & Manado dijadwalkan berangkat pukul 08:00 WITA.',
-    type: 'delivery',
-    time: '3 hari lalu',
-    href: '/pesanan',
-    isRead: true,
-  },
-  {
-    id: 'notif-6',
-    title: 'Verifikasi Akun Petani Binaan',
-    message: 'Status keanggotaan dan sertifikasi kelompok tani Anda telah terdaftar resmi dalam basis data ICARE.',
-    type: 'verification',
-    time: '4 hari lalu',
-    href: '/profile',
-    isRead: true,
-  },
-  {
-    id: 'notif-7',
-    title: 'Rekapitulasi Transaksi Mingguan',
-    message: 'Laporan arus komoditas dan pesanan masuk minggu ini telah diperbarui oleh sistem koperasi.',
-    type: 'analytics',
-    time: '5 hari lalu',
-    href: '/profile/transaksi',
-    isRead: true,
-  },
-];
-
-const NOTIFICATIONS_STORAGE_KEY = 'koperasi_notifications_state_v2';
+import { useAuth } from '@/context/auth-context';
+import {
+  AppNotification,
+  INITIAL_SYSTEM_NOTIFICATION,
+  buildNotificationsFromTransactions,
+  getStoredReadIds,
+  saveReadIds,
+} from '@/lib/notifications';
 
 export default function NotificationDropdown() {
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
-  const [notifications, setNotifications] = useState<AppNotification[]>(DEFAULT_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState<AppNotification[]>([INITIAL_SYSTEM_NOTIFICATION]);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
-  // Load from localStorage on mount
-  useEffect(() => {
+  // Load and sync transactions into notifications
+  const syncNotifications = useCallback(async () => {
+    if (!user) {
+      // Guest: Only initial system notification
+      const readMap = getStoredReadIds(null);
+      setNotifications([
+        {
+          ...INITIAL_SYSTEM_NOTIFICATION,
+          isRead: Boolean(readMap[INITIAL_SYSTEM_NOTIFICATION.id]),
+        },
+      ]);
+      return;
+    }
+
     try {
-      const stored = localStorage.getItem(NOTIFICATIONS_STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setNotifications(parsed);
-          return;
+      const [ordersRes, rentalsRes] = await Promise.all([
+        fetch('/api/orders').catch(() => null),
+        fetch('/api/equipments/rent').catch(() => null),
+      ]);
+
+      let ordersList: any[] = [];
+      let rentalsList: any[] = [];
+
+      if (ordersRes && ordersRes.ok) {
+        const data = await ordersRes.json();
+        if (Array.isArray(data.orders)) {
+          ordersList = data.orders;
         }
       }
-    } catch (e) {
-      console.error('Failed reading notifications from storage', e);
-    }
-    setNotifications(DEFAULT_NOTIFICATIONS);
-  }, []);
 
-  // Save to localStorage whenever notifications change
-  const persistNotifications = (updated: AppNotification[]) => {
-    setNotifications(updated);
-    try {
-      localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(updated));
-    } catch {}
-  };
+      if (rentalsRes && rentalsRes.ok) {
+        const data = await rentalsRes.json();
+        if (Array.isArray(data.rentals)) {
+          rentalsList = data.rentals;
+        }
+      }
+
+      // Build notifications: At start of account -> only system notif. If transactions exist -> transaction notifs + system notif!
+      const built = buildNotificationsFromTransactions(ordersList, rentalsList, user.id);
+      setNotifications(built);
+    } catch (e) {
+      console.error('Error syncing notifications:', e);
+      const readMap = getStoredReadIds(user.id);
+      setNotifications([
+        {
+          ...INITIAL_SYSTEM_NOTIFICATION,
+          isRead: Boolean(readMap[INITIAL_SYSTEM_NOTIFICATION.id]),
+        },
+      ]);
+    }
+  }, [user]);
+
+  // Sync on mount and when user changes
+  useEffect(() => {
+    syncNotifications();
+  }, [syncNotifications]);
+
+  // Listen to transaction events to update notifications live
+  useEffect(() => {
+    const handleTxUpdate = () => {
+      syncNotifications();
+    };
+
+    window.addEventListener('koperasi-new-transaction', handleTxUpdate);
+    window.addEventListener('order-created', handleTxUpdate);
+    window.addEventListener('rental-created', handleTxUpdate);
+
+    return () => {
+      window.removeEventListener('koperasi-new-transaction', handleTxUpdate);
+      window.removeEventListener('order-created', handleTxUpdate);
+      window.removeEventListener('rental-created', handleTxUpdate);
+    };
+  }, [syncNotifications]);
 
   // Prevent background page / Lenis scrolling when mouse wheel or touch is used inside notification list
   useEffect(() => {
@@ -140,8 +118,6 @@ export default function NotificationDropdown() {
       if (!isScrollable) return;
 
       const delta = e.deltaY;
-      const atTop = scrollTop <= 0 && delta < 0;
-      const atBottom = scrollTop + clientHeight >= scrollHeight - 1 && delta > 0;
 
       // Directly scroll the container
       el.scrollTop += delta;
@@ -181,39 +157,38 @@ export default function NotificationDropdown() {
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   const markAllAsRead = () => {
-    const updated = notifications.map((n) => ({ ...n, isRead: true }));
-    persistNotifications(updated);
+    const readMap = getStoredReadIds(user?.id);
+    notifications.forEach((n) => {
+      readMap[n.id] = true;
+    });
+    saveReadIds(readMap, user?.id);
+
+    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
   };
 
   const handleNotificationClick = (notif: AppNotification) => {
-    const updated = notifications.map((n) =>
-      n.id === notif.id ? { ...n, isRead: true } : n
+    const readMap = getStoredReadIds(user?.id);
+    readMap[notif.id] = true;
+    saveReadIds(readMap, user?.id);
+
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === notif.id ? { ...n, isRead: true } : n))
     );
-    persistNotifications(updated);
+
     setIsOpen(false);
     if (notif.href) {
       router.push(notif.href);
     }
   };
 
-  const getIcon = (type: AppNotification['type']) => {
-    switch (type) {
-      case 'toko':
-        return <Store className="w-4 h-4 text-emerald-700" />;
-      case 'pesanan':
-        return <PackageCheck className="w-4 h-4 text-blue-700" />;
-      case 'alsintan':
-        return <Tractor className="w-4 h-4 text-amber-700" />;
-      case 'delivery':
-        return <Truck className="w-4 h-4 text-emerald-800" />;
-      case 'verification':
-        return <ShieldCheck className="w-4 h-4 text-[#233414]" />;
-      case 'analytics':
-        return <BarChart3 className="w-4 h-4 text-teal-700" />;
-      case 'system':
-      default:
-        return <Sparkles className="w-4 h-4 text-[#233414]" />;
+  const getIcon = (notif: AppNotification) => {
+    if (notif.type === 'system') {
+      return <Sparkles className="w-4 h-4 text-[#233414]" />;
     }
+    if (notif.id.startsWith('rental')) {
+      return <Tractor className="w-4 h-4 text-amber-700" />;
+    }
+    return <Receipt className="w-4 h-4 text-emerald-700" />;
   };
 
   const filteredNotifications = notifications.filter((n) => {
@@ -243,14 +218,20 @@ export default function NotificationDropdown() {
         )}
       </button>
 
-      {/* Dropdown Panel with Fully Scrollable List */}
-      {isOpen && (
-        <div
-          data-lenis-prevent="true"
-          data-lenis-prevent-wheel="true"
-          data-lenis-prevent-touch="true"
-          className="fixed sm:absolute top-16 sm:top-full left-3 right-3 sm:left-auto sm:right-0 sm:mt-2 sm:w-84 md:w-96 bg-white rounded-2xl border border-[#dce1d6] shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150 flex flex-col max-h-[82vh] sm:max-h-[500px]"
-        >
+      {/* Dropdown Panel with Smooth Downward Animation & Scrollable List */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            key="notification-dropdown-card"
+            initial={{ opacity: 0, y: -12, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -8, scale: 0.98 }}
+            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+            data-lenis-prevent="true"
+            data-lenis-prevent-wheel="true"
+            data-lenis-prevent-touch="true"
+            className="fixed sm:absolute top-16 sm:top-[calc(100%+20px)] left-3 right-3 sm:left-auto sm:right-0 sm:w-80 md:w-96 bg-white rounded-2xl border border-[#dce1d6] shadow-2xl z-50 flex flex-col max-h-[82vh] sm:max-h-[500px] overflow-hidden"
+          >
           {/* Header (Pinned) */}
           <div className="p-3.5 sm:p-4 border-b border-[#e6ebdf] bg-[#f9faf7] flex items-center justify-between shrink-0 rounded-t-2xl">
             <div className="flex items-center gap-2">
@@ -363,7 +344,7 @@ export default function NotificationDropdown() {
                           : 'bg-white border-[#b8c4ae] shadow-2xs'
                       }`}
                     >
-                      {getIcon(notif.type)}
+                      {getIcon(notif)}
                     </div>
 
                     {/* Text Content */}
@@ -411,8 +392,9 @@ export default function NotificationDropdown() {
               Lihat Riwayat Transaksi & Aktivitas
             </button>
           </div>
-        </div>
+        </motion.div>
       )}
-    </div>
+    </AnimatePresence>
+  </div>
   );
 }

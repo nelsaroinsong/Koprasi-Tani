@@ -22,7 +22,6 @@ import {
   Loader2,
   Check,
   X,
-  SlidersHorizontal,
   MessageCircle,
   HelpCircle,
   Layers,
@@ -356,23 +355,12 @@ export default function SewaAlatPage() {
               <button
                 type="button"
                 onClick={() => setSearchQuery('')}
-                className="w-5 h-5 rounded-full bg-[#EAEDE7] hover:bg-[#cfd6c9] text-[#233414] flex items-center justify-center transition mr-1.5 cursor-pointer shrink-0"
+                className="w-5 h-5 rounded-full bg-[#EAEDE7] hover:bg-[#cfd6c9] text-[#233414] flex items-center justify-center transition cursor-pointer shrink-0"
                 title="Bersihkan"
               >
                 <X className="w-3 h-3" />
               </button>
             )}
-            <button
-              type="button"
-              onClick={() => {
-                const inputEl = document.querySelector('input[type="text"]') as HTMLInputElement;
-                if (inputEl) inputEl.focus();
-              }}
-              className="w-8 h-8 rounded-full bg-[#f4f5f1] hover:bg-[#EAEDE7] text-[#233414] flex items-center justify-center transition shrink-0 cursor-pointer border border-[#dce1d6]"
-              title="Filter Pencarian"
-            >
-              <SlidersHorizontal className="w-3.5 h-3.5 text-[#233414]" />
-            </button>
           </div>
         </div>
 

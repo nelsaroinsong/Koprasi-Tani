@@ -127,6 +127,9 @@ export default function CheckoutTokoPage() {
       clearCart(user);
       setCartItems([]);
       setCreatedOrderResult(data.order);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('order-created'));
+      }
 
       showToast({
         title: 'Pesanan Resmi Dibuat',

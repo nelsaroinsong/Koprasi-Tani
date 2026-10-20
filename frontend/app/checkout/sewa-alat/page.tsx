@@ -137,6 +137,9 @@ export default function CheckoutSewaAlatPage() {
       clearRentalCart();
       setRentalCartItems([]);
       setCreatedRentalResult(data);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('rental-created'));
+      }
 
       showToast({
         title: 'Pengajuan Sewa Terkirim',
