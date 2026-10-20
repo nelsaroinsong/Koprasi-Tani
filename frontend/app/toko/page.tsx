@@ -11,6 +11,7 @@ import {
   X,
   Store,
   SlidersHorizontal,
+  ArrowUpRight,
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
@@ -412,10 +413,10 @@ export default function TokoOnlinePage() {
           </div>
         </div>
 
-        {/* Category Section matching Gambar 3 (Title + "Lihat semua", Rounded Cards with 3D Icons) */}
-        <div className="mb-6 sm:mb-8">
+        {/* Category Section - Mobile Mode (matching Gambar 3: Title + "Lihat semua", Clean Rounded Cards without green bg) */}
+        <div className="mb-6 md:hidden">
           <div className="flex items-center justify-between mb-3 px-1">
-            <h2 className="text-sm sm:text-base font-bold text-[#1a2610] tracking-tight">
+            <h2 className="text-sm font-bold text-[#1a2610] tracking-tight">
               Kategori Komoditas
             </h2>
             <button
@@ -427,7 +428,7 @@ export default function TokoOnlinePage() {
             </button>
           </div>
 
-          <div className="flex items-start gap-3 sm:gap-4 overflow-x-auto pb-2 no-scrollbar px-1">
+          <div className="flex items-start gap-2.5 overflow-x-auto pb-2 no-scrollbar px-1">
             {dynamicKategoriConfig.map((cat) => {
               const isSelected = selectedKategori.toLowerCase().trim() === cat.key.toLowerCase().trim();
               const iconSrc = getCategoryIcon(cat.key);
@@ -440,9 +441,9 @@ export default function TokoOnlinePage() {
                   className="flex flex-col items-center group shrink-0 focus:outline-none cursor-pointer"
                 >
                   <div
-                    className={`w-16 h-16 sm:w-20 sm:h-20 rounded-2xl p-2 flex items-center justify-center transition-all ${
+                    className={`w-15 h-15 rounded-2xl p-1.5 flex items-center justify-center transition-all ${
                       isSelected
-                        ? 'bg-[#233414] border-2 border-[#233414] shadow-md ring-2 ring-[#233414]/20'
+                        ? 'bg-white border-2 border-[#233414] shadow-xs'
                         : 'bg-[#f4f5f1] hover:bg-[#EAEDE7] border border-[#dce1d6] group-hover:border-[#b8c4ae]'
                     }`}
                   >
@@ -457,15 +458,39 @@ export default function TokoOnlinePage() {
                     />
                   </div>
                   <span
-                    className={`text-[11px] sm:text-xs text-center mt-1.5 transition-colors max-w-[72px] sm:max-w-[84px] truncate ${
+                    className={`text-[11px] text-center mt-1.5 transition-colors max-w-[70px] truncate ${
                       isSelected
-                        ? 'text-[#233414] font-extrabold'
-                        : 'text-[#526046] font-semibold group-hover:text-[#1a2610]'
+                        ? 'text-[#233414] font-bold'
+                        : 'text-[#526046] font-medium group-hover:text-[#1a2610]'
                     }`}
                     title={cat.label}
                   >
                     {cat.pillLabel || cat.label}
                   </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Category Section - Desktop Mode (matching Gambar 1: Rounded Pill Filter Chips) */}
+        <div className="hidden md:block mb-8">
+          <div className="flex items-center gap-2.5 overflow-x-auto no-scrollbar py-1">
+            {dynamicKategoriConfig.map((cat) => {
+              const isSelected = selectedKategori.toLowerCase().trim() === cat.key.toLowerCase().trim();
+
+              return (
+                <button
+                  key={cat.key}
+                  type="button"
+                  onClick={() => setSelectedKategori(cat.key)}
+                  className={`px-5 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all duration-150 shrink-0 cursor-pointer border select-none ${
+                    isSelected
+                      ? 'bg-[#233414] text-white border-[#233414] shadow-xs'
+                      : 'bg-white text-[#233414] border-[#cfd6c9] hover:bg-[#EAEDE7] hover:border-[#b8c4ae] shadow-2xs'
+                  }`}
+                >
+                  {cat.label}
                 </button>
               );
             })}
@@ -508,17 +533,16 @@ export default function TokoOnlinePage() {
         ) : (
           <>
             {/* Responsive Product Grid:
-                - Mobile (<640px): 2 Kolom Compact (gap-2.5)
-                - Tablet (sm/md): 3 - 4 Kolom Medium (gap-3.5)
-                - Desktop (lg/xl): 5 Kolom Proporsional (gap-4) */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5 sm:gap-3.5 lg:gap-4">
+                - Mobile (<640px): 2 Kolom Proporsional (gap-3)
+                - Tablet (sm/md): 2 - 3 Kolom Modern (gap-4)
+                - Desktop (lg/xl): 4 Kolom Editorial Taste (gap-5) */}
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
               {products.map((prod) => {
                 const isOutOfStock = !prod.isTersedia || Number(prod.stok || 0) <= 0;
                 const farmerName =
                   prod.petani?.name ||
                   (isPetani ? user?.name : 'Petani Koperasi') ||
                   'Petani Koperasi';
-                const farmerInitial = farmerName.charAt(0).toUpperCase();
 
                 return (
                   <article
@@ -534,151 +558,88 @@ export default function TokoOnlinePage() {
                       }
                       router.push(`/toko/${prod.id}`);
                     }}
-                    className={`border rounded-xl sm:rounded-2xl overflow-hidden transition-colors duration-150 flex flex-col justify-between h-full ${
-                      isOutOfStock
-                        ? 'bg-[#f4f5f1] border-[#d5dccf] cursor-not-allowed'
-                        : 'bg-white border-[#dce1d6] hover:border-[#344d15] cursor-pointer group'
+                    className={`bg-white border border-[#e2e7dc] rounded-[24px] sm:rounded-[28px] lg:rounded-[32px] p-3 sm:p-4 shadow-[0_2px_10px_rgba(0,0,0,0.03)] hover:shadow-[0_12px_28px_rgba(35,52,20,0.09)] transition-all duration-300 flex flex-col justify-between group cursor-pointer h-full relative overflow-hidden ${
+                      isOutOfStock ? 'opacity-85' : ''
                     }`}
                   >
-                    <div>
-                      {/* Top Image Section - 1:1 on Mobile for compactness, 4:3 on Tablet/Desktop */}
-                      <div className="relative aspect-square sm:aspect-[4/3] w-full shrink-0 bg-[#EAEDE7] overflow-hidden border-b border-[#EAEDE7]">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={
-                            prod.imageUrl ||
-                            'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=600&q=80'
-                          }
-                          alt={prod.nama}
-                          loading="lazy"
-                          decoding="async"
-                          className={`w-full h-full object-cover transition-transform duration-300 ${
-                            isOutOfStock
-                              ? 'grayscale opacity-75'
-                              : 'group-hover:scale-[1.03]'
-                          }`}
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src =
-                              'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=600&q=80';
-                          }}
-                        />
+                    {/* Top Header Text Section (Matching Gambar 3: Title & Subtitle on top) */}
+                    <div className="px-0.5 pt-0.5">
+                      <h3
+                        className="text-xs sm:text-base lg:text-[17px] font-bold text-[#1a2610] tracking-tight leading-tight line-clamp-1 group-hover:text-[#344d15] transition-colors"
+                        title={prod.nama}
+                      >
+                        {prod.nama}
+                      </h3>
 
+                      <p className="text-[10px] sm:text-xs text-[#73826a] font-medium mt-0.5 sm:mt-1 truncate">
+                        {prod.kategori || 'Hasil Tani'} • {farmerName}
+                      </p>
+                    </div>
 
+                    {/* Middle / Bottom Canvas: Rounded Inner Image Container (Matching Gambar 3) */}
+                    <div className="relative w-full aspect-[4/3.8] sm:aspect-[4/3.5] mt-2.5 sm:mt-3.5 rounded-[18px] sm:rounded-[22px] lg:rounded-[24px] overflow-hidden bg-[#eef1eb] shrink-0">
+                      {/* Image */}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={
+                          prod.imageUrl ||
+                          'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=600&q=80'
+                        }
+                        alt={prod.nama}
+                        loading="lazy"
+                        decoding="async"
+                        className={`w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105 ${
+                          isOutOfStock ? 'grayscale opacity-75' : ''
+                        }`}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src =
+                            'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=600&q=80';
+                        }}
+                      />
 
-                        {/* Top-Right Status Badge */}
-                        <div
-                          className={`absolute top-1.5 right-1.5 sm:top-2.5 sm:right-2.5 text-[10px] sm:text-xs font-semibold px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-md sm:rounded-lg flex items-center gap-1 z-10 border ${
-                            isOutOfStock
-                              ? 'bg-[#ffedea] text-[#831c1e] border-red-200'
-                              : 'bg-white text-[#1a2610] border-[#dce1d6]'
-                          }`}
-                        >
-                          <span
-                            className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${
-                              isOutOfStock ? 'bg-[#c4242a]' : 'bg-[#547318]'
-                            }`}
-                          />
-                          <span>
-                            {isOutOfStock
-                              ? 'Habis'
-                              : prod.isTersedia
-                              ? 'Tersedia'
-                              : 'Off'}
+                      {/* Dark Gradient Overlay for bottom text & circular button pop */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent pointer-events-none" />
+
+                      {/* Top-Right Status Badge */}
+                      <div className="absolute top-2 right-2 sm:top-2.5 sm:right-2.5 z-10">
+                        {isOutOfStock ? (
+                          <span className="text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full bg-black/65 backdrop-blur-xs text-white border border-white/20">
+                            Habis
                           </span>
-                        </div>
+                        ) : (
+                          <span className="text-[9px] sm:text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white/90 backdrop-blur-xs text-[#233414] border border-[#dce1d6]/50 shadow-2xs">
+                            Tersedia
+                          </span>
+                        )}
                       </div>
 
-                      {/* Card Body - Compact on Mobile, Roomier on Tablet & Desktop */}
-                      <div className="p-2.5 sm:p-3.5 lg:p-4">
-                        {/* Judul Komoditas */}
-                        <h3
-                          className={`text-xs sm:text-sm lg:text-[15px] font-bold tracking-tight leading-snug line-clamp-1 transition-colors ${
-                            isOutOfStock
-                              ? 'text-[#68785b]'
-                              : 'text-[#1a2610] group-hover:text-[#344d15]'
-                          }`}
-                          title={prod.nama}
-                        >
-                          {prod.nama}
-                        </h3>
-
-                        {/* Harga & Stok Row */}
-                        <div className="mt-1 sm:mt-1.5 flex items-baseline justify-between gap-1.5 flex-wrap">
-                          <div className="flex items-baseline gap-0.5 sm:gap-1">
-                            <span
-                              className={`text-xs sm:text-[15px] lg:text-base font-extrabold tracking-tight tabular-nums ${
-                                isOutOfStock ? 'text-[#68785b]' : 'text-[#233414]'
-                              }`}
-                            >
+                      {/* Bottom Overlay: Price on Left, Circular Button ↗ on Right (Exact match to Gambar 3) */}
+                      <div className="absolute bottom-2.5 sm:bottom-3 left-2.5 sm:left-3.5 right-2.5 sm:right-3.5 flex items-end justify-between z-10 gap-2">
+                        {/* Price: e.g. "$275" in Gambar 3 */}
+                        <div className="flex flex-col text-white drop-shadow-xs min-w-0">
+                          <div className="flex items-baseline gap-0.5 leading-none">
+                            <span className="text-xs sm:text-base lg:text-lg font-extrabold tracking-tight tabular-nums text-white">
                               Rp {Number(prod.hargaPerSatuan).toLocaleString('id-ID')}
                             </span>
-                            <span className="text-[10px] sm:text-xs text-[#5b6950] font-medium">
+                            <span className="text-[9px] sm:text-[11px] font-normal text-white/80 shrink-0">
                               /{prod.satuan}
                             </span>
                           </div>
-
-                          {isOutOfStock ? (
-                            <span className="text-[10px] sm:text-xs font-semibold text-[#c4242a] tabular-nums">
-                              Stok 0
-                            </span>
-                          ) : (
-                            <span className="text-[10px] sm:text-xs font-semibold text-[#344d15] tabular-nums">
-                              Stok {Number(prod.stok).toLocaleString('id-ID')}
+                          {!isOutOfStock && (
+                            <span className="text-[8px] sm:text-[10px] text-white/75 font-medium mt-1 truncate">
+                              Stok: {Number(prod.stok).toLocaleString('id-ID')}
                             </span>
                           )}
                         </div>
 
-                        {/* Farmer Attribution Row */}
+                        {/* Circular Action Button with ArrowUpRight ↗ (Exact match to Gambar 3) */}
                         <div
-                          onClick={(e) => {
-                            const targetId =
-                              prod.petani?.id ||
-                              prod.petaniId ||
-                              (isPetani ? user?.id : null);
-                            if (targetId) {
-                              e.stopPropagation();
-                              router.push(`/toko/petani/${targetId}`);
-                            }
-                          }}
-                          className="mt-2 sm:mt-3 pt-2 sm:pt-2.5 border-t border-[#EAEDE7] flex items-center justify-between gap-1.5 group/farmer"
-                          title={`Kunjungi Toko ${farmerName}`}
+                          className="w-7 h-7 sm:w-9 sm:h-9 lg:w-10.5 lg:h-10.5 rounded-full bg-white text-[#1a2610] shadow-md flex items-center justify-center transition-all duration-300 group-hover:scale-105 group-hover:bg-[#233414] group-hover:text-white shrink-0"
+                          title="Buka Detail Produk"
                         >
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <div className="w-4.5 h-4.5 sm:w-5.5 sm:h-5.5 rounded-full bg-[#EAEDE7] border border-[#cfd6c9] text-[#233414] text-[9px] sm:text-[11px] font-bold flex items-center justify-center shrink-0">
-                              {farmerInitial}
-                            </div>
-                            <span className="text-[11px] sm:text-xs font-semibold text-[#1a2610] group-hover/farmer:text-[#344d15] group-hover/farmer:underline truncate">
-                              {farmerName}
-                            </span>
-                          </div>
-                          <Store className="w-3 h-3 text-[#547318] shrink-0 hidden sm:block" />
+                          <ArrowUpRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 lg:w-4.5 lg:h-4.5 stroke-[2.2]" />
                         </div>
                       </div>
-                    </div>
-
-                    {/* Card Footer Action */}
-                    <div className="px-2.5 pb-2.5 sm:px-3.5 sm:pb-3.5 lg:px-4 lg:pb-4 pt-0">
-                      <button
-                        type="button"
-                        disabled={isOutOfStock}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (isOutOfStock) return;
-                          handleAddToCart(prod, 1);
-                        }}
-                        className={`w-full h-8 sm:h-9 lg:h-10 px-2 sm:px-3 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors ${
-                          isOutOfStock
-                            ? 'bg-[#EAEDE7] text-[#68785b] border border-[#cfd6c9] cursor-not-allowed'
-                            : 'bg-[#233414] hover:bg-[#344d15] text-white cursor-pointer'
-                        }`}
-                      >
-                        <ShoppingCart
-                          className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${
-                            isOutOfStock ? 'text-[#68785b]' : 'text-[#D4F63D]'
-                          }`}
-                        />
-                        <span>{isOutOfStock ? 'Stok Habis' : '+ Keranjang'}</span>
-                      </button>
                     </div>
                   </article>
                 );

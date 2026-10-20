@@ -13,6 +13,7 @@ import {
   LayoutDashboard,
 } from 'lucide-react';
 import UserProfileDropdown from '@/components/UserProfileDropdown';
+import NotificationDropdown from '@/components/NotificationDropdown';
 import { useAuth } from '@/context/auth-context';
 import BottomNav from '@/components/BottomNav';
 
@@ -154,18 +155,21 @@ export default function AppHeader({ activePage }: AppHeaderProps) {
           {/* Right Section: Pencarian, Keranjang Belanja & Profil Dropdown */}
           <div className="flex items-center gap-2 shrink-0 z-10">
             {!user && (
-              <Link
-                href="/cart"
-                prefetch={true}
-                className={`relative w-9 h-9 rounded-full flex items-center justify-center transition-colors border cursor-pointer ${
-                  currentActive === 'cart'
-                    ? 'bg-[#233414] text-[#D4F63D] border-[#233414]'
-                    : 'bg-[#f4f5f1] hover:bg-[#EAEDE7] text-[#233414] border-[#d5dccf]'
-                }`}
-                title="Keranjang Belanja"
-              >
-                <ShoppingCart className="w-4 h-4" />
-              </Link>
+              <>
+                <NotificationDropdown />
+                <Link
+                  href="/cart"
+                  prefetch={true}
+                  className={`relative w-9 h-9 rounded-full flex items-center justify-center transition-colors border cursor-pointer ${
+                    currentActive === 'cart'
+                      ? 'bg-[#233414] text-[#D4F63D] border-[#233414]'
+                      : 'bg-[#f4f5f1] hover:bg-[#EAEDE7] text-[#233414] border-[#d5dccf]'
+                  }`}
+                  title="Keranjang Belanja"
+                >
+                  <ShoppingCart className="w-4 h-4" />
+                </Link>
+              </>
             )}
 
             {user ? (

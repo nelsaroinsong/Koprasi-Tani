@@ -39,6 +39,7 @@ import { useAuth } from '@/context/auth-context';
 import { getCart, saveCart, clearCart } from '@/lib/cart';
 import { getRentalCart } from '@/lib/rental-cart';
 import SlideCommit from '@/components/ui/SlideCommit';
+import NotificationDropdown from '@/components/NotificationDropdown';
 import {
   Dialog,
   DialogContent,
@@ -302,6 +303,9 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
   return (
     <>
       <div className="flex items-center gap-2" ref={dropdownRef}>
+        {/* Fitur Notifikasi di Samping Kiri Cart */}
+        <NotificationDropdown />
+
         {/* Tombol Keranjang Belanja */}
         <Link
           href="/cart"
