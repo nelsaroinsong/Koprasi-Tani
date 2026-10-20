@@ -22,6 +22,9 @@ import {
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
 
+let cachedFollowStats: { followingCount: number; followersCount: number } | null = null;
+let cachedUserCreatedAt: string | null = null;
+
 export default function ProfilePage() {
   const { user, isLoading: authLoading, logout, updateProfile } = useAuth();
   const { showToast } = useToast();
@@ -109,12 +112,13 @@ export default function ProfilePage() {
     }
   };
 
-  // Follow stats & registration date
-  const [followStats, setFollowStats] = useState({
-    followingCount: 0,
-    followersCount: 0,
-  });
-  const [userCreatedAt, setUserCreatedAt] = useState<string | null>(null);
+  // Follow stats & registration date (SWR Cache)
+  const [followStats, setFollowStats] = useState(
+    () => cachedFollowStats || { followingCount: 0, followersCount: 0 }
+  );
+  const [userCreatedAt, setUserCreatedAt] = useState<string | null>(
+    () => cachedUserCreatedAt || null
+  );
 
   // Auth protection guard
   useEffect(() => {
@@ -140,12 +144,15 @@ export default function ProfilePage() {
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
           if (data?.user) {
-            setFollowStats({
+            const nextStats = {
               followingCount: data.user.followingCount || 0,
               followersCount: data.user.followersCount || 0,
-            });
+            };
+            setFollowStats(nextStats);
+            cachedFollowStats = nextStats;
             if (data.user.createdAt) {
               setUserCreatedAt(data.user.createdAt);
+              cachedUserCreatedAt = data.user.createdAt;
             }
           }
         })

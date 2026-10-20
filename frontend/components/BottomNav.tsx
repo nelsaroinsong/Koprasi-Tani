@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence, LayoutGroup } from 'motion/react';
 import {
   Store,
@@ -19,11 +19,28 @@ interface BottomNavProps {
 
 export default function BottomNav({ activePage }: BottomNavProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const { user } = useAuth();
   const isPetani = user?.role === 'PETANI';
 
   // Optimistic tab state for instantaneous sliding background response
   const [optimisticTab, setOptimisticTab] = useState<string | null>(null);
+
+  // Pre-warm router cache for all main tabs in background
+  useEffect(() => {
+    const routes = ['/toko', '/sewa-alat', '/pesanan', '/profile'];
+    if (isPetani) {
+      routes.push('/dashboard');
+    }
+    const timer = setTimeout(() => {
+      routes.forEach((r) => {
+        try {
+          router.prefetch(r);
+        } catch {}
+      });
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [router, isPetani]);
 
   const isToko =
     activePage === 'none' || pathname.startsWith('/toko/petani')

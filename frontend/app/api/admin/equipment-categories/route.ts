@@ -3,10 +3,12 @@ import fs from 'fs';
 import path from 'path';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
+import { getCache, setCache, delCache } from '@/lib/redis';
 
 export const dynamic = 'force-dynamic';
 
 const CATEGORIES_FILE = path.join(process.cwd(), 'data', 'equipment-categories.json');
+const CACHE_KEY = 'equipment:categories:list';
 
 export interface EquipmentCategoryItem {
   id: string;
@@ -56,11 +58,19 @@ async function checkIsAdmin(session: any): Promise<boolean> {
   }
 }
 
-// GET: Ambil daftar kategori alat pertanian
+// GET: Ambil daftar kategori alat pertanian (Cached in Redis)
 export async function GET() {
   try {
+    const cached = await getCache<any>(CACHE_KEY);
+    if (cached) {
+      return NextResponse.json(cached);
+    }
+
     const categories = readEquipmentCategories();
-    return NextResponse.json({ success: true, categories });
+    const payload = { success: true, categories };
+    await setCache(CACHE_KEY, payload, 300);
+
+    return NextResponse.json(payload);
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Gagal memuat kategori alat' }, { status: 500 });
   }
@@ -99,6 +109,7 @@ export async function POST(request: Request) {
 
     categories.push(newCategory);
     writeEquipmentCategories(categories);
+    await delCache(CACHE_KEY).catch(() => {});
 
     return NextResponse.json({
       success: true,
@@ -151,6 +162,7 @@ export async function PUT(request: Request) {
     };
 
     writeEquipmentCategories(categories);
+    await delCache(CACHE_KEY).catch(() => {});
 
     return NextResponse.json({
       success: true,
@@ -187,6 +199,7 @@ export async function DELETE(request: Request) {
     }
 
     writeEquipmentCategories(filtered);
+    await delCache(CACHE_KEY).catch(() => {});
 
     return NextResponse.json({
       success: true,

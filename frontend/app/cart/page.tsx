@@ -14,6 +14,7 @@ import {
   ArrowRight,
   Loader2,
   X,
+  ShieldCheck,
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
@@ -137,9 +138,45 @@ function CartContent() {
     );
   }, [cartItems]);
 
+  // Voucher / Promo State
+  const [voucherCode, setVoucherCode] = useState('');
+  const [appliedVoucher, setAppliedVoucher] = useState<string | null>(null);
+
+  const handleApplyVoucher = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!voucherCode.trim()) {
+      showToast({
+        title: 'Kode Voucher Kosong',
+        message: 'Silakan masukkan kode voucher diskon Anda.',
+        type: 'info',
+      });
+      return;
+    }
+    const code = voucherCode.trim().toUpperCase();
+    if (code === 'PANENHEMAT' || code === 'KOPERASI' || code === 'DISKON10') {
+      setAppliedVoucher(code);
+      showToast({
+        title: 'Voucher Berhasil Diterapkan!',
+        message: 'Potongan diskon 10% telah diaplikasikan ke pesanan Anda.',
+        type: 'success',
+      });
+    } else {
+      showToast({
+        title: 'Voucher Tidak Valid',
+        message: 'Kode voucher tidak ditemukan atau sudah tidak berlaku.',
+        type: 'error',
+      });
+    }
+  };
+
+  const discountAmount = useMemo(() => {
+    if (!appliedVoucher) return 0;
+    return Math.round(subtotalAmount * 0.1);
+  }, [appliedVoucher, subtotalAmount]);
+
   const finalTotalAmount = useMemo(() => {
-    return subtotalAmount;
-  }, [subtotalAmount]);
+    return Math.max(0, subtotalAmount - discountAmount);
+  }, [subtotalAmount, discountAmount]);
 
   // ==========================================
   // 2. STATE & HANDLERS: SEWA ALAT PERTANIAN
@@ -280,7 +317,7 @@ function CartContent() {
       <div className="sm:hidden h-14 shrink-0 pointer-events-none" aria-hidden="true" />
 
       {/* Main Content */}
-      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-3 sm:py-6">
+      <main className="flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-8 lg:px-12 xl:px-16 pt-3 sm:py-6 lg:py-8">
         {/* Top Segmented Control + Clear Button on Desktop */}
         <div className="flex items-center justify-between gap-3 mb-4 sm:mb-6">
           <div className="grid grid-cols-2 sm:inline-flex items-center gap-1 p-1 bg-[#f4f5f1] sm:bg-[#EAEDE7] rounded-2xl w-full sm:w-fit border border-[#dce1d6]">
@@ -362,7 +399,7 @@ function CartContent() {
           </div>
         ) : activeTab === 'toko' ? (
           /* ========================================================= */
-          /* TAB 1: KONTEN KERANJANG TOKO ONLINE (GAMBAR 5 STYLE)      */
+          /* TAB 1: KONTEN KERANJANG TOKO ONLINE (GAMBAR 2 STYLE)      */
           /* ========================================================= */
           cartItems.length === 0 ? (
             <div className="bg-white sm:border sm:border-[#dce1d6] rounded-3xl p-8 sm:p-14 text-center flex flex-col items-center justify-center max-w-xl mx-auto my-4">
@@ -383,115 +420,263 @@ function CartContent() {
               </Link>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 lg:gap-8 items-start">
-              {/* Left Column: Gambar 5 Style Flat Item List */}
-              <div className="md:col-span-7 lg:col-span-8 bg-white sm:rounded-3xl sm:border sm:border-[#dce1d6] sm:p-5 divide-y divide-[#EAEDE7]">
-                {cartItems.map((item) => {
-                  const itemTotal = Number(item.hargaPerSatuan || 0) * (item.quantity || 1);
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+              {/* Left Column: Table of Cart Items (Gambar 2 Style) */}
+              <div className="lg:col-span-8 bg-white rounded-3xl border border-[#EAEDE7] sm:border-[#dce1d6] p-4 sm:p-6 lg:p-8 shadow-2xs">
+                {/* Table Header Row (Gambar 2 Style: Product Code / Quantity / Total / Action) */}
+                <div className="hidden sm:grid grid-cols-12 gap-4 pb-4 border-b border-[#EAEDE7] text-xs font-bold text-[#526046] uppercase tracking-wider">
+                  <div className="col-span-6">Product Code</div>
+                  <div className="col-span-3 text-center">Quantity</div>
+                  <div className="col-span-2 text-right">Total</div>
+                  <div className="col-span-1 text-right">Action</div>
+                </div>
 
-                  return (
-                    <div
-                      key={item.id}
-                      className="py-4 first:pt-1 last:pb-1 flex items-stretch gap-3.5 sm:gap-4"
-                    >
-                      {/* Square Rounded Thumbnail on Left */}
-                      <Link
-                        href={`/toko/${item.id}`}
-                        className="w-20 h-20 sm:w-24 sm:h-24 shrink-0 rounded-2xl overflow-hidden bg-[#f4f5f1] border border-[#EAEDE7] relative aspect-square"
-                      >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={
-                            item.imageUrl ||
-                            'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=400&q=80'
-                          }
-                          alt={item.nama}
-                          className="w-full h-full object-cover object-center"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src =
-                              'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=400&q=80';
-                          }}
-                        />
-                      </Link>
+                <div className="divide-y divide-[#EAEDE7]">
+                  {cartItems.map((item) => {
+                    const itemTotal = Number(item.hargaPerSatuan || 0) * (item.quantity || 1);
 
-                      {/* Center Column: Title, Unit/Category Subtitle, Price at Bottom */}
-                      <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
-                        <div>
-                          <Link
-                            href={`/toko/${item.id}`}
-                            className="font-bold text-[#1a2610] hover:text-[#344d15] text-sm sm:text-base leading-snug line-clamp-1 transition"
-                          >
-                            {item.nama}
-                          </Link>
-                          <div className="text-xs text-[#5b6950] mt-0.5 truncate">
-                            1 {item.satuan} • {item.kategori}
+                    return (
+                      <div key={item.id} className="py-5 sm:py-6 first:pt-4 sm:first:pt-6 last:pb-2">
+                        {/* Desktop Layout matching Gambar 2 */}
+                        <div className="hidden sm:grid grid-cols-12 gap-4 items-center">
+                          {/* Col 1: Product Code / Details (col-span-6) */}
+                          <div className="col-span-6 flex items-center gap-4 min-w-0">
+                            <Link
+                              href={`/toko/${item.id}`}
+                              className="w-16 h-16 lg:w-20 lg:h-20 shrink-0 rounded-2xl overflow-hidden bg-[#f4f5f1] border border-[#EAEDE7] group"
+                            >
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={
+                                  item.imageUrl ||
+                                  'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=400&q=80'
+                                }
+                                alt={item.nama}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src =
+                                    'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=400&q=80';
+                                }}
+                              />
+                            </Link>
+
+                            <div className="min-w-0 flex-1">
+                              <Link
+                                href={`/toko/${item.id}`}
+                                className="font-bold text-[#1a2610] hover:text-[#344d15] text-sm lg:text-base leading-snug line-clamp-1 transition"
+                              >
+                                {item.nama}
+                              </Link>
+                              <div className="text-xs text-[#5b6950] mt-1 truncate">
+                                1 {item.satuan} • {item.kategori}
+                              </div>
+                              <div className="text-[11px] text-[#83917d] mt-0.5 tabular-nums">
+                                Rp {Number(item.hargaPerSatuan || 0).toLocaleString('id-ID')} / {item.satuan}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Col 2: Quantity (Centered Pill Stepper, col-span-3) */}
+                          <div className="col-span-3 flex justify-center">
+                            <div className="inline-flex items-center justify-between h-9 rounded-full border border-[#cfd6c9] bg-white px-3 w-28 lg:w-32 shadow-2xs">
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateQuantity(item.id, -1)}
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-[#526046] hover:text-[#1a2610] hover:bg-[#f4f5f1] transition cursor-pointer"
+                                title="Kurangi"
+                              >
+                                <Minus className="w-3.5 h-3.5" />
+                              </button>
+                              <span className="text-xs lg:text-sm font-bold text-[#1a2610] tabular-nums">
+                                {item.quantity}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateQuantity(item.id, 1)}
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-[#526046] hover:text-[#1a2610] hover:bg-[#f4f5f1] transition cursor-pointer"
+                                title="Tambah"
+                              >
+                                <Plus className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Col 3: Total (Right-aligned Bold Price, col-span-2) */}
+                          <div className="col-span-2 text-right">
+                            <span className="text-sm lg:text-base font-extrabold text-[#1a2610] tabular-nums">
+                              Rp {itemTotal.toLocaleString('id-ID')}
+                            </span>
+                          </div>
+
+                          {/* Col 4: Action (Trash Can Icon, col-span-1) */}
+                          <div className="col-span-1 text-right">
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveItem(item.id, item.nama)}
+                              className="w-9 h-9 inline-flex items-center justify-center rounded-xl text-[#5b6950] hover:text-[#c4242a] hover:bg-[#ffedea] transition cursor-pointer"
+                              title="Hapus komoditas"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </div>
                         </div>
 
-                        <div className="text-sm sm:text-base font-extrabold text-[#1a2610] tabular-nums">
-                          Rp {itemTotal.toLocaleString('id-ID')}
+                        {/* Mobile Layout */}
+                        <div className="sm:hidden flex items-start gap-3.5">
+                          <Link
+                            href={`/toko/${item.id}`}
+                            className="w-18 h-18 shrink-0 rounded-2xl overflow-hidden bg-[#f4f5f1] border border-[#EAEDE7]"
+                          >
+                            <img
+                              src={
+                                item.imageUrl ||
+                                'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=400&q=80'
+                              }
+                              alt={item.nama}
+                              className="w-full h-full object-cover"
+                            />
+                          </Link>
+
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-2">
+                              <Link
+                                href={`/toko/${item.id}`}
+                                className="font-bold text-[#1a2610] text-sm leading-snug line-clamp-1"
+                              >
+                                {item.nama}
+                              </Link>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveItem(item.id, item.nama)}
+                                className="text-[#5b6950] hover:text-[#c4242a] p-1 -mr-1 -mt-1 cursor-pointer"
+                                title="Hapus"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+
+                            <div className="text-xs text-[#5b6950] mt-0.5">
+                              1 {item.satuan} • {item.kategori}
+                            </div>
+
+                            <div className="flex items-center justify-between mt-3">
+                              <span className="text-sm font-extrabold text-[#1a2610] tabular-nums">
+                                Rp {itemTotal.toLocaleString('id-ID')}
+                              </span>
+
+                              <div className="inline-flex items-center justify-between h-8 rounded-full border border-[#cfd6c9] bg-white px-2.5 w-24 shadow-2xs">
+                                <button
+                                  type="button"
+                                  onClick={() => handleUpdateQuantity(item.id, -1)}
+                                  className="w-5 h-5 flex items-center justify-center text-[#526046]"
+                                >
+                                  <Minus className="w-3 h-3" />
+                                </button>
+                                <span className="text-xs font-bold text-[#1a2610] tabular-nums">
+                                  {item.quantity}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleUpdateQuantity(item.id, 1)}
+                                  className="w-5 h-5 flex items-center justify-center text-[#526046]"
+                                >
+                                  <Plus className="w-3 h-3" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
-
-                      {/* Right Column: Top-Right X Remove Button & Bottom-Right Pill Stepper (Gambar 5 Exact Match) */}
-                      <div className="flex flex-col items-end justify-between py-0.5 shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveItem(item.id, item.nama)}
-                          className="text-[#5b6950] hover:text-[#1a2610] transition p-1 -mr-1 -mt-1 cursor-pointer"
-                          title="Hapus komoditas"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-
-                        <div className="inline-flex items-center h-8 rounded-full border border-[#dce1d6] bg-white px-1 shadow-2xs">
-                          <button
-                            type="button"
-                            onClick={() => handleUpdateQuantity(item.id, -1)}
-                            className="w-6 h-6 rounded-full flex items-center justify-center text-[#526046] hover:text-[#1a2610] hover:bg-[#f4f5f1] transition cursor-pointer"
-                            title="Kurangi"
-                          >
-                            <Minus className="w-3 h-3" />
-                          </button>
-                          <span className="w-6 text-center text-xs font-bold text-[#1a2610] tabular-nums">
-                            {item.quantity}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleUpdateQuantity(item.id, 1)}
-                            className="w-6 h-6 rounded-full flex items-center justify-center text-[#526046] hover:text-[#1a2610] hover:bg-[#f4f5f1] transition cursor-pointer"
-                            title="Tambah"
-                          >
-                            <Plus className="w-3 h-3" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
 
-              {/* Right Column / Bottom Summary Sheet (Gambar 5 Total + Dark Pill Button) */}
-              <div className="md:col-span-5 lg:col-span-4 md:sticky md:top-20">
-                <div className="bg-white sm:rounded-3xl sm:border sm:border-[#dce1d6] pt-4 sm:p-6 border-t border-[#EAEDE7] sm:border-t-[#dce1d6] space-y-4">
-                  <div className="space-y-2 text-xs">
+              {/* Right Column: Order Summary Card (Gambar 2 Exact Match) */}
+              <div className="lg:col-span-4 lg:sticky lg:top-24">
+                <div className="bg-white rounded-3xl border border-[#EAEDE7] sm:border-[#dce1d6] p-5 sm:p-6 lg:p-7 shadow-2xs space-y-5">
+                  <h2 className="text-base sm:text-lg font-bold text-[#1a2610] tracking-tight">
+                    Order Summary
+                  </h2>
+
+                  {/* Discount Voucher Input (Gambar 2 style) */}
+                  <form onSubmit={handleApplyVoucher} className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={voucherCode}
+                      onChange={(e) => setVoucherCode(e.target.value)}
+                      placeholder="Discount voucher"
+                      className="flex-1 h-11 px-4 text-xs sm:text-sm rounded-full border border-[#cfd6c9] bg-[#fbfcf9] text-[#1a2610] placeholder:text-[#83917d] focus:outline-none focus:border-[#233414] focus:ring-1 focus:ring-[#233414] transition"
+                    />
+                    <button
+                      type="submit"
+                      className="h-11 px-5 rounded-full border border-[#1a2610] bg-white hover:bg-[#1a2610] hover:text-white text-[#1a2610] text-xs font-bold transition cursor-pointer shrink-0"
+                    >
+                      Apply
+                    </button>
+                  </form>
+
+                  {appliedVoucher && (
+                    <div className="flex items-center justify-between text-xs bg-[#e2f2c8]/60 text-[#344d15] px-3.5 py-2 rounded-xl border border-[#c4e095]">
+                      <span className="font-semibold">Voucher &quot;{appliedVoucher}&quot; Aktif</span>
+                      <button
+                        type="button"
+                        onClick={() => setAppliedVoucher(null)}
+                        className="font-bold hover:underline cursor-pointer"
+                      >
+                        Hapus
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Price Breakdown */}
+                  <div className="space-y-3 pt-2 text-xs sm:text-[13px] border-t border-[#EAEDE7]">
+                    <div className="flex justify-between text-[#526046]">
+                      <span>Sub Total</span>
+                      <span className="font-semibold text-[#1a2610] tabular-nums">
+                        Rp {subtotalAmount.toLocaleString('id-ID')}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between text-[#526046]">
+                      <span>Discount {appliedVoucher ? '(10%)' : ''}</span>
+                      <span className={`font-semibold tabular-nums ${appliedVoucher ? 'text-[#344d15]' : 'text-[#83917d]'}`}>
+                        {appliedVoucher ? `-Rp ${discountAmount.toLocaleString('id-ID')}` : '-'}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between text-[#526046]">
+                      <span>Delivery fee</span>
+                      <span className="font-semibold text-[#344d15]">
+                        Rp 0 (Ambil di Kasir)
+                      </span>
+                    </div>
+
                     <div className="flex justify-between text-[#526046]">
                       <span>Total Kuantitas</span>
-                      <span className="font-semibold text-[#1a2610] tabular-nums">{totalItemsCount} Satuan</span>
-                    </div>
-                    <div className="flex justify-between text-[#526046]">
-                      <span>Serah Terima & Bayar</span>
-                      <span className="font-semibold text-[#344d15]">Tunai di Kasir Koperasi</span>
+                      <span className="font-semibold text-[#1a2610] tabular-nums">
+                        {totalItemsCount} Satuan
+                      </span>
                     </div>
                   </div>
 
-                  <div className="flex justify-between items-baseline pt-2 border-t border-[#EAEDE7]">
-                    <span className="text-sm font-semibold text-[#526046]">Total:</span>
+                  {/* Total */}
+                  <div className="border-t border-[#EAEDE7] pt-4 flex items-baseline justify-between">
+                    <span className="text-sm sm:text-base font-bold text-[#1a2610]">Total</span>
                     <span className="text-xl sm:text-2xl font-black text-[#1a2610] tabular-nums">
                       Rp {finalTotalAmount.toLocaleString('id-ID')}
                     </span>
                   </div>
 
+                  {/* Warranty / Guarantee note with check icon (Gambar 2 style) */}
+                  <div className="flex items-start gap-2.5 p-3 rounded-2xl bg-[#f4f5f1] border border-[#EAEDE7] text-xs text-[#526046]">
+                    <ShieldCheck className="w-4 h-4 text-[#344d15] shrink-0 mt-0.5" />
+                    <p className="leading-relaxed">
+                      <strong className="text-[#1a2610] font-semibold">Jaminan Kualitas Komoditas</strong> langsung dipetik dari petani binaan resmi Koperasi Sinar Pagi Sejahtera.
+                    </p>
+                  </div>
+
+                  {/* Checkout Now Pill Button (Gambar 2 style) */}
                   <button
                     type="button"
                     onClick={() => {
@@ -501,9 +686,9 @@ function CartContent() {
                       }
                       router.push('/checkout/toko');
                     }}
-                    className="w-full h-12 sm:h-13 px-6 bg-[#1a2610] hover:bg-[#233414] text-white rounded-full font-bold text-sm flex items-center justify-center gap-2 transition cursor-pointer shadow-sm"
+                    className="w-full h-12 sm:h-14 bg-[#1a2610] hover:bg-[#233414] text-white rounded-full font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition cursor-pointer shadow-sm active:scale-[0.99]"
                   >
-                    <span>Lanjut ke Checkout</span>
+                    <span>Checkout Now</span>
                   </button>
                 </div>
               </div>
@@ -511,7 +696,7 @@ function CartContent() {
           )
         ) : (
           /* ========================================================= */
-          /* TAB 2: KONTEN KERANJANG SEWA ALAT (GAMBAR 5 STYLE)        */
+          /* TAB 2: KONTEN KERANJANG SEWA ALAT (GAMBAR 2 STYLE)        */
           /* ========================================================= */
           rentalCartItems.length === 0 ? (
             <div className="bg-white sm:border sm:border-[#dce1d6] rounded-3xl p-8 sm:p-14 text-center flex flex-col items-center justify-center max-w-xl mx-auto my-4">
@@ -532,146 +717,266 @@ function CartContent() {
               </Link>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 lg:gap-8 items-start">
-              {/* Left Column: Gambar 5 Style Flat Item List for Rental Equipment */}
-              <div className="md:col-span-7 lg:col-span-8 bg-white sm:rounded-3xl sm:border sm:border-[#dce1d6] sm:p-5 divide-y divide-[#EAEDE7]">
-                {rentalCartItems.map((item) => {
-                  const itemTotal = calculateRentalItemTotal(item);
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+              {/* Left Column: Table of Rental Equipment (Gambar 2 Style) */}
+              <div className="lg:col-span-8 bg-white rounded-3xl border border-[#EAEDE7] sm:border-[#dce1d6] p-4 sm:p-6 lg:p-8 shadow-2xs">
+                {/* Table Header Row */}
+                <div className="hidden sm:grid grid-cols-12 gap-4 pb-4 border-b border-[#EAEDE7] text-xs font-bold text-[#526046] uppercase tracking-wider">
+                  <div className="col-span-5">Product Code</div>
+                  <div className="col-span-4 text-center">Quantity &amp; Durasi</div>
+                  <div className="col-span-2 text-right">Total</div>
+                  <div className="col-span-1 text-right">Action</div>
+                </div>
 
-                  return (
-                    <div key={item.id} className="py-4 first:pt-1 last:pb-1 space-y-3">
-                      <div className="flex items-stretch gap-3.5 sm:gap-4">
-                        {/* Square Rounded Thumbnail */}
-                        <Link
-                          href={`/sewa-alat/${item.equipmentId}`}
-                          className="w-20 h-20 sm:w-24 sm:h-24 shrink-0 rounded-2xl overflow-hidden bg-[#f4f5f1] border border-[#EAEDE7] relative aspect-square"
-                        >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={
-                              item.imageUrl ||
-                              'https://picsum.photos/seed/sewa-alat-koperasi/300/300'
-                            }
-                            alt={item.nama}
-                            className="w-full h-full object-cover"
-                          />
-                        </Link>
+                <div className="divide-y divide-[#EAEDE7]">
+                  {rentalCartItems.map((item) => {
+                    const itemTotal = calculateRentalItemTotal(item);
 
-                        {/* Center Column */}
-                        <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
-                          <div>
+                    return (
+                      <div key={item.id} className="py-5 sm:py-6 first:pt-4 sm:first:pt-6 last:pb-2">
+                        {/* Desktop Layout matching Gambar 2 */}
+                        <div className="hidden sm:grid grid-cols-12 gap-4 items-center">
+                          {/* Col 1: Equipment Details (col-span-5) */}
+                          <div className="col-span-5 flex items-center gap-4 min-w-0">
                             <Link
                               href={`/sewa-alat/${item.equipmentId}`}
-                              className="font-bold text-[#1a2610] hover:text-[#344d15] text-sm sm:text-base leading-snug line-clamp-1 transition"
+                              className="w-16 h-16 lg:w-20 lg:h-20 shrink-0 rounded-2xl overflow-hidden bg-[#f4f5f1] border border-[#EAEDE7] group"
                             >
-                              {item.nama}
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={
+                                  item.imageUrl ||
+                                  'https://picsum.photos/seed/sewa-alat-koperasi/300/300'
+                                }
+                                alt={item.nama}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
                             </Link>
-                            <div className="text-xs text-[#5b6950] mt-0.5 truncate tabular-nums">
-                              {item.durasi} {item.satuanSewa} • Rp {item.hargaSewa.toLocaleString('id-ID')}/{item.satuanSewa}
+
+                            <div className="min-w-0 flex-1">
+                              <Link
+                                href={`/sewa-alat/${item.equipmentId}`}
+                                className="font-bold text-[#1a2610] hover:text-[#344d15] text-sm lg:text-base leading-snug line-clamp-1 transition"
+                              >
+                                {item.nama}
+                              </Link>
+                              <div className="text-xs text-[#5b6950] mt-1 truncate tabular-nums">
+                                Rp {item.hargaSewa.toLocaleString('id-ID')}/{item.satuanSewa}
+                              </div>
+
+                              {item.biayaOperator ? (
+                                <label className="inline-flex items-center gap-1.5 text-xs text-[#1a2610] font-medium cursor-pointer mt-1.5">
+                                  <input
+                                    type="checkbox"
+                                    checked={item.includeOperator}
+                                    onChange={(e) => handleToggleRentalOperator(item.id, e.target.checked)}
+                                    className="w-3.5 h-3.5 rounded accent-[#233414] cursor-pointer"
+                                  />
+                                  <span>+ Operator (+Rp {item.biayaOperator.toLocaleString('id-ID')})</span>
+                                </label>
+                              ) : null}
                             </div>
                           </div>
 
-                          <div className="text-sm sm:text-base font-extrabold text-[#1a2610] tabular-nums">
-                            Rp {itemTotal.toLocaleString('id-ID')}
+                          {/* Col 2: Quantity & Durasi Stepper (col-span-4) */}
+                          <div className="col-span-4 flex flex-col items-center gap-2">
+                            {/* Unit Stepper */}
+                            <div className="inline-flex items-center justify-between h-8 rounded-full border border-[#cfd6c9] bg-white px-2.5 w-28 lg:w-32 shadow-2xs">
+                              <span className="text-[11px] text-[#5b6950] font-medium mr-1">Unit:</span>
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateRentalQty(item.id, -1)}
+                                className="w-5 h-5 rounded-full flex items-center justify-center text-[#526046] hover:text-[#1a2610] hover:bg-[#f4f5f1] transition cursor-pointer"
+                                title="Kurangi unit"
+                              >
+                                <Minus className="w-3 h-3" />
+                              </button>
+                              <span className="text-xs font-bold text-[#1a2610] tabular-nums">
+                                {item.jumlahUnit}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateRentalQty(item.id, 1)}
+                                disabled={item.jumlahUnit >= (item.stokUnit || 99)}
+                                className="w-5 h-5 rounded-full flex items-center justify-center text-[#526046] hover:text-[#1a2610] hover:bg-[#f4f5f1] transition cursor-pointer disabled:opacity-40"
+                                title="Tambah unit"
+                              >
+                                <Plus className="w-3 h-3" />
+                              </button>
+                            </div>
+
+                            {/* Durasi Stepper */}
+                            <div className="inline-flex items-center justify-between h-8 rounded-full border border-[#cfd6c9] bg-[#f4f5f1] px-2.5 w-28 lg:w-32">
+                              <span className="text-[11px] text-[#5b6950] font-medium mr-1">{item.satuanSewa}:</span>
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateRentalDurasi(item.id, -1)}
+                                disabled={item.durasi <= 1}
+                                className="w-5 h-5 rounded-full flex items-center justify-center text-[#526046] hover:text-[#1a2610] hover:bg-white transition cursor-pointer disabled:opacity-40"
+                                title="Kurangi durasi"
+                              >
+                                <Minus className="w-3 h-3" />
+                              </button>
+                              <span className="text-xs font-extrabold text-[#1a2610] tabular-nums">
+                                {item.durasi}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateRentalDurasi(item.id, 1)}
+                                className="w-5 h-5 rounded-full flex items-center justify-center text-[#526046] hover:text-[#1a2610] hover:bg-white transition cursor-pointer"
+                                title="Tambah durasi"
+                              >
+                                <Plus className="w-3 h-3" />
+                              </button>
+                            </div>
                           </div>
-                        </div>
 
-                        {/* Right Column: Top-Right X & Bottom-Right Unit Pill Stepper */}
-                        <div className="flex flex-col items-end justify-between py-0.5 shrink-0">
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveRentalItem(item.id, item.nama)}
-                            className="text-[#5b6950] hover:text-[#1a2610] transition p-1 -mr-1 -mt-1 cursor-pointer"
-                            title="Hapus alat"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-
-                          <div className="inline-flex items-center h-8 rounded-full border border-[#dce1d6] bg-white px-1 shadow-2xs">
-                            <button
-                              type="button"
-                              onClick={() => handleUpdateRentalQty(item.id, -1)}
-                              className="w-6 h-6 rounded-full flex items-center justify-center text-[#526046] hover:text-[#1a2610] hover:bg-[#f4f5f1] transition cursor-pointer"
-                              title="Kurangi unit"
-                            >
-                              <Minus className="w-3 h-3" />
-                            </button>
-                            <span className="w-6 text-center text-xs font-bold text-[#1a2610] tabular-nums">
-                              {item.jumlahUnit}
+                          {/* Col 3: Total (col-span-2, Right-aligned Bold) */}
+                          <div className="col-span-2 text-right">
+                            <span className="text-sm lg:text-base font-extrabold text-[#1a2610] tabular-nums">
+                              Rp {itemTotal.toLocaleString('id-ID')}
                             </span>
+                          </div>
+
+                          {/* Col 4: Action (col-span-1, Trash Icon) */}
+                          <div className="col-span-1 text-right">
                             <button
                               type="button"
-                              onClick={() => handleUpdateRentalQty(item.id, 1)}
-                              disabled={item.jumlahUnit >= (item.stokUnit || 99)}
-                              className="w-6 h-6 rounded-full flex items-center justify-center text-[#526046] hover:text-[#1a2610] hover:bg-[#f4f5f1] transition cursor-pointer disabled:opacity-40"
-                              title="Tambah unit"
+                              onClick={() => handleRemoveRentalItem(item.id, item.nama)}
+                              className="w-9 h-9 inline-flex items-center justify-center rounded-xl text-[#5b6950] hover:text-[#c4242a] hover:bg-[#ffedea] transition cursor-pointer"
+                              title="Hapus alat"
                             >
-                              <Plus className="w-3 h-3" />
+                              <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
                         </div>
-                      </div>
 
-                      {/* Compact Duration & Operator Pill Bar */}
-                      <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs">
-                        <div className="inline-flex items-center gap-2 bg-[#f4f5f1] px-3 py-1 rounded-full border border-[#EAEDE7]">
-                          <span className="text-[#526046] font-medium">Durasi ({item.satuanSewa}):</span>
-                          <button
-                            type="button"
-                            onClick={() => handleUpdateRentalDurasi(item.id, -1)}
-                            disabled={item.durasi <= 1}
-                            className="text-[#1a2610] font-bold px-1 disabled:opacity-30 cursor-pointer"
+                        {/* Mobile Layout */}
+                        <div className="sm:hidden flex items-start gap-3.5">
+                          <Link
+                            href={`/sewa-alat/${item.equipmentId}`}
+                            className="w-18 h-18 shrink-0 rounded-2xl overflow-hidden bg-[#f4f5f1] border border-[#EAEDE7]"
                           >
-                            −
-                          </button>
-                          <span className="font-extrabold text-[#1a2610] tabular-nums">{item.durasi}</span>
-                          <button
-                            type="button"
-                            onClick={() => handleUpdateRentalDurasi(item.id, 1)}
-                            className="text-[#1a2610] font-bold px-1 cursor-pointer"
-                          >
-                            +
-                          </button>
-                        </div>
-
-                        {item.biayaOperator ? (
-                          <label className="inline-flex items-center gap-1.5 text-xs text-[#1a2610] font-medium cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={item.includeOperator}
-                              onChange={(e) => handleToggleRentalOperator(item.id, e.target.checked)}
-                              className="w-3.5 h-3.5 rounded accent-[#233414] cursor-pointer"
+                            <img
+                              src={
+                                item.imageUrl ||
+                                'https://picsum.photos/seed/sewa-alat-koperasi/300/300'
+                              }
+                              alt={item.nama}
+                              className="w-full h-full object-cover"
                             />
-                            <span>+ Operator (Rp {item.biayaOperator.toLocaleString('id-ID')})</span>
-                          </label>
-                        ) : null}
+                          </Link>
+
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-2">
+                              <Link
+                                href={`/sewa-alat/${item.equipmentId}`}
+                                className="font-bold text-[#1a2610] text-sm leading-snug line-clamp-1"
+                              >
+                                {item.nama}
+                              </Link>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveRentalItem(item.id, item.nama)}
+                                className="text-[#5b6950] hover:text-[#c4242a] p-1 -mr-1 -mt-1 cursor-pointer"
+                                title="Hapus"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+
+                            <div className="text-xs text-[#5b6950] mt-0.5 tabular-nums">
+                              {item.durasi} {item.satuanSewa} • Rp {item.hargaSewa.toLocaleString('id-ID')}/{item.satuanSewa}
+                            </div>
+
+                            {item.biayaOperator ? (
+                              <label className="inline-flex items-center gap-1.5 text-xs text-[#1a2610] font-medium cursor-pointer mt-1">
+                                <input
+                                  type="checkbox"
+                                  checked={item.includeOperator}
+                                  onChange={(e) => handleToggleRentalOperator(item.id, e.target.checked)}
+                                  className="w-3.5 h-3.5 rounded accent-[#233414] cursor-pointer"
+                                />
+                                <span>+ Operator</span>
+                              </label>
+                            ) : null}
+
+                            <div className="flex items-center justify-between mt-3">
+                              <span className="text-sm font-extrabold text-[#1a2610] tabular-nums">
+                                Rp {itemTotal.toLocaleString('id-ID')}
+                              </span>
+
+                              <div className="inline-flex items-center justify-between h-8 rounded-full border border-[#cfd6c9] bg-white px-2.5 w-24 shadow-2xs">
+                                <button
+                                  type="button"
+                                  onClick={() => handleUpdateRentalQty(item.id, -1)}
+                                  className="w-5 h-5 flex items-center justify-center text-[#526046]"
+                                >
+                                  <Minus className="w-3 h-3" />
+                                </button>
+                                <span className="text-xs font-bold text-[#1a2610] tabular-nums">
+                                  {item.jumlahUnit}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleUpdateRentalQty(item.id, 1)}
+                                  disabled={item.jumlahUnit >= (item.stokUnit || 99)}
+                                  className="w-5 h-5 flex items-center justify-center text-[#526046] disabled:opacity-40"
+                                >
+                                  <Plus className="w-3 h-3" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
 
-              {/* Right Column / Bottom Summary Sheet */}
-              <div className="md:col-span-5 lg:col-span-4 md:sticky md:top-20">
-                <div className="bg-white sm:rounded-3xl sm:border sm:border-[#dce1d6] pt-4 sm:p-6 border-t border-[#EAEDE7] sm:border-t-[#dce1d6] space-y-4">
-                  <div className="space-y-2 text-xs">
+              {/* Right Column / Order Summary Sheet for Rental */}
+              <div className="lg:col-span-4 lg:sticky lg:top-24">
+                <div className="bg-white rounded-3xl border border-[#EAEDE7] sm:border-[#dce1d6] p-5 sm:p-6 lg:p-7 shadow-2xs space-y-5">
+                  <h2 className="text-base sm:text-lg font-bold text-[#1a2610] tracking-tight">
+                    Order Summary
+                  </h2>
+
+                  <div className="space-y-3 text-xs sm:text-[13px]">
                     <div className="flex justify-between text-[#526046]">
                       <span>Total Unit Mesin</span>
                       <span className="font-semibold text-[#1a2610] tabular-nums">
                         {totalRentalUnits} Unit ({rentalCartItems.length} Jenis)
                       </span>
                     </div>
+
                     <div className="flex justify-between text-[#526046]">
                       <span>Status Pengajuan</span>
-                      <span className="font-semibold text-[#344d15]">Verifikasi Admin Koperasi</span>
+                      <span className="font-semibold text-[#344d15]">
+                        Verifikasi Admin Koperasi
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between text-[#526046]">
+                      <span>Serah Terima Fisik</span>
+                      <span className="font-semibold text-[#1a2610]">
+                        Gudang Alsintan Koperasi
+                      </span>
                     </div>
                   </div>
 
-                  <div className="flex justify-between items-baseline pt-2 border-t border-[#EAEDE7]">
-                    <span className="text-sm font-semibold text-[#526046]">Total:</span>
+                  <div className="border-t border-[#EAEDE7] pt-4 flex items-baseline justify-between">
+                    <span className="text-sm sm:text-base font-bold text-[#1a2610]">Total</span>
                     <span className="text-xl sm:text-2xl font-black text-[#1a2610] tabular-nums">
                       Rp {totalRentalAmount.toLocaleString('id-ID')}
                     </span>
+                  </div>
+
+                  <div className="flex items-start gap-2.5 p-3 rounded-2xl bg-[#f4f5f1] border border-[#EAEDE7] text-xs text-[#526046]">
+                    <ShieldCheck className="w-4 h-4 text-[#344d15] shrink-0 mt-0.5" />
+                    <p className="leading-relaxed">
+                      <strong className="text-[#1a2610] font-semibold">Alat Siap Operasional</strong> lolos uji mekanik dan garansi pendampingan operasional oleh dinas koperasi.
+                    </p>
                   </div>
 
                   <button
@@ -683,9 +988,9 @@ function CartContent() {
                       }
                       router.push('/checkout/sewa-alat');
                     }}
-                    className="w-full h-12 sm:h-13 px-6 bg-[#1a2610] hover:bg-[#233414] text-white rounded-full font-bold text-sm flex items-center justify-center gap-2 transition cursor-pointer shadow-sm"
+                    className="w-full h-12 sm:h-14 bg-[#1a2610] hover:bg-[#233414] text-white rounded-full font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition cursor-pointer shadow-sm active:scale-[0.99]"
                   >
-                    <span>Lanjut ke Checkout Sewa</span>
+                    <span>Checkout Now</span>
                   </button>
                 </div>
               </div>

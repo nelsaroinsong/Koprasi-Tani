@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
+import { getCache, setCache, delCachePattern } from '@/lib/redis';
 import { readEquipmentsFromFile, type EquipmentItem } from '@/lib/equipments';
 import {
   readEquipmentRentals,
@@ -11,7 +12,7 @@ import {
 
 export const dynamic = 'force-dynamic';
 
-// GET: Ambil riwayat pengajuan sewa alat milik pengguna saat ini
+// GET: Ambil riwayat pengajuan sewa alat milik pengguna saat ini (Cached in Redis)
 export async function GET() {
   try {
     const session = await auth();
@@ -22,16 +23,27 @@ export async function GET() {
       );
     }
 
+    const email = session.user.email.toLowerCase().trim();
+    const cacheKey = `user:rentals:${email}`;
+    const cached = await getCache<any>(cacheKey);
+    if (cached) {
+      return NextResponse.json(cached);
+    }
+
     const allRentals = readEquipmentRentals();
     // Filter pengajuan yang diajukan oleh email pengguna ini
     const userRentals = allRentals
       .filter((r) => r.userEmail === session.user?.email)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-    return NextResponse.json({
+    const responsePayload = {
       success: true,
       rentals: userRentals,
-    });
+    };
+
+    await setCache(cacheKey, responsePayload, 60);
+
+    return NextResponse.json(responsePayload);
   } catch (error: any) {
     console.error('Error fetching user rentals:', error);
     return NextResponse.json(
@@ -214,6 +226,12 @@ ${itemLines}
 Mohon konfirmasi ketersediaan unit dan persetujuan jadwal operasionalnya. Terima kasih.`;
 
     const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(waMessage)}`;
+
+    // Invalidate user rentals and equipment availability cache
+    await Promise.all([
+      delCachePattern('user:rentals:*'),
+      delCachePattern('equipments:*'),
+    ]).catch(() => {});
 
     return NextResponse.json({
       success: true,

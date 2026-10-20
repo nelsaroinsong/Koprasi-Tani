@@ -111,9 +111,9 @@ export async function GET(request: Request) {
       );
     }
 
-    // Cache hasil selama 15 detik jika tanpa filter
+    // Cache hasil selama 180 detik (3 menit) jika tanpa filter
     if (!kategori && !search) {
-      await setCache(CACHE_KEY, list, 15);
+      await setCache(CACHE_KEY, list, 180);
     }
 
     return NextResponse.json({

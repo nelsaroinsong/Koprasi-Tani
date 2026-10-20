@@ -38,25 +38,32 @@ interface RecentSale {
   orderDate: string;
 }
 
+let cachedPetaniStats: PetaniStats | null = null;
+let cachedRecentSales: RecentSale[] | null = null;
+let cachedMyProducts: any[] | null = null;
+
 export default function DashboardPetaniPage() {
   const { user, isLoading: authLoading } = useAuth();
   const { showToast } = useToast();
   const router = useRouter();
 
-  // State Stats & Sales
-  const [stats, setStats] = useState<PetaniStats>({
-    totalKomoditasDidaftarkan: 0,
-    totalStokGudang: 0,
-    totalKuantitasTerjual: 0,
-    cashSiapDiambil: 0,
-    cashSudahDiterima: 0,
-  });
-  const [recentSales, setRecentSales] = useState<RecentSale[]>([]);
-  const [isLoadingStats, setIsLoadingStats] = useState(true);
+  // State Stats & Sales (Instant render dari SWR cache)
+  const [stats, setStats] = useState<PetaniStats>(
+    () =>
+      cachedPetaniStats || {
+        totalKomoditasDidaftarkan: 0,
+        totalStokGudang: 0,
+        totalKuantitasTerjual: 0,
+        cashSiapDiambil: 0,
+        cashSudahDiterima: 0,
+      }
+  );
+  const [recentSales, setRecentSales] = useState<RecentSale[]>(() => cachedRecentSales || []);
+  const [isLoadingStats, setIsLoadingStats] = useState(() => !cachedPetaniStats);
 
-  // State Products (Hanya dibaca dari gudang, diinput oleh Admin)
-  const [myProducts, setMyProducts] = useState<any[]>([]);
-  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+  // State Products (Instant render dari SWR cache)
+  const [myProducts, setMyProducts] = useState<any[]>(() => cachedMyProducts || []);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(() => !cachedMyProducts);
   const [searchProductQuery, setSearchProductQuery] = useState('');
 
   // Active Section Tab (Komoditas Saya vs Riwayat Penjualan)
@@ -112,22 +119,28 @@ export default function DashboardPetaniPage() {
     }
   }, [user?.email, user?.role, user?.isVerified, user?.isOnboarded, Boolean(user), authLoading, router]);
 
-  // Fetch Dashboard Stats & Recent Sales
-  const fetchDashboardStats = useCallback(async () => {
+  // Fetch Dashboard Stats & Recent Sales (SWR Pattern)
+  const fetchDashboardStats = useCallback(async (silent = false) => {
     try {
-      setIsLoadingStats(true);
+      if (!silent) {
+        setIsLoadingStats(true);
+      }
       const res = await fetch('/api/petani/dashboard', { cache: 'no-store' });
       const data = await res.json();
       if (res.ok && data.success) {
-        setStats({
+        const nextStats = {
           totalKomoditasDidaftarkan: data.stats?.totalKomoditasDidaftarkan || 0,
           totalStokGudang: data.stats?.totalStokGudang || 0,
           totalKuantitasTerjual: data.stats?.totalKuantitasTerjual || 0,
           cashSiapDiambil: data.stats?.cashSiapDiambil || 0,
           cashSudahDiterima: data.stats?.cashSudahDiterima || 0,
-        });
+        };
+        setStats(nextStats);
+        cachedPetaniStats = nextStats;
+
         if (Array.isArray(data.recentSales)) {
           setRecentSales(data.recentSales);
+          cachedRecentSales = data.recentSales;
         }
       }
     } catch (err) {
@@ -137,14 +150,17 @@ export default function DashboardPetaniPage() {
     }
   }, []);
 
-  // Fetch My Products in Warehouse
-  const fetchMyProducts = useCallback(async () => {
+  // Fetch My Products in Warehouse (SWR Pattern)
+  const fetchMyProducts = useCallback(async (silent = false) => {
     try {
-      setIsLoadingProducts(true);
+      if (!silent) {
+        setIsLoadingProducts(true);
+      }
       const res = await fetch('/api/products?mine=true&limit=100', { cache: 'no-store' });
       const data = await res.json();
       if (res.ok && Array.isArray(data.products)) {
         setMyProducts(data.products);
+        cachedMyProducts = data.products;
       } else {
         setMyProducts([]);
       }
@@ -158,8 +174,8 @@ export default function DashboardPetaniPage() {
 
   useEffect(() => {
     if (user?.id && user?.role === 'PETANI') {
-      fetchDashboardStats();
-      fetchMyProducts();
+      fetchDashboardStats(Boolean(cachedPetaniStats));
+      fetchMyProducts(Boolean(cachedMyProducts));
     }
   }, [user?.id, user?.role, fetchDashboardStats, fetchMyProducts]);
 

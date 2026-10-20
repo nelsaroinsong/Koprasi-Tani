@@ -70,17 +70,20 @@ const getCategoryIcon = (categoryName: string) => {
 
 // Kategori akan dimuat dinamis dari data admin kelola kategori
 
+// In-Memory Module Cache untuk Navigasi Cepat (SWR Pattern)
+let cachedEquipmentsCatalog: EquipmentItem[] | null = null;
+
 function SewaAlatContent() {
   const { user } = useAuth();
   const { showToast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // State Data (Instant rendering dengan initial data dari seed lokal)
+  // State Data (Instant rendering dari cache in-memory atau seed lokal)
   const [equipments, setEquipments] = useState<EquipmentItem[]>(
-    (initialEquipmentsData as EquipmentItem[]) || []
+    () => cachedEquipmentsCatalog || (initialEquipmentsData as EquipmentItem[]) || []
   );
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(() => !cachedEquipmentsCatalog);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedKategori, setSelectedKategori] = useState<string>(
     () => searchParams.get('kategori') || 'SEMUA'
@@ -174,14 +177,17 @@ function SewaAlatContent() {
     }
   }, [user]);
 
-  // Fetch Equipments from API
-  const fetchEquipments = useCallback(async () => {
+  // Fetch Equipments from API (SWR Pattern dengan silent background refresh)
+  const fetchEquipments = useCallback(async (silent = false) => {
     try {
-      setIsLoading(true);
+      if (!silent) {
+        setIsLoading(true);
+      }
       const res = await fetch('/api/equipments');
       const data = await res.json();
       if (res.ok && Array.isArray(data.equipments)) {
         setEquipments(data.equipments);
+        cachedEquipmentsCatalog = data.equipments;
       }
     } catch (err) {
       console.error('Error fetching equipments:', err);
@@ -191,7 +197,7 @@ function SewaAlatContent() {
   }, []);
 
   useEffect(() => {
-    fetchEquipments();
+    fetchEquipments(Boolean(cachedEquipmentsCatalog));
   }, [fetchEquipments]);
 
   // Filter Data Komprehensif (Kategori, Ketersediaan, Operator, Rentang Biaya, Pencarian, & Urutan)

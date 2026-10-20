@@ -18,6 +18,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
+import { toast } from 'sonner';
 
 export default function ProductAllReviewsPage({
   params,
@@ -76,8 +77,7 @@ export default function ProductAllReviewsPage({
     fetchProductDetail();
   }, [fetchProductDetail, user?.id]);
 
-  const handleDeleteReview = async (reviewId: string) => {
-    if (!window.confirm('Apakah Anda yakin ingin menghapus ulasan ini?')) return;
+  const executeDeleteReview = async (reviewId: string) => {
     try {
       setDeletingReviewId(reviewId);
       const res = await fetch(`/api/products/${productId}/reviews?reviewId=${reviewId}`, {
@@ -108,6 +108,25 @@ export default function ProductAllReviewsPage({
     } finally {
       setDeletingReviewId(null);
     }
+  };
+
+  const handleDeleteReview = (reviewId: string) => {
+    toast('Hapus Ulasan Anda?', {
+      description: 'Apakah Anda yakin ingin menghapus ulasan ini secara permanen?',
+      action: {
+        label: 'Hapus',
+        onClick: () => executeDeleteReview(reviewId),
+      },
+      cancel: {
+        label: 'Batal',
+        onClick: () => {},
+      },
+      actionButtonStyle: {
+        backgroundColor: '#dc2626',
+        color: '#ffffff',
+      },
+      duration: 8000,
+    });
   };
 
   const handleSubmitReview = async (e: React.FormEvent) => {

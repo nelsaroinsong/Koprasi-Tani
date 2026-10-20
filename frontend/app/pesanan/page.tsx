@@ -59,6 +59,7 @@ const RENTAL_STATUS_FILTERS = [
 ];
 
 let cachedUserOrders: any[] | null = null;
+let cachedUserRentals: any[] | null = null;
 
 export default function PesananPage() {
   const { user, isLoading: authLoading } = useAuth();
@@ -135,17 +136,20 @@ export default function PesananPage() {
   }, []);
 
   const [activeTypeTab, setActiveTypeTab] = useState<'toko' | 'sewa-alat'>('toko');
-  const [rentalOrders, setRentalOrders] = useState<any[]>([]);
-  const [isRentalLoading, setIsRentalLoading] = useState(false);
+  const [rentalOrders, setRentalOrders] = useState<any[]>(() => cachedUserRentals || []);
+  const [isRentalLoading, setIsRentalLoading] = useState(() => !cachedUserRentals);
 
-  // Fetch daftar pengajuan sewa alat pengguna
-  const fetchRentalOrders = useCallback(async () => {
+  // Fetch daftar pengajuan sewa alat pengguna (SWR Pattern)
+  const fetchRentalOrders = useCallback(async (silent = false) => {
     try {
-      setIsRentalLoading(true);
+      if (!silent) {
+        setIsRentalLoading(true);
+      }
       const res = await fetch('/api/equipments/rent');
       const data = await res.json();
       if (res.ok && Array.isArray(data.rentals)) {
         setRentalOrders(data.rentals);
+        cachedUserRentals = data.rentals;
       }
     } catch (err) {
       console.error('Error fetching rental orders:', err);
@@ -157,7 +161,7 @@ export default function PesananPage() {
   useEffect(() => {
     if (user) {
       fetchOrders(Boolean(cachedUserOrders));
-      fetchRentalOrders();
+      fetchRentalOrders(Boolean(cachedUserRentals));
     }
   }, [user, fetchOrders, fetchRentalOrders]);
 
