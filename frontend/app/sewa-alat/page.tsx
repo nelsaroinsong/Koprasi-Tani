@@ -515,8 +515,10 @@ export default function SewaAlatPage() {
                 <article
                   key={item.id}
                   onClick={() => router.push(`/sewa-alat/${item.id}`)}
-                  className={`bg-white border border-[#e2e7dc] rounded-[24px] sm:rounded-[28px] lg:rounded-[32px] p-3 sm:p-4 shadow-[0_2px_10px_rgba(0,0,0,0.03)] hover:shadow-[0_12px_28px_rgba(35,52,20,0.09)] transition-all duration-300 flex flex-col justify-between group cursor-pointer h-full relative overflow-hidden ${
-                    isOutOfStock ? 'opacity-85' : ''
+                  className={`border rounded-[20px] sm:rounded-[24px] p-1 sm:p-1.5 shadow-[0_2px_8px_rgba(0,0,0,0.02)] hover:shadow-[0_12px_28px_rgba(35,52,20,0.09)] transition-all duration-300 flex flex-col justify-between group cursor-pointer h-full relative overflow-hidden ${
+                    isOutOfStock
+                      ? 'grayscale opacity-75 bg-[#f4f5f1] border-[#d5dccf]'
+                      : 'bg-white border-[#e2e7dc] hover:border-[#344d15]'
                   }`}
                   title={
                     isOutOfStock
@@ -525,7 +527,7 @@ export default function SewaAlatPage() {
                   }
                 >
                   {/* Top Header Text Section (Matching Gambar 3: Title & Subtitle on top) */}
-                  <div className="px-0.5 pt-0.5">
+                  <div className="px-2.5 pt-2 pb-1 sm:px-3 sm:pt-2.5 sm:pb-1.5">
                     <h3
                       className="text-xs sm:text-base lg:text-[17px] font-bold text-[#1a2610] tracking-tight leading-tight line-clamp-1 group-hover:text-[#344d15] transition-colors"
                       title={item.nama}
@@ -538,8 +540,8 @@ export default function SewaAlatPage() {
                     </p>
                   </div>
 
-                  {/* Middle / Bottom Canvas: Rounded Inner Image Container (Matching Gambar 3) */}
-                  <div className="relative w-full aspect-[4/3.8] sm:aspect-[4/3.5] mt-2.5 sm:mt-3.5 rounded-[18px] sm:rounded-[22px] lg:rounded-[24px] overflow-hidden bg-[#eef1eb] shrink-0">
+                  {/* Middle / Bottom Canvas: Ultra-Thin Minimalist Rounded Inner Image Container */}
+                  <div className="relative w-full aspect-[4/3.8] sm:aspect-[4/3.5] rounded-[17px] sm:rounded-[21px] overflow-hidden bg-[#eef1eb] shrink-0">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={
@@ -560,19 +562,6 @@ export default function SewaAlatPage() {
 
                     {/* Dark Gradient Overlay for bottom text & circular button pop */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent pointer-events-none" />
-
-                    {/* Status Badge di Kanan Atas */}
-                    <div className="absolute top-2 right-2 sm:top-2.5 sm:right-2.5 z-10">
-                      {isOutOfStock ? (
-                        <span className="text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full bg-black/65 backdrop-blur-xs text-white border border-white/20">
-                          Disewa
-                        </span>
-                      ) : (
-                        <span className="text-[9px] sm:text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white/90 backdrop-blur-xs text-[#233414] border border-[#dce1d6]/50 shadow-2xs">
-                          Ready ({remainingStock})
-                        </span>
-                      )}
-                    </div>
 
                     {/* Bottom Overlay: Price on Left, Circular Button ↗ on Right (Exact match to Gambar 3) */}
                     <div className="absolute bottom-2.5 sm:bottom-3 left-2.5 sm:left-3.5 right-2.5 sm:right-3.5 flex items-end justify-between z-10 gap-2">
