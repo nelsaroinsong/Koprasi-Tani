@@ -2,12 +2,10 @@ import { auth } from "@/auth"
 import { redirect } from "next/navigation"
 import { AppSidebar } from "@/components/admin/app-sidebar"
 import { AdminProvider } from "@/components/admin/admin-context"
-import { AdminBreadcrumb } from "@/components/admin/admin-breadcrumb"
-import { Separator } from "@/components/ui/separator"
+import { AdminTopHeader } from "@/components/admin/admin-top-header"
 import {
   SidebarInset,
   SidebarProvider,
-  SidebarTrigger,
 } from "@/components/ui/sidebar"
 
 export default async function AdminLayout({
@@ -26,18 +24,9 @@ export default async function AdminLayout({
     <AdminProvider>
       <SidebarProvider>
         <AppSidebar user={session.user} />
-        <SidebarInset className="bg-slate-50/70 min-h-screen min-w-0 max-w-full overflow-x-hidden">
-          <header className="flex h-16 shrink-0 items-center justify-between gap-2 border-b border-emerald-950/10 bg-white/90 backdrop-blur-md px-4 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 sticky top-0 z-20">
-            <div className="flex items-center gap-2.5">
-              <SidebarTrigger className="-ml-1 hover:bg-emerald-50 hover:text-emerald-700 text-slate-600 transition rounded-xl p-2 cursor-pointer" />
-              <Separator
-                orientation="vertical"
-                className="mr-2 h-4 bg-emerald-200"
-              />
-              <AdminBreadcrumb />
-            </div>
-          </header>
-          <div className="flex flex-1 flex-col gap-4 p-4 sm:p-6 min-w-0 max-w-full w-full">
+        <SidebarInset className="bg-[#f4f5f1] min-h-screen min-w-0 max-w-full overflow-x-hidden font-sans selection:bg-[#D4F63D] selection:text-slate-950">
+          <AdminTopHeader user={session.user} />
+          <div className="flex flex-1 flex-col gap-4 p-3 sm:p-5 lg:p-7 min-w-0 max-w-full w-full">
             {children}
           </div>
         </SidebarInset>

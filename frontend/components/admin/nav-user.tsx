@@ -61,23 +61,23 @@ export function NavUser({
             <DropdownMenuTrigger asChild>
               <SidebarMenuButton
                 size="lg"
-                className="data-[state=open]:bg-emerald-50 data-[state=open]:text-emerald-900 hover:bg-emerald-50/70 hover:text-emerald-800 transition rounded-xl cursor-pointer"
+                className="data-[state=open]:bg-[#EAEDE7] data-[state=open]:text-[#1a2610] hover:bg-[#EAEDE7]/80 transition rounded-2xl cursor-pointer p-2"
               >
-                <Avatar className="h-9 w-9 rounded-xl border border-emerald-200 shadow-2xs">
+                <Avatar className="h-9 w-9 rounded-xl border border-[#dce1d6] shadow-2xs">
                   <AvatarImage src={user.avatar} alt={user.name} className="object-cover" />
-                  <AvatarFallback className="rounded-xl bg-emerald-100 text-emerald-800 font-bold text-xs">
+                  <AvatarFallback className="rounded-xl bg-[#233414] text-[#D4F63D] font-bold text-xs">
                     {userInitial}
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight min-w-0">
-                  <span className="truncate font-semibold text-slate-800 text-xs">
+                  <span className="truncate font-bold text-[#1a2610] text-xs">
                     {user.name}
                   </span>
-                  <span className="truncate text-[11px] text-emerald-700 font-medium">
+                  <span className="truncate text-[11px] text-[#526046] font-medium">
                     {user.email}
                   </span>
                 </div>
-                <ChevronsUpDown className="ml-auto size-4 text-slate-400" />
+                <ChevronsUpDown className="ml-auto size-4 text-[#708063]" />
               </SidebarMenuButton>
             </DropdownMenuTrigger>
             <DropdownMenuContent

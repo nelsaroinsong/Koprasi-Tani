@@ -27,9 +27,11 @@ export function NavMain({
     url: string
     icon?: LucideIcon
     isActive?: boolean
+    badge?: string
     items?: {
       title: string
       url: string
+      badge?: string
     }[]
   }[]
 }) {
@@ -37,7 +39,7 @@ export function NavMain({
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel className="text-[11px] font-bold uppercase tracking-wider text-emerald-800/70 px-2 py-1.5">
+      <SidebarGroupLabel className="text-[11px] font-bold uppercase tracking-wider text-[#526046] px-2 py-1.5">
         Menu Utama
       </SidebarGroupLabel>
       <SidebarMenu className="space-y-1">
@@ -55,8 +57,8 @@ export function NavMain({
                   tooltip={item.title}
                   className={
                     isCurrentActive
-                      ? "bg-emerald-50 text-emerald-800 font-bold border-r-2 border-emerald-600 shadow-2xs hover:bg-emerald-50 hover:text-emerald-900 rounded-xl"
-                      : "text-slate-700 hover:bg-emerald-50/60 hover:text-emerald-800 transition rounded-xl"
+                      ? "bg-[#EAEDE7] text-[#1a2610] font-bold shadow-2xs rounded-xl"
+                      : "text-[#526046] hover:bg-[#EAEDE7]/60 hover:text-[#1a2610] font-medium transition rounded-xl"
                   }
                 >
                   <a
@@ -67,18 +69,23 @@ export function NavMain({
                       }
                       setActiveTab(item.title, "");
                     }}
-                    className="flex items-center gap-2.5 px-3 py-2 cursor-pointer"
+                    className="flex items-center gap-2.5 px-3 py-2 cursor-pointer w-full"
                   >
                     {item.icon && (
                       <item.icon
                         className={
                           isCurrentActive
-                            ? "w-4 h-4 text-emerald-700 shrink-0"
-                            : "w-4 h-4 text-slate-500 group-hover:text-emerald-700 shrink-0 transition"
+                            ? "w-4 h-4 text-[#233414] shrink-0"
+                            : "w-4 h-4 text-[#708063] group-hover:text-[#1a2610] shrink-0 transition"
                         }
                       />
                     )}
                     <span className="text-xs">{item.title}</span>
+                    {item.badge && (
+                      <span className="ml-auto text-[10px] font-semibold text-[#526046] bg-white border border-[#dce1d6] px-1.5 py-0.5 rounded-full shrink-0 shadow-2xs">
+                        {item.badge}
+                      </span>
+                    )}
                   </a>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -100,25 +107,30 @@ export function NavMain({
                     tooltip={item.title}
                     className={
                       isGroupActive
-                        ? "text-emerald-900 font-bold hover:bg-emerald-50/70 rounded-xl"
-                        : "text-slate-700 hover:bg-emerald-50/60 hover:text-emerald-800 transition rounded-xl"
+                        ? "text-[#1a2610] font-bold hover:bg-[#EAEDE7]/70 rounded-xl"
+                        : "text-[#526046] hover:bg-[#EAEDE7]/60 hover:text-[#1a2610] font-medium transition rounded-xl"
                     }
                   >
                     {item.icon && (
                       <item.icon
                         className={
                           isGroupActive
-                            ? "w-4 h-4 text-emerald-700 shrink-0"
-                            : "w-4 h-4 text-slate-500 shrink-0"
+                            ? "w-4 h-4 text-[#233414] shrink-0"
+                            : "w-4 h-4 text-[#708063] shrink-0"
                         }
                       />
                     )}
                     <span className="text-xs">{item.title}</span>
-                    <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 w-4 h-4 text-slate-400 group-hover:text-emerald-700" />
+                    {item.badge && (
+                      <span className="ml-auto mr-1 text-[10px] font-semibold text-[#526046] bg-[#f4f5f1] border border-[#dce1d6] px-1.5 py-0.5 rounded-full shrink-0">
+                        {item.badge}
+                      </span>
+                    )}
+                    <ChevronRight className="ml-1 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 w-3.5 h-3.5 text-[#708063] group-hover:text-[#1a2610]" />
                   </SidebarMenuButton>
                 </CollapsibleTrigger>
                 <CollapsibleContent>
-                  <SidebarMenuSub className="border-emerald-100 ml-3.5 pl-2 space-y-0.5 mt-1">
+                  <SidebarMenuSub className="border-[#dce1d6] ml-3.5 pl-2 space-y-0.5 mt-1">
                     {item.items?.map((subItem) => {
                       const isCurrentActive =
                         activeTab.group === item.title &&
@@ -131,8 +143,8 @@ export function NavMain({
                             isActive={isCurrentActive}
                             className={
                               isCurrentActive
-                                ? "bg-emerald-50 text-emerald-800 font-bold border-l-2 border-emerald-600 rounded-lg text-xs"
-                                : "text-slate-600 hover:bg-emerald-50/50 hover:text-emerald-800 transition rounded-lg text-xs"
+                                ? "bg-[#EAEDE7] text-[#1a2610] font-bold rounded-lg text-xs"
+                                : "text-[#526046] hover:bg-[#EAEDE7]/50 hover:text-[#1a2610] font-medium transition rounded-lg text-xs"
                             }
                           >
                             <a
@@ -143,9 +155,14 @@ export function NavMain({
                                 }
                                 setActiveTab(item.title, subItem.title);
                               }}
-                              className="cursor-pointer"
+                              className="cursor-pointer flex items-center justify-between w-full"
                             >
                               <span>{subItem.title}</span>
+                              {subItem.badge && (
+                                <span className="text-[10px] font-semibold text-[#708063] bg-white border border-[#dce1d6] px-1.5 py-0.2 rounded-full shrink-0">
+                                  {subItem.badge}
+                                </span>
+                              )}
                             </a>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>

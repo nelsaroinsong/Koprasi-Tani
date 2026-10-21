@@ -31,16 +31,21 @@ export function TeamSwitcher({
       <SidebarMenuItem>
         <SidebarMenuButton
           size="lg"
-          className="hover:bg-emerald-50/70 transition rounded-xl p-2 cursor-default group"
+          className="hover:bg-[#EAEDE7]/80 transition rounded-2xl p-2 cursor-default group"
         >
-          <div className="flex aspect-square size-9 items-center justify-center rounded-xl bg-emerald-700 text-white shadow-md shadow-emerald-700/20 ring-2 ring-emerald-500/20">
-            <LogoComponent className="size-5 text-emerald-100" />
+          <div className="flex aspect-square size-9 items-center justify-center rounded-xl bg-[#233414] border border-[#344d15] shadow-sm shadow-[#233414]/15 p-1.5 shrink-0">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/landing/koperasi-logo-lime.png"
+              alt="Logo Koperasi Sinar Pagi Sejahtera"
+              className="w-full h-full object-contain"
+            />
           </div>
-          <div className="grid flex-1 text-left text-sm leading-tight ml-1">
-            <span className="truncate font-bold text-slate-900 text-xs">
+          <div className="grid flex-1 text-left text-sm leading-tight ml-1.5 min-w-0">
+            <span className="truncate font-bold text-[#1a2610] text-[13px] tracking-tight">
               {activeTeam.name}
             </span>
-            <span className="truncate text-[11px] text-emerald-700 font-semibold">
+            <span className="truncate text-[10px] text-[#526046] font-medium">
               {activeTeam.plan}
             </span>
           </div>
