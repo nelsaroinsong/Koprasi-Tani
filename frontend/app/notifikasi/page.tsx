@@ -40,9 +40,8 @@ export default function NotifikasiPage() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<FilterType>('all');
-  const [notifications, setNotifications] = useState<AppNotification[]>(() => {
-    return getCachedNotifications(user?.id);
-  });
+  const [isMounted, setIsMounted] = useState(false);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
 
   // Load and sync notifications
   const syncNotifications = useCallback(async () => {
@@ -105,11 +104,12 @@ export default function NotifikasiPage() {
   }, [user, isAuthLoading]);
 
   useEffect(() => {
+    setIsMounted(true);
+    const cached = getCachedNotifications(user?.id);
+    if (cached.length > 0) {
+      setNotifications(cached);
+    }
     if (!isAuthLoading) {
-      const cached = getCachedNotifications(user?.id);
-      if (cached.length > 0) {
-        setNotifications(cached);
-      }
       syncNotifications();
     }
   }, [syncNotifications, isAuthLoading, user?.id]);

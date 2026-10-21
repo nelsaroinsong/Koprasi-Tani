@@ -61,6 +61,7 @@ export default function UserProfileDropdown({}: UserProfileDropdownProps = {}) {
   const { user, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [activeModal, setActiveModal] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
   const [cartItems, setCartItems] = useState<any[]>([]);
   const [cartCount, setCartCount] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -157,6 +158,7 @@ export default function UserProfileDropdown({}: UserProfileDropdownProps = {}) {
   }, []);
 
   useEffect(() => {
+    setIsMounted(true);
     syncCart();
     const handleCartEvent = () => syncCart();
     window.addEventListener('cart-updated', handleCartEvent);
@@ -324,7 +326,7 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
           title="Keranjang Belanja"
         >
           <ShoppingCart className="w-4 h-4" />
-          {cartCount > 0 && (
+          {isMounted && cartCount > 0 && (
             <span
               className={`absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full font-bold text-[10px] tabular-nums flex items-center justify-center ring-2 ${
                 isCartActive

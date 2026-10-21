@@ -28,9 +28,8 @@ export default function NotificationDropdown() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
-  const [notifications, setNotifications] = useState<AppNotification[]>(() => {
-    return getCachedNotifications(user?.id);
-  });
+  const [isMounted, setIsMounted] = useState(false);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -111,11 +110,12 @@ export default function NotificationDropdown() {
 
   // Sync on mount and when user / auth state changes
   useEffect(() => {
+    setIsMounted(true);
+    const cached = getCachedNotifications(user?.id);
+    if (cached.length > 0) {
+      setNotifications(cached);
+    }
     if (!isAuthLoading) {
-      const cached = getCachedNotifications(user?.id);
-      if (cached.length > 0) {
-        setNotifications(cached);
-      }
       syncNotifications();
     }
   }, [syncNotifications, isAuthLoading, user?.id]);
@@ -253,7 +253,7 @@ export default function NotificationDropdown() {
         aria-label="Lihat Notifikasi"
       >
         <Bell className="w-4 h-4" />
-        {unreadCount > 0 && (
+        {isMounted && unreadCount > 0 && (
           <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full font-bold text-[10px] tabular-nums flex items-center justify-center ring-2 bg-[#233414] text-[#D4F63D] ring-white">
             {unreadCount}
           </span>
