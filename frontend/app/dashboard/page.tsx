@@ -14,6 +14,7 @@ import {
   Clock,
   Search,
   Receipt,
+  ArrowUpRight,
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
@@ -384,80 +385,89 @@ export default function DashboardPetaniPage() {
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5 sm:gap-3.5">
-                {filteredProducts.map((prod) => (
-                  <div
-                    key={prod.id}
-                    className="bg-white border border-[#dce1d6] hover:border-[#344d15] rounded-xl overflow-hidden shadow-2xs hover:shadow-md transition-all flex flex-col justify-between group"
-                  >
-                    <div>
-                      {/* Product Image - Strict 1:1 Aspect Ratio */}
-                      <div
-                        className="relative aspect-square w-full shrink-0 bg-[#f4f5f1] overflow-hidden"
-                        style={{ aspectRatio: '1 / 1' }}
-                      >
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
+                {filteredProducts.map((prod) => {
+                  const isOutOfStock = !prod.isTersedia || Number(prod.stok || 0) <= 0;
+
+                  return (
+                    <article
+                      key={prod.id}
+                      onClick={() => router.push(`/toko/${prod.id}`)}
+                      className={`border rounded-[20px] sm:rounded-[24px] p-1 sm:p-1.5 shadow-[0_2px_8px_rgba(0,0,0,0.02)] hover:shadow-[0_12px_28px_rgba(35,52,20,0.09)] transition-all duration-300 flex flex-col group cursor-pointer h-full relative overflow-hidden ${
+                        isOutOfStock
+                          ? 'grayscale opacity-75 bg-[#f4f5f1] border-[#d5dccf]'
+                          : 'bg-white border-[#e2e7dc] hover:border-[#344d15]'
+                      }`}
+                    >
+                      {/* Top Header Text Section (Title & Subtitle on top, tight 1px-1.5px interlinear gap, balanced breathing space to image) */}
+                      <div className="px-2.5 pt-2 pb-2 sm:px-3 sm:pt-2.5 sm:pb-2.5">
+                        <h3
+                          className="text-xs sm:text-base lg:text-[17px] font-bold text-[#1a2610] tracking-tight leading-none line-clamp-1 group-hover:text-[#344d15] transition-colors"
+                          title={prod.nama}
+                        >
+                          {prod.nama}
+                        </h3>
+
+                        <p className="text-[10px] sm:text-xs text-[#73826a] font-medium mt-[1px] sm:mt-[1.5px] leading-tight truncate">
+                          {prod.kategori || 'Hasil Tani'} • {isOutOfStock ? 'Stok Habis' : 'Fisik di Gudang'}
+                        </p>
+                      </div>
+
+                      {/* Middle / Bottom Canvas: Ultra-Thin Minimalist Rounded Inner Image Container */}
+                      <div className="relative w-full aspect-[4/3.8] sm:aspect-[4/3.5] rounded-[17px] sm:rounded-[21px] overflow-hidden bg-[#eef1eb] shrink-0">
+                        {/* Image */}
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={
                             prod.imageUrl ||
-                            'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=400&q=80'
+                            'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=600&q=80'
                           }
                           alt={prod.nama}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          loading="lazy"
+                          decoding="async"
+                          className={`w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105 ${
+                            isOutOfStock ? 'grayscale opacity-75' : ''
+                          }`}
                           onError={(e) => {
                             (e.target as HTMLImageElement).src =
-                              'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=400&q=80';
+                              'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=600&q=80';
                           }}
                         />
 
-                        {/* Status Tersedia di Kanan Atas */}
-                        <div className="absolute top-1.5 right-1.5 bg-white/95 backdrop-blur-xs text-[#1a2610] border border-[#dce1d6] text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded shadow-2xs flex items-center gap-1 z-10">
-                          <span
-                            className={`w-1.5 h-1.5 rounded-full ${
-                              prod.isTersedia ? 'bg-[#344d15] animate-pulse' : 'bg-[#5b6950]'
-                            }`}
-                          />
-                          <span>{prod.isTersedia ? 'Aktif' : 'Off'}</span>
+                        {/* Dark Gradient Overlay for bottom text & circular button pop */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent pointer-events-none" />
+
+                        {/* Bottom Overlay: Price on Left, Circular Button ↗ on Right */}
+                        <div className="absolute bottom-2.5 sm:bottom-3 left-2.5 sm:left-3.5 right-2.5 sm:right-3.5 flex items-end justify-between z-10 gap-2">
+                          {/* Price */}
+                          <div className="flex flex-col text-white drop-shadow-xs min-w-0">
+                            <div className="flex items-baseline gap-0.5 leading-none">
+                              <span className="text-xs sm:text-base lg:text-lg font-extrabold tracking-tight tabular-nums text-white">
+                                Rp {Number(prod.hargaPerSatuan).toLocaleString('id-ID')}
+                              </span>
+                              <span className="text-[9px] sm:text-[11px] font-normal text-white/80 shrink-0">
+                                /{prod.satuan}
+                              </span>
+                            </div>
+                            <span className="text-[8px] sm:text-[10px] text-white/75 font-medium mt-1 truncate">
+                              {isOutOfStock
+                                ? 'Stok Habis'
+                                : `Stok: ${Number(prod.stok).toLocaleString('id-ID')} ${prod.satuan}`}
+                            </span>
+                          </div>
+
+                          {/* Circular Action Button with ArrowUpRight ↗ */}
+                          <div
+                            className="w-7 h-7 sm:w-9 sm:h-9 lg:w-10.5 lg:h-10.5 rounded-full bg-white text-[#1a2610] shadow-md flex items-center justify-center transition-all duration-300 group-hover:scale-105 group-hover:bg-[#233414] group-hover:text-white shrink-0"
+                            title="Buka Detail Produk"
+                          >
+                            <ArrowUpRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 lg:w-4.5 lg:h-4.5 stroke-[2.2]" />
+                          </div>
                         </div>
-
-
                       </div>
-
-                      {/* Content */}
-                      <div className="p-2.5 sm:p-3">
-                        <h4 className="text-xs sm:text-sm font-bold text-[#1a2610] line-clamp-1 group-hover:text-[#344d15] transition-colors">
-                          {prod.nama}
-                        </h4>
-                        <div className="flex items-baseline gap-1 mt-0.5">
-                          <span className="text-xs sm:text-sm font-extrabold text-[#233414] tabular-nums">
-                            Rp {Number(prod.hargaPerSatuan).toLocaleString('id-ID')}
-                          </span>
-                          <span className="text-[9px] sm:text-[10px] text-[#5b6950]">/{prod.satuan}</span>
-                        </div>
-
-                        <div className="mt-1.5 flex items-center justify-between text-[10px] text-[#526046] font-semibold bg-[#f4f5f1] px-2 py-1 rounded-md border border-[#dce1d6]">
-                          <span>Sisa Stok:</span>
-                          <span className="font-bold text-[#1a2610] tabular-nums">
-                            {Number(prod.stok).toLocaleString('id-ID')} {prod.satuan}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Status Fisik Gudang */}
-                    <div className="p-2.5 pt-0">
-                      <div className="py-1 px-2 rounded-lg bg-[#f4f5f1] border border-[#dce1d6] flex items-center justify-between text-[10px]">
-                        <span className="text-[#233414] font-semibold flex items-center gap-1">
-                          <Warehouse className="w-3 h-3 text-[#344d15] shrink-0" />
-                          <span>Fisik Gudang</span>
-                        </span>
-                        <span className={`px-1.5 py-0.5 rounded font-bold text-[9px] ${prod.isTersedia ? 'bg-[#e2f2c8] text-[#233414] border border-[#c9e39e]' : 'bg-[#EAEDE7] text-[#5b6950]'}`}>
-                          {prod.isTersedia ? 'Aktif Terdata' : 'Nonaktif'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                    </article>
+                  );
+                })}
               </div>
             )}
           </div>
