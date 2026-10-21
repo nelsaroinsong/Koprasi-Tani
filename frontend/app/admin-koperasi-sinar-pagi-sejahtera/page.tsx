@@ -107,14 +107,10 @@ function AdminLoginContent() {
 
           {/* Headline & Subtitle */}
           <div className="text-center mb-7">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#EAEDE7] border border-[#d5dccf] text-[11px] font-bold text-[#233414] mb-3">
-              <ShieldCheck className="w-3.5 h-3.5 text-[#344d15]" />
-              <span>Portal Pengurus Administrator</span>
-            </div>
             <h1 className="text-2xl sm:text-[26px] font-bold text-[#1a2610] tracking-tight leading-tight">
               Masuk ke Akun Admin
             </h1>
-            <p className="text-[13px] sm:text-sm text-[#526046] mt-2 font-normal leading-relaxed">
+            <p className="text-[11.5px] sm:text-xs text-[#526046] mt-1.5 font-normal tracking-tight sm:whitespace-nowrap">
               Gunakan kredensial resmi pengurus Koperasi Sinar Pagi Sejahtera.
             </p>
           </div>
