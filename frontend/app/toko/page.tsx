@@ -410,6 +410,13 @@ function TokoOnlineContent() {
       list.sort((a, b) => (Number(b.hargaPerSatuan) || 0) - (Number(a.hargaPerSatuan) || 0));
     } else if (sortBy === 'terbaru') {
       list.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+    } else if (sortBy === 'terpopuler') {
+      list.sort((a, b) => {
+        const soldB = Number(b.totalTerjual || 0);
+        const soldA = Number(a.totalTerjual || 0);
+        if (soldB !== soldA) return soldB - soldA;
+        return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+      });
     }
 
     return list;
@@ -428,8 +435,41 @@ function TokoOnlineContent() {
 
   return (
     <div className="min-h-screen bg-[#f4f5f1] flex flex-col font-sans selection:bg-[#D4F63D] selection:text-slate-950">
-      {/* App Header */}
-      <AppHeader activePage="toko" />
+      {/* App Header with Desktop Catalog Sub-Navbar (Semua, Kategori, Terbaru, Terpopuler) */}
+      <AppHeader
+        activePage="toko"
+        selectedKategori={selectedKategori}
+        onSelectKategori={(kategori) => {
+          setSelectedKategori(kategori);
+          setSortBy('default');
+          const params = new URLSearchParams(searchParams.toString());
+          if (kategori === 'SEMUA') {
+            params.delete('kategori');
+          } else {
+            params.set('kategori', kategori);
+          }
+          params.delete('sortBy');
+          const query = params.toString();
+          router.replace(query ? `/toko?${query}` : '/toko', { scroll: false });
+        }}
+        sortBy={sortBy}
+        onSelectSort={(newSort) => {
+          setSortBy(newSort);
+          if (newSort !== 'default') {
+            setSelectedKategori('SEMUA');
+          }
+          const params = new URLSearchParams(searchParams.toString());
+          if (newSort === 'default') {
+            params.delete('sortBy');
+          } else {
+            params.set('sortBy', newSort);
+            params.delete('kategori');
+          }
+          const query = params.toString();
+          router.replace(query ? `/toko?${query}` : '/toko', { scroll: false });
+        }}
+        categories={categories}
+      />
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-3.5 sm:py-5 pb-24 lg:pb-12">
@@ -514,7 +554,19 @@ function TokoOnlineContent() {
                 <button
                   key={cat.key}
                   type="button"
-                  onClick={() => setSelectedKategori(cat.key)}
+                  onClick={() => {
+                    setSelectedKategori(cat.key);
+                    setSortBy('default');
+                    const params = new URLSearchParams(searchParams.toString());
+                    if (cat.key === 'SEMUA') {
+                      params.delete('kategori');
+                    } else {
+                      params.set('kategori', cat.key);
+                    }
+                    params.delete('sortBy');
+                    const query = params.toString();
+                    router.replace(query ? `/toko?${query}` : '/toko', { scroll: false });
+                  }}
                   className="flex flex-col items-center group shrink-0 focus:outline-none cursor-pointer"
                 >
                   <div
@@ -610,11 +662,19 @@ function TokoOnlineContent() {
                     ? 'Harga Tertinggi'
                     : sortBy === 'terbaru'
                     ? 'Komoditas Terbaru'
+                    : sortBy === 'terpopuler'
+                    ? 'Terpopuler'
                     : sortBy}
                 </span>
                 <button
                   type="button"
-                  onClick={() => setSortBy('default')}
+                  onClick={() => {
+                    setSortBy('default');
+                    const params = new URLSearchParams(searchParams.toString());
+                    params.delete('sortBy');
+                    const query = params.toString();
+                    router.replace(query ? `/toko?${query}` : '/toko', { scroll: false });
+                  }}
                   className="hover:text-red-600 cursor-pointer"
                   title="Reset urutan"
                 >
@@ -630,7 +690,7 @@ function TokoOnlineContent() {
                 setMinPrice(5000);
                 setMaxPrice(250000);
                 setSortBy('default');
-                router.replace('/toko');
+                router.replace('/toko', { scroll: false });
               }}
               className="text-xs font-semibold text-red-600 hover:text-red-700 underline underline-offset-2 ml-1 cursor-pointer shrink-0"
             >
@@ -638,30 +698,6 @@ function TokoOnlineContent() {
             </button>
           </div>
         )}
-
-        {/* Category Section - Desktop Mode (matching Gambar 1: Rounded Pill Filter Chips) */}
-        <div className="hidden md:block mb-8">
-          <div className="flex items-center gap-2.5 overflow-x-auto no-scrollbar py-1">
-            {dynamicKategoriConfig.map((cat) => {
-              const isSelected = selectedKategori.toLowerCase().trim() === cat.key.toLowerCase().trim();
-
-              return (
-                <button
-                  key={cat.key}
-                  type="button"
-                  onClick={() => setSelectedKategori(cat.key)}
-                  className={`px-5 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all duration-150 shrink-0 cursor-pointer border select-none ${
-                    isSelected
-                      ? 'bg-[#233414] text-white border-[#233414] shadow-xs'
-                      : 'bg-white text-[#233414] border-[#cfd6c9] hover:bg-[#EAEDE7] hover:border-[#b8c4ae] shadow-2xs'
-                  }`}
-                >
-                  {cat.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
 
         {/* Loading State */}
         {isLoadingProducts ? (
@@ -727,6 +763,17 @@ function TokoOnlineContent() {
                   >
                     {/* Top Header Text Section (Title & Subtitle on top, tight 1px-1.5px interlinear gap, balanced breathing space to image) */}
                     <div className="px-2.5 pt-2 pb-2 sm:px-3 sm:pt-2.5 sm:pb-2.5">
+                      <div className="flex items-center justify-between gap-1 mb-0.5">
+                        <span className="text-[10px] sm:text-xs text-[#73826a] font-medium truncate">
+                          {prod.kategori || 'Hasil Tani'}
+                        </span>
+                        {sortBy === 'terbaru' && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-[#e8f2db] text-[#2b4413] text-[9px] font-bold shrink-0">
+                            Panen Baru
+                          </span>
+                        )}
+                      </div>
+
                       <h3
                         className="text-xs sm:text-base lg:text-[17px] font-bold text-[#1a2610] tracking-tight leading-none line-clamp-1 group-hover:text-[#344d15] transition-colors"
                         title={prod.nama}
@@ -734,9 +781,33 @@ function TokoOnlineContent() {
                         {prod.nama}
                       </h3>
 
-                      <p className="text-[10px] sm:text-xs text-[#73826a] font-medium mt-[1px] sm:mt-[1.5px] leading-tight truncate">
-                        {prod.kategori || 'Hasil Tani'} • {farmerName}
-                      </p>
+                      {/* Akun Petani Penyedia Komoditas Panen */}
+                      <div className="flex items-center gap-1.5 mt-1 sm:mt-1.5">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            if (prod.petani?.id) {
+                              e.stopPropagation();
+                              router.push(`/toko/petani/${prod.petani.id}`);
+                            }
+                          }}
+                          className="inline-flex items-center gap-1.5 text-[10px] sm:text-xs text-[#526046] hover:text-[#1a2610] font-medium truncate group/farmer text-left"
+                          title={`Buka toko petani ${farmerName}`}
+                        >
+                          {prod.petani?.avatarUrl ? (
+                            <img
+                              src={prod.petani.avatarUrl}
+                              alt={farmerName}
+                              className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full object-cover shrink-0 border border-[#dce1d6]"
+                            />
+                          ) : (
+                            <span className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-[#EAEDE7] text-[#233414] text-[9px] font-bold flex items-center justify-center shrink-0">
+                              {farmerName.charAt(0).toUpperCase()}
+                            </span>
+                          )}
+                          <span className="truncate group-hover/farmer:underline">{farmerName}</span>
+                        </button>
+                      </div>
                     </div>
 
                     {/* Middle / Bottom Canvas: Ultra-Thin Minimalist Rounded Inner Image Container */}
@@ -760,12 +831,20 @@ function TokoOnlineContent() {
                         }}
                       />
 
+                      {/* Badge Terpopuler (Banyak Terjual) */}
+                      {sortBy === 'terpopuler' && (
+                        <div className="absolute top-2 left-2 z-10 px-2 py-0.5 rounded-full bg-[#1a2610]/85 backdrop-blur-xs text-[#D4F63D] text-[10px] font-bold flex items-center gap-1 shadow-xs border border-white/10">
+                          <span>🔥 Terpopuler</span>
+                          <span className="text-white/80 font-normal">({Number(prod.totalTerjual || 0).toLocaleString('id-ID')} terjual)</span>
+                        </div>
+                      )}
+
                       {/* Dark Gradient Overlay for bottom text & circular button pop */}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent pointer-events-none" />
 
-                      {/* Bottom Overlay: Price on Left, Circular Button ↗ on Right (Exact match to Gambar 3) */}
+                      {/* Bottom Overlay: Price on Left, Circular Button ↗ on Right */}
                       <div className="absolute bottom-2.5 sm:bottom-3 left-2.5 sm:left-3.5 right-2.5 sm:right-3.5 flex items-end justify-between z-10 gap-2">
-                        {/* Price: e.g. "$275" in Gambar 3 */}
+                        {/* Price & Stok / Terjual */}
                         <div className="flex flex-col text-white drop-shadow-xs min-w-0">
                           <div className="flex items-baseline gap-0.5 leading-none">
                             <span className="text-xs sm:text-base lg:text-lg font-extrabold tracking-tight tabular-nums text-white">
@@ -776,13 +855,17 @@ function TokoOnlineContent() {
                             </span>
                           </div>
                           {!isOutOfStock && (
-                            <span className="text-[8px] sm:text-[10px] text-white/75 font-medium mt-1 truncate">
-                              Stok: {Number(prod.stok).toLocaleString('id-ID')}
-                            </span>
+                            <div className="flex items-center gap-1 text-[8px] sm:text-[10px] text-white/80 font-medium mt-1 truncate">
+                              <span>Stok: {Number(prod.stok).toLocaleString('id-ID')}</span>
+                              <span>•</span>
+                              <span className={sortBy === 'terpopuler' ? 'text-[#D4F63D] font-bold' : 'text-white/90'}>
+                                {Number(prod.totalTerjual || 0).toLocaleString('id-ID')} terjual
+                              </span>
+                            </div>
                           )}
                         </div>
 
-                        {/* Circular Action Button with ArrowUpRight ↗ (Exact match to Gambar 3) */}
+                        {/* Circular Action Button with ArrowUpRight ↗ */}
                         <div
                           className="w-7 h-7 sm:w-9 sm:h-9 lg:w-10.5 lg:h-10.5 rounded-full bg-white text-[#1a2610] shadow-md flex items-center justify-center transition-all duration-300 group-hover:scale-105 group-hover:bg-[#233414] group-hover:text-white shrink-0"
                           title="Buka Detail Produk"

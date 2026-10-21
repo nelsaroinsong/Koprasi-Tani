@@ -18,6 +18,8 @@ import {
   TrendingDown,
   TrendingUp,
   Clock,
+  Flame,
+  MapPin,
 } from 'lucide-react';
 
 const MIN_LIMIT = 50000;
@@ -48,6 +50,12 @@ const SORT_OPTIONS = [
     label: 'Unit Terbaru',
     desc: 'Baru ditambahkan ke garasi koperasi',
     icon: Clock,
+  },
+  {
+    value: 'terpopuler',
+    label: 'Terpopuler',
+    desc: 'Paling sering disewa & diminati',
+    icon: Flame,
   },
 ];
 

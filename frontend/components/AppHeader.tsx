@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { motion, LayoutGroup } from 'motion/react';
+import { motion, AnimatePresence, LayoutGroup } from 'motion/react';
 import {
   ShoppingBag,
   ShoppingCart,
@@ -12,23 +12,83 @@ import {
   LogIn,
   User as UserIcon,
   LayoutDashboard,
+  ChevronDown,
+  Check,
 } from 'lucide-react';
 import UserProfileDropdown from '@/components/UserProfileDropdown';
 import NotificationDropdown from '@/components/NotificationDropdown';
 import { useAuth } from '@/context/auth-context';
 import BottomNav from '@/components/BottomNav';
 
-interface AppHeaderProps {
-  activePage?: 'toko' | 'sewa-alat' | 'pesanan' | 'dashboard' | 'profile' | 'beranda' | 'cart' | 'none';
+interface SubCategoryItem {
+  id?: string;
+  name: string;
+  slug?: string;
+  emoji?: string;
 }
 
-export default function AppHeader({ activePage }: AppHeaderProps) {
+interface AppHeaderProps {
+  activePage?: 'toko' | 'sewa-alat' | 'pesanan' | 'dashboard' | 'profile' | 'beranda' | 'cart' | 'none';
+  showCatalogSubNav?: boolean;
+  selectedKategori?: string;
+  onSelectKategori?: (kategori: string) => void;
+  sortBy?: string;
+  onSelectSort?: (sortBy: string) => void;
+  categories?: SubCategoryItem[];
+}
+
+const DEFAULT_TOKO_CATEGORIES: SubCategoryItem[] = [
+  { id: 'cat-kelapa', name: 'Kelapa' },
+  { id: 'cat-jagung', name: 'Jagung' },
+  { id: 'cat-turunan', name: 'Turunan' },
+  { id: 'cat-olahan', name: 'Olahan' },
+];
+
+const DEFAULT_SEWA_ALAT_CATEGORIES: SubCategoryItem[] = [
+  { id: 'cat-roda-4', name: 'Roda 4' },
+  { id: 'cat-traktor', name: 'Traktor' },
+  { id: 'cat-kultivator', name: 'Kultivator' },
+  { id: 'cat-drone', name: 'Drone Pertanian' },
+  { id: 'cat-panen', name: 'Mesin Panen' },
+];
+
+export default function AppHeader({
+  activePage,
+  showCatalogSubNav,
+  selectedKategori,
+  onSelectKategori,
+  sortBy,
+  onSelectSort,
+  categories,
+}: AppHeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { user } = useAuth();
 
   // Optimistic tab state for instantaneous sliding background response on desktop
   const [optimisticTab, setOptimisticTab] = useState<string | null>(null);
+
+  // Category dropdown popover state for desktop sub-navbar
+  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+  const categoryDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        categoryDropdownRef.current &&
+        !categoryDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsCategoryDropdownOpen(false);
+      }
+    }
+    if (isCategoryDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isCategoryDropdownOpen]);
 
   // Sync optimistic tab whenever pathname or activePage prop changes
   useEffect(() => {
@@ -107,6 +167,61 @@ export default function AppHeader({ activePage }: AppHeaderProps) {
     ],
     [user?.role, Boolean(user)]
   );
+
+  const isToko = currentActive === 'toko';
+  const isSewaAlat = currentActive === 'sewa-alat';
+  const shouldShowSubNav = showCatalogSubNav ?? (isToko || isSewaAlat);
+  const basePath = isSewaAlat ? '/sewa-alat' : '/toko';
+
+  const currentCategoryList = useMemo(() => {
+    if (categories && categories.length > 0) return categories;
+    return isSewaAlat ? DEFAULT_SEWA_ALAT_CATEGORIES : DEFAULT_TOKO_CATEGORIES;
+  }, [categories, isSewaAlat]);
+
+  const handleSemua = () => {
+    if (onSelectKategori) onSelectKategori('SEMUA');
+    if (onSelectSort) onSelectSort('default');
+    if (!onSelectKategori && !onSelectSort) {
+      router.push(basePath);
+    }
+    setIsCategoryDropdownOpen(false);
+  };
+
+  const handleKategoriSelect = (catName: string) => {
+    if (onSelectKategori) {
+      onSelectKategori(catName);
+    }
+    if (onSelectSort) {
+      onSelectSort('default');
+    }
+    if (!onSelectKategori && !onSelectSort) {
+      router.push(catName === 'SEMUA' ? basePath : `${basePath}?kategori=${encodeURIComponent(catName)}`);
+    }
+    setIsCategoryDropdownOpen(false);
+  };
+
+  const handleSortSelect = (targetSort: string) => {
+    const nextSort = sortBy === targetSort ? 'default' : targetSort;
+    if (onSelectSort) {
+      onSelectSort(nextSort);
+    }
+    if (onSelectKategori && nextSort !== 'default') {
+      onSelectKategori('SEMUA');
+    }
+    if (!onSelectSort) {
+      router.push(nextSort === 'default' ? basePath : `${basePath}?sortBy=${nextSort}`);
+    }
+    setIsCategoryDropdownOpen(false);
+  };
+
+  const isSemuaActive =
+    (!selectedKategori || selectedKategori === 'SEMUA') &&
+    (!sortBy || sortBy === 'default');
+  const isKategoriActive =
+    Boolean(selectedKategori && selectedKategori !== 'SEMUA') &&
+    (!sortBy || sortBy === 'default');
+  const isTerbaruActive = sortBy === 'terbaru';
+  const isTerpopulerActive = sortBy === 'terpopuler';
 
   return (
     <>
@@ -220,9 +335,150 @@ export default function AppHeader({ activePage }: AppHeaderProps) {
             )}
           </div>
         </div>
+
+        {/* Sub-navbar Mode Desktop Saja (Khusus Toko atau Sewa Alat) */}
+        {shouldShowSubNav && (
+          <div className="hidden md:block border-t border-[#EAEDE7] bg-white">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-10 flex items-center justify-start gap-8 text-[13px]">
+              {/* 1. Semua */}
+              <button
+                type="button"
+                onClick={handleSemua}
+                className={`h-10 flex items-center transition-colors duration-150 cursor-pointer select-none relative ${
+                  isSemuaActive
+                    ? 'text-[#1a2610] font-semibold'
+                    : 'text-[#526046] hover:text-[#1a2610] font-medium'
+                }`}
+              >
+                <span>{isSewaAlat ? 'Semua Alat' : 'Semua'}</span>
+                {isSemuaActive && (
+                  <span className="absolute -bottom-[1px] left-0 right-0 h-[2px] bg-[#1a2610] rounded-full" />
+                )}
+              </button>
+
+              {/* 2. Kategori (with Minimalist Taste Skills Dropdown) */}
+              <div className="relative" ref={categoryDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsCategoryDropdownOpen((prev) => !prev)}
+                  className={`h-10 flex items-center gap-1.5 transition-colors duration-150 cursor-pointer select-none relative ${
+                    isKategoriActive
+                      ? 'text-[#1a2610] font-semibold'
+                      : 'text-[#526046] hover:text-[#1a2610] font-medium'
+                  }`}
+                >
+                  <span>
+                    {isKategoriActive
+                      ? `Kategori: ${selectedKategori}`
+                      : 'Kategori'}
+                  </span>
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 stroke-[1.8] transition-transform duration-200 ${
+                      isCategoryDropdownOpen ? 'rotate-180 text-[#1a2610]' : 'text-[#708063]'
+                    }`}
+                  />
+                  {isKategoriActive && (
+                    <span className="absolute -bottom-[1px] left-0 right-0 h-[2px] bg-[#1a2610] rounded-full" />
+                  )}
+                </button>
+
+                <AnimatePresence>
+                  {isCategoryDropdownOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -6, scale: 0.96 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -6, scale: 0.96 }}
+                      transition={{ duration: 0.16, ease: 'easeOut' }}
+                      className="absolute top-full left-0 mt-1.5 w-52 bg-white rounded-xl border border-[#e2e7dc] shadow-[0_12px_28px_rgba(26,38,16,0.12)] p-1 z-50 origin-top-left"
+                    >
+                      {/* All Option */}
+                      <button
+                        type="button"
+                        onClick={() => handleKategoriSelect('SEMUA')}
+                        className={`group w-full px-3 py-2 rounded-lg text-[13px] transition-colors flex items-center justify-between cursor-pointer ${
+                          !selectedKategori || selectedKategori === 'SEMUA'
+                            ? 'bg-[#eef1e8]/70 text-[#1a2610] font-semibold'
+                            : 'text-[#415036] hover:bg-[#f6f8f4] hover:text-[#1a2610] font-medium'
+                        }`}
+                      >
+                        <span className="truncate">{isSewaAlat ? 'Semua Alat' : 'Semua Komoditas'}</span>
+                        {(!selectedKategori || selectedKategori === 'SEMUA') && (
+                          <Check className="w-3.5 h-3.5 text-[#233414] stroke-[2.2] shrink-0" />
+                        )}
+                      </button>
+
+                      <div className="my-1 border-t border-[#eaede7]" />
+
+                      {/* Category List with Clean Typographic Alignment (Tanpa Titik Active) */}
+                      <div className="max-h-60 overflow-y-auto no-scrollbar space-y-0.5">
+                        {currentCategoryList.map((cat) => {
+                          const isSelected = selectedKategori?.toLowerCase() === cat.name.toLowerCase();
+                          return (
+                            <button
+                              key={cat.id || cat.name}
+                              type="button"
+                              onClick={() => handleKategoriSelect(cat.name)}
+                              className={`group w-full px-3 py-2 rounded-lg text-[13px] transition-colors flex items-center justify-between cursor-pointer ${
+                                isSelected
+                                  ? 'bg-[#eef1e8]/70 text-[#1a2610] font-semibold'
+                                  : 'text-[#415036] hover:bg-[#f6f8f4] hover:text-[#1a2610] font-medium'
+                              }`}
+                            >
+                              <span className="truncate">{cat.name}</span>
+                              {isSelected && (
+                                <Check className="w-3.5 h-3.5 text-[#233414] stroke-[2.2] shrink-0" />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* 3. Terbaru */}
+              <button
+                type="button"
+                onClick={() => handleSortSelect('terbaru')}
+                className={`h-10 flex items-center transition-colors duration-150 cursor-pointer select-none relative ${
+                  isTerbaruActive
+                    ? 'text-[#1a2610] font-semibold'
+                    : 'text-[#526046] hover:text-[#1a2610] font-medium'
+                }`}
+              >
+                <span>Terbaru</span>
+                {isTerbaruActive && (
+                  <span className="absolute -bottom-[1px] left-0 right-0 h-[2px] bg-[#1a2610] rounded-full" />
+                )}
+              </button>
+
+              {/* 4. Terpopuler */}
+              <button
+                type="button"
+                onClick={() => handleSortSelect('terpopuler')}
+                className={`h-10 flex items-center transition-colors duration-150 cursor-pointer select-none relative ${
+                  isTerpopulerActive
+                    ? 'text-[#1a2610] font-semibold'
+                    : 'text-[#526046] hover:text-[#1a2610] font-medium'
+                }`}
+              >
+                <span>Terpopuler</span>
+                {isTerpopulerActive && (
+                  <span className="absolute -bottom-[1px] left-0 right-0 h-[2px] bg-[#1a2610] rounded-full" />
+                )}
+              </button>
+            </div>
+          </div>
+        )}
       </header>
-      {/* Spacer placeholder to reserve exact height for fixed header (56px mobile, 64px desktop) */}
-      <div className="h-14 sm:h-16 shrink-0 pointer-events-none" aria-hidden="true" />
+      {/* Spacer placeholder to reserve exact height for fixed header (56px mobile, 64px desktop default, 105px when desktop sub-navbar is rendered) */}
+      <div
+        className={`${
+          shouldShowSubNav ? 'h-14 sm:h-16 md:h-[105px]' : 'h-14 sm:h-16'
+        } shrink-0 pointer-events-none`}
+        aria-hidden="true"
+      />
       <BottomNav activePage={currentActive} />
     </>
   );

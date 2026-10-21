@@ -33,7 +33,7 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: 'Pengguna tidak ditemukan' }, { status: 404 });
       }
 
-      const cacheKey = `products:mine:${dbUser.id}:p=${page}:l=${limit}:cat=${kategori || 'ALL'}:q=${search || ''}`;
+      const cacheKey = `products:v3:mine:${dbUser.id}:p=${page}:l=${limit}:cat=${kategori || 'ALL'}:q=${search || ''}`;
       const cached = await getCache<any>(cacheKey);
       if (cached) {
         return NextResponse.json(cached);
@@ -50,7 +50,7 @@ export async function GET(request: Request) {
         }),
       };
 
-      const [totalCount, products] = await Promise.all([
+      const [totalCount, rawProducts] = await Promise.all([
         prisma.product.count({ where: whereCondition }),
         prisma.product.findMany({
           where: whereCondition,
@@ -63,12 +63,29 @@ export async function GET(request: Request) {
                 avatarUrl: true,
               },
             },
+            orderItems: {
+              where: {
+                order: { status: { not: 'DIBATALKAN' } },
+              },
+              select: {
+                quantity: true,
+              },
+            },
           },
           orderBy: { createdAt: 'desc' },
           skip,
           take: limit,
         }),
       ]);
+
+      const products = rawProducts.map((p: any) => {
+        const totalTerjual = p.orderItems?.reduce((sum: number, it: any) => sum + (it.quantity || 0), 0) || 0;
+        const { orderItems, ...rest } = p;
+        return {
+          ...rest,
+          totalTerjual,
+        };
+      });
 
       const hasMore = skip + products.length < totalCount;
       const responseData = {
@@ -88,7 +105,7 @@ export async function GET(request: Request) {
     }
 
     // 2. Katalog Publik Koperasi (Dengan Redis Cache-Aside)
-    const publicCacheKey = `products:public:p=${page}:l=${limit}:cat=${kategori || 'ALL'}:q=${search || ''}`;
+    const publicCacheKey = `products:v3:public:p=${page}:l=${limit}:cat=${kategori || 'ALL'}:q=${search || ''}`;
     const cachedCatalog = await getCache<any>(publicCacheKey);
     if (cachedCatalog) {
       return NextResponse.json(cachedCatalog);
@@ -106,7 +123,7 @@ export async function GET(request: Request) {
       }),
     };
 
-    const [totalCount, products] = await Promise.all([
+    const [totalCount, rawProducts] = await Promise.all([
       prisma.product.count({ where: whereCondition }),
       prisma.product.findMany({
         where: whereCondition,
@@ -119,12 +136,29 @@ export async function GET(request: Request) {
               avatarUrl: true,
             },
           },
+          orderItems: {
+            where: {
+              order: { status: { not: 'DIBATALKAN' } },
+            },
+            select: {
+              quantity: true,
+            },
+          },
         },
         orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
       }),
     ]);
+
+    const products = rawProducts.map((p: any) => {
+      const totalTerjual = p.orderItems?.reduce((sum: number, it: any) => sum + (it.quantity || 0), 0) || 0;
+      const { orderItems, ...rest } = p;
+      return {
+        ...rest,
+        totalTerjual,
+      };
+    });
 
     const hasMore = skip + products.length < totalCount;
     const responseData = {

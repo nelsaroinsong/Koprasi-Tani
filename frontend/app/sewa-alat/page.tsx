@@ -226,6 +226,13 @@ function SewaAlatContent() {
       list.sort((a, b) => (Number(b.hargaSewa) || 0) - (Number(a.hargaSewa) || 0));
     } else if (sortBy === 'terbaru') {
       list.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+    } else if (sortBy === 'terpopuler') {
+      list.sort((a, b) => {
+        const popB = Number((b as any).rentalCount || b.unitDisewa || b.stokUnit || 0);
+        const popA = Number((a as any).rentalCount || a.unitDisewa || a.stokUnit || 0);
+        if (popB !== popA) return popB - popA;
+        return (Number(b.hargaSewa) || 0) - (Number(a.hargaSewa) || 0);
+      });
     }
 
     return list;
@@ -403,7 +410,45 @@ function SewaAlatContent() {
 
   return (
     <div className="min-h-screen bg-[#f4f5f1] flex flex-col font-sans selection:bg-[#D4F63D] selection:text-slate-950">
-      <AppHeader activePage="sewa-alat" />
+      {/* App Header with Dedicated Sewa Alat Sub-Navbar */}
+      <AppHeader
+        activePage="sewa-alat"
+        selectedKategori={selectedKategori}
+        onSelectKategori={(kategori) => {
+          setSelectedKategori(kategori);
+          setSortBy('default');
+          const params = new URLSearchParams(searchParams.toString());
+          if (kategori === 'SEMUA') {
+            params.delete('kategori');
+          } else {
+            params.set('kategori', kategori);
+          }
+          params.delete('sortBy');
+          const query = params.toString();
+          router.replace(query ? `/sewa-alat?${query}` : '/sewa-alat', { scroll: false });
+        }}
+        sortBy={sortBy}
+        onSelectSort={(newSort) => {
+          setSortBy(newSort);
+          if (newSort !== 'default') {
+            setSelectedKategori('SEMUA');
+          }
+          const params = new URLSearchParams(searchParams.toString());
+          if (newSort === 'default') {
+            params.delete('sortBy');
+          } else {
+            params.set('sortBy', newSort);
+            params.delete('kategori');
+          }
+          const query = params.toString();
+          router.replace(query ? `/sewa-alat?${query}` : '/sewa-alat', { scroll: false });
+        }}
+        categories={
+          categories.length > 0
+            ? categories
+            : dynamicKategoriTabs.filter((t) => t.key !== 'SEMUA').map((t) => ({ name: t.label }))
+        }
+      />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-3.5 sm:py-5 pb-24 lg:pb-12">
         {/* Search Bar matching Gambar 1 (Clean Rounded Pill with Magnifying Glass & Filter Button) */}
@@ -592,6 +637,36 @@ function SewaAlatContent() {
                 </button>
               </span>
             )}
+            {sortBy !== 'default' && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-[#dce1d6] text-xs font-semibold text-[#1a2610] shadow-2xs shrink-0">
+                <span>
+                  Urut:{' '}
+                  {sortBy === 'termurah'
+                    ? 'Tarif Terendah'
+                    : sortBy === 'termahal'
+                    ? 'Tarif Tertinggi'
+                    : sortBy === 'terbaru'
+                    ? 'Alat Terbaru'
+                    : sortBy === 'terpopuler'
+                    ? 'Terpopuler'
+                    : sortBy}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSortBy('default');
+                    const params = new URLSearchParams(searchParams.toString());
+                    params.delete('sortBy');
+                    const query = params.toString();
+                    router.replace(query ? `/sewa-alat?${query}` : '/sewa-alat', { scroll: false });
+                  }}
+                  className="hover:text-red-600 cursor-pointer"
+                  title="Reset urutan"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
             <button
               type="button"
               onClick={() => {
@@ -601,48 +676,14 @@ function SewaAlatContent() {
                 setMinPrice(50000);
                 setMaxPrice(2500000);
                 setSortBy('default');
-                router.push('/sewa-alat');
+                router.replace('/sewa-alat', { scroll: false });
               }}
               className="text-[11px] text-[#526046] hover:text-red-600 font-semibold underline shrink-0 cursor-pointer ml-1"
             >
-              Reset
+              Reset Semua
             </button>
           </div>
         )}
-
-        {/* Category Section - Desktop Mode (Pill Chips dengan Checkbox Siap Pakai di Kanan) */}
-        <div className="hidden md:flex items-center justify-between gap-4 mb-8">
-          <div className="flex items-center gap-2.5 overflow-x-auto no-scrollbar py-1">
-            {dynamicKategoriTabs.map((tab) => {
-              const isSelected = selectedKategori.toLowerCase().trim() === tab.key.toLowerCase().trim();
-
-              return (
-                <button
-                  key={tab.key}
-                  type="button"
-                  onClick={() => setSelectedKategori(tab.key)}
-                  className={`px-5 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all duration-150 shrink-0 cursor-pointer border select-none ${
-                    isSelected
-                      ? 'bg-[#233414] text-white border-[#233414] shadow-xs'
-                      : 'bg-white text-[#233414] border-[#cfd6c9] hover:bg-[#EAEDE7] hover:border-[#b8c4ae] shadow-2xs'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
-
-          <label className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-[#526046] hover:text-[#1a2610] cursor-pointer select-none bg-white border border-[#cfd6c9] px-4 py-2 rounded-full shrink-0 shadow-2xs hover:bg-[#EAEDE7] transition-all">
-            <input
-              type="checkbox"
-              checked={onlyAvailable}
-              onChange={(e) => setOnlyAvailable(e.target.checked)}
-              className="w-4 h-4 rounded accent-[#233414] text-[#233414] focus:ring-[#233414] border-[#cfd6c9] cursor-pointer"
-            />
-            <span>Siap Pakai Saja</span>
-          </label>
-        </div>
 
         {/* State Kosong / Grid Alat */}
         {filteredEquipments.length === 0 ? (

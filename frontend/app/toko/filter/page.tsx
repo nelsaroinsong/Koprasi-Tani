@@ -14,6 +14,7 @@ import {
   TrendingDown,
   TrendingUp,
   Clock,
+  Flame,
 } from 'lucide-react';
 
 const MIN_LIMIT = 5000;
@@ -53,8 +54,14 @@ const SORT_OPTIONS = [
   {
     value: 'terbaru',
     label: 'Komoditas Terbaru',
-    desc: 'Hasil panen segar yang baru masuk',
+    desc: 'Hasil panen segar terbaru dari mitra petani',
     icon: Clock,
+  },
+  {
+    value: 'terpopuler',
+    label: 'Terpopuler',
+    desc: 'Berdasarkan data yang paling banyak terjual',
+    icon: Flame,
   },
 ];
 
