@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { GetObjectCommand } from '@aws-sdk/client-s3';
 import { r2Client, R2_BUCKET } from '@/lib/r2';
+import { isSafeStorageKey } from '@/lib/file-security';
 
 export async function GET(
   request: Request,
@@ -9,6 +10,11 @@ export async function GET(
   try {
     const { key } = await params;
     const objectKey = key.join('/');
+
+    // Validasi anti path-traversal & prefix whitelist
+    if (!isSafeStorageKey(objectKey)) {
+      return new NextResponse('Kunci gambar tidak valid', { status: 400 });
+    }
 
     const command = new GetObjectCommand({
       Bucket: R2_BUCKET,
@@ -24,10 +30,20 @@ export async function GET(
     // Stream the image back
     const byteArray = await response.Body.transformToByteArray();
 
+    // Pastikan Content-Type dibatasi hanya untuk gambar aman
+    const rawType = (response.ContentType || '').toLowerCase();
+    const safeContentType = ['image/jpeg', 'image/png', 'image/webp'].includes(rawType)
+      ? rawType
+      : 'image/jpeg';
+
     return new NextResponse(Buffer.from(byteArray), {
       headers: {
-        'Content-Type': response.ContentType || 'image/jpeg',
+        'Content-Type': safeContentType,
         'Cache-Control': 'public, max-age=31536000, immutable',
+        // Header keamanan ketat untuk mencegah serangan XSS & MIME-confusion
+        'X-Content-Type-Options': 'nosniff',
+        'Content-Security-Policy': "default-src 'none'",
+        'X-Frame-Options': 'DENY',
       },
     });
   } catch (error) {

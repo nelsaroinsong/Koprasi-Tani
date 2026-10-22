@@ -9,31 +9,38 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import { useAdmin } from "@/components/admin/admin-context"
+import { LayoutGrid } from "lucide-react"
 
 export function AdminBreadcrumb() {
-  const { activeTab } = useAdmin()
+  const { activeTab, setActiveTab } = useAdmin()
+  const isDashboard = activeTab.group === 'Dashboard' || !activeTab.group
 
   return (
     <Breadcrumb>
-      <BreadcrumbList>
-        <BreadcrumbItem className="hidden md:block">
+      <BreadcrumbList className="text-xs text-slate-500 font-medium">
+        <BreadcrumbItem className="flex items-center gap-1.5">
+          <LayoutGrid className="w-3.5 h-3.5 text-slate-400 shrink-0" />
           <BreadcrumbLink
             href="/admin"
-            className="text-slate-500 hover:text-emerald-700 font-medium text-xs transition"
+            onClick={(e) => {
+              e.preventDefault()
+              setActiveTab('Dashboard', '')
+            }}
+            className="hover:text-slate-900 transition font-medium"
           >
-            {activeTab.group}
+            Overview
           </BreadcrumbLink>
         </BreadcrumbItem>
-        {activeTab.item ? (
-          <>
-            <BreadcrumbSeparator className="hidden md:block text-slate-300" />
-            <BreadcrumbItem>
-              <BreadcrumbPage className="text-emerald-800 font-semibold text-xs bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
-                {activeTab.item}
-              </BreadcrumbPage>
-            </BreadcrumbItem>
-          </>
-        ) : null}
+
+        <BreadcrumbSeparator className="text-slate-300">
+          /
+        </BreadcrumbSeparator>
+
+        <BreadcrumbItem>
+          <BreadcrumbPage className="text-slate-900 font-semibold">
+            {isDashboard ? 'Dashboard' : (activeTab.item || activeTab.group)}
+          </BreadcrumbPage>
+        </BreadcrumbItem>
       </BreadcrumbList>
     </Breadcrumb>
   )

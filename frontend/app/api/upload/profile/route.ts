@@ -3,6 +3,7 @@ import { PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { r2Client, R2_BUCKET } from '@/lib/r2';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
+import { validateImageUpload } from '@/lib/file-security';
 
 export async function POST(request: Request) {
   try {
@@ -16,24 +17,29 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Tidak ada file yang diunggah' }, { status: 400 });
     }
 
-    // Ekstensi file
-    const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-    const timestamp = Date.now();
-    const cleanEmail = userEmail ? userEmail.replace(/[^a-zA-Z0-9]/g, '_') : 'user';
-
-    // Path folder spesifik di R2: profiles/{user}-{timestamp}.{ext}
-    const key = `profiles/${cleanEmail}-${timestamp}.${fileExt}`;
-
     // Konversi file ke buffer
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+
+    // Validasi keamanan berkas mendalam (ukuran, ekstensi, MIME, dan Magic Bytes)
+    const validation = validateImageUpload(file, buffer);
+    if (!validation.valid) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
+    }
+
+    const timestamp = Date.now();
+    const cleanEmail = userEmail ? userEmail.replace(/[^a-zA-Z0-9]/g, '_') : 'user';
+    const finalExt = validation.sanitizedExt || 'jpg';
+
+    // Path folder spesifik di R2: profiles/{user}-{timestamp}.{ext}
+    const key = `profiles/${cleanEmail}-${timestamp}.${finalExt}`;
 
     // Upload ke Cloudflare R2
     const uploadCommand = new PutObjectCommand({
       Bucket: R2_BUCKET,
       Key: key,
       Body: buffer,
-      ContentType: file.type || 'image/jpeg',
+      ContentType: validation.contentType || 'image/jpeg',
     });
 
     await r2Client.send(uploadCommand);

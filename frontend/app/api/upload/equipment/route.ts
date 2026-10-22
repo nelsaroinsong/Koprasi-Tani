@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { r2Client, R2_BUCKET } from '@/lib/r2';
 import { auth } from '@/auth';
-
 import { prisma } from '@/lib/prisma';
+import { validateImageUpload } from '@/lib/file-security';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,26 +40,27 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Tidak ada file foto alat yang diunggah' }, { status: 400 });
     }
 
-    // Validasi ukuran & tipe file
-    if (!file.type.startsWith('image/')) {
-      return NextResponse.json({ error: 'File harus berupa gambar (JPG, PNG, WebP)' }, { status: 400 });
-    }
-
-    const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-    const timestamp = Date.now();
-    const randomHex = Math.random().toString(36).substring(2, 8);
-
-    // Simpan ke folder sewa-alat/ di Cloudflare R2
-    const key = `sewa-alat/alat-${timestamp}-${randomHex}.${fileExt}`;
-
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+
+    // Validasi keamanan berkas mendalam (ukuran, ekstensi, MIME, dan Magic Bytes)
+    const validation = validateImageUpload(file, buffer);
+    if (!validation.valid) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
+    }
+
+    const timestamp = Date.now();
+    const randomHex = Math.random().toString(36).substring(2, 8);
+    const finalExt = validation.sanitizedExt || 'jpg';
+
+    // Simpan ke folder sewa-alat/ di Cloudflare R2
+    const key = `sewa-alat/alat-${timestamp}-${randomHex}.${finalExt}`;
 
     const uploadCommand = new PutObjectCommand({
       Bucket: R2_BUCKET,
       Key: key,
       Body: buffer,
-      ContentType: file.type || 'image/jpeg',
+      ContentType: validation.contentType || 'image/jpeg',
     });
 
     await r2Client.send(uploadCommand);
