@@ -8,7 +8,6 @@ import {
   Package,
   ShoppingCart,
   Search,
-  Sparkles,
   Building2,
 } from "lucide-react"
 
@@ -140,8 +139,6 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
     phone: user?.phone || '',
   };
 
-  const isTickerActive =
-    activeTab.group === 'Pengaturan Web' && activeTab.item === 'Teks Berjalan';
   const isLogoActive =
     activeTab.group === 'Pengaturan Web' && activeTab.item === 'Logo Mitra';
 
@@ -167,36 +164,6 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
             Pengaturan Web
           </SidebarGroupLabel>
           <SidebarMenu className="space-y-1">
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                asChild
-                isActive={isTickerActive}
-                tooltip="Teks Berjalan Landing Page"
-                className={
-                  isTickerActive
-                    ? "bg-[#EAEDE7] text-[#1a2610] font-bold shadow-2xs rounded-xl"
-                    : "text-[#526046] hover:bg-[#EAEDE7]/60 hover:text-[#1a2610] font-medium transition rounded-xl"
-                }
-              >
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('Pengaturan Web', 'Teks Berjalan')}
-                  className="flex items-center gap-2.5 px-3 py-2 cursor-pointer w-full text-left"
-                >
-                  <Sparkles
-                    className={
-                      isTickerActive
-                        ? "w-4 h-4 text-[#233414] shrink-0"
-                        : "w-4 h-4 text-[#708063] group-hover:text-[#1a2610] shrink-0 transition"
-                    }
-                  />
-                  <span className="text-xs">Teks Berjalan</span>
-                  <span className="ml-auto text-[10px] font-semibold text-[#526046] bg-white border border-[#dce1d6] px-1.5 py-0.5 rounded-full shrink-0 shadow-2xs">
-                    Tayang
-                  </span>
-                </button>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton
                 asChild

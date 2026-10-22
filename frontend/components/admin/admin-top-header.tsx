@@ -89,7 +89,7 @@ export function AdminTopHeader({ user }: AdminTopHeaderProps) {
                       { group: 'Produk dan Layanan', item: 'Toko Online', label: 'Katalog Komoditas' },
                       { group: 'Produk dan Layanan', item: 'Sewa Alat', label: 'Sewa Alsintan' },
                       { group: 'Pengguna', item: 'Petani', label: 'Data Petani Mitra' },
-                      { group: 'Pengaturan Web', item: 'Teks Berjalan', label: 'Pengaturan Teks Berjalan' },
+                      { group: 'Pengaturan Web', item: 'Logo Mitra', label: 'Pengaturan Logo Mitra' },
                     ]
                       .filter((m) =>
                         m.label.toLowerCase().includes(searchQuery.toLowerCase())

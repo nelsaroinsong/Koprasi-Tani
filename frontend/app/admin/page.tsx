@@ -7,7 +7,6 @@ import { PembeliDataTable } from '@/components/admin/pembeli-data-table';
 import { TokoOnlineDataTable } from '@/components/admin/toko-data-table';
 import { OrdersDataTable } from '@/components/admin/orders-data-table';
 import { PayoutsDataTable } from '@/components/admin/payouts-data-table';
-import { TickerSettingsPanel } from '@/components/admin/ticker-settings-panel';
 import { LogoSettingsPanel } from '@/components/admin/logo-settings-panel';
 import { CategoriesDataTable } from '@/components/admin/categories-data-table';
 import { EquipmentCategoriesDataTable } from '@/components/admin/equipment-categories-data-table';
@@ -88,12 +87,9 @@ export default function AdminPage() {
     phone: (session?.user as any)?.phone || '',
   };
 
-  // 0. Tampilan Pengaturan Web: Teks Berjalan & Logo Mitra
+  // 0. Tampilan Pengaturan Web: Logo Mitra
   if (activeTab.group === 'Pengaturan Web') {
-    if (activeTab.item === 'Logo Mitra') {
-      return <LogoSettingsPanel />;
-    }
-    return <TickerSettingsPanel />;
+    return <LogoSettingsPanel />;
   }
 
   // 1. Tampilan Halaman Pengguna: Petani
@@ -244,7 +240,7 @@ export default function AdminPage() {
           { label: 'Sewa Alsintan', badge: '8', action: () => setActiveTab('Produk dan Layanan', 'Sewa Alat') },
           { label: 'Petani Mitra', badge: 'Produsen', action: () => setActiveTab('Pengguna', 'Petani') },
           { label: 'Pembeli & Pelanggan', action: () => setActiveTab('Pengguna', 'Pembeli') },
-          { label: 'Pengaturan Web', action: () => setActiveTab('Pengaturan Web', 'Teks Berjalan') },
+          { label: 'Pengaturan Web', action: () => setActiveTab('Pengaturan Web', 'Logo Mitra') },
         ].map((tab) => (
           <button
             key={tab.label}
