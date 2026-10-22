@@ -24,9 +24,9 @@ export default async function AdminLayout({
     <AdminProvider>
       <SidebarProvider>
         <AppSidebar user={session.user} />
-        <SidebarInset className="bg-[#f4f5f1] min-h-screen min-w-0 max-w-full overflow-x-hidden font-sans selection:bg-[#D4F63D] selection:text-slate-950">
+        <SidebarInset className="bg-white min-h-screen min-w-0 max-w-full overflow-x-hidden font-sans selection:bg-slate-900 selection:text-white">
           <AdminTopHeader user={session.user} />
-          <div className="flex flex-1 flex-col gap-4 p-3 sm:p-5 lg:p-7 min-w-0 max-w-full w-full">
+          <div className="flex flex-1 flex-col gap-5 px-4 sm:px-6 lg:px-8 py-5 min-w-0 max-w-full w-full">
             {children}
           </div>
         </SidebarInset>

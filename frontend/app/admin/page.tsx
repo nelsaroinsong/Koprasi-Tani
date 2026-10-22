@@ -14,11 +14,6 @@ import { EquipmentFormPage } from '@/components/admin/equipment-form-page';
 import { TokoProductFormPage } from '@/components/admin/toko-product-form-page';
 import EquipmentsDataTable from '@/components/admin/equipments-data-table';
 import { EquipmentRentalsTable } from '@/components/admin/equipment-rentals-table';
-import {
-  ExternalLink,
-  Calendar,
-  ChevronDown,
-} from 'lucide-react';
 import { useSession } from 'next-auth/react';
 
 export default function AdminPage() {
@@ -99,36 +94,16 @@ export default function AdminPage() {
 
   // 5. Default: Halaman Dashboard Utama (Kravio Style: 3 Metric Cards + Incoming Orders Table)
   return (
-    <div className="space-y-6 max-w-7xl w-full mx-auto pb-10">
-      {/* Top Greeting & Filter Ribbon */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <span>Halo, {adminUser.name}</span>
-            <span className="text-xl">👋</span>
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Ringkasan metrik operasional dan antrean pesanan masuk kasir koperasi hari ini.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2.5 self-start sm:self-center shrink-0">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 shadow-2xs">
-            <Calendar className="w-3.5 h-3.5 text-slate-500" />
-            <span>Minggu ini</span>
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-          </div>
-
-          <a
-            href="/toko"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-[#D4F63D] text-xs font-semibold transition shadow-2xs cursor-pointer"
-          >
-            <span>Buka Toko Publik</span>
-            <ExternalLink className="w-3.5 h-3.5" />
-          </a>
-        </div>
+    <div className="space-y-5 w-full pb-10">
+      {/* Top Greeting matching Kravio Header */}
+      <div>
+        <h1 className="text-[22px] font-semibold text-slate-900 tracking-tight flex items-center gap-2">
+          <span>Halo, {adminUser.name}</span>
+          <span className="text-[20px]">👋</span>
+        </h1>
+        <p className="text-[13px] text-slate-400 mt-0.5">
+          Berikut ringkasan terbaru dari interaksi dan transaksi pesanan koperasi Anda.
+        </p>
       </div>
 
       {/* Kravio: 3 Cards on top + Pesanan Masuk in Table underneath */}

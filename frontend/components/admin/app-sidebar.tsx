@@ -4,24 +4,21 @@ import * as React from "react"
 import {
   LayoutGrid,
   Users,
-  UserCheck,
   Package,
   Tractor,
-  ReceiptText,
+  Tag,
   FolderTree,
-  SlidersHorizontal,
   Building2,
-  HelpCircle,
+  Headphones,
   Settings,
   Search,
   ChevronDown,
   ChevronsUpDown,
-  PanelLeftClose,
   PanelLeft,
   LogOut,
   UserCog,
-  Check,
   ExternalLink,
+  HelpCircle,
 } from "lucide-react"
 
 import {
@@ -34,7 +31,6 @@ import {
   SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuItem,
-  SidebarMenuButton,
   useSidebar,
 } from "@/components/ui/sidebar"
 import { useAdmin } from "@/components/admin/admin-context"
@@ -46,6 +42,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { AdminProfileModal } from "@/components/admin/admin-profile-modal"
 import { signOut } from "next-auth/react"
 
@@ -59,34 +61,99 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   } | null
 }
 
+/**
+ * Renders a child item with the exact Kravio curved tree branch connector (├─ / ╰─)
+ */
+function TreeBranchItem({
+  label,
+  isActive,
+  isLast,
+  onClick,
+}: {
+  label: string
+  isActive: boolean
+  isLast?: boolean
+  onClick: () => void
+}) {
+  return (
+    <div className="relative flex items-center pl-6">
+      {/* Vertical continuation line for non-last items */}
+      {!isLast && (
+        <span
+          className="absolute left-[11px] top-0 bottom-0 w-[1.5px] bg-slate-200/90"
+          aria-hidden="true"
+        />
+      )}
+      {/* Curved L elbow connector */}
+      <span
+        className="absolute left-[11px] top-0 h-[18px] w-3 border-l-[1.5px] border-b-[1.5px] border-slate-200/90 rounded-bl-[6px]"
+        aria-hidden="true"
+      />
+      <button
+        type="button"
+        onClick={onClick}
+        className={`w-full text-left px-2.5 py-1.5 rounded-lg text-[12.5px] transition-all cursor-pointer truncate ${
+          isActive
+            ? "bg-white text-slate-900 font-semibold border border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
+            : "text-slate-500 hover:text-slate-900 hover:bg-slate-200/40 font-medium"
+        }`}
+      >
+        {label}
+      </button>
+    </div>
+  )
+}
+
 export function AppSidebar({ user, ...props }: AppSidebarProps) {
   const { activeTab, setActiveTab } = useAdmin()
   const { toggleSidebar, state } = useSidebar()
+  const isCollapsed = state === "collapsed"
+
   const [isSearchOpen, setIsSearchOpen] = React.useState(false)
   const [searchQuery, setSearchQuery] = React.useState("")
   const [isEditProfileOpen, setIsEditProfileOpen] = React.useState(false)
   const [isHelpModalOpen, setIsHelpModalOpen] = React.useState(false)
+
+  // Collapsible Menu States
   const [isTransaksiOpen, setIsTransaksiOpen] = React.useState(true)
+  const [isKeanggotaanOpen, setIsKeanggotaanOpen] = React.useState(false)
+  const [isKategoriOpen, setIsKategoriOpen] = React.useState(false)
+
+  // Auto-expand section if activeTab is inside it
+  React.useEffect(() => {
+    if (activeTab.group === "Pengguna") setIsKeanggotaanOpen(true)
+    if (
+      activeTab.group === "Produk dan Layanan" &&
+      (activeTab.item === "Kategori Komoditas" ||
+        activeTab.item === "Kategori Sewa Alat")
+    ) {
+      setIsKategoriOpen(true)
+    }
+  }, [activeTab])
 
   const adminName = user?.name || "Achmad Hakim"
-  const adminEmail = user?.email || "admin@sinarpagisejahtera.co.id"
-  const adminInitial = (adminName || "A").charAt(0).toUpperCase()
+  const adminEmail = user?.email || "achmadhakim@gmail.com"
+  const adminInitials = adminName
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase()
 
   const isOverview = activeTab.group === "Dashboard" || !activeTab.group
 
-  // Quick navigation items for search filter
   const searchableMenus = [
-    { group: "Dashboard", item: "", label: "Overview / Ringkasan Dashboard" },
-    { group: "Transaksi Koperasi", item: "Pesanan Masuk", label: "Pesanan Masuk (Kasir)" },
-    { group: "Transaksi Koperasi", item: "Pengajuan Sewa Alat", label: "Pengajuan Sewa Alsintan" },
-    { group: "Transaksi Koperasi", item: "Bagi Hasil Petani", label: "Bagi Hasil & Cash Petani" },
-    { group: "Pengguna", item: "Petani", label: "Data Petani Mitra" },
-    { group: "Pengguna", item: "Pembeli", label: "Data Pembeli & Pelanggan" },
-    { group: "Produk dan Layanan", item: "Toko Online", label: "Katalog Komoditas Online" },
-    { group: "Produk dan Layanan", item: "Sewa Alat", label: "Daftar Sewa Alsintan" },
-    { group: "Produk dan Layanan", item: "Kategori Komoditas", label: "Kategori Komoditas" },
-    { group: "Produk dan Layanan", item: "Kategori Sewa Alat", label: "Kategori Sewa Alsintan" },
-    { group: "Pengaturan Web", item: "Logo Mitra", label: "Pengaturan Logo Mitra" },
+    { group: "Dashboard", item: "", label: "Overview / Dashboard" },
+    { group: "Transaksi Koperasi", item: "Pesanan Masuk", label: "Pesanan Masuk" },
+    { group: "Transaksi Koperasi", item: "Pengajuan Sewa Alat", label: "Sewa Alat (Transaksi)" },
+    { group: "Transaksi Koperasi", item: "Bagi Hasil Petani", label: "Bagi Hasil Petani" },
+    { group: "Pengguna", item: "Petani", label: "Petani Mitra" },
+    { group: "Pengguna", item: "Pembeli", label: "Pembeli" },
+    { group: "Produk dan Layanan", item: "Toko Online", label: "Katalog Komoditas" },
+    { group: "Produk dan Layanan", item: "Sewa Alat", label: "Sewa Alat" },
+    { group: "Produk dan Layanan", item: "Kategori Komoditas", label: "Kategori Produk" },
+    { group: "Produk dan Layanan", item: "Kategori Sewa Alat", label: "Kategori Sewa Alat" },
+    { group: "Pengaturan Web", item: "Logo Mitra", label: "Logo Mitra" },
   ]
 
   const filteredMenus = searchQuery.trim()
@@ -96,570 +163,730 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
     : []
 
   return (
-    <>
+    <TooltipProvider delayDuration={120}>
       <Sidebar
         collapsible="icon"
-        className="bg-white border-r border-[#eaecf0] text-slate-800 font-sans"
+        className="bg-[#F8F9FA] border-r border-[#EAECF0] text-slate-800 font-sans select-none"
         {...props}
       >
-        {/* 1. Header: Brand Logo & Title + Search Bar */}
-        <SidebarHeader className="p-3.5 space-y-3 border-b border-[#f1f3f5]">
-          {/* Brand Row */}
-          <div className="flex items-center justify-between gap-2">
-            <div
-              onClick={() => setActiveTab("Dashboard", "")}
-              className="flex items-center gap-2.5 cursor-pointer group min-w-0"
-            >
-              {/* Kravio-style Solid Rounded Monogram Badge */}
-              <div className="w-8 h-8 rounded-xl bg-[#111827] text-[#D4F63D] flex items-center justify-center font-bold text-sm shrink-0 shadow-xs transition-transform group-hover:scale-105">
-                <span className="font-mono tracking-tighter">K</span>
-              </div>
-              <div className="grid flex-1 text-left leading-tight min-w-0 group-data-[collapsible=icon]:hidden">
-                <span className="truncate font-bold text-slate-900 text-[13px] tracking-tight">
-                  Kravio • SPS
-                </span>
-                <span className="truncate text-[10px] text-slate-400 font-medium">
-                  Minahasa Utara
-                </span>
-              </div>
-            </div>
-
-            {/* Sidebar Collapse Toggle Button */}
-            <button
-              type="button"
-              onClick={toggleSidebar}
-              className="w-7 h-7 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition shrink-0 group-data-[collapsible=icon]:hidden"
-              title={state === "expanded" ? "Tutup Sidebar" : "Buka Sidebar"}
-            >
-              <PanelLeftClose className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Search Input Bar (Matching Kravio Style: Search anything ⌘K) */}
-          <div className="relative group-data-[collapsible=icon]:hidden">
-            <div className="relative flex items-center bg-[#f8f9fa] border border-[#e5e7eb] hover:border-slate-300 focus-within:border-slate-800 focus-within:ring-2 focus-within:ring-slate-800/5 rounded-xl h-9 px-2.5 transition-all">
-              <Search className="w-3.5 h-3.5 text-slate-400 mr-2 shrink-0" />
-              <input
-                type="text"
-                placeholder="Search anything..."
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value)
-                  setIsSearchOpen(true)
-                }}
-                onFocus={() => setIsSearchOpen(true)}
-                className="w-full bg-transparent text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none"
-              />
-              <span className="text-[10px] font-mono text-slate-400 bg-white border border-slate-200 px-1.5 py-0.5 rounded shadow-2xs shrink-0 select-none">
-                ⌘ K
-              </span>
-            </div>
-
-            {/* Search Dropdown Results */}
-            {isSearchOpen && searchQuery && (
-              <>
+        {/* 1. Header: Cooperative Logo & Single-Line Brand + Search Bar */}
+        <SidebarHeader className="px-3.5 pt-3.5 pb-2 bg-[#F8F9FA] shrink-0">
+          {!isCollapsed ? (
+            <div className="space-y-3">
+              {/* Brand Row */}
+              <div className="flex items-center justify-between gap-2 px-0.5">
                 <div
-                  className="fixed inset-0 z-40"
-                  onClick={() => setIsSearchOpen(false)}
-                />
-                <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-slate-200 rounded-xl shadow-xl p-1.5 z-50 animate-in fade-in zoom-in-98 duration-100 max-h-60 overflow-y-auto">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 py-1">
-                    Hasil Pencarian
+                  onClick={() => setActiveTab("Dashboard", "")}
+                  className="flex items-center gap-2 cursor-pointer min-w-0"
+                >
+                  <div className="w-6.5 h-6.5 rounded-lg bg-[#18181B] flex items-center justify-center p-1 shrink-0 shadow-2xs">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src="/landing/koperasi-logo-lime.png"
+                      alt="Logo Koperasi"
+                      className="w-full h-full object-contain"
+                    />
                   </div>
-                  {filteredMenus.length > 0 ? (
-                    filteredMenus.map((menu) => (
-                      <button
-                        key={menu.label}
-                        type="button"
-                        onClick={() => {
-                          setActiveTab(menu.group, menu.item)
-                          setIsSearchOpen(false)
-                          setSearchQuery("")
-                        }}
-                        className="w-full px-2 py-1.5 rounded-lg text-left text-xs font-medium text-slate-700 hover:bg-slate-100 transition flex items-center justify-between cursor-pointer"
-                      >
-                        <span className="truncate">{menu.label}</span>
-                        <span className="text-[10px] text-slate-400 shrink-0 ml-2">
-                          {menu.group}
-                        </span>
-                      </button>
-                    ))
-                  ) : (
-                    <div className="px-2 py-3 text-center text-xs text-slate-400">
-                      Tidak ada menu cocok
-                    </div>
-                  )}
+                  <span className="truncate font-bold text-slate-900 text-[15px] tracking-tight">
+                    Koperasi SPS
+                  </span>
                 </div>
-              </>
-            )}
-          </div>
+
+                <button
+                  type="button"
+                  onClick={toggleSidebar}
+                  className="w-7 h-7 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 flex items-center justify-center transition shrink-0 cursor-pointer"
+                  title="Tutup Sidebar"
+                >
+                  <PanelLeft className="w-4 h-4 stroke-[1.75]" />
+                </button>
+              </div>
+
+              {/* Search Input Bar (Matching Kravio White Input on Grey Sidebar) */}
+              <div className="relative">
+                <div className="relative flex items-center bg-white border border-[#E5E7EB] hover:border-slate-300 focus-within:border-slate-400 rounded-lg h-8.5 px-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-all">
+                  <Search className="w-3.5 h-3.5 text-slate-400 mr-2 shrink-0" />
+                  <input
+                    type="text"
+                    placeholder="Search anything"
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value)
+                      setIsSearchOpen(true)
+                    }}
+                    onFocus={() => setIsSearchOpen(true)}
+                    className="w-full bg-transparent text-[12px] text-slate-800 placeholder:text-slate-400 focus:outline-none"
+                  />
+                  <span className="text-[11px] text-slate-400 font-medium shrink-0 select-none tracking-tight">
+                    ⌘ K
+                  </span>
+                </div>
+
+                {isSearchOpen && searchQuery && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setIsSearchOpen(false)}
+                    />
+                    <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-slate-200 rounded-xl shadow-lg p-1.5 z-50 max-h-60 overflow-y-auto">
+                      {filteredMenus.length > 0 ? (
+                        filteredMenus.map((menu) => (
+                          <button
+                            key={menu.label}
+                            type="button"
+                            onClick={() => {
+                              setActiveTab(menu.group, menu.item)
+                              setIsSearchOpen(false)
+                              setSearchQuery("")
+                            }}
+                            className="w-full px-2.5 py-1.5 rounded-lg text-left text-xs font-medium text-slate-700 hover:bg-slate-100 transition flex items-center justify-between cursor-pointer"
+                          >
+                            <span className="truncate">{menu.label}</span>
+                          </button>
+                        ))
+                      ) : (
+                        <div className="px-2 py-2.5 text-center text-xs text-slate-400">
+                          Tidak ditemukan
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          ) : (
+            /* Collapsed Header */
+            <div className="flex flex-col items-center gap-2.5 py-1">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={toggleSidebar}
+                    className="w-8 h-8 rounded-lg bg-[#18181B] flex items-center justify-center p-1.5 shadow-2xs cursor-pointer hover:scale-105 transition"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src="/landing/koperasi-logo-lime.png"
+                      alt="Logo Koperasi"
+                      className="w-full h-full object-contain"
+                    />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="font-semibold text-xs">
+                  Koperasi SPS (Buka Sidebar)
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={toggleSidebar}
+                    className="w-8 h-8 rounded-lg bg-white border border-[#E5E7EB] text-slate-400 hover:text-slate-800 flex items-center justify-center transition cursor-pointer shadow-2xs"
+                  >
+                    <Search className="w-3.5 h-3.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="text-xs">
+                  Search anything (⌘ K)
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          )}
         </SidebarHeader>
 
-        {/* 2. Content: Groups & Navigation Items */}
-        <SidebarContent className="px-2 py-2 space-y-4">
-          {/* GROUP 1: MAIN NAVIGATION */}
-          <SidebarGroup className="p-0">
-            <SidebarGroupLabel className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2.5 py-1">
-              MAIN NAVIGATION
-            </SidebarGroupLabel>
-            <SidebarMenu className="space-y-0.5 mt-0.5">
-              {/* Overview (Ringkasan) */}
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={isOverview}
-                  className={
-                    isOverview
-                      ? "bg-[#111827] text-white font-semibold rounded-xl hover:bg-[#111827] hover:text-white shadow-2xs"
-                      : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium rounded-xl transition"
-                  }
-                >
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("Dashboard", "")}
-                    className="flex items-center gap-2.5 px-2.5 py-2 w-full cursor-pointer text-left"
-                  >
-                    <LayoutGrid
-                      className={`w-4 h-4 shrink-0 ${
-                        isOverview ? "text-[#D4F63D]" : "text-slate-400"
-                      }`}
-                    />
-                    <span className="text-xs">Overview</span>
-                  </button>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+        {/* 2. Scrollable Navigation Content */}
+        <SidebarContent
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 py-2 flex flex-col justify-between bg-[#F8F9FA] [scrollbar-width:thin]"
+          onWheel={(e) => {
+            e.stopPropagation()
+          }}
+        >
+          <div className="space-y-4">
+            {/* GROUP 1: MAIN NAVIGATION */}
+            <SidebarGroup className="p-0">
+              {!isCollapsed && (
+                <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-2 h-6">
+                  MAIN NAVIGATION
+                </SidebarGroupLabel>
+              )}
 
-              {/* Transaksi Koperasi (Tickets style with Tree Branch connector) */}
-              <SidebarMenuItem>
-                <div>
-                  <button
-                    type="button"
-                    onClick={() => setIsTransaksiOpen((prev) => !prev)}
-                    className="flex items-center justify-between w-full px-2.5 py-2 rounded-xl text-xs font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition cursor-pointer"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <ReceiptText className="w-4 h-4 text-slate-400 shrink-0" />
-                      <span>Transaksi</span>
-                    </div>
-                    <ChevronDown
-                      className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
-                        isTransaksiOpen ? "rotate-0" : "-rotate-90"
+              <SidebarMenu className="space-y-0.5 mt-0.5">
+                {/* 1. Overview (White Elevated Card when Active) */}
+                <SidebarMenuItem>
+                  {isCollapsed ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab("Dashboard", "")}
+                          className={`w-8 h-8 mx-auto rounded-lg flex items-center justify-center transition cursor-pointer ${
+                            isOverview
+                              ? "bg-white text-slate-900 border border-[#E5E7EB] shadow-2xs"
+                              : "text-slate-500 hover:bg-slate-200/50 hover:text-slate-900"
+                          }`}
+                        >
+                          <LayoutGrid className="w-4 h-4 stroke-[1.8]" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="font-medium text-xs">
+                        Overview
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("Dashboard", "")}
+                      className={`flex items-center gap-2.5 px-2.5 py-2 w-full rounded-lg text-[13px] transition-all cursor-pointer text-left ${
+                        isOverview
+                          ? "bg-white text-slate-900 font-semibold border border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
+                          : "text-slate-600 hover:bg-slate-200/40 hover:text-slate-900 font-medium"
                       }`}
-                    />
-                  </button>
+                    >
+                      <LayoutGrid
+                        className={`w-4 h-4 shrink-0 stroke-[1.8] ${
+                          isOverview ? "text-slate-800" : "text-slate-500"
+                        }`}
+                      />
+                      <span>Overview</span>
+                    </button>
+                  )}
+                </SidebarMenuItem>
 
-                  {/* Exact Tree Branch Lines from Kravio Screenshot */}
-                  {isTransaksiOpen && (
-                    <div className="relative ml-5 pl-3 border-l border-slate-200 space-y-0.5 my-1">
-                      {/* Sub-item 1: Pesanan Masuk */}
-                      {(() => {
-                        const isActive =
-                          activeTab.group === "Transaksi Koperasi" &&
-                          activeTab.item === "Pesanan Masuk"
-                        return (
-                          <button
-                            type="button"
+                {/* 2. Transaksi (Tickets style with Curved Tree Branch Connectors) */}
+                <SidebarMenuItem>
+                  {isCollapsed ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setActiveTab("Transaksi Koperasi", "Pesanan Masuk")
+                          }
+                          className={`w-8 h-8 mx-auto rounded-lg flex items-center justify-center transition cursor-pointer ${
+                            activeTab.group === "Transaksi Koperasi"
+                              ? "bg-white text-slate-900 border border-[#E5E7EB] shadow-2xs"
+                              : "text-slate-500 hover:bg-slate-200/50 hover:text-slate-900"
+                          }`}
+                        >
+                          <Tag className="w-4 h-4 stroke-[1.8]" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="font-medium text-xs">
+                        Transaksi
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => setIsTransaksiOpen((prev) => !prev)}
+                        className="flex items-center justify-between w-full px-2.5 py-2 rounded-lg text-[13px] font-medium text-slate-700 hover:bg-slate-200/40 hover:text-slate-900 transition cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <Tag className="w-4 h-4 text-slate-500 shrink-0 stroke-[1.8]" />
+                          <span>Transaksi</span>
+                        </div>
+                        <ChevronDown
+                          className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
+                            isTransaksiOpen ? "rotate-180" : "rotate-0"
+                          }`}
+                        />
+                      </button>
+
+                      {isTransaksiOpen && (
+                        <div className="mt-0.5 space-y-0.5">
+                          <TreeBranchItem
+                            label="Pesanan Masuk"
+                            isActive={
+                              activeTab.group === "Transaksi Koperasi" &&
+                              activeTab.item === "Pesanan Masuk"
+                            }
                             onClick={() =>
                               setActiveTab("Transaksi Koperasi", "Pesanan Masuk")
                             }
-                            className={`relative flex items-center justify-between w-full px-2 py-1.5 rounded-lg text-xs transition cursor-pointer text-left before:absolute before:-left-3 before:top-1/2 before:w-2.5 before:h-[1px] before:bg-slate-200 ${
-                              isActive
-                                ? "bg-slate-100 text-slate-900 font-semibold"
-                                : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium"
-                            }`}
-                          >
-                            <span className="truncate">Pesanan Masuk</span>
-                            <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200/80 px-1.5 py-0.2 rounded-full shrink-0">
-                              12
-                            </span>
-                          </button>
-                        )
-                      })()}
-
-                      {/* Sub-item 2: Sewa Alsintan */}
-                      {(() => {
-                        const isActive =
-                          activeTab.group === "Transaksi Koperasi" &&
-                          activeTab.item === "Pengajuan Sewa Alat"
-                        return (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setActiveTab("Transaksi Koperasi", "Pengajuan Sewa Alat")
+                          />
+                          <TreeBranchItem
+                            label="Sewa Alat"
+                            isActive={
+                              activeTab.group === "Transaksi Koperasi" &&
+                              activeTab.item === "Pengajuan Sewa Alat"
                             }
-                            className={`relative flex items-center justify-between w-full px-2 py-1.5 rounded-lg text-xs transition cursor-pointer text-left before:absolute before:-left-3 before:top-1/2 before:w-2.5 before:h-[1px] before:bg-slate-200 ${
-                              isActive
-                                ? "bg-slate-100 text-slate-900 font-semibold"
-                                : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium"
-                            }`}
-                          >
-                            <span className="truncate">Sewa Alsintan</span>
-                            <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 border border-slate-200 px-1.5 py-0.2 rounded-full shrink-0">
-                              3
-                            </span>
-                          </button>
-                        )
-                      })()}
-
-                      {/* Sub-item 3: Bagi Hasil Petani */}
-                      {(() => {
-                        const isActive =
-                          activeTab.group === "Transaksi Koperasi" &&
-                          activeTab.item === "Bagi Hasil Petani"
-                        return (
-                          <button
-                            type="button"
                             onClick={() =>
-                              setActiveTab("Transaksi Koperasi", "Bagi Hasil Petani")
+                              setActiveTab(
+                                "Transaksi Koperasi",
+                                "Pengajuan Sewa Alat"
+                              )
                             }
-                            className={`relative flex items-center justify-between w-full px-2 py-1.5 rounded-lg text-xs transition cursor-pointer text-left before:absolute before:-left-3 before:top-1/2 before:w-2.5 before:h-[1px] before:bg-slate-200 ${
-                              isActive
-                                ? "bg-slate-100 text-slate-900 font-semibold"
-                                : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium"
-                            }`}
-                          >
-                            <span className="truncate">Bagi Hasil Petani</span>
-                            <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded-full shrink-0">
-                              Tunai
-                            </span>
-                          </button>
-                        )
-                      })()}
+                          />
+                          <TreeBranchItem
+                            label="Bagi Hasil Petani"
+                            isLast
+                            isActive={
+                              activeTab.group === "Transaksi Koperasi" &&
+                              activeTab.item === "Bagi Hasil Petani"
+                            }
+                            onClick={() =>
+                              setActiveTab(
+                                "Transaksi Koperasi",
+                                "Bagi Hasil Petani"
+                              )
+                            }
+                          />
+                        </div>
+                      )}
                     </div>
                   )}
-                </div>
-              </SidebarMenuItem>
+                </SidebarMenuItem>
 
-              {/* Clients: Petani Mitra */}
-              {(() => {
-                const isActive =
-                  activeTab.group === "Pengguna" && activeTab.item === "Petani"
-                return (
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isActive}
-                      className={
-                        isActive
-                          ? "bg-slate-100 text-slate-900 font-semibold rounded-xl"
-                          : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium rounded-xl transition"
-                      }
-                    >
+                {/* 3. Keanggotaan (Single Parent -> Expands to Petani Mitra & Pembeli) */}
+                <SidebarMenuItem>
+                  {isCollapsed ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab("Pengguna", "Petani")}
+                          className={`w-8 h-8 mx-auto rounded-lg flex items-center justify-center transition cursor-pointer ${
+                            activeTab.group === "Pengguna"
+                              ? "bg-white text-slate-900 border border-[#E5E7EB] shadow-2xs"
+                              : "text-slate-500 hover:bg-slate-200/50 hover:text-slate-900"
+                          }`}
+                        >
+                          <Users className="w-4 h-4 stroke-[1.8]" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="font-medium text-xs">
+                        Keanggotaan
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <div>
                       <button
                         type="button"
-                        onClick={() => setActiveTab("Pengguna", "Petani")}
-                        className="flex items-center justify-between w-full px-2.5 py-2 cursor-pointer text-left"
+                        onClick={() => setIsKeanggotaanOpen((prev) => !prev)}
+                        className="flex items-center justify-between w-full px-2.5 py-2 rounded-lg text-[13px] font-medium text-slate-700 hover:bg-slate-200/40 hover:text-slate-900 transition cursor-pointer"
                       >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <Users className="w-4 h-4 text-slate-400 shrink-0" />
-                          <span className="text-xs truncate">Petani Mitra</span>
+                        <div className="flex items-center gap-2.5">
+                          <Users className="w-4 h-4 text-slate-500 shrink-0 stroke-[1.8]" />
+                          <span>Keanggotaan</span>
                         </div>
-                        <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-md shrink-0">
-                          Produsen
-                        </span>
+                        <ChevronDown
+                          className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
+                            isKeanggotaanOpen ? "rotate-180" : "rotate-0"
+                          }`}
+                        />
                       </button>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )
-              })()}
 
-              {/* Agents: Pembeli & Konsumen */}
-              {(() => {
-                const isActive =
-                  activeTab.group === "Pengguna" && activeTab.item === "Pembeli"
-                return (
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isActive}
-                      className={
-                        isActive
-                          ? "bg-slate-100 text-slate-900 font-semibold rounded-xl"
-                          : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium rounded-xl transition"
-                      }
-                    >
-                      <button
-                        type="button"
-                        onClick={() => setActiveTab("Pengguna", "Pembeli")}
-                        className="flex items-center justify-between w-full px-2.5 py-2 cursor-pointer text-left"
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <UserCheck className="w-4 h-4 text-slate-400 shrink-0" />
-                          <span className="text-xs truncate">Pembeli</span>
+                      {isKeanggotaanOpen && (
+                        <div className="mt-0.5 space-y-0.5">
+                          <TreeBranchItem
+                            label="Petani Mitra"
+                            isActive={
+                              activeTab.group === "Pengguna" &&
+                              activeTab.item === "Petani"
+                            }
+                            onClick={() => setActiveTab("Pengguna", "Petani")}
+                          />
+                          <TreeBranchItem
+                            label="Pembeli"
+                            isLast
+                            isActive={
+                              activeTab.group === "Pengguna" &&
+                              activeTab.item === "Pembeli"
+                            }
+                            onClick={() => setActiveTab("Pengguna", "Pembeli")}
+                          />
                         </div>
-                        <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-md shrink-0">
-                          Konsumen
-                        </span>
-                      </button>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )
-              })()}
+                      )}
+                    </div>
+                  )}
+                </SidebarMenuItem>
 
-              {/* Knowledge Base: Katalog Komoditas */}
-              {(() => {
-                const isActive =
-                  activeTab.group === "Produk dan Layanan" &&
-                  activeTab.item === "Toko Online"
-                return (
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isActive}
-                      className={
-                        isActive
-                          ? "bg-slate-100 text-slate-900 font-semibold rounded-xl"
-                          : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium rounded-xl transition"
-                      }
-                    >
+                {/* 4. Katalog Komoditas */}
+                <SidebarMenuItem>
+                  {(() => {
+                    const isActive =
+                      activeTab.group === "Produk dan Layanan" &&
+                      activeTab.item === "Toko Online"
+
+                    return isCollapsed ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setActiveTab("Produk dan Layanan", "Toko Online")
+                            }
+                            className={`w-8 h-8 mx-auto rounded-lg flex items-center justify-center transition cursor-pointer ${
+                              isActive
+                                ? "bg-white text-slate-900 border border-[#E5E7EB] shadow-2xs"
+                                : "text-slate-500 hover:bg-slate-200/50 hover:text-slate-900"
+                            }`}
+                          >
+                            <Package className="w-4 h-4 stroke-[1.8]" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="font-medium text-xs">
+                          Katalog Komoditas
+                        </TooltipContent>
+                      </Tooltip>
+                    ) : (
                       <button
                         type="button"
                         onClick={() =>
                           setActiveTab("Produk dan Layanan", "Toko Online")
                         }
-                        className="flex items-center justify-between w-full px-2.5 py-2 cursor-pointer text-left"
+                        className={`flex items-center gap-2.5 px-2.5 py-2 w-full rounded-lg text-[13px] transition-all cursor-pointer text-left ${
+                          isActive
+                            ? "bg-white text-slate-900 font-semibold border border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
+                            : "text-slate-600 hover:bg-slate-200/40 hover:text-slate-900 font-medium"
+                        }`}
                       >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <Package className="w-4 h-4 text-slate-400 shrink-0" />
-                          <span className="text-xs truncate">Katalog Komoditas</span>
-                        </div>
-                        <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-md shrink-0">
-                          24
-                        </span>
+                        <Package
+                          className={`w-4 h-4 shrink-0 stroke-[1.8] ${
+                            isActive ? "text-slate-800" : "text-slate-500"
+                          }`}
+                        />
+                        <span className="truncate">Katalog Komoditas</span>
                       </button>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )
-              })()}
+                    )
+                  })()}
+                </SidebarMenuItem>
 
-              {/* Integrations: Sewa Alsintan */}
-              {(() => {
-                const isActive =
-                  activeTab.group === "Produk dan Layanan" &&
-                  activeTab.item === "Sewa Alat"
-                return (
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isActive}
-                      className={
-                        isActive
-                          ? "bg-slate-100 text-slate-900 font-semibold rounded-xl"
-                          : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium rounded-xl transition"
-                      }
-                    >
+                {/* 5. Sewa Alat */}
+                <SidebarMenuItem>
+                  {(() => {
+                    const isActive =
+                      activeTab.group === "Produk dan Layanan" &&
+                      activeTab.item === "Sewa Alat"
+
+                    return isCollapsed ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setActiveTab("Produk dan Layanan", "Sewa Alat")
+                            }
+                            className={`w-8 h-8 mx-auto rounded-lg flex items-center justify-center transition cursor-pointer ${
+                              isActive
+                                ? "bg-white text-slate-900 border border-[#E5E7EB] shadow-2xs"
+                                : "text-slate-500 hover:bg-slate-200/50 hover:text-slate-900"
+                            }`}
+                          >
+                            <Tractor className="w-4 h-4 stroke-[1.8]" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="font-medium text-xs">
+                          Sewa Alat
+                        </TooltipContent>
+                      </Tooltip>
+                    ) : (
                       <button
                         type="button"
                         onClick={() =>
                           setActiveTab("Produk dan Layanan", "Sewa Alat")
                         }
-                        className="flex items-center justify-between w-full px-2.5 py-2 cursor-pointer text-left"
+                        className={`flex items-center gap-2.5 px-2.5 py-2 w-full rounded-lg text-[13px] transition-all cursor-pointer text-left ${
+                          isActive
+                            ? "bg-white text-slate-900 font-semibold border border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
+                            : "text-slate-600 hover:bg-slate-200/40 hover:text-slate-900 font-medium"
+                        }`}
                       >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <Tractor className="w-4 h-4 text-slate-400 shrink-0" />
-                          <span className="text-xs truncate">Sewa Alsintan</span>
-                        </div>
-                        <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-md shrink-0">
-                          8 Unit
-                        </span>
+                        <Tractor
+                          className={`w-4 h-4 shrink-0 stroke-[1.8] ${
+                            isActive ? "text-slate-800" : "text-slate-500"
+                          }`}
+                        />
+                        <span className="truncate">Sewa Alat</span>
                       </button>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )
-              })()}
-            </SidebarMenu>
-          </SidebarGroup>
+                    )
+                  })()}
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroup>
 
-          {/* GROUP 2: ANALYTICS & INSIGHTS (PENGATURAN & KATALOG) */}
-          <SidebarGroup className="p-0">
-            <SidebarGroupLabel className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2.5 py-1">
-              ANALYTICS & INSIGHTS
-            </SidebarGroupLabel>
-            <SidebarMenu className="space-y-0.5 mt-0.5">
-              {/* Kategori Komoditas */}
-              {(() => {
-                const isActive =
-                  activeTab.group === "Produk dan Layanan" &&
-                  activeTab.item === "Kategori Komoditas"
-                return (
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isActive}
-                      className={
-                        isActive
-                          ? "bg-slate-100 text-slate-900 font-semibold rounded-xl"
-                          : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium rounded-xl transition"
-                      }
-                    >
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setActiveTab("Produk dan Layanan", "Kategori Komoditas")
-                        }
-                        className="flex items-center gap-2.5 px-2.5 py-2 w-full cursor-pointer text-left"
-                      >
-                        <FolderTree className="w-4 h-4 text-slate-400 shrink-0" />
-                        <span className="text-xs truncate">Kategori Produk</span>
-                      </button>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )
-              })()}
+            {/* GROUP 2: ANALYTICS & INSIGHTS */}
+            <SidebarGroup className="p-0">
+              {!isCollapsed && (
+                <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-2 h-6">
+                  ANALYTICS & INSIGHTS
+                </SidebarGroupLabel>
+              )}
 
-              {/* Kategori Sewa Alsintan */}
-              {(() => {
-                const isActive =
-                  activeTab.group === "Produk dan Layanan" &&
-                  activeTab.item === "Kategori Sewa Alat"
-                return (
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isActive}
-                      className={
-                        isActive
-                          ? "bg-slate-100 text-slate-900 font-semibold rounded-xl"
-                          : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium rounded-xl transition"
-                      }
-                    >
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setActiveTab("Produk dan Layanan", "Kategori Sewa Alat")
-                        }
-                        className="flex items-center gap-2.5 px-2.5 py-2 w-full cursor-pointer text-left"
-                      >
-                        <SlidersHorizontal className="w-4 h-4 text-slate-400 shrink-0" />
-                        <span className="text-xs truncate">Kategori Alsintan</span>
-                      </button>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )
-              })()}
+              <SidebarMenu className="space-y-0.5 mt-0.5">
+                {/* 1. Kategori (Single Parent -> Expands to Kategori Produk & Kategori Sewa Alat) */}
+                <SidebarMenuItem>
+                  {(() => {
+                    const isKategoriActive =
+                      activeTab.group === "Produk dan Layanan" &&
+                      (activeTab.item === "Kategori Komoditas" ||
+                        activeTab.item === "Kategori Sewa Alat")
 
-              {/* Logo Mitra (Didukung Oleh) */}
-              {(() => {
-                const isActive =
-                  activeTab.group === "Pengaturan Web" &&
-                  activeTab.item === "Logo Mitra"
-                return (
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isActive}
-                      className={
-                        isActive
-                          ? "bg-slate-100 text-slate-900 font-semibold rounded-xl"
-                          : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium rounded-xl transition"
-                      }
-                    >
+                    return isCollapsed ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setActiveTab(
+                                "Produk dan Layanan",
+                                "Kategori Komoditas"
+                              )
+                            }
+                            className={`w-8 h-8 mx-auto rounded-lg flex items-center justify-center transition cursor-pointer ${
+                              isKategoriActive
+                                ? "bg-white text-slate-900 border border-[#E5E7EB] shadow-2xs"
+                                : "text-slate-500 hover:bg-slate-200/50 hover:text-slate-900"
+                            }`}
+                          >
+                            <FolderTree className="w-4 h-4 stroke-[1.8]" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="font-medium text-xs">
+                          Kategori
+                        </TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      <div>
+                        <button
+                          type="button"
+                          onClick={() => setIsKategoriOpen((prev) => !prev)}
+                          className="flex items-center justify-between w-full px-2.5 py-2 rounded-lg text-[13px] font-medium text-slate-700 hover:bg-slate-200/40 hover:text-slate-900 transition cursor-pointer"
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <FolderTree className="w-4 h-4 text-slate-500 shrink-0 stroke-[1.8]" />
+                            <span>Kategori</span>
+                          </div>
+                          <ChevronDown
+                            className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
+                              isKategoriOpen ? "rotate-180" : "rotate-0"
+                            }`}
+                          />
+                        </button>
+
+                        {isKategoriOpen && (
+                          <div className="mt-0.5 space-y-0.5">
+                            <TreeBranchItem
+                              label="Kategori Produk"
+                              isActive={
+                                activeTab.group === "Produk dan Layanan" &&
+                                activeTab.item === "Kategori Komoditas"
+                              }
+                              onClick={() =>
+                                setActiveTab(
+                                  "Produk dan Layanan",
+                                  "Kategori Komoditas"
+                                )
+                              }
+                            />
+                            <TreeBranchItem
+                              label="Kategori Sewa Alat"
+                              isLast
+                              isActive={
+                                activeTab.group === "Produk dan Layanan" &&
+                                activeTab.item === "Kategori Sewa Alat"
+                              }
+                              onClick={() =>
+                                setActiveTab(
+                                  "Produk dan Layanan",
+                                  "Kategori Sewa Alat"
+                                )
+                              }
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })()}
+                </SidebarMenuItem>
+
+                {/* 2. Logo Mitra */}
+                <SidebarMenuItem>
+                  {(() => {
+                    const isActive =
+                      activeTab.group === "Pengaturan Web" &&
+                      activeTab.item === "Logo Mitra"
+
+                    return isCollapsed ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setActiveTab("Pengaturan Web", "Logo Mitra")
+                            }
+                            className={`w-8 h-8 mx-auto rounded-lg flex items-center justify-center transition cursor-pointer ${
+                              isActive
+                                ? "bg-white text-slate-900 border border-[#E5E7EB] shadow-2xs"
+                                : "text-slate-500 hover:bg-slate-200/50 hover:text-slate-900"
+                            }`}
+                          >
+                            <Building2 className="w-4 h-4 stroke-[1.8]" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="font-medium text-xs">
+                          Logo Mitra
+                        </TooltipContent>
+                      </Tooltip>
+                    ) : (
                       <button
                         type="button"
                         onClick={() =>
                           setActiveTab("Pengaturan Web", "Logo Mitra")
                         }
-                        className="flex items-center justify-between w-full px-2.5 py-2 cursor-pointer text-left"
+                        className={`flex items-center gap-2.5 px-2.5 py-2 w-full rounded-lg text-[13px] transition-all cursor-pointer text-left ${
+                          isActive
+                            ? "bg-white text-slate-900 font-semibold border border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
+                            : "text-slate-600 hover:bg-slate-200/40 hover:text-slate-900 font-medium"
+                        }`}
                       >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <Building2 className="w-4 h-4 text-slate-400 shrink-0" />
-                          <span className="text-xs truncate">Logo Mitra</span>
-                        </div>
-                        <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-md shrink-0">
-                          Mitra
-                        </span>
+                        <Building2
+                          className={`w-4 h-4 shrink-0 stroke-[1.8] ${
+                            isActive ? "text-slate-800" : "text-slate-500"
+                          }`}
+                        />
+                        <span className="truncate">Logo Mitra</span>
                       </button>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )
-              })()}
-            </SidebarMenu>
-          </SidebarGroup>
+                    )
+                  })()}
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroup>
+          </div>
 
-          {/* GROUP 3: SUPPORT */}
-          <SidebarGroup className="p-0">
-            <SidebarGroupLabel className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2.5 py-1">
-              SUPPORT
-            </SidebarGroupLabel>
+          {/* GROUP 3: SUPPORT (Anchored at bottom matching Kravio screenshot) */}
+          <SidebarGroup className="p-0 pt-4 mt-auto">
+            {!isCollapsed && (
+              <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-2 h-6">
+                SUPPORT
+              </SidebarGroupLabel>
+            )}
+
             <SidebarMenu className="space-y-0.5 mt-0.5">
-              {/* Pusat Bantuan */}
               <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  className="text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium rounded-xl transition"
-                >
+                {isCollapsed ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={() => setIsHelpModalOpen(true)}
+                        className="w-8 h-8 mx-auto rounded-lg flex items-center justify-center text-slate-500 hover:bg-slate-200/50 hover:text-slate-900 transition cursor-pointer"
+                      >
+                        <Headphones className="w-4 h-4 stroke-[1.8]" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="font-medium text-xs">
+                      Help & Support
+                    </TooltipContent>
+                  </Tooltip>
+                ) : (
                   <button
                     type="button"
                     onClick={() => setIsHelpModalOpen(true)}
-                    className="flex items-center gap-2.5 px-2.5 py-2 w-full cursor-pointer text-left"
+                    className="flex items-center gap-2.5 px-2.5 py-2 w-full rounded-lg text-[13px] font-medium text-slate-600 hover:bg-slate-200/40 hover:text-slate-900 transition cursor-pointer text-left"
                   >
-                    <HelpCircle className="w-4 h-4 text-slate-400 shrink-0" />
-                    <span className="text-xs truncate">Bantuan & Panduan</span>
+                    <Headphones className="w-4 h-4 text-slate-500 shrink-0 stroke-[1.8]" />
+                    <span className="truncate">Help & Support</span>
                   </button>
-                </SidebarMenuButton>
+                )}
               </SidebarMenuItem>
 
-              {/* Settings: Edit Profil Admin */}
               <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  className="text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium rounded-xl transition"
-                >
+                {isCollapsed ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={() => setIsEditProfileOpen(true)}
+                        className="w-8 h-8 mx-auto rounded-lg flex items-center justify-center text-slate-500 hover:bg-slate-200/50 hover:text-slate-900 transition cursor-pointer"
+                      >
+                        <Settings className="w-4 h-4 stroke-[1.8]" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="font-medium text-xs">
+                      Settings
+                    </TooltipContent>
+                  </Tooltip>
+                ) : (
                   <button
                     type="button"
                     onClick={() => setIsEditProfileOpen(true)}
-                    className="flex items-center gap-2.5 px-2.5 py-2 w-full cursor-pointer text-left"
+                    className="flex items-center gap-2.5 px-2.5 py-2 w-full rounded-lg text-[13px] font-medium text-slate-600 hover:bg-slate-200/40 hover:text-slate-900 transition cursor-pointer text-left"
                   >
-                    <Settings className="w-4 h-4 text-slate-400 shrink-0" />
-                    <span className="text-xs truncate">Pengaturan Akun</span>
+                    <Settings className="w-4 h-4 text-slate-500 shrink-0 stroke-[1.8]" />
+                    <span className="truncate">Settings</span>
                   </button>
-                </SidebarMenuButton>
+                )}
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroup>
         </SidebarContent>
 
-        {/* 3. Footer: Kravio User Profile Card */}
-        <SidebarFooter className="p-2 border-t border-[#f1f3f5]">
+        {/* 3. Footer: Kravio White User Profile Card with Online Green Dot */}
+        <SidebarFooter className="px-3 pb-3 pt-1 bg-[#F8F9FA] shrink-0">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                className="w-full p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition flex items-center justify-between cursor-pointer group text-left shadow-2xs"
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-full bg-[#111827] text-[#D4F63D] font-bold text-xs flex items-center justify-center shrink-0 border border-slate-200 overflow-hidden">
-                    {user?.avatarUrl || user?.image ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={user.avatarUrl || user.image || ""}
-                        alt={adminName}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      adminInitial
-                    )}
-                  </div>
-                  <div className="min-w-0 group-data-[collapsible=icon]:hidden">
-                    <div className="text-xs font-bold text-slate-900 truncate leading-tight">
-                      {adminName}
+              {isCollapsed ? (
+                <button
+                  type="button"
+                  className="relative w-8 h-8 mx-auto rounded-full bg-slate-200/80 text-slate-700 font-semibold text-xs flex items-center justify-center border border-slate-300/80 cursor-pointer hover:ring-2 hover:ring-slate-300 transition"
+                  title={`Profil: ${adminName}`}
+                >
+                  {user?.avatarUrl || user?.image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={user.avatarUrl || user.image || ""}
+                      alt={adminName}
+                      className="w-full h-full rounded-full object-cover"
+                    />
+                  ) : (
+                    adminInitials
+                  )}
+                  <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="w-full p-2 rounded-xl border border-[#E5E7EB] bg-white hover:bg-slate-50/80 transition flex items-center justify-between cursor-pointer text-left shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="relative w-8 h-8 rounded-full bg-[#F1F5F9] text-slate-700 font-semibold text-[11px] flex items-center justify-center shrink-0 border border-slate-200">
+                      {user?.avatarUrl || user?.image ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={user.avatarUrl || user.image || ""}
+                          alt={adminName}
+                          className="w-full h-full rounded-full object-cover"
+                        />
+                      ) : (
+                        adminInitials
+                      )}
+                      <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
                     </div>
-                    <div className="text-[10px] text-slate-400 truncate mt-0.5">
-                      {adminEmail}
+                    <div className="min-w-0">
+                      <div className="text-[12.5px] font-semibold text-slate-800 truncate leading-tight">
+                        {adminName}
+                      </div>
+                      <div className="text-[11px] text-slate-400 truncate mt-0.5">
+                        {adminEmail}
+                      </div>
                     </div>
                   </div>
-                </div>
-                <ChevronsUpDown className="w-3.5 h-3.5 text-slate-400 shrink-0 group-data-[collapsible=icon]:hidden" />
-              </button>
+                  <ChevronsUpDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                </button>
+              )}
             </DropdownMenuTrigger>
+
             <DropdownMenuContent
               side="top"
-              align="start"
-              className="w-60 rounded-2xl p-1.5 shadow-xl border-slate-200 bg-white z-50 text-xs"
+              align={isCollapsed ? "center" : "start"}
+              className="w-56 rounded-xl p-1.5 shadow-lg border-slate-200 bg-white z-50 text-xs"
             >
               <DropdownMenuLabel className="px-2.5 py-1.5">
-                <div className="font-bold text-slate-900">{adminName}</div>
-                <div className="text-[10px] text-slate-400 font-normal">{adminEmail}</div>
+                <div className="font-semibold text-slate-900">{adminName}</div>
+                <div className="text-[11px] text-slate-400 font-normal">{adminEmail}</div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator className="my-1 border-slate-100" />
               <DropdownMenuItem
@@ -691,7 +918,6 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
         <SidebarRail />
       </Sidebar>
 
-      {/* Admin Profile Modal */}
       <AdminProfileModal
         isOpen={isEditProfileOpen}
         onClose={() => setIsEditProfileOpen(false)}
@@ -704,12 +930,11 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
         onUserUpdated={() => {}}
       />
 
-      {/* Help & Operational Guide Modal */}
       {isHelpModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl p-6 max-w-md w-full shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 max-w-md w-full shadow-2xl">
             <div className="flex items-center gap-2.5 mb-3">
-              <div className="w-9 h-9 rounded-xl bg-[#111827] text-[#D4F63D] flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-xl bg-slate-900 text-white flex items-center justify-center shrink-0">
                 <HelpCircle className="w-5 h-5" />
               </div>
               <div>
@@ -721,7 +946,7 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
                 </p>
               </div>
             </div>
-            <div className="space-y-2.5 text-xs text-slate-600 my-4 leading-relaxed bg-slate-50 p-4 rounded-2xl border border-slate-200">
+            <div className="space-y-2.5 text-xs text-slate-600 my-4 leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-200">
               <p>
                 <strong>1. Verifikasi Pesanan Kasir:</strong> Pembeli tunai akan
                 mengambil barang di gudang. Cocokkan ID pesanan sebelum serah terima
@@ -739,13 +964,13 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
             <button
               type="button"
               onClick={() => setIsHelpModalOpen(false)}
-              className="w-full py-2.5 rounded-xl bg-[#111827] hover:bg-slate-800 text-white text-xs font-semibold transition cursor-pointer"
+              className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition cursor-pointer"
             >
               Tutup Panduan
             </button>
           </div>
         </div>
       )}
-    </>
+    </TooltipProvider>
   )
 }

@@ -27,18 +27,23 @@ export async function GET() {
         avatarUrl: true,
         role: true,
         isVerified: true,
-        hasPassword: true,
+        password: true,
         createdAt: true,
-      } as any,
+      },
     });
 
     if (!admin) {
       return NextResponse.json({ error: 'Data admin tidak ditemukan' }, { status: 404 });
     }
 
+    const { password, ...adminData } = admin;
+
     return NextResponse.json({
       success: true,
-      user: admin,
+      user: {
+        ...adminData,
+        hasPassword: Boolean(password),
+      },
     });
   } catch (error) {
     console.error('Error saat mengambil data profil admin:', error);
