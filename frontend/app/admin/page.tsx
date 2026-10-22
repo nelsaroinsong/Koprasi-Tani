@@ -160,12 +160,6 @@ export default function AdminPage() {
         <div className="h-36 sm:h-44 w-full rounded-3xl overflow-hidden relative shadow-sm bg-gradient-to-r from-[#ea580c] via-[#db2777] to-[#15803d]">
           {/* Subtle noise/radial lighting mesh */}
           <div className="absolute inset-0 bg-radial from-white/20 via-transparent to-black/25 mix-blend-overlay pointer-events-none" />
-          <div className="absolute top-4 right-4 sm:top-5 sm:right-6 flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/25 backdrop-blur-md border border-white/20 text-[11px] font-semibold text-white">
-              <Sprout className="w-3.5 h-3.5 text-[#D4F63D]" />
-              <span>Minahasa Utara • Agribisnis Terpadu</span>
-            </span>
-          </div>
         </div>
 
         {/* 2. Overlapping Administrator Identity Card (Exact Style from Reference Image 1) */}
