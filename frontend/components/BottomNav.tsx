@@ -7,7 +7,7 @@ import { motion, AnimatePresence, LayoutGroup } from 'motion/react';
 import {
   Store,
   Tractor,
-  Receipt,
+  Package,
   User as UserIcon,
   LayoutDashboard,
 } from 'lucide-react';
@@ -99,7 +99,7 @@ export default function BottomNav({ activePage }: BottomNavProps) {
       key: 'pesanan',
       label: 'Pesanan',
       href: '/pesanan',
-      icon: Receipt,
+      icon: Package,
     },
     ...(isPetani
       ? [

@@ -8,7 +8,7 @@ import {
   ChevronLeft,
   ChevronDown,
   ChevronUp,
-  Receipt,
+  ReceiptText,
   Tractor,
   TrendingUp,
   ArrowRight,
@@ -270,7 +270,7 @@ export default function TransactionDetailPage({
         ) : !txData ? (
           <div className="p-10 bg-white rounded-2xl border border-[#dce1d6] text-center space-y-4">
             <div className="w-14 h-14 rounded-2xl bg-[#EAEDE7] border border-[#cfd6c9] text-[#526046] flex items-center justify-center mx-auto">
-              <Receipt className="w-7 h-7" />
+              <ReceiptText className="w-7 h-7" />
             </div>
             <h2 className="text-base font-bold text-[#1a2610]">Transaksi Tidak Ditemukan</h2>
             <p className="text-xs text-[#5b6950] max-w-xs mx-auto">

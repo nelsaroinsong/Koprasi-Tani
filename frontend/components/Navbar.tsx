@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { LogIn, Menu, X, ShoppingBag, Tractor, Receipt, LogOut, User as UserIcon } from 'lucide-react';
+import { LogIn, Menu, X, ShoppingBag, Tractor, LogOut, User as UserIcon } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import UserProfileDropdown from '@/components/UserProfileDropdown';
 

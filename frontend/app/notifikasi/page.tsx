@@ -8,7 +8,7 @@ import {
   BellOff,
   ArrowLeft,
   CheckCheck,
-  Receipt,
+  Package,
   Tractor,
   Sparkles,
   ChevronRight,
@@ -205,7 +205,7 @@ export default function NotifikasiPage() {
     }
     return (
       <div className="w-10 h-10 rounded-2xl bg-[#eef7ee] border border-[#cbe4cb] text-emerald-800 flex items-center justify-center shrink-0">
-        <Receipt className="w-4 h-4" />
+        <Package className="w-4 h-4" />
       </div>
     );
   };

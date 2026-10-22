@@ -1,11 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Search,
   Bell,
-  HelpCircle,
-  Clock,
   ShieldCheck,
   Check,
   ExternalLink,
@@ -38,40 +36,10 @@ interface AdminTopHeaderProps {
 
 export function AdminTopHeader({ user }: AdminTopHeaderProps) {
   const { setActiveTab } = useAdmin();
-  const [currentTime, setCurrentTime] = useState<string>('');
-  const [currentDate, setCurrentDate] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
-  const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [hasUnreadNotification, setHasUnreadNotification] = useState(true);
-
-  // Live real-time clock updating every second
-  useEffect(() => {
-    const updateTime = () => {
-      const now = new Date();
-      setCurrentTime(
-        now.toLocaleTimeString('id-ID', {
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-          hour12: false,
-        }) + ' WITA'
-      );
-      setCurrentDate(
-        now.toLocaleDateString('id-ID', {
-          weekday: 'short',
-          day: 'numeric',
-          month: 'short',
-          year: 'numeric',
-        })
-      );
-    };
-
-    updateTime();
-    const interval = setInterval(updateTime, 1000);
-    return () => clearInterval(interval);
-  }, []);
 
   const adminName = user?.name || 'Administrator Koperasi';
   const adminEmail = user?.email || 'admin@sinarpagisejahtera.co.id';
@@ -152,30 +120,8 @@ export function AdminTopHeader({ user }: AdminTopHeaderProps) {
           </div>
         </div>
 
-        {/* Center Section: Live Realtime Clock & Cooperative Tagline (Exact Match to Image 1) */}
-        <div className="hidden md:flex flex-col items-center justify-center text-center px-2">
-          <div className="flex items-center gap-1.5 text-xs font-bold text-[#1a2610] tabular-nums tracking-tight">
-            <Clock className="w-3.5 h-3.5 text-[#344d15]" />
-            <span>{currentTime || '08:00 WITA'}</span>
-          </div>
-          <span className="text-[10px] text-[#708063] font-medium leading-none mt-0.5">
-            Minahasa Utara • Agribisnis Terpadu
-          </span>
-        </div>
-
-        {/* Right Section: Help Pill + Notifications + Profile Pill */}
+        {/* Right Section: Notifications + Profile Pill */}
         <div className="flex items-center gap-2.5 shrink-0">
-          {/* Need Help? Action Pill (Matching Reference Image 1) */}
-          <button
-            type="button"
-            onClick={() => setIsHelpOpen(true)}
-            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#f4f5f1] hover:bg-[#EAEDE7] border border-[#dce1d6] text-xs font-semibold text-[#344d15] hover:text-[#233414] transition cursor-pointer"
-            title="Pusat Bantuan & Panduan Administrator"
-          >
-            <HelpCircle className="w-3.5 h-3.5 text-[#526046]" />
-            <span>Butuh bantuan?</span>
-          </button>
-
           {/* Notification Bell with Badge (Matching Reference Image 1) */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -299,41 +245,6 @@ export function AdminTopHeader({ user }: AdminTopHeaderProps) {
         }}
         onUserUpdated={() => {}}
       />
-
-      {/* Help Modal */}
-      {isHelpOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-[#dce1d6] rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center gap-2.5 mb-3">
-              <div className="w-9 h-9 rounded-xl bg-[#233414] text-[#D4F63D] flex items-center justify-center shrink-0">
-                <HelpCircle className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-[#1a2610]">Panduan Admin Koperasi</h3>
-                <p className="text-xs text-[#526046]">Sistem Informasi Koperasi Sinar Pagi Sejahtera</p>
-              </div>
-            </div>
-            <div className="space-y-2.5 text-xs text-[#526046] my-4 leading-relaxed bg-[#f4f5f1] p-3.5 rounded-2xl border border-[#dce1d6]">
-              <p>
-                <strong>1. Verifikasi Pesanan:</strong> Setiap pembeli yang memilih tunai akan mengambil barang di gudang. Cocokkan ID pesanan sebelum menyerahkan komoditas fisik.
-              </p>
-              <p>
-                <strong>2. Bagi Hasil Petani:</strong> Petani yang komoditasnya telah laku berhak menerima uang tunai di kantor/gudang. Catat serah terima pada menu <em>Bagi Hasil Petani</em>.
-              </p>
-              <p>
-                <strong>3. Kontak Darurat IT:</strong> Hubungi admin sistem jika terdapat kendala operasional database.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setIsHelpOpen(false)}
-              className="w-full py-2.5 rounded-xl bg-[#233414] hover:bg-[#344d15] text-white text-xs font-semibold transition cursor-pointer"
-            >
-              Tutup Panduan
-            </button>
-          </div>
-        </div>
-      )}
     </>
   );
 }

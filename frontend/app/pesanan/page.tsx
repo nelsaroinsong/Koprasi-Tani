@@ -22,7 +22,6 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
-  Receipt,
   Building2,
   Phone,
   Loader2,

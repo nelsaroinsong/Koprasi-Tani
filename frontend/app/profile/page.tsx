@@ -17,7 +17,7 @@ import {
   ChevronRight,
   Store,
   LocateFixed,
-  Receipt,
+  ReceiptText,
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
@@ -628,7 +628,7 @@ export default function ProfilePage() {
               >
                 <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
                   <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-[#e2f2c8] text-[#233414] flex items-center justify-center shrink-0 border border-[#c9e39e]">
-                    <Receipt className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    <ReceiptText className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </div>
                   <div className="min-w-0">
                     <div className="text-xs sm:text-sm font-bold text-[#1a2610] group-hover:text-[#344d15] transition truncate">

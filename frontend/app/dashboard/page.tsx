@@ -13,7 +13,7 @@ import {
   Loader2,
   Clock,
   Search,
-  Receipt,
+  ReceiptText,
   ArrowUpRight,
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
@@ -327,7 +327,7 @@ export default function DashboardPetaniPage() {
                   : 'text-[#526046] hover:text-[#1a2610]'
               }`}
             >
-              <Receipt className={`w-3.5 h-3.5 ${activeSection === 'PENJUALAN' ? 'text-[#D4F63D]' : 'text-[#526046]'}`} />
+              <ReceiptText className={`w-3.5 h-3.5 ${activeSection === 'PENJUALAN' ? 'text-[#D4F63D]' : 'text-[#526046]'}`} />
               <span>Penjualan</span>
               <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-black tabular-nums ${
                 activeSection === 'PENJUALAN'

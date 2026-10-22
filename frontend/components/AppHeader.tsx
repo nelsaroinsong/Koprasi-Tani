@@ -8,7 +8,7 @@ import {
   ShoppingBag,
   ShoppingCart,
   Tractor,
-  Receipt,
+  Package,
   LogIn,
   User as UserIcon,
   LayoutDashboard,
@@ -146,7 +146,7 @@ export default function AppHeader({
         key: 'pesanan',
         label: 'Pesanan',
         href: '/pesanan',
-        icon: Receipt,
+        icon: Package,
       },
       ...(user?.role === 'PETANI'
         ? [

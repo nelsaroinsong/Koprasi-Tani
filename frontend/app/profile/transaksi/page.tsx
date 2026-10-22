@@ -10,7 +10,7 @@ import {
   X,
   Tractor,
   TrendingUp,
-  Receipt,
+  ReceiptText,
   Building2,
   Calendar,
   ExternalLink,
@@ -399,7 +399,7 @@ export default function TransactionHistoryPage() {
             ) : groupKeys.length === 0 ? (
               <div className="py-16 text-center space-y-3">
                 <div className="w-14 h-14 rounded-2xl bg-[#EAEDE7] border border-[#cfd6c9] text-[#526046] flex items-center justify-center mx-auto">
-                  <Receipt className="w-7 h-7" />
+                  <ReceiptText className="w-7 h-7" />
                 </div>
                 <h3 className="text-sm font-bold text-[#1a2610]">Belum Ada Transaksi</h3>
                 <p className="text-xs text-[#5b6950] max-w-xs mx-auto">
@@ -503,7 +503,7 @@ export default function TransactionHistoryPage() {
           <div className="w-full max-w-sm sm:max-w-md bg-white rounded-2xl border border-[#dce1d6] shadow-xl overflow-hidden p-5 sm:p-6 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-[#EAEDE7]">
               <div className="flex items-center gap-2">
-                <Receipt className="w-4 h-4 text-[#233414]" />
+                <ReceiptText className="w-4 h-4 text-[#233414]" />
                 <h3 className="text-sm font-black text-[#1a2610]">Rincian Transaksi</h3>
               </div>
               <button

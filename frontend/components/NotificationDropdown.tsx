@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   Bell,
   CheckCheck,
-  Receipt,
+  Package,
   Sparkles,
   ChevronRight,
   X,
@@ -230,7 +230,7 @@ export default function NotificationDropdown() {
     if (notif.id.startsWith('rental')) {
       return <Tractor className="w-4 h-4 text-amber-700" />;
     }
-    return <Receipt className="w-4 h-4 text-emerald-700" />;
+    return <Package className="w-4 h-4 text-emerald-700" />;
   };
 
   const filteredNotifications = notifications.filter((n) => {

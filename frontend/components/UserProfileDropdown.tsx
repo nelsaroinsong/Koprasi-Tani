@@ -9,7 +9,6 @@ import {
   ChevronUp,
   MapPin,
   CheckCircle2,
-  Receipt,
   LogOut,
   ChevronRight,
   ShoppingCart,
