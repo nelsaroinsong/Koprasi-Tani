@@ -112,3 +112,72 @@ export async function PATCH(
     );
   }
 }
+
+// 2. DELETE: Hapus 1 pesanan berdasarkan ID
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await auth();
+
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Tidak terotentikasi' }, { status: 401 });
+    }
+
+    if ((session.user as any).role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Akses khusus administrator' }, { status: 403 });
+    }
+
+    const { id } = await params;
+
+    const existingOrder = await prisma.order.findUnique({
+      where: { id },
+      include: { items: true },
+    });
+
+    if (!existingOrder) {
+      return NextResponse.json({ error: 'Pesanan tidak ditemukan' }, { status: 404 });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      // Kembalikan stok jika belum dibatalkan/selesai
+      if (existingOrder.status !== 'DIBATALKAN' && existingOrder.status !== 'SELESAI') {
+        for (const item of existingOrder.items) {
+          await tx.product
+            .update({
+              where: { id: item.productId },
+              data: {
+                stok: {
+                  increment: item.quantity,
+                },
+              },
+            })
+            .catch(() => {});
+        }
+      }
+
+      await tx.order.delete({
+        where: { id },
+      });
+    });
+
+    // Invalidate Redis caches
+    await Promise.all([
+      delCachePattern('admin:orders:*'),
+      delCachePattern('user:orders:*'),
+      delCachePattern('products:*'),
+    ]).catch(() => {});
+
+    return NextResponse.json({
+      success: true,
+      message: `Pesanan #${existingOrder.orderNumber} berhasil dihapus.`,
+    });
+  } catch (error: any) {
+    console.error('Error saat menghapus pesanan admin:', error);
+    return NextResponse.json(
+      { error: error.message || 'Gagal menghapus pesanan' },
+      { status: 500 }
+    );
+  }
+}

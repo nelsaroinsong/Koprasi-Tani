@@ -9,7 +9,6 @@ import {
   Tag,
   FolderTree,
   Building2,
-  Headphones,
   Settings,
   Search,
   ChevronDown,
@@ -18,7 +17,6 @@ import {
   LogOut,
   UserCog,
   ExternalLink,
-  HelpCircle,
 } from "lucide-react"
 
 import {
@@ -112,7 +110,6 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
   const [isSearchOpen, setIsSearchOpen] = React.useState(false)
   const [searchQuery, setSearchQuery] = React.useState("")
   const [isEditProfileOpen, setIsEditProfileOpen] = React.useState(false)
-  const [isHelpModalOpen, setIsHelpModalOpen] = React.useState(false)
 
   // Collapsible Menu States
   const [isTransaksiOpen, setIsTransaksiOpen] = React.useState(true)
@@ -187,8 +184,8 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
                       className="w-full h-full object-contain"
                     />
                   </div>
-                  <span className="truncate font-bold text-slate-900 text-[15px] tracking-tight">
-                    Koperasi SPS
+                  <span className="truncate font-bold text-slate-900 text-[14px] tracking-tight">
+                    Sinar Pagi Sejahtera
                   </span>
                 </div>
 
@@ -273,7 +270,7 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="right" className="font-semibold text-xs">
-                  Koperasi SPS (Buka Sidebar)
+                  Sinar Pagi Sejahtera (Buka Sidebar)
                 </TooltipContent>
               </Tooltip>
 
@@ -771,34 +768,6 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
                     <TooltipTrigger asChild>
                       <button
                         type="button"
-                        onClick={() => setIsHelpModalOpen(true)}
-                        className="w-8 h-8 mx-auto rounded-lg flex items-center justify-center text-slate-500 hover:bg-slate-200/50 hover:text-slate-900 transition cursor-pointer"
-                      >
-                        <Headphones className="w-4 h-4 stroke-[1.8]" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="right" className="font-medium text-xs">
-                      Help & Support
-                    </TooltipContent>
-                  </Tooltip>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setIsHelpModalOpen(true)}
-                    className="flex items-center gap-2.5 px-2.5 py-2 w-full rounded-lg text-[13px] font-medium text-slate-600 hover:bg-slate-200/40 hover:text-slate-900 transition cursor-pointer text-left"
-                  >
-                    <Headphones className="w-4 h-4 text-slate-500 shrink-0 stroke-[1.8]" />
-                    <span className="truncate">Help & Support</span>
-                  </button>
-                )}
-              </SidebarMenuItem>
-
-              <SidebarMenuItem>
-                {isCollapsed ? (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
                         onClick={() => setIsEditProfileOpen(true)}
                         className="w-8 h-8 mx-auto rounded-lg flex items-center justify-center text-slate-500 hover:bg-slate-200/50 hover:text-slate-900 transition cursor-pointer"
                       >
@@ -929,48 +898,6 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
         }}
         onUserUpdated={() => {}}
       />
-
-      {isHelpModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 max-w-md w-full shadow-2xl">
-            <div className="flex items-center gap-2.5 mb-3">
-              <div className="w-9 h-9 rounded-xl bg-slate-900 text-white flex items-center justify-center shrink-0">
-                <HelpCircle className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-slate-900">
-                  Panduan Pengurus Koperasi
-                </h3>
-                <p className="text-xs text-slate-500">
-                  Sinar Pagi Sejahtera • Minahasa Utara
-                </p>
-              </div>
-            </div>
-            <div className="space-y-2.5 text-xs text-slate-600 my-4 leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-200">
-              <p>
-                <strong>1. Verifikasi Pesanan Kasir:</strong> Pembeli tunai akan
-                mengambil barang di gudang. Cocokkan ID pesanan sebelum serah terima
-                komoditas fisik.
-              </p>
-              <p>
-                <strong>2. Bagi Hasil Petani:</strong> Petani berhak menerima uang tunai
-                di kantor/gudang setelah hasil panen terjual.
-              </p>
-              <p>
-                <strong>3. Bantuan IT:</strong> Hubungi admin sistem jika terdapat
-                kendala sinkronisasi data komoditas atau database.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setIsHelpModalOpen(false)}
-              className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition cursor-pointer"
-            >
-              Tutup Panduan
-            </button>
-          </div>
-        </div>
-      )}
     </TooltipProvider>
   )
 }

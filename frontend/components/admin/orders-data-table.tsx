@@ -29,6 +29,11 @@ import {
   Zap,
   Gauge,
   ArrowUpDown,
+  Trash2,
+  Eye,
+  Download,
+  AlertTriangle,
+  Loader2,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useDebounce } from '@/hooks/use-debounce';
@@ -38,6 +43,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
 
 interface OrdersDataTableProps {
@@ -73,7 +80,7 @@ export function OrdersDataTable({ hideCards = false }: OrdersDataTableProps) {
     totalCount: 0,
     totalPages: 1,
     currentPage: 1,
-    limit: 8,
+    limit: 10,
   });
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -84,12 +91,28 @@ export function OrdersDataTable({ hideCards = false }: OrdersDataTableProps) {
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
+  // States untuk Hapus Tunggal & Hapus Masal
+  const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
+  const [orderToDelete, setOrderToDelete] = useState<any | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const headerCheckboxRef = useRef<HTMLInputElement>(null);
   const debouncedSearch = useDebounce(searchQuery, 300);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     setCurrentPage(1);
   }, [debouncedSearch, filterStatus]);
+
+  // Efek indeterminate untuk checkbox header
+  const isAllSelected = orders.length > 0 && selectedOrders.length === orders.length;
+  const isSomeSelected = selectedOrders.length > 0 && !isAllSelected;
+
+  useEffect(() => {
+    if (headerCheckboxRef.current) {
+      headerCheckboxRef.current.indeterminate = isSomeSelected;
+    }
+  }, [isSomeSelected]);
 
   const fetchOrders = useCallback(async () => {
     if (abortControllerRef.current) {
@@ -102,7 +125,7 @@ export function OrdersDataTable({ hideCards = false }: OrdersDataTableProps) {
       setIsLoading(true);
       const params = new URLSearchParams({
         page: String(currentPage),
-        limit: '8',
+        limit: '10',
       });
 
       if (debouncedSearch) {
@@ -193,6 +216,122 @@ export function OrdersDataTable({ hideCards = false }: OrdersDataTableProps) {
     setSelectedOrders((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
     );
+  };
+
+  // Fungsi Hapus Masal (Bulk Delete)
+  const handleBulkDelete = async () => {
+    if (selectedOrders.length === 0) return;
+    try {
+      setIsDeleting(true);
+      const res = await fetch('/api/admin/orders', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderIds: selectedOrders }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Gagal menghapus pesanan terpilih');
+      }
+
+      showToast({
+        title: 'Pesanan Dihapus',
+        message: data.message || `${selectedOrders.length} pesanan berhasil dihapus`,
+        type: 'success',
+      });
+
+      setSelectedOrders([]);
+      setIsBulkDeleteOpen(false);
+      fetchOrders();
+    } catch (err: any) {
+      showToast({
+        title: 'Gagal Menghapus',
+        message: err.message || 'Terjadi kesalahan saat menghapus pesanan',
+        type: 'error',
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Fungsi Hapus Tunggal
+  const handleSingleDelete = async () => {
+    if (!orderToDelete) return;
+    try {
+      setIsDeleting(true);
+      const res = await fetch(`/api/admin/orders/${orderToDelete.id}`, {
+        method: 'DELETE',
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Gagal menghapus pesanan');
+      }
+
+      showToast({
+        title: 'Pesanan Dihapus',
+        message: data.message || `Pesanan #${orderToDelete.orderNumber} berhasil dihapus`,
+        type: 'success',
+      });
+
+      setSelectedOrders((prev) => prev.filter((id) => id !== orderToDelete.id));
+      if (selectedOrder?.id === orderToDelete.id) {
+        setSelectedOrder(null);
+      }
+      setOrderToDelete(null);
+      fetchOrders();
+    } catch (err: any) {
+      showToast({
+        title: 'Gagal Menghapus',
+        message: err.message || 'Terjadi kesalahan saat menghapus pesanan',
+        type: 'error',
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Fungsi Ekspor CSV
+  const handleExportCSV = () => {
+    if (orders.length === 0) {
+      showToast('Tidak ada data pesanan untuk diekspor');
+      return;
+    }
+
+    const headers = [
+      'Ticket ID',
+      'Komoditas',
+      'Metode Pembayaran',
+      'Pembeli',
+      'Status',
+      'Tanggal',
+      'Total (Rp)',
+    ];
+
+    const rows = orders.map((o) => [
+      `#${o.orderNumber}`,
+      `"${(o.items?.map((it: any) => it.namaProduk).join('; ') || 'Komoditas Koperasi').replace(/"/g, '""')}"`,
+      o.paymentMethod === 'CASH_KOPERASI' ? 'Tunai Kasir' : 'Transfer',
+      `"${(o.pembeli?.name || 'Pembeli Umum').replace(/"/g, '""')}"`,
+      o.status,
+      new Date(o.createdAt).toISOString().split('T')[0],
+      Number(o.totalAmount),
+    ]);
+
+    const csvContent =
+      'data:text/csv;charset=utf-8,' +
+      [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute(
+      'download',
+      `pesanan-koperasi-${new Date().toISOString().slice(0, 10)}.csv`
+    );
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast('Daftar pesanan berhasil diekspor ke CSV');
   };
 
   // Signal bars indicator matching Priority column in Kravio reference image
@@ -494,18 +633,108 @@ export function OrdersDataTable({ hideCards = false }: OrdersDataTableProps) {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Three Dots / Refresh Button */}
+            {/* Refresh Button */}
             <button
               type="button"
               onClick={fetchOrders}
               disabled={isLoading}
               className="w-8 h-8 rounded-lg border border-[#E5E7EB] bg-white hover:bg-slate-50 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,0.02)] shrink-0"
-              title="Segarkan Data"
+              title="Segarkan Data Tabel"
             >
-              <MoreVertical className="w-3.5 h-3.5" />
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-slate-800' : ''}`} />
             </button>
+
+            {/* Three Dots Menu Tabel */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="w-8 h-8 rounded-lg border border-[#E5E7EB] bg-white hover:bg-slate-50 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,0.02)] shrink-0"
+                  title="Menu Opsi Tabel"
+                >
+                  <MoreVertical className="w-3.5 h-3.5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="w-48 rounded-xl p-1 bg-white border border-slate-200 shadow-lg text-xs z-50"
+              >
+                <DropdownMenuItem
+                  onClick={fetchOrders}
+                  className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-slate-700 hover:bg-slate-100"
+                >
+                  <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Segarkan Tabel</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={handleExportCSV}
+                  className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-slate-700 hover:bg-slate-100"
+                >
+                  <Download className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Ekspor CSV</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="my-1 border-slate-100" />
+                <DropdownMenuItem
+                  onClick={() => setSelectedOrders(orders.map((o) => o.id))}
+                  className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-slate-700 hover:bg-slate-100"
+                >
+                  <Check className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Pilih Semua di Halaman</span>
+                </DropdownMenuItem>
+                {selectedOrders.length > 0 && (
+                  <>
+                    <DropdownMenuItem
+                      onClick={() => setSelectedOrders([])}
+                      className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-slate-700 hover:bg-slate-100"
+                    >
+                      <XCircle className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Batalkan Pilihan (0)</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator className="my-1 border-slate-100" />
+                    <DropdownMenuItem
+                      onClick={() => setIsBulkDeleteOpen(true)}
+                      className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-rose-600 hover:bg-rose-50"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                      <span>Hapus Terpilih ({selectedOrders.length})</span>
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
+
+        {/* Bulk Action Bar saat ada pesanan yang dipilih */}
+        {selectedOrders.length > 0 && (
+          <div className="mx-3 mb-2.5 px-3.5 py-2 bg-slate-900 text-white rounded-xl flex items-center justify-between text-xs shadow-sm animate-in fade-in">
+            <div className="flex items-center gap-2.5">
+              <span className="w-5 h-5 rounded-full bg-white/20 text-white font-bold flex items-center justify-center text-[11px]">
+                {selectedOrders.length}
+              </span>
+              <span className="font-medium text-slate-100">
+                {selectedOrders.length} pesanan dipilih
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setSelectedOrders([])}
+                className="px-2.5 py-1 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition cursor-pointer font-medium"
+              >
+                Batalkan Pilihan
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsBulkDeleteOpen(true)}
+                className="px-3 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-medium flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Hapus Semua Terpilih ({selectedOrders.length})</span>
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Inner White Table Box */}
         <div className="bg-white rounded-xl border border-[#ECEEF2] shadow-[0_1px_2px_rgba(0,0,0,0.02)] overflow-hidden">
@@ -515,8 +744,9 @@ export function OrdersDataTable({ hideCards = false }: OrdersDataTableProps) {
                 <TableRow className="border-[#F1F3F5] hover:bg-transparent">
                   <TableHead className="w-10 text-center py-3">
                     <input
+                      ref={headerCheckboxRef}
                       type="checkbox"
-                      checked={selectedOrders.length === orders.length && orders.length > 0}
+                      checked={orders.length > 0 && selectedOrders.length === orders.length}
                       onChange={handleSelectAll}
                       className="w-3.5 h-3.5 rounded border-slate-300 accent-[#18181B] cursor-pointer"
                     />
@@ -582,10 +812,8 @@ export function OrdersDataTable({ hideCards = false }: OrdersDataTableProps) {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  orders.map((order, idx) => {
-                    const isSelected =
-                      selectedOrders.includes(order.id) ||
-                      (selectedOrders.length === 0 && idx === 0);
+                  orders.map((order) => {
+                    const isSelected = selectedOrders.includes(order.id);
                     const itemsSummary =
                       order.items?.map((it: any) => it.namaProduk).join(', ') ||
                       'Komoditas Koperasi';
@@ -597,7 +825,9 @@ export function OrdersDataTable({ hideCards = false }: OrdersDataTableProps) {
                       <TableRow
                         key={order.id}
                         onClick={() => setSelectedOrder(order)}
-                        className="cursor-pointer transition border-[#F3F4F6] hover:bg-[#F9FAFB]"
+                        className={`cursor-pointer transition border-[#F3F4F6] ${
+                          isSelected ? 'bg-slate-50/80 hover:bg-slate-100/70' : 'hover:bg-[#F9FAFB]'
+                        }`}
                       >
                         <TableCell
                           className="text-center py-3.5"
@@ -662,18 +892,79 @@ export function OrdersDataTable({ hideCards = false }: OrdersDataTableProps) {
 
                         <TableCell
                           className="py-3.5 text-center pr-3"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedOrder(order);
-                          }}
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          <button
-                            type="button"
-                            className="w-7 h-7 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center transition cursor-pointer mx-auto"
-                            title="Detail Pesanan"
-                          >
-                            <MoreVertical className="w-3.5 h-3.5" />
-                          </button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button
+                                type="button"
+                                className="w-7 h-7 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center transition cursor-pointer mx-auto"
+                                title="Aksi Pesanan"
+                              >
+                                <MoreVertical className="w-3.5 h-3.5" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                              align="end"
+                              className="w-48 rounded-xl p-1 bg-white border border-slate-200 shadow-lg text-xs z-50"
+                            >
+                              <DropdownMenuItem
+                                onClick={() => setSelectedOrder(order)}
+                                className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-slate-700 hover:bg-slate-100"
+                              >
+                                <Eye className="w-3.5 h-3.5 text-slate-500" />
+                                <span>Lihat Detail</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator className="my-1 border-slate-100" />
+                              <DropdownMenuLabel className="px-2.5 py-1 text-[10px] uppercase font-semibold text-slate-400 tracking-wider">
+                                Ubah Status
+                              </DropdownMenuLabel>
+                              {order.status !== 'DIPROSES' && (
+                                <DropdownMenuItem
+                                  onClick={() => handleUpdateStatus(order.id, 'DIPROSES')}
+                                  className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-amber-700 hover:bg-amber-50"
+                                >
+                                  <Clock className="w-3.5 h-3.5 text-amber-500" />
+                                  <span>Disiapkan Gudang</span>
+                                </DropdownMenuItem>
+                              )}
+                              {order.status !== 'SIAP_DIAMBIL' && (
+                                <DropdownMenuItem
+                                  onClick={() => handleUpdateStatus(order.id, 'SIAP_DIAMBIL')}
+                                  className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-blue-700 hover:bg-blue-50"
+                                >
+                                  <Clock className="w-3.5 h-3.5 text-blue-500" />
+                                  <span>Siap di Kasir</span>
+                                </DropdownMenuItem>
+                              )}
+                              {order.status !== 'SELESAI' && (
+                                <DropdownMenuItem
+                                  onClick={() => handleUpdateStatus(order.id, 'SELESAI')}
+                                  className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-emerald-700 hover:bg-emerald-50"
+                                >
+                                  <Check className="w-3.5 h-3.5 text-emerald-500" />
+                                  <span>Tandai Selesai</span>
+                                </DropdownMenuItem>
+                              )}
+                              {order.status !== 'DIBATALKAN' && (
+                                <DropdownMenuItem
+                                  onClick={() => handleUpdateStatus(order.id, 'DIBATALKAN')}
+                                  className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-slate-600 hover:bg-slate-100"
+                                >
+                                  <XCircle className="w-3.5 h-3.5 text-rose-500" />
+                                  <span>Batalkan Pesanan</span>
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuSeparator className="my-1 border-slate-100" />
+                              <DropdownMenuItem
+                                onClick={() => setOrderToDelete(order)}
+                                className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-rose-600 hover:bg-rose-50"
+                              >
+                                <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                                <span>Hapus Pesanan</span>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
                       </TableRow>
                     );
@@ -683,34 +974,37 @@ export function OrdersDataTable({ hideCards = false }: OrdersDataTableProps) {
             </Table>
           </div>
 
-          {/* Pagination Footer (Only shown when multiple pages exist) */}
-          {pagination.totalPages > 1 && (
-            <div className="px-4 py-3 bg-white border-t border-[#F1F3F5] flex items-center justify-between text-xs text-slate-500">
-              <span>
-                Halaman {currentPage} dari {pagination.totalPages}
-              </span>
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage <= 1 || isLoading}
-                  className="px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 text-slate-700 font-medium transition cursor-pointer"
-                >
-                  Sebelumnya
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setCurrentPage((p) => Math.min(pagination.totalPages, p + 1))
-                  }
-                  disabled={currentPage >= pagination.totalPages || isLoading}
-                  className="px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 text-slate-700 font-medium transition cursor-pointer"
-                >
-                  Selanjutnya
-                </button>
-              </div>
+          {/* Pagination Footer */}
+          <div className="px-4 py-3 bg-white border-t border-[#F1F3F5] flex items-center justify-between text-xs text-slate-500">
+            <span>
+              Halaman {currentPage} dari {Math.max(1, pagination.totalPages)}
+              {pagination.totalCount > 0 && (
+                <span className="text-slate-400 ml-1.5 font-normal">
+                  (Total {pagination.totalCount} pesanan)
+                </span>
+              )}
+            </span>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage <= 1 || isLoading}
+                className="px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 text-slate-700 font-medium transition cursor-pointer"
+              >
+                Sebelumnya
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setCurrentPage((p) => Math.min(pagination.totalPages, p + 1))
+                }
+                disabled={currentPage >= pagination.totalPages || isLoading}
+                className="px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 text-slate-700 font-medium transition cursor-pointer"
+              >
+                Selanjutnya
+              </button>
             </div>
-          )}
+          </div>
         </div>
       </div>
 
@@ -886,6 +1180,15 @@ export function OrdersDataTable({ hideCards = false }: OrdersDataTableProps) {
                       Batalkan Pesanan
                     </button>
                   )}
+
+                <button
+                  type="button"
+                  onClick={() => setOrderToDelete(selectedOrder)}
+                  className="px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-xl border border-rose-200 flex items-center gap-1.5 transition cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Hapus Pesanan</span>
+                </button>
               </div>
 
               <button
@@ -899,6 +1202,113 @@ export function OrdersDataTable({ hideCards = false }: OrdersDataTableProps) {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* 4. Modal Konfirmasi Hapus Masal (Bulk Delete) */}
+      <Dialog
+        open={isBulkDeleteOpen}
+        onOpenChange={(open) => !open && !isDeleting && setIsBulkDeleteOpen(false)}
+      >
+        <DialogContent className="max-w-md p-6 bg-white border border-slate-200 rounded-2xl shadow-xl">
+          <div className="flex items-start gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0 border border-rose-100">
+              <AlertTriangle className="w-5 h-5 text-rose-600" />
+            </div>
+            <div className="space-y-1.5 flex-1">
+              <DialogTitle className="text-base font-bold text-slate-900">
+                Hapus {selectedOrders.length} Pesanan Terpilih?
+              </DialogTitle>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Apakah Anda yakin ingin menghapus{' '}
+                <strong className="text-slate-800 font-semibold">{selectedOrders.length} pesanan</strong>?
+                Data pesanan akan dihapus permanen dari sistem koperasi dan stok komoditas akan dikembalikan ke gudang bila pesanan belum selesai.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5 flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+            <button
+              type="button"
+              disabled={isDeleting}
+              onClick={() => setIsBulkDeleteOpen(false)}
+              className="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 transition cursor-pointer"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              disabled={isDeleting}
+              onClick={handleBulkDelete}
+              className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Menghapus...</span>
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Ya, Hapus Semua</span>
+                </>
+              )}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 5. Modal Konfirmasi Hapus 1 Pesanan */}
+      <Dialog
+        open={Boolean(orderToDelete)}
+        onOpenChange={(open) => !open && !isDeleting && setOrderToDelete(null)}
+      >
+        <DialogContent className="max-w-md p-6 bg-white border border-slate-200 rounded-2xl shadow-xl">
+          <div className="flex items-start gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0 border border-rose-100">
+              <AlertTriangle className="w-5 h-5 text-rose-600" />
+            </div>
+            <div className="space-y-1.5 flex-1">
+              <DialogTitle className="text-base font-bold text-slate-900">
+                Hapus Pesanan #{orderToDelete?.orderNumber}?
+              </DialogTitle>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Apakah Anda yakin ingin menghapus pesanan{' '}
+                <strong className="text-slate-800 font-semibold">#{orderToDelete?.orderNumber}</strong>{' '}
+                atas nama <strong className="text-slate-800 font-semibold">{orderToDelete?.pembeli?.name || 'Pembeli Umum'}</strong>?
+                Tindakan ini tidak dapat dibatalkan.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5 flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+            <button
+              type="button"
+              disabled={isDeleting}
+              onClick={() => setOrderToDelete(null)}
+              className="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 transition cursor-pointer"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              disabled={isDeleting}
+              onClick={handleSingleDelete}
+              className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Menghapus...</span>
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Ya, Hapus</span>
+                </>
+              )}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
