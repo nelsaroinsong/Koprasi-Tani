@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { getCache, setCache, delCachePattern } from '@/lib/redis';
@@ -23,7 +25,7 @@ export async function GET(request: Request) {
     const limit = Math.max(1, Math.min(50, parseInt(searchParams.get('limit') || '10', 10)));
     const skip = (page - 1) * limit;
 
-    const cacheKey = `admin:orders:p=${page}:l=${limit}:s=${statusParam || 'all'}:q=${search || ''}`;
+    const cacheKey = `admin:orders:v2:p=${page}:l=${limit}:s=${statusParam || 'all'}:q=${search || ''}`;
     const cachedResponse = await getCache<any>(cacheKey);
     if (cachedResponse) {
       return NextResponse.json(cachedResponse);
@@ -66,7 +68,14 @@ export async function GET(request: Request) {
     }
 
     // Ambil data pesanan, total count, dan ringkasan metrik statistik secara paralel
-    const [totalCount, orders, allOrdersStats] = await Promise.all([
+    const [
+      totalCount,
+      orders,
+      allOrdersStats,
+      totalProducts,
+      totalEquipments,
+      soldOrderItems,
+    ] = await Promise.all([
       prisma.order.count({ where: whereCondition }),
       prisma.order.findMany({
         where: whereCondition,
@@ -96,6 +105,18 @@ export async function GET(request: Request) {
           isPaid: true,
         },
       }),
+      prisma.product.count(),
+      prisma.equipment.count(),
+      prisma.orderItem.findMany({
+        where: {
+          order: {
+            status: { not: 'DIBATALKAN' },
+          },
+        },
+        select: {
+          subtotal: true,
+        },
+      }),
     ]);
 
     // Hitung ringkasan statistik
@@ -112,6 +133,27 @@ export async function GET(request: Request) {
       if (ord.status === 'DIPROSES' || ord.status === 'SIAP_DIAMBIL') diprosesCount++;
       if (ord.status === 'SELESAI') selesaiCount++;
     }
+
+    // Hitung total kategori dari data file json
+    let totalCategories = 0;
+    try {
+      const catPath = path.join(process.cwd(), 'data', 'categories.json');
+      if (fs.existsSync(catPath)) {
+        const raw = fs.readFileSync(catPath, 'utf-8');
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) totalCategories += parsed.length;
+      }
+      const eqCatPath = path.join(process.cwd(), 'data', 'equipment-categories.json');
+      if (fs.existsSync(eqCatPath)) {
+        const raw = fs.readFileSync(eqCatPath, 'utf-8');
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) totalCategories += parsed.length;
+      }
+    } catch {
+      totalCategories = 4;
+    }
+
+    const totalHasilPetani = soldOrderItems.reduce((acc, it) => acc + Number(it.subtotal), 0);
 
     const totalPages = Math.ceil(totalCount / limit) || 1;
 
@@ -130,7 +172,11 @@ export async function GET(request: Request) {
         })),
       })),
       stats: {
+        totalProducts,
+        totalEquipments,
         totalOrders: allOrdersStats.length,
+        totalCategories,
+        totalHasilPetani,
         totalOmset,
         pendingCount,
         diprosesCount,

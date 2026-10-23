@@ -34,6 +34,10 @@ import {
   Download,
   AlertTriangle,
   Loader2,
+  Tractor,
+  ShoppingCart,
+  Layers,
+  HandCoins,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useDebounce } from '@/hooks/use-debounce';
@@ -70,7 +74,11 @@ export function OrdersDataTable({ hideCards = false }: OrdersDataTableProps) {
 
   const [orders, setOrders] = useState<any[]>([]);
   const [stats, setStats] = useState({
+    totalProducts: 0,
+    totalEquipments: 0,
     totalOrders: 0,
+    totalCategories: 0,
+    totalHasilPetani: 0,
     totalOmset: 0,
     pendingCount: 0,
     diprosesCount: 0,
@@ -143,7 +151,12 @@ export function OrdersDataTable({ hideCards = false }: OrdersDataTableProps) {
 
       if (data.success && Array.isArray(data.orders)) {
         setOrders(data.orders);
-        if (data.stats) setStats(data.stats);
+        if (data.stats) {
+          setStats((prev) => ({
+            ...prev,
+            ...data.stats,
+          }));
+        }
         if (data.pagination) setPagination(data.pagination);
       }
     } catch (err: any) {
@@ -154,6 +167,23 @@ export function OrdersDataTable({ hideCards = false }: OrdersDataTableProps) {
       setIsLoading(false);
     }
   }, [currentPage, debouncedSearch, filterStatus]);
+
+  // Muat ringkasan metrik dashboard global jika cards ditampilkan
+  useEffect(() => {
+    if (!hideCards) {
+      fetch('/api/admin/dashboard-stats')
+        .then((res) => res.json())
+        .then((data) => {
+          if (data?.success && data.stats) {
+            setStats((prev) => ({
+              ...prev,
+              ...data.stats,
+            }));
+          }
+        })
+        .catch(() => {});
+    }
+  }, [hideCards]);
 
   useEffect(() => {
     fetchOrders();
@@ -412,160 +442,118 @@ export function OrdersDataTable({ hideCards = false }: OrdersDataTableProps) {
     <div className="space-y-5">
       {/* 1. Kravio Top 3 KPI Cards (Double-Container with Diagonal Hatched Outer Shell) */}
       {!hideCards && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Card 1: Pesanan Masuk (Current Tickets style) */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
+          {/* Card 1: Total Produk */}
           <div
             className="rounded-2xl border border-[#E5E7EB] p-1.5"
             style={HATCHED_BG_STYLE}
           >
             <div className="px-3 py-2 flex items-center justify-between">
               <span className="text-[13px] font-medium text-slate-700">
-                Pesanan Masuk
+                Total Produk
               </span>
-              <Tag className="w-4 h-4 text-slate-500 stroke-[1.75]" />
+              <Package className="w-4 h-4 text-slate-500 stroke-[1.75]" />
             </div>
 
-            <div className="bg-white rounded-xl border border-[#ECEEF2] px-4 py-4 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex items-end justify-between gap-3">
-              <div>
-                <div className="text-[28px] leading-none font-semibold tracking-tight text-slate-900 tabular-nums">
-                  {stats.totalOrders > 0
-                    ? stats.totalOrders.toLocaleString('id-ID')
-                    : '3,484'}
-                </div>
-                <div className="mt-2.5 flex items-center gap-1.5 text-[12px]">
-                  <span className="font-semibold text-emerald-600">+7.1%</span>
-                  <span className="text-slate-400">vs minggu lalu</span>
-                </div>
+            <div className="bg-white rounded-xl border border-[#ECEEF2] px-4 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col justify-between min-h-[82px]">
+              <div className="text-[26px] leading-tight font-semibold tracking-tight text-slate-900 tabular-nums truncate">
+                {stats.totalProducts > 0 ? stats.totalProducts.toLocaleString('id-ID') : '0'}
               </div>
-
-              {/* Angular Polyline Area Chart (Emerald) */}
-              <svg
-                className="w-28 h-11 shrink-0 overflow-visible"
-                viewBox="0 0 110 42"
-                fill="none"
-              >
-                <defs>
-                  <linearGradient id="sparkGreen1" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#10B981" stopOpacity="0.28" />
-                    <stop offset="100%" stopColor="#10B981" stopOpacity="0.0" />
-                  </linearGradient>
-                </defs>
-                <path
-                  d="M2 34 L18 16 L34 26 L54 8 L72 28 L88 14 L108 30 L108 42 L2 42 Z"
-                  fill="url(#sparkGreen1)"
-                />
-                <path
-                  d="M2 34 L18 16 L34 26 L54 8 L72 28 L88 14 L108 30"
-                  stroke="#10B981"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
+              <div className="mt-2 flex items-center gap-1.5 text-[12px] text-slate-400">
+                <span>Komoditas aktif</span>
+              </div>
             </div>
           </div>
 
-          {/* Card 2: Omset Transaksi Kasir (Daily Avg. Resolution style) */}
+          {/* Card 2: Total Alat */}
           <div
             className="rounded-2xl border border-[#E5E7EB] p-1.5"
             style={HATCHED_BG_STYLE}
           >
             <div className="px-3 py-2 flex items-center justify-between">
               <span className="text-[13px] font-medium text-slate-700">
-                Omset Transaksi Kasir
+                Total Alat
               </span>
-              <Zap className="w-4 h-4 text-slate-500 stroke-[1.75]" />
+              <Tractor className="w-4 h-4 text-slate-500 stroke-[1.75]" />
             </div>
 
-            <div className="bg-white rounded-xl border border-[#ECEEF2] px-4 py-4 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex items-end justify-between gap-3">
-              <div className="min-w-0">
-                <div className="text-[28px] leading-none font-semibold tracking-tight text-slate-900 tabular-nums truncate">
-                  {stats.totalOmset > 0
-                    ? stats.totalOmset >= 1000000
-                      ? `Rp ${(stats.totalOmset / 1000000).toFixed(1)} jt`
-                      : `Rp ${stats.totalOmset.toLocaleString('id-ID')}`
-                    : '486'}
-                </div>
-                <div className="mt-2.5 flex items-center gap-1.5 text-[12px]">
-                  <span className="font-semibold text-emerald-600">+2%</span>
-                  <span className="text-slate-400">vs minggu lalu</span>
-                </div>
+            <div className="bg-white rounded-xl border border-[#ECEEF2] px-4 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col justify-between min-h-[82px]">
+              <div className="text-[26px] leading-tight font-semibold tracking-tight text-slate-900 tabular-nums truncate">
+                {stats.totalEquipments > 0 ? stats.totalEquipments.toLocaleString('id-ID') : '0'}
               </div>
-
-              {/* Angular Polyline Area Chart (Emerald) */}
-              <svg
-                className="w-28 h-11 shrink-0 overflow-visible"
-                viewBox="0 0 110 42"
-                fill="none"
-              >
-                <defs>
-                  <linearGradient id="sparkGreen2" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#10B981" stopOpacity="0.28" />
-                    <stop offset="100%" stopColor="#10B981" stopOpacity="0.0" />
-                  </linearGradient>
-                </defs>
-                <path
-                  d="M2 35 L20 22 L38 29 L56 15 L74 23 L92 10 L108 20 L108 42 L2 42 Z"
-                  fill="url(#sparkGreen2)"
-                />
-                <path
-                  d="M2 35 L20 22 L38 29 L56 15 L74 23 L92 10 L108 20"
-                  stroke="#10B981"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
+              <div className="mt-2 flex items-center gap-1.5 text-[12px] text-slate-400">
+                <span>Unit sewa alat</span>
+              </div>
             </div>
           </div>
 
-          {/* Card 3: Tingkat Pemenuhan Gudang (SLA Compliance Rate style) */}
+          {/* Card 3: Total Pesanan */}
           <div
             className="rounded-2xl border border-[#E5E7EB] p-1.5"
             style={HATCHED_BG_STYLE}
           >
             <div className="px-3 py-2 flex items-center justify-between">
               <span className="text-[13px] font-medium text-slate-700">
-                Tingkat Pemenuhan Gudang
+                Total Pesanan
               </span>
-              <Gauge className="w-4 h-4 text-slate-500 stroke-[1.75]" />
+              <ShoppingCart className="w-4 h-4 text-slate-500 stroke-[1.75]" />
             </div>
 
-            <div className="bg-white rounded-xl border border-[#ECEEF2] px-4 py-4 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex items-end justify-between gap-3">
-              <div>
-                <div className="text-[28px] leading-none font-semibold tracking-tight text-slate-900 tabular-nums">
-                  92%
-                </div>
-                <div className="mt-2.5 flex items-center gap-1.5 text-[12px]">
-                  <span className="font-semibold text-rose-500">-1.3%</span>
-                  <span className="text-slate-400">vs minggu lalu</span>
-                </div>
+            <div className="bg-white rounded-xl border border-[#ECEEF2] px-4 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col justify-between min-h-[82px]">
+              <div className="text-[26px] leading-tight font-semibold tracking-tight text-slate-900 tabular-nums truncate">
+                {stats.totalOrders > 0 ? stats.totalOrders.toLocaleString('id-ID') : '0'}
               </div>
+              <div className="mt-2 flex items-center gap-1.5 text-[12px] text-slate-400">
+                <span>Transaksi masuk</span>
+              </div>
+            </div>
+          </div>
 
-              {/* Angular Polyline Area Chart (Rose/Red) */}
-              <svg
-                className="w-28 h-11 shrink-0 overflow-visible"
-                viewBox="0 0 110 42"
-                fill="none"
-              >
-                <defs>
-                  <linearGradient id="sparkRose3" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#F43F5E" stopOpacity="0.28" />
-                    <stop offset="100%" stopColor="#F43F5E" stopOpacity="0.0" />
-                  </linearGradient>
-                </defs>
-                <path
-                  d="M2 24 L20 34 L38 14 L56 30 L74 10 L92 22 L108 34 L108 42 L2 42 Z"
-                  fill="url(#sparkRose3)"
-                />
-                <path
-                  d="M2 24 L20 34 L38 14 L56 30 L74 10 L92 22 L108 34"
-                  stroke="#F43F5E"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
+          {/* Card 4: Total Kategori */}
+          <div
+            className="rounded-2xl border border-[#E5E7EB] p-1.5"
+            style={HATCHED_BG_STYLE}
+          >
+            <div className="px-3 py-2 flex items-center justify-between">
+              <span className="text-[13px] font-medium text-slate-700">
+                Total Kategori
+              </span>
+              <Layers className="w-4 h-4 text-slate-500 stroke-[1.75]" />
+            </div>
+
+            <div className="bg-white rounded-xl border border-[#ECEEF2] px-4 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col justify-between min-h-[82px]">
+              <div className="text-[26px] leading-tight font-semibold tracking-tight text-slate-900 tabular-nums truncate">
+                {stats.totalCategories > 0 ? stats.totalCategories.toLocaleString('id-ID') : '0'}
+              </div>
+              <div className="mt-2 flex items-center gap-1.5 text-[12px] text-slate-400">
+                <span>Kategori produk & alat</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 5: Total Hasil Petani */}
+          <div
+            className="col-span-2 sm:col-span-1 rounded-2xl border border-[#E5E7EB] p-1.5"
+            style={HATCHED_BG_STYLE}
+          >
+            <div className="px-3 py-2 flex items-center justify-between">
+              <span className="text-[13px] font-medium text-slate-700">
+                Total Hasil Petani
+              </span>
+              <HandCoins className="w-4 h-4 text-slate-500 stroke-[1.75]" />
+            </div>
+
+            <div className="bg-white rounded-xl border border-[#ECEEF2] px-4 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col justify-between min-h-[82px]">
+              <div className="text-[26px] leading-tight font-semibold tracking-tight text-slate-900 tabular-nums truncate">
+                {stats.totalHasilPetani > 0
+                  ? stats.totalHasilPetani >= 1000000
+                    ? `Rp ${(stats.totalHasilPetani / 1000000).toFixed(1)} jt`
+                    : `Rp ${stats.totalHasilPetani.toLocaleString('id-ID')}`
+                  : 'Rp 0'}
+              </div>
+              <div className="mt-2 flex items-center gap-1.5 text-[12px] text-slate-400">
+                <span>Bagi hasil penjualan</span>
+              </div>
             </div>
           </div>
         </div>

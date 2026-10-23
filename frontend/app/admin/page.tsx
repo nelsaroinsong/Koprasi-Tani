@@ -14,18 +14,9 @@ import { EquipmentFormPage } from '@/components/admin/equipment-form-page';
 import { TokoProductFormPage } from '@/components/admin/toko-product-form-page';
 import EquipmentsDataTable from '@/components/admin/equipments-data-table';
 import { EquipmentRentalsTable } from '@/components/admin/equipment-rentals-table';
-import { useSession } from 'next-auth/react';
 
 export default function AdminPage() {
   const { activeTab, setActiveTab } = useAdmin();
-  const { data: session } = useSession();
-
-  const adminUser = {
-    name: session?.user?.name || 'Achmad Hakim',
-    email: session?.user?.email || 'admin@sinarpagisejahtera.co.id',
-    avatar: (session?.user as any)?.avatarUrl || session?.user?.image || '',
-    phone: (session?.user as any)?.phone || '',
-  };
 
   // 0. Tampilan Pengaturan Web: Logo Mitra
   if (activeTab.group === 'Pengaturan Web') {
@@ -92,21 +83,9 @@ export default function AdminPage() {
     return <OrdersDataTable />;
   }
 
-  // 5. Default: Halaman Dashboard Utama (Kravio Style: 3 Metric Cards + Incoming Orders Table)
+  // 5. Default: Halaman Dashboard Utama
   return (
-    <div className="space-y-5 w-full pb-10">
-      {/* Top Greeting matching Kravio Header */}
-      <div>
-        <h1 className="text-[22px] font-semibold text-slate-900 tracking-tight flex items-center gap-2">
-          <span>Halo, {adminUser.name}</span>
-          <span className="text-[20px]">👋</span>
-        </h1>
-        <p className="text-[13px] text-slate-400 mt-0.5">
-          Berikut ringkasan terbaru dari interaksi dan transaksi pesanan koperasi Anda.
-        </p>
-      </div>
-
-      {/* Kravio: 3 Cards on top + Pesanan Masuk in Table underneath */}
+    <div className="w-full pb-10">
       <OrdersDataTable hideCards={false} />
     </div>
   );
