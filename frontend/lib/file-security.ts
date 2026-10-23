@@ -130,7 +130,18 @@ export function validateImageUpload(
 /**
  * Validasi dan sanitasi kunci penyimpanan untuk mencegah Path Traversal (e.g. ../../)
  */
-export function isSafeStorageKey(key: string, allowedPrefixes: string[] = ['products/', 'sewa-alat/', 'profiles/', 'logos/']): boolean {
+export function isSafeStorageKey(
+  key: string,
+  allowedPrefixes: string[] = [
+    'products/',
+    'sewa-alat/',
+    'profiles/',
+    'logos/',
+    'logo/',
+    'categories/',
+    'banners/',
+  ]
+): boolean {
   if (!key || typeof key !== 'string') return false;
 
   // Larang karakter berbahaya / directory traversal
