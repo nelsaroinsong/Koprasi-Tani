@@ -43,6 +43,8 @@ import {
   ShieldCheck,
   CheckSquare,
   Square,
+  ShoppingBag,
+  Wallet,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useDebounce } from '@/hooks/use-debounce';
@@ -63,11 +65,11 @@ interface OrdersDataTableProps {
 }
 
 const STATUS_TABS = [
-  { key: 'ALL', label: 'Semua Pesanan', dot: 'bg-slate-400' },
+  { key: 'ALL', label: 'Semua', dot: 'bg-slate-400' },
   { key: 'MENUNGGU_PEMBAYARAN', label: 'Menunggu Bayar', dot: 'bg-slate-500' },
-  { key: 'DIPROSES', label: 'Diproses Gudang', dot: 'bg-blue-600' },
-  { key: 'SIAP_DIAMBIL', label: 'Siap Diambil / Kirim', dot: 'bg-indigo-600' },
-  { key: 'SELESAI', label: 'Selesai (Arrived)', dot: 'bg-emerald-600' },
+  { key: 'DIPROSES', label: 'Diproses', dot: 'bg-blue-600' },
+  { key: 'SIAP_DIAMBIL', label: 'Siap Diambil', dot: 'bg-indigo-600' },
+  { key: 'SELESAI', label: 'Selesai', dot: 'bg-emerald-600' },
   { key: 'DIBATALKAN', label: 'Dibatalkan', dot: 'bg-rose-600' },
 ];
 
@@ -76,12 +78,6 @@ const DATE_PRESETS = [
   { key: 'TODAY', label: 'Hari Ini' },
   { key: 'WEEK', label: '7 Hari Terakhir' },
   { key: 'MONTH', label: '30 Hari Terakhir' },
-];
-
-const CARRIER_OPTIONS = [
-  { key: 'ALL', label: 'Semua Kurir & Metode' },
-  { key: 'KURIR', label: 'Kurir Koperasi' },
-  { key: 'AMBIL', label: 'Ambil di Kasir/Kantor' },
 ];
 
 const HATCHED_BG_STYLE: React.CSSProperties = {
@@ -107,12 +103,12 @@ function OrderEventTimeline({ status }: { status: string }) {
   const milestones = [
     { num: 1, label: 'Dipesan', icon: Package },
     { num: 2, label: 'Diproses Gudang', icon: Store },
-    { num: 3, label: 'Pengiriman / Siap', icon: Truck },
+    { num: 3, label: 'Siap Diambil', icon: Truck },
     { num: 4, label: 'Selesai Diterima', icon: MapPin },
   ];
 
   return (
-    <div className="flex items-center min-w-[155px] max-w-[170px] select-none py-1">
+    <div className="flex items-center w-[140px] select-none">
       {milestones.map((m, idx) => {
         const Icon = m.icon;
         const isReached = !isCanceled && stepLevel >= m.num;
@@ -127,13 +123,13 @@ function OrderEventTimeline({ status }: { status: string }) {
                 isCanceled && m.num === 1
                   ? 'bg-slate-900 text-white'
                   : isCanceled && m.num === 2
-                  ? 'bg-rose-100 text-rose-600 border border-rose-300'
+                  ? 'bg-rose-50 text-rose-600 border border-rose-200'
                   : isCanceled
-                  ? 'bg-slate-50 border border-slate-200 text-slate-300'
+                  ? 'bg-white border border-slate-200 text-slate-300'
                   : isReached
-                  ? 'bg-slate-900 text-white shadow-2xs'
-                  : 'bg-white border border-slate-300 text-slate-300'
-              } ${isCurrent ? 'ring-2 ring-slate-900/20 ring-offset-1' : ''}`}
+                  ? 'bg-slate-900 text-white'
+                  : 'bg-white border border-slate-200 text-slate-300'
+              } ${isCurrent && m.num < 4 ? 'ring-2 ring-slate-900/15' : ''}`}
               title={`Tahap ${m.num}: ${m.label}`}
             >
               {isCanceled && m.num === 2 ? (
@@ -151,17 +147,15 @@ function OrderEventTimeline({ status }: { status: string }) {
 
             {/* Connecting Horizontal Line */}
             {idx < milestones.length - 1 && (
-              <div className="flex-1 h-0.5 sm:h-1 mx-0.5 transition-colors relative">
-                <div
-                  className={`h-full w-full rounded-full transition-all duration-300 ${
-                    isCanceled && m.num === 1
-                      ? 'bg-rose-200 border-t border-dashed border-rose-400'
-                      : isNextLineFilled
-                      ? 'bg-slate-900'
-                      : 'bg-slate-200'
-                  }`}
-                />
-              </div>
+              <div
+                className={`flex-1 h-0.5 mx-0.5 rounded-full ${
+                  isCanceled && m.num === 1
+                    ? 'bg-rose-300'
+                    : isNextLineFilled
+                    ? 'bg-slate-900'
+                    : 'bg-slate-200'
+                }`}
+              />
             )}
           </React.Fragment>
         );
@@ -202,7 +196,6 @@ export function OrdersDataTable({
     isDashboard ? 'MENUNGGU_PEMBAYARAN' : 'ALL'
   );
   const [datePreset, setDatePreset] = useState<string>('ALL');
-  const [carrierFilter, setCarrierFilter] = useState<string>('ALL');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
 
@@ -220,7 +213,7 @@ export function OrdersDataTable({
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch, filterStatus, datePreset, carrierFilter, isDashboard]);
+  }, [debouncedSearch, filterStatus, datePreset, isDashboard]);
 
   // Efek indeterminate untuk checkbox header
   const isAllSelected = orders.length > 0 && selectedOrders.length === orders.length;
@@ -287,16 +280,7 @@ export function OrdersDataTable({
       const data = await res.json();
 
       if (data.success && Array.isArray(data.orders)) {
-        let list = data.orders;
-
-        // Filter Kurir di sisi klien jika dipilih
-        if (carrierFilter === 'KURIR') {
-          list = list.filter((o: any) => Boolean(o.alamatKirim));
-        } else if (carrierFilter === 'AMBIL') {
-          list = list.filter((o: any) => !o.alamatKirim);
-        }
-
-        setOrders(list);
+        setOrders(data.orders);
         if (data.stats) {
           setStats((prev) => ({
             ...prev,
@@ -312,7 +296,7 @@ export function OrdersDataTable({
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, debouncedSearch, filterStatus, dateRange, carrierFilter, isDashboard]);
+  }, [currentPage, debouncedSearch, filterStatus, dateRange, isDashboard]);
 
   useEffect(() => {
     fetchOrders();
@@ -460,7 +444,7 @@ export function OrdersDataTable({
     const headers = [
       'Ticket ID',
       'Komoditas',
-      'Kurir / Metode',
+      'Pembayaran',
       'Pembeli',
       'Status',
       'Tanggal',
@@ -470,7 +454,7 @@ export function OrdersDataTable({
     const rows = orders.map((o) => [
       `#${o.orderNumber}`,
       `"${(o.items?.map((it: any) => it.namaProduk).join('; ') || 'Komoditas Koperasi').replace(/"/g, '""')}"`,
-      o.alamatKirim ? 'Kurir Koperasi' : 'Ambil di Kasir',
+      'Tunai Kasir',
       `"${(o.pembeli?.name || 'Pembeli Umum').replace(/"/g, '""')}"`,
       o.status,
       new Date(o.createdAt).toISOString().split('T')[0],
@@ -542,8 +526,7 @@ export function OrdersDataTable({
           <div class="info">
             <strong>No. Nota:</strong> #${order.orderNumber}<br/>
             <strong>Pembeli:</strong> ${order.pembeli?.name || 'Pelanggan Umum'}<br/>
-            <strong>Metode:</strong> ${order.paymentMethod === 'CASH_KOPERASI' ? 'Tunai Kasir' : 'Transfer'}<br/>
-            <strong>Tipe:</strong> ${order.alamatKirim ? 'Kurir Antar' : 'Ambil di Kantor'}
+            <strong>Pembayaran:</strong> Tunai Kasir
           </div>
           <table>
             ${itemsRows}
@@ -566,76 +549,41 @@ export function OrdersDataTable({
     printWindow.document.close();
   };
 
-  // Status Badge dengan dot berwarna persis contoh gambar
-  const renderStatusBadge = (status: string) => {
-    switch (status) {
-      case 'MENUNGGU_PEMBAYARAN':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold bg-slate-100 text-slate-700 border border-slate-200 shadow-2xs">
-            <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
-            <span>Menunggu Bayar</span>
-          </span>
-        );
-      case 'DIPROSES':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold bg-blue-50 text-blue-700 border border-blue-200 shadow-2xs">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
-            <span>In Progress</span>
-          </span>
-        );
-      case 'SIAP_DIAMBIL':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-2xs">
-            <span className="w-1.5 h-1.5 rounded-full bg-indigo-600" />
-            <span>Siap Diambil</span>
-          </span>
-        );
-      case 'SELESAI':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
-            <span>Arrived</span>
-          </span>
-        );
-      case 'DIBATALKAN':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold bg-rose-50 text-rose-700 border border-rose-200 shadow-2xs">
-            <span className="w-1.5 h-1.5 rounded-full bg-rose-600" />
-            <span>Canceled</span>
-          </span>
-        );
-      default:
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
-            {status}
-          </span>
-        );
-    }
+  // Status Badge ringkas dengan dot berwarna
+  const STATUS_BADGE: Record<string, { label: string; cls: string; dot: string }> = {
+    MENUNGGU_PEMBAYARAN: { label: 'Menunggu Bayar', cls: 'bg-slate-50 text-slate-700 border-slate-200', dot: 'bg-slate-400' },
+    DIPROSES: { label: 'Diproses', cls: 'bg-blue-50 text-blue-700 border-blue-200', dot: 'bg-blue-500' },
+    SIAP_DIAMBIL: { label: 'Siap Diambil', cls: 'bg-indigo-50 text-indigo-700 border-indigo-200', dot: 'bg-indigo-500' },
+    SELESAI: { label: 'Selesai', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' },
+    DIBATALKAN: { label: 'Dibatalkan', cls: 'bg-rose-50 text-rose-700 border-rose-200', dot: 'bg-rose-500' },
   };
 
-  // Carrier Badge mirip logo kurir di contoh gambar (FedEx, DHL, Regular)
-  const renderCarrierBadge = (order: any) => {
-    const isDelivery = Boolean(order.alamatKirim);
-
+  const renderStatusBadge = (status: string) => {
+    const s = STATUS_BADGE[status] || { label: status, cls: 'bg-slate-50 text-slate-700 border-slate-200', dot: 'bg-slate-400' };
     return (
-      <div className="space-y-1">
-        {isDelivery ? (
-          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-indigo-950 text-white font-bold text-[10.5px] shadow-2xs">
-            <Truck className="w-3 h-3 text-indigo-300" />
-            <span>Kurir Koperasi</span>
-          </span>
-        ) : (
-          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-amber-100 border border-amber-300 text-amber-900 font-bold text-[10.5px] shadow-2xs">
-            <Store className="w-3 h-3 text-amber-700" />
-            <span>Ambil di Kasir</span>
-          </span>
-        )}
-        <div className="text-[11px] text-slate-400 font-medium">
-          {order.paymentMethod === 'CASH_KOPERASI' ? 'Tunai Kasir' : 'Transfer Bank'}
-        </div>
-      </div>
+      <span className={`inline-flex items-center gap-1.5 h-6 px-2 rounded-md border text-[11.5px] font-medium whitespace-nowrap ${s.cls}`}>
+        <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
+        {s.label}
+      </span>
     );
   };
+
+  // Pembayaran: koperasi hanya melayani Tunai Kasir
+  const renderPayment = (order: any) => (
+    <div className="space-y-0.5">
+      <span className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-slate-700">
+        <Wallet className="w-3.5 h-3.5 text-slate-400" />
+        Tunai Kasir
+      </span>
+      <div className="text-[11px] font-medium">
+        {order.isPaid ? (
+          <span className="text-emerald-600">Lunas</span>
+        ) : (
+          <span className="text-amber-600">Belum lunas</span>
+        )}
+      </div>
+    </div>
+  );
 
   // Helper cek delay jika pesanan belum bayar > 24 jam
   const checkIsDelay = (order: any) => {
@@ -671,10 +619,22 @@ export function OrdersDataTable({
         className="rounded-2xl border border-[#E5E7EB] p-1.5"
         style={HATCHED_BG_STYLE}
       >
-        {/* Navigation Tabs di bagian Atas Tabel (Persis Referensi Gambar) */}
+        {/* Header: judul + tab status */}
+        <div className="px-3 pt-2 pb-1 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 shrink-0">
+            <ShoppingBag className="w-4 h-4 text-slate-600 stroke-[1.8]" />
+            <h2 className="text-[13.5px] font-semibold text-slate-800 tracking-tight">
+              Pesanan Masuk
+            </h2>
+            <span className="h-5 px-1.5 rounded-md bg-white border border-slate-200 text-[11px] font-semibold text-slate-600 tabular-nums flex items-center">
+              {stats.totalOrders}
+            </span>
+          </div>
+        </div>
+
         {!isDashboard && (
-          <div className="px-3 pt-2 pb-2.5 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/60 mb-1">
-            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
+          <div className="px-3 pb-2 overflow-x-auto no-scrollbar">
+            <div className="inline-flex items-center gap-0.5 p-0.5 rounded-lg bg-white border border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
               {STATUS_TABS.map((tab) => {
                 const isActive = filterStatus === tab.key;
                 let count = stats.totalOrders;
@@ -689,19 +649,19 @@ export function OrdersDataTable({
                     key={tab.key}
                     type="button"
                     onClick={() => setFilterStatus(tab.key)}
-                    className={`h-8 px-3 rounded-lg text-xs font-semibold flex items-center gap-2 transition cursor-pointer whitespace-nowrap ${
+                    className={`h-7 px-2.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
                       isActive
-                        ? 'bg-slate-900 text-white shadow-2xs'
-                        : 'bg-white/70 hover:bg-white text-slate-600 hover:text-slate-900 border border-slate-200/80'
+                        ? 'bg-slate-900 text-white'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                     }`}
                   >
-                    <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-white' : tab.dot}`} />
+                    {tab.key !== 'ALL' && (
+                      <span className={`w-1.5 h-1.5 rounded-full ${tab.dot}`} />
+                    )}
                     <span>{tab.label}</span>
                     <span
-                      className={`px-1.5 py-0.2 rounded-md text-[10.5px] font-bold tabular-nums ${
-                        isActive
-                          ? 'bg-white/20 text-white'
-                          : 'bg-slate-100 text-slate-600'
+                      className={`text-[10.5px] tabular-nums ${
+                        isActive ? 'text-white/70' : 'text-slate-400'
                       }`}
                     >
                       {count}
@@ -710,54 +670,39 @@ export function OrdersDataTable({
                 );
               })}
             </div>
-
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                type="button"
-                onClick={handleExportCSV}
-                className="h-8 px-3 rounded-lg border border-[#E5E7EB] bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 text-xs font-medium flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
-                title="Ekspor CSV Data Pesanan"
-              >
-                <Download className="w-3.5 h-3.5 text-slate-500" />
-                <span className="hidden sm:inline">Ekspor CSV</span>
-              </button>
-            </div>
           </div>
         )}
 
-        {/* Outer Hatched Toolbar Filter (Persis Referensi Gambar) */}
-        <div className="px-3 py-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+        {/* Toolbar: cari, tanggal, aksi */}
+        <div className="px-3 pb-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-            {/* Search Input */}
-            <div className="relative flex-1 sm:w-56">
+            <div className="relative flex-1 sm:flex-none sm:w-64">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Cari ID, pembeli, produk..."
+                placeholder="Cari ID pesanan, pembeli, komoditas..."
                 className="w-full h-8 pl-8 pr-3 text-xs bg-white border border-[#E5E7EB] rounded-lg placeholder:text-slate-400 text-slate-800 focus:outline-none focus:border-slate-400 shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition"
               />
             </div>
 
-            {/* Date Range Selector (Pill Hitam/Gelap seperti 2 Feb - 14 Apr v di gambar) */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="h-8 px-3 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-2xs shrink-0"
-                  title="Filter Rentang Tanggal"
+                  className="h-8 px-3 rounded-lg border border-[#E5E7EB] bg-white hover:bg-slate-50 text-xs font-medium text-slate-700 flex items-center gap-1.5 transition cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,0.02)] shrink-0"
                 >
-                  <Calendar className="w-3.5 h-3.5 text-slate-300" />
+                  <Calendar className="w-3.5 h-3.5 text-slate-500" />
                   <span>
                     {DATE_PRESETS.find((p) => p.key === datePreset)?.label || 'Semua Tanggal'}
                   </span>
-                  <ChevronDown className="w-3 h-3 text-slate-400 ml-0.5" />
+                  <ChevronDown className="w-3 h-3 text-slate-400" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="start"
-                className="w-44 rounded-xl p-1 bg-white border border-slate-200 shadow-xl z-50 text-xs"
+                className="w-44 rounded-xl p-1 bg-white border border-slate-200 shadow-lg z-50 text-xs"
               >
                 {DATE_PRESETS.map((preset) => (
                   <DropdownMenuItem
@@ -766,143 +711,58 @@ export function OrdersDataTable({
                     className={`cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center justify-between ${
                       datePreset === preset.key
                         ? 'bg-slate-100 font-semibold text-slate-900'
-                        : 'text-slate-600 hover:bg-slate-50'
+                        : 'text-slate-600'
                     }`}
                   >
                     <span>{preset.label}</span>
-                    {datePreset === preset.key && (
-                      <Check className="w-3.5 h-3.5 text-slate-900" />
-                    )}
+                    {datePreset === preset.key && <Check className="w-3.5 h-3.5" />}
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Status Dropdown dengan Checkbox & Dot Warna (Persis Pop-up yang Terbuka di Gambar) */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  className="h-8 px-3 rounded-lg border border-[#E5E7EB] bg-white hover:bg-slate-50 text-xs font-medium text-slate-700 flex items-center gap-1.5 transition cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,0.02)] shrink-0"
-                >
-                  <span className="w-2 h-2 rounded-full bg-blue-600" />
-                  <span>
-                    {filterStatus === 'ALL'
-                      ? 'Status: Semua'
-                      : STATUS_TABS.find((t) => t.key === filterStatus)?.label}
-                  </span>
-                  <ChevronDown className="w-3 h-3 text-slate-400" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="start"
-                className="w-52 rounded-xl p-1.5 bg-white border border-slate-200 shadow-2xl z-50 text-xs space-y-0.5"
-              >
-                <DropdownMenuLabel className="px-2 py-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                  Filter Status Pesanan
-                </DropdownMenuLabel>
-                {STATUS_TABS.map((tab) => {
-                  const isChecked = filterStatus === tab.key;
-                  return (
-                    <DropdownMenuItem
-                      key={tab.key}
-                      onClick={() => setFilterStatus(tab.key)}
-                      className={`cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center justify-between ${
-                        isChecked
-                          ? 'bg-slate-100 text-slate-900 font-bold'
-                          : 'text-slate-700 hover:bg-slate-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        {isChecked ? (
-                          <CheckSquare className="w-3.5 h-3.5 text-slate-900" />
-                        ) : (
-                          <Square className="w-3.5 h-3.5 text-slate-300" />
-                        )}
-                        <span className={`w-2 h-2 rounded-full ${tab.dot}`} />
-                        <span>{tab.label}</span>
-                      </div>
-                    </DropdownMenuItem>
-                  );
-                })}
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* Carrier / Metode Filter Dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  className="h-8 px-3 rounded-lg border border-[#E5E7EB] bg-white hover:bg-slate-50 text-xs font-medium text-slate-700 flex items-center gap-1.5 transition cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,0.02)] shrink-0"
-                >
-                  <Truck className="w-3.5 h-3.5 text-slate-500" />
-                  <span>
-                    {carrierFilter === 'ALL'
-                      ? 'Kurir / Ambil'
-                      : CARRIER_OPTIONS.find((c) => c.key === carrierFilter)?.label}
-                  </span>
-                  <ChevronDown className="w-3 h-3 text-slate-400" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="start"
-                className="w-48 rounded-xl p-1 bg-white border border-slate-200 shadow-xl z-50 text-xs"
-              >
-                {CARRIER_OPTIONS.map((opt) => (
-                  <DropdownMenuItem
-                    key={opt.key}
-                    onClick={() => setCarrierFilter(opt.key)}
-                    className={`cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center justify-between ${
-                      carrierFilter === opt.key
-                        ? 'bg-slate-100 font-semibold text-slate-900'
-                        : 'text-slate-600 hover:bg-slate-50'
-                    }`}
-                  >
-                    <span>{opt.label}</span>
-                    {carrierFilter === opt.key && (
-                      <Check className="w-3.5 h-3.5 text-slate-900" />
-                    )}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* Reset Filters jika ada filter aktif */}
-            {(filterStatus !== 'ALL' || datePreset !== 'ALL' || carrierFilter !== 'ALL' || searchQuery) && (
+            {(filterStatus !== 'ALL' || datePreset !== 'ALL' || searchQuery) && (
               <button
                 type="button"
                 onClick={() => {
                   setFilterStatus('ALL');
                   setDatePreset('ALL');
-                  setCarrierFilter('ALL');
                   setSearchQuery('');
                 }}
-                className="h-8 px-2.5 text-xs text-rose-600 hover:text-rose-700 font-semibold hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                className="h-8 px-2.5 text-xs text-slate-500 hover:text-slate-900 font-medium rounded-lg hover:bg-white transition cursor-pointer flex items-center gap-1"
               >
+                <XCircle className="w-3.5 h-3.5" />
                 Reset
               </button>
             )}
           </div>
 
           <div className="flex items-center gap-2 self-end sm:self-auto">
-            {/* Refresh Button */}
+            <button
+              type="button"
+              onClick={handleExportCSV}
+              className="h-8 px-3 rounded-lg border border-[#E5E7EB] bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium flex items-center gap-1.5 transition cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
+            >
+              <Download className="w-3.5 h-3.5 text-slate-500" />
+              <span>Ekspor</span>
+            </button>
+
             <button
               type="button"
               onClick={fetchOrders}
               disabled={isLoading}
               className="w-8 h-8 rounded-lg border border-[#E5E7EB] bg-white hover:bg-slate-50 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,0.02)] shrink-0"
-              title="Segarkan Data Tabel"
+              title="Segarkan data"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-slate-800' : ''}`} />
             </button>
 
-            {/* Three Dots Menu Tabel */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
                   className="w-8 h-8 rounded-lg border border-[#E5E7EB] bg-white hover:bg-slate-50 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,0.02)] shrink-0"
-                  title="Menu Opsi Tabel"
+                  title="Opsi tabel"
                 >
                   <MoreVertical className="w-3.5 h-3.5" />
                 </button>
@@ -912,23 +772,8 @@ export function OrdersDataTable({
                 className="w-48 rounded-xl p-1 bg-white border border-slate-200 shadow-lg text-xs z-50"
               >
                 <DropdownMenuItem
-                  onClick={fetchOrders}
-                  className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-slate-700 hover:bg-slate-100"
-                >
-                  <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
-                  <span>Segarkan Tabel</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={handleExportCSV}
-                  className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-slate-700 hover:bg-slate-100"
-                >
-                  <Download className="w-3.5 h-3.5 text-slate-500" />
-                  <span>Ekspor CSV</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator className="my-1 border-slate-100" />
-                <DropdownMenuItem
                   onClick={() => setSelectedOrders(orders.map((o) => o.id))}
-                  className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-slate-700 hover:bg-slate-100"
+                  className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-slate-700"
                 >
                   <Check className="w-3.5 h-3.5 text-slate-500" />
                   <span>Pilih Semua di Halaman</span>
@@ -937,7 +782,7 @@ export function OrdersDataTable({
                   <>
                     <DropdownMenuItem
                       onClick={() => setSelectedOrders([])}
-                      className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-slate-700 hover:bg-slate-100"
+                      className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-slate-700"
                     >
                       <XCircle className="w-3.5 h-3.5 text-slate-500" />
                       <span>Batalkan Pilihan</span>
@@ -945,7 +790,7 @@ export function OrdersDataTable({
                     <DropdownMenuSeparator className="my-1 border-slate-100" />
                     <DropdownMenuItem
                       onClick={() => setIsBulkDeleteOpen(true)}
-                      className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-rose-600 hover:bg-rose-50"
+                      className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-rose-600"
                     >
                       <Trash2 className="w-3.5 h-3.5 text-rose-600" />
                       <span>Hapus Terpilih ({selectedOrders.length})</span>
@@ -1012,61 +857,14 @@ export function OrdersDataTable({
                     />
                   </TableHead>
 
-                  {/* 1. Shipment ID / Order ID */}
-                  <TableHead className="py-3 text-[12px] font-medium text-slate-500 whitespace-nowrap min-w-[125px]">
-                    <span className="inline-flex items-center gap-1">
-                      Shipment ID <ArrowUpDown className="w-3 h-3 text-slate-300" />
-                    </span>
-                  </TableHead>
-
-                  {/* 2. Shipment Event (Timeline Pesanan - Persis Referensi) */}
-                  <TableHead className="py-3 text-[12px] font-medium text-slate-500 whitespace-nowrap min-w-[175px]">
-                    <span className="inline-flex items-center gap-1">
-                      Shipment Event <ArrowUpDown className="w-3 h-3 text-slate-300" />
-                    </span>
-                  </TableHead>
-
-                  {/* 3. Status Badge */}
-                  <TableHead className="py-3 text-[12px] font-medium text-slate-500 whitespace-nowrap min-w-[130px]">
-                    <span className="inline-flex items-center gap-1">
-                      Status <ArrowUpDown className="w-3 h-3 text-slate-300" />
-                    </span>
-                  </TableHead>
-
-                  {/* 4. Expected arrived / Tanggal Estimasi */}
-                  <TableHead className="py-3 text-[12px] font-medium text-slate-500 whitespace-nowrap min-w-[130px]">
-                    <span className="inline-flex items-center gap-1">
-                      Expected Date <ArrowUpDown className="w-3 h-3 text-slate-300" />
-                    </span>
-                  </TableHead>
-
-                  {/* 5. Order / Komoditas */}
-                  <TableHead className="py-3 text-[12px] font-medium text-slate-500 min-w-[170px]">
-                    <span className="inline-flex items-center gap-1">
-                      Order Items <ArrowUpDown className="w-3 h-3 text-slate-300" />
-                    </span>
-                  </TableHead>
-
-                  {/* 6. Pembeli */}
-                  <TableHead className="py-3 text-[12px] font-medium text-slate-500 min-w-[140px]">
-                    <span className="inline-flex items-center gap-1">
-                      Pembeli <ArrowUpDown className="w-3 h-3 text-slate-300" />
-                    </span>
-                  </TableHead>
-
-                  {/* 7. Carrier / Kurir */}
-                  <TableHead className="py-3 text-[12px] font-medium text-slate-500 whitespace-nowrap min-w-[135px]">
-                    <span className="inline-flex items-center gap-1">
-                      Carrier <ArrowUpDown className="w-3 h-3 text-slate-300" />
-                    </span>
-                  </TableHead>
-
-                  {/* 8. Total Amount */}
-                  <TableHead className="py-3 text-[12px] font-medium text-slate-500 whitespace-nowrap min-w-[110px]">
-                    <span className="inline-flex items-center gap-1">
-                      Total Nilai <ArrowUpDown className="w-3 h-3 text-slate-300" />
-                    </span>
-                  </TableHead>
+                  <TableHead className="py-3 text-[11.5px] font-medium text-slate-500 whitespace-nowrap">ID Pesanan</TableHead>
+                  <TableHead className="py-3 text-[11.5px] font-medium text-slate-500 whitespace-nowrap">Alur Pesanan</TableHead>
+                  <TableHead className="py-3 text-[11.5px] font-medium text-slate-500 whitespace-nowrap">Status</TableHead>
+                  <TableHead className="py-3 text-[11.5px] font-medium text-slate-500 whitespace-nowrap">Tanggal</TableHead>
+                  <TableHead className="py-3 text-[11.5px] font-medium text-slate-500 whitespace-nowrap">Komoditas</TableHead>
+                  <TableHead className="py-3 text-[11.5px] font-medium text-slate-500 whitespace-nowrap">Pembeli</TableHead>
+                  <TableHead className="py-3 text-[11.5px] font-medium text-slate-500 whitespace-nowrap">Pembayaran</TableHead>
+                  <TableHead className="py-3 text-[11.5px] font-medium text-slate-500 whitespace-nowrap text-right">Total</TableHead>
 
                   {/* 9. Aksi Tiga Titik */}
                   <TableHead className="w-12 text-center py-3 pr-3" />
@@ -1122,7 +920,7 @@ export function OrdersDataTable({
                       >
                         {/* Checkbox */}
                         <TableCell
-                          className="text-center py-3.5"
+                          className="text-center py-3"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <input
@@ -1134,24 +932,21 @@ export function OrdersDataTable({
                           />
                         </TableCell>
 
-                        {/* 1. Shipment ID */}
-                        <TableCell className="py-3.5 whitespace-nowrap">
-                          <span className="font-mono text-[12.5px] font-bold text-slate-800 hover:text-indigo-600 transition tracking-tight">
+                        {/* 1. ID Pesanan */}
+                        <TableCell className="py-3 whitespace-nowrap">
+                          <span className="text-[12.5px] font-semibold text-slate-800 tabular-nums">
                             #{order.orderNumber}
                           </span>
                         </TableCell>
 
-                        {/* 2. Shipment Event (Timeline Horizontal Node Persis Referensi) */}
-                        <TableCell
-                          className="py-3.5 whitespace-nowrap"
-                          onClick={(e) => e.stopPropagation()}
-                        >
+                        {/* 2. Alur Pesanan (Timeline) */}
+                        <TableCell className="py-3 whitespace-nowrap">
                           <OrderEventTimeline status={order.status} />
                         </TableCell>
 
-                        {/* 3. Status Badge (Interactive Click to Change Status) */}
+                        {/* 3. Status Badge (klik untuk ubah status cepat) */}
                         <TableCell
-                          className="py-3.5 whitespace-nowrap"
+                          className="py-3 whitespace-nowrap"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <DropdownMenu>
@@ -1186,7 +981,7 @@ export function OrdersDataTable({
                                   className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-blue-700 hover:bg-blue-50 font-medium"
                                 >
                                   <Store className="w-3.5 h-3.5 text-blue-600" />
-                                  <span>Diproses Gudang (In Progress)</span>
+                                  <span>Diproses Gudang</span>
                                 </DropdownMenuItem>
                               )}
                               {order.status !== 'SIAP_DIAMBIL' && (
@@ -1195,7 +990,7 @@ export function OrdersDataTable({
                                   className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-indigo-700 hover:bg-indigo-50 font-medium"
                                 >
                                   <Truck className="w-3.5 h-3.5 text-indigo-600" />
-                                  <span>Siap Diambil / Kirim</span>
+                                  <span>Siap Diambil</span>
                                 </DropdownMenuItem>
                               )}
                               {order.status !== 'SELESAI' && (
@@ -1204,7 +999,7 @@ export function OrdersDataTable({
                                   className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-emerald-700 hover:bg-emerald-50 font-semibold"
                                 >
                                   <Check className="w-3.5 h-3.5 text-emerald-600" />
-                                  <span>Tandai Selesai (Arrived)</span>
+                                  <span>Tandai Selesai</span>
                                 </DropdownMenuItem>
                               )}
                               <DropdownMenuSeparator className="my-1 border-slate-100" />
@@ -1222,35 +1017,38 @@ export function OrdersDataTable({
                         </TableCell>
 
                         {/* 4. Expected Date (dengan Tag Delay jika tertahan > 24 jam) */}
-                        <TableCell className="py-3.5 whitespace-nowrap">
-                          <div className="space-y-0.5">
-                            <div className="text-[12.5px] font-medium text-slate-700">
+                        <TableCell className="py-3 whitespace-nowrap">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[12.5px] text-slate-600">
                               {formatDate(order.createdAt)}
-                            </div>
+                            </span>
                             {isDelayed && (
-                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-bold tracking-tight">
-                                <AlertTriangle className="w-2.5 h-2.5 text-amber-600" />
-                                <span>Delay</span>
+                              <span
+                                className="inline-flex items-center gap-0.5 h-5 px-1.5 rounded bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-semibold"
+                                title="Tertahan lebih dari 24 jam"
+                              >
+                                <AlertTriangle className="w-2.5 h-2.5" />
+                                Tertunda
                               </span>
                             )}
                           </div>
                         </TableCell>
 
                         {/* 5. Order Items */}
-                        <TableCell className="py-3.5">
+                        <TableCell className="py-3">
                           <div
-                            className="text-[12.5px] font-semibold text-slate-800 truncate max-w-[210px]"
+                            className="text-[12.5px] font-medium text-slate-800 truncate max-w-[190px]"
                             title={itemsSummary}
                           >
                             {itemsSummary}
                           </div>
                           <div className="text-[11px] text-slate-400 mt-0.5">
-                            {order.items?.length || 1} jenis komoditas • {totalQty} unit
+                            {order.items?.length || 1} item • {totalQty} unit
                           </div>
                         </TableCell>
 
                         {/* 6. Pembeli */}
-                        <TableCell className="py-3.5">
+                        <TableCell className="py-3">
                           <div className="flex items-center gap-2">
                             <Avatar className="w-6 h-6 rounded-full border border-slate-200 shrink-0">
                               <AvatarImage
@@ -1280,28 +1078,21 @@ export function OrdersDataTable({
                           </div>
                         </TableCell>
 
-                        {/* 7. Carrier / Kurir (Persis Referensi FedEx/DHL/Regular) */}
-                        <TableCell className="py-3.5 whitespace-nowrap">
-                          {renderCarrierBadge(order)}
+                        {/* 7. Pembayaran (Tunai Kasir) */}
+                        <TableCell className="py-3 whitespace-nowrap">
+                          {renderPayment(order)}
                         </TableCell>
 
-                        {/* 8. Total Amount & Status Lunas */}
-                        <TableCell className="py-3.5 whitespace-nowrap">
-                          <div className="text-[13px] font-bold text-slate-900 tabular-nums">
+                        {/* 8. Total */}
+                        <TableCell className="py-3 whitespace-nowrap text-right">
+                          <span className="text-[12.5px] font-semibold text-slate-900 tabular-nums">
                             Rp {Number(order.totalAmount).toLocaleString('id-ID')}
-                          </div>
-                          <div className="text-[10.5px] font-medium mt-0.5">
-                            {order.isPaid ? (
-                              <span className="text-emerald-700 font-semibold">✓ Lunas</span>
-                            ) : (
-                              <span className="text-amber-600 font-medium">• Belum Lunas</span>
-                            )}
-                          </div>
+                          </span>
                         </TableCell>
 
                         {/* 9. Aksi Tiga Titik */}
                         <TableCell
-                          className="py-3.5 text-center pr-3"
+                          className="py-3 text-center pr-3"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <DropdownMenu>
@@ -1354,7 +1145,7 @@ export function OrdersDataTable({
                                   className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-indigo-700 hover:bg-indigo-50"
                                 >
                                   <Truck className="w-3.5 h-3.5 text-indigo-600" />
-                                  <span>Siap Diambil / Kirim</span>
+                                  <span>Siap Diambil</span>
                                 </DropdownMenuItem>
                               )}
                               {order.status !== 'SELESAI' && (
@@ -1363,7 +1154,7 @@ export function OrdersDataTable({
                                   className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-emerald-700 hover:bg-emerald-50 font-semibold"
                                 >
                                   <Check className="w-3.5 h-3.5 text-emerald-600" />
-                                  <span>Tandai Selesai (Arrived)</span>
+                                  <span>Tandai Selesai</span>
                                 </DropdownMenuItem>
                               )}
 
@@ -1516,8 +1307,8 @@ export function OrdersDataTable({
                     >
                       <Truck className="w-4 h-4" />
                     </div>
-                    <div className="font-bold text-[11px] text-slate-800">3. Siap/Kirim</div>
-                    <div className="text-[10px] text-slate-400">Kurir / Kasir</div>
+                    <div className="font-bold text-[11px] text-slate-800">3. Siap Diambil</div>
+                    <div className="text-[10px] text-slate-400">Di kasir koperasi</div>
                   </div>
 
                   <div className="text-center space-y-1">
@@ -1531,7 +1322,7 @@ export function OrdersDataTable({
                       <MapPin className="w-4 h-4" />
                     </div>
                     <div className="font-bold text-[11px] text-slate-800">4. Selesai</div>
-                    <div className="text-[10px] text-slate-400">Arrived</div>
+                    <div className="text-[10px] text-slate-400">Diterima pembeli</div>
                   </div>
                 </div>
               </div>
@@ -1567,9 +1358,9 @@ export function OrdersDataTable({
                     </strong>
                   </div>
                   <div className="col-span-1 sm:col-span-2">
-                    <span className="text-slate-500">Tujuan / Titik Ambil:</span>{' '}
+                    <span className="text-slate-500">Pembayaran:</span>{' '}<span className="text-slate-900 font-semibold">Tunai Kasir</span><br /><span className="text-slate-500">Titik Ambil:</span>{' '}
                     <span className="text-slate-900 font-semibold">
-                      {selectedOrder.alamatKirim || 'Kantor & Gudang Koperasi Kalawat (Ambil Langsung)'}
+                      {selectedOrder.alamatKirim || 'Kantor & Gudang Koperasi (Ambil Langsung)'}
                     </span>
                   </div>
                 </div>
@@ -1657,7 +1448,7 @@ export function OrdersDataTable({
                     className="px-3.5 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
                   >
                     <Truck className="w-3.5 h-3.5" />
-                    <span>Komoditas Siap (Antar / Kasir)</span>
+                    <span>Komoditas Siap Diambil</span>
                   </button>
                 )}
 
@@ -1669,7 +1460,7 @@ export function OrdersDataTable({
                     className="px-3.5 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
                   >
                     <Check className="w-3.5 h-3.5" />
-                    <span>Selesaikan Transaksi (Arrived)</span>
+                    <span>Selesaikan Transaksi</span>
                   </button>
                 )}
               </div>
