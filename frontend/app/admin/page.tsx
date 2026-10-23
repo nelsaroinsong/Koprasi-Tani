@@ -14,6 +14,8 @@ import { EquipmentFormPage } from '@/components/admin/equipment-form-page';
 import { TokoProductFormPage } from '@/components/admin/toko-product-form-page';
 import EquipmentsDataTable from '@/components/admin/equipments-data-table';
 import { EquipmentRentalsTable } from '@/components/admin/equipment-rentals-table';
+import { DashboardKpiCards } from '@/components/admin/dashboard-kpi-cards';
+import { RecentUsersTable } from '@/components/admin/recent-users-table';
 
 export default function AdminPage() {
   const { activeTab, setActiveTab } = useAdmin();
@@ -79,14 +81,15 @@ export default function AdminPage() {
     if (activeTab.item === 'Pengajuan Sewa Alat' || activeTab.item === 'Sewa Alat') {
       return <EquipmentRentalsTable />;
     }
-    // Default untuk 'Pesanan Masuk'
-    return <OrdersDataTable />;
+    // Default untuk 'Pesanan Masuk' (Halaman penuh manajemen pesanan yang bisa di-action)
+    return <OrdersDataTable hideCards={true} isDashboard={false} />;
   }
 
-  // 5. Default: Halaman Dashboard Utama
+  // 5. Default: Halaman Dashboard Utama (5 KPI Cards + User Baru Mendaftar View Only)
   return (
-    <div className="w-full pb-10">
-      <OrdersDataTable hideCards={false} />
+    <div className="space-y-5 w-full pb-10">
+      <DashboardKpiCards />
+      <RecentUsersTable />
     </div>
   );
 }

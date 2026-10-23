@@ -21,11 +21,14 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('q')?.trim();
     const statusParam = searchParams.get('status');
+    const methodParam = searchParams.get('method');
+    const startDateParam = searchParams.get('startDate');
+    const endDateParam = searchParams.get('endDate');
     const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
     const limit = Math.max(1, Math.min(50, parseInt(searchParams.get('limit') || '10', 10)));
     const skip = (page - 1) * limit;
 
-    const cacheKey = `admin:orders:v2:p=${page}:l=${limit}:s=${statusParam || 'all'}:q=${search || ''}`;
+    const cacheKey = `admin:orders:v3:p=${page}:l=${limit}:s=${statusParam || 'all'}:m=${methodParam || 'all'}:sd=${startDateParam || ''}:ed=${endDateParam || ''}:q=${search || ''}`;
     const cachedResponse = await getCache<any>(cacheKey);
     if (cachedResponse) {
       return NextResponse.json(cachedResponse);
@@ -41,6 +44,20 @@ export async function GET(request: Request) {
       )
     ) {
       whereCondition.status = statusParam;
+    }
+
+    if (methodParam && ['CASH_KOPERASI', 'TRANSFER_KOPERASI'].includes(methodParam)) {
+      whereCondition.paymentMethod = methodParam;
+    }
+
+    if (startDateParam || endDateParam) {
+      whereCondition.createdAt = {};
+      if (startDateParam) {
+        whereCondition.createdAt.gte = new Date(startDateParam);
+      }
+      if (endDateParam) {
+        whereCondition.createdAt.lte = new Date(endDateParam);
+      }
     }
 
     if (search) {
@@ -123,15 +140,19 @@ export async function GET(request: Request) {
     let totalOmset = 0;
     let pendingCount = 0;
     let diprosesCount = 0;
+    let siapDiambilCount = 0;
     let selesaiCount = 0;
+    let dibatalkanCount = 0;
 
     for (const ord of allOrdersStats) {
       if (ord.status !== 'DIBATALKAN') {
         totalOmset += Number(ord.totalAmount);
       }
       if (ord.status === 'MENUNGGU_PEMBAYARAN') pendingCount++;
-      if (ord.status === 'DIPROSES' || ord.status === 'SIAP_DIAMBIL') diprosesCount++;
+      if (ord.status === 'DIPROSES') diprosesCount++;
+      if (ord.status === 'SIAP_DIAMBIL') siapDiambilCount++;
       if (ord.status === 'SELESAI') selesaiCount++;
+      if (ord.status === 'DIBATALKAN') dibatalkanCount++;
     }
 
     // Hitung total kategori dari data file json
@@ -180,7 +201,9 @@ export async function GET(request: Request) {
         totalOmset,
         pendingCount,
         diprosesCount,
+        siapDiambilCount,
         selesaiCount,
+        dibatalkanCount,
       },
       pagination: {
         totalCount,

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   Table,
   TableHeader,
@@ -25,23 +25,29 @@ import {
   User,
   Filter,
   MoreVertical,
-  Tag,
-  Zap,
-  Gauge,
   ArrowUpDown,
   Trash2,
   Eye,
   Download,
   AlertTriangle,
   Loader2,
-  Tractor,
-  ShoppingCart,
-  Layers,
-  HandCoins,
+  Store,
+  Truck,
+  MapPin,
+  Calendar,
+  ChevronDown,
+  Printer,
+  Copy,
+  ExternalLink,
+  ChevronRight,
+  ShieldCheck,
+  CheckSquare,
+  Square,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useToast } from '@/context/toast-context';
+import { DashboardKpiCards } from '@/components/admin/dashboard-kpi-cards';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -53,15 +59,29 @@ import {
 
 interface OrdersDataTableProps {
   hideCards?: boolean;
+  isDashboard?: boolean;
 }
 
 const STATUS_TABS = [
-  { key: 'ALL', label: 'Semua Status' },
-  { key: 'MENUNGGU_PEMBAYARAN', label: 'Pesanan Masuk' },
-  { key: 'DIPROSES', label: 'Disiapkan Gudang' },
-  { key: 'SIAP_DIAMBIL', label: 'Siap di Kasir' },
-  { key: 'SELESAI', label: 'Selesai' },
-  { key: 'DIBATALKAN', label: 'Dibatalkan' },
+  { key: 'ALL', label: 'Semua Pesanan', dot: 'bg-slate-400' },
+  { key: 'MENUNGGU_PEMBAYARAN', label: 'Menunggu Bayar', dot: 'bg-slate-500' },
+  { key: 'DIPROSES', label: 'Diproses Gudang', dot: 'bg-blue-600' },
+  { key: 'SIAP_DIAMBIL', label: 'Siap Diambil / Kirim', dot: 'bg-indigo-600' },
+  { key: 'SELESAI', label: 'Selesai (Arrived)', dot: 'bg-emerald-600' },
+  { key: 'DIBATALKAN', label: 'Dibatalkan', dot: 'bg-rose-600' },
+];
+
+const DATE_PRESETS = [
+  { key: 'ALL', label: 'Semua Tanggal' },
+  { key: 'TODAY', label: 'Hari Ini' },
+  { key: 'WEEK', label: '7 Hari Terakhir' },
+  { key: 'MONTH', label: '30 Hari Terakhir' },
+];
+
+const CARRIER_OPTIONS = [
+  { key: 'ALL', label: 'Semua Kurir & Metode' },
+  { key: 'KURIR', label: 'Kurir Koperasi' },
+  { key: 'AMBIL', label: 'Ambil di Kasir/Kantor' },
 ];
 
 const HATCHED_BG_STYLE: React.CSSProperties = {
@@ -69,7 +89,91 @@ const HATCHED_BG_STYLE: React.CSSProperties = {
     'repeating-linear-gradient(-45deg, #F3F4F6, #F3F4F6 4px, #F9FAFB 4px, #F9FAFB 8px)',
 };
 
-export function OrdersDataTable({ hideCards = false }: OrdersDataTableProps) {
+/**
+ * Komponen Timeline 4-Tahap Persis Referensi Gambar (Shipment Event)
+ * Tahap 1: Dipesan (Package)
+ * Tahap 2: Diproses Gudang (Store/Warehouse)
+ * Tahap 3: Pengiriman / Siap (Truck)
+ * Tahap 4: Sampai / Selesai (MapPin)
+ */
+function OrderEventTimeline({ status }: { status: string }) {
+  const isCanceled = status === 'DIBATALKAN';
+
+  let stepLevel = 1;
+  if (status === 'DIPROSES') stepLevel = 2;
+  else if (status === 'SIAP_DIAMBIL') stepLevel = 3;
+  else if (status === 'SELESAI') stepLevel = 4;
+
+  const milestones = [
+    { num: 1, label: 'Dipesan', icon: Package },
+    { num: 2, label: 'Diproses Gudang', icon: Store },
+    { num: 3, label: 'Pengiriman / Siap', icon: Truck },
+    { num: 4, label: 'Selesai Diterima', icon: MapPin },
+  ];
+
+  return (
+    <div className="flex items-center min-w-[155px] max-w-[170px] select-none py-1">
+      {milestones.map((m, idx) => {
+        const Icon = m.icon;
+        const isReached = !isCanceled && stepLevel >= m.num;
+        const isCurrent = !isCanceled && stepLevel === m.num;
+        const isNextLineFilled = !isCanceled && stepLevel > m.num;
+
+        return (
+          <React.Fragment key={m.num}>
+            {/* Circle Node */}
+            <div
+              className={`relative flex items-center justify-center shrink-0 w-6 h-6 rounded-full transition-all duration-200 ${
+                isCanceled && m.num === 1
+                  ? 'bg-slate-900 text-white'
+                  : isCanceled && m.num === 2
+                  ? 'bg-rose-100 text-rose-600 border border-rose-300'
+                  : isCanceled
+                  ? 'bg-slate-50 border border-slate-200 text-slate-300'
+                  : isReached
+                  ? 'bg-slate-900 text-white shadow-2xs'
+                  : 'bg-white border border-slate-300 text-slate-300'
+              } ${isCurrent ? 'ring-2 ring-slate-900/20 ring-offset-1' : ''}`}
+              title={`Tahap ${m.num}: ${m.label}`}
+            >
+              {isCanceled && m.num === 2 ? (
+                <XCircle className="w-3.5 h-3.5" />
+              ) : (
+                <Icon
+                  className={`w-3 h-3 ${
+                    isReached || (isCanceled && m.num === 1)
+                      ? 'text-white'
+                      : 'text-slate-400'
+                  }`}
+                />
+              )}
+            </div>
+
+            {/* Connecting Horizontal Line */}
+            {idx < milestones.length - 1 && (
+              <div className="flex-1 h-0.5 sm:h-1 mx-0.5 transition-colors relative">
+                <div
+                  className={`h-full w-full rounded-full transition-all duration-300 ${
+                    isCanceled && m.num === 1
+                      ? 'bg-rose-200 border-t border-dashed border-rose-400'
+                      : isNextLineFilled
+                      ? 'bg-slate-900'
+                      : 'bg-slate-200'
+                  }`}
+                />
+              </div>
+            )}
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
+}
+
+export function OrdersDataTable({
+  hideCards = false,
+  isDashboard = false,
+}: OrdersDataTableProps) {
   const { showToast } = useToast();
 
   const [orders, setOrders] = useState<any[]>([]);
@@ -82,7 +186,9 @@ export function OrdersDataTable({ hideCards = false }: OrdersDataTableProps) {
     totalOmset: 0,
     pendingCount: 0,
     diprosesCount: 0,
+    siapDiambilCount: 0,
     selesaiCount: 0,
+    dibatalkanCount: 0,
   });
   const [pagination, setPagination] = useState({
     totalCount: 0,
@@ -92,7 +198,11 @@ export function OrdersDataTable({ hideCards = false }: OrdersDataTableProps) {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState<string>('ALL');
+  const [filterStatus, setFilterStatus] = useState<string>(() =>
+    isDashboard ? 'MENUNGGU_PEMBAYARAN' : 'ALL'
+  );
+  const [datePreset, setDatePreset] = useState<string>('ALL');
+  const [carrierFilter, setCarrierFilter] = useState<string>('ALL');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
 
@@ -110,7 +220,7 @@ export function OrdersDataTable({ hideCards = false }: OrdersDataTableProps) {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch, filterStatus]);
+  }, [debouncedSearch, filterStatus, datePreset, carrierFilter, isDashboard]);
 
   // Efek indeterminate untuk checkbox header
   const isAllSelected = orders.length > 0 && selectedOrders.length === orders.length;
@@ -121,6 +231,27 @@ export function OrdersDataTable({ hideCards = false }: OrdersDataTableProps) {
       headerCheckboxRef.current.indeterminate = isSomeSelected;
     }
   }, [isSomeSelected]);
+
+  // Hitung range tanggal dari preset
+  const dateRange = useMemo(() => {
+    if (datePreset === 'ALL') return null;
+    const now = new Date();
+    const end = now.toISOString();
+
+    if (datePreset === 'TODAY') {
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+      return { start, end };
+    }
+    if (datePreset === 'WEEK') {
+      const start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      return { start, end };
+    }
+    if (datePreset === 'MONTH') {
+      const start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      return { start, end };
+    }
+    return null;
+  }, [datePreset]);
 
   const fetchOrders = useCallback(async () => {
     if (abortControllerRef.current) {
@@ -140,8 +271,14 @@ export function OrdersDataTable({ hideCards = false }: OrdersDataTableProps) {
         params.set('q', debouncedSearch);
       }
 
-      if (filterStatus !== 'ALL') {
-        params.set('status', filterStatus);
+      const targetStatus = isDashboard ? 'MENUNGGU_PEMBAYARAN' : filterStatus;
+      if (targetStatus !== 'ALL') {
+        params.set('status', targetStatus);
+      }
+
+      if (dateRange) {
+        params.set('startDate', dateRange.start);
+        params.set('endDate', dateRange.end);
       }
 
       const res = await fetch(`/api/admin/orders?${params.toString()}`, {
@@ -150,7 +287,16 @@ export function OrdersDataTable({ hideCards = false }: OrdersDataTableProps) {
       const data = await res.json();
 
       if (data.success && Array.isArray(data.orders)) {
-        setOrders(data.orders);
+        let list = data.orders;
+
+        // Filter Kurir di sisi klien jika dipilih
+        if (carrierFilter === 'KURIR') {
+          list = list.filter((o: any) => Boolean(o.alamatKirim));
+        } else if (carrierFilter === 'AMBIL') {
+          list = list.filter((o: any) => !o.alamatKirim);
+        }
+
+        setOrders(list);
         if (data.stats) {
           setStats((prev) => ({
             ...prev,
@@ -166,24 +312,7 @@ export function OrdersDataTable({ hideCards = false }: OrdersDataTableProps) {
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, debouncedSearch, filterStatus]);
-
-  // Muat ringkasan metrik dashboard global jika cards ditampilkan
-  useEffect(() => {
-    if (!hideCards) {
-      fetch('/api/admin/dashboard-stats')
-        .then((res) => res.json())
-        .then((data) => {
-          if (data?.success && data.stats) {
-            setStats((prev) => ({
-              ...prev,
-              ...data.stats,
-            }));
-          }
-        })
-        .catch(() => {});
-    }
-  }, [hideCards]);
+  }, [currentPage, debouncedSearch, filterStatus, dateRange, carrierFilter, isDashboard]);
 
   useEffect(() => {
     fetchOrders();
@@ -331,7 +460,7 @@ export function OrdersDataTable({ hideCards = false }: OrdersDataTableProps) {
     const headers = [
       'Ticket ID',
       'Komoditas',
-      'Metode Pembayaran',
+      'Kurir / Metode',
       'Pembeli',
       'Status',
       'Tanggal',
@@ -341,7 +470,7 @@ export function OrdersDataTable({ hideCards = false }: OrdersDataTableProps) {
     const rows = orders.map((o) => [
       `#${o.orderNumber}`,
       `"${(o.items?.map((it: any) => it.namaProduk).join('; ') || 'Komoditas Koperasi').replace(/"/g, '""')}"`,
-      o.paymentMethod === 'CASH_KOPERASI' ? 'Tunai Kasir' : 'Transfer',
+      o.alamatKirim ? 'Kurir Koperasi' : 'Ambil di Kasir',
       `"${(o.pembeli?.name || 'Pembeli Umum').replace(/"/g, '""')}"`,
       o.status,
       new Date(o.createdAt).toISOString().split('T')[0],
@@ -364,216 +493,241 @@ export function OrdersDataTable({ hideCards = false }: OrdersDataTableProps) {
     showToast('Daftar pesanan berhasil diekspor ke CSV');
   };
 
-  // Signal bars indicator matching Priority column in Kravio reference image
-  const renderMethodPriority = (paymentMethod: string, totalAmount: number) => {
-    const isHigh = totalAmount >= 250000;
-    const isMedium = totalAmount >= 75000 && totalAmount < 250000;
+  // Fungsi Cetak Struk / Nota Pesanan
+  const handlePrintReceipt = (order: any) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      showToast('Popup terblokir, izinkan popup browser untuk mencetak nota');
+      return;
+    }
 
-    return (
-      <span className="inline-flex items-center gap-2 text-[12.5px] font-medium text-slate-700">
-        <span className="inline-flex items-end gap-[2px] h-3">
-          <span
-            className={`w-[2.5px] h-1.5 rounded-full ${
-              isHigh ? 'bg-rose-500' : isMedium ? 'bg-amber-400' : 'bg-amber-300'
-            }`}
-          />
-          <span
-            className={`w-[2.5px] h-2.5 rounded-full ${
-              isHigh ? 'bg-rose-500' : isMedium ? 'bg-amber-400' : 'bg-slate-200'
-            }`}
-          />
-          <span
-            className={`w-[2.5px] h-3.5 rounded-full ${
-              isHigh ? 'bg-rose-500' : 'bg-slate-200'
-            }`}
-          />
-        </span>
-        <span>{paymentMethod === 'CASH_KOPERASI' ? 'Tunai Kasir' : 'Transfer'}</span>
-      </span>
-    );
+    const itemsRows =
+      order.items
+        ?.map(
+          (it: any) => `
+      <tr>
+        <td style="padding: 6px 0; border-bottom: 1px dashed #eee;">
+          <strong>${it.namaProduk}</strong><br/>
+          <small style="color: #666;">${it.quantity} ${it.satuan} × Rp ${Number(it.hargaPerSatuan).toLocaleString('id-ID')}</small>
+        </td>
+        <td style="padding: 6px 0; text-align: right; border-bottom: 1px dashed #eee; font-weight: bold;">
+          Rp ${Number(it.subtotal).toLocaleString('id-ID')}
+        </td>
+      </tr>
+    `
+        )
+        .join('') || '';
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Nota #${order.orderNumber} - Koperasi Tani</title>
+          <style>
+            body { font-family: monospace; font-size: 13px; max-width: 320px; margin: 20px auto; padding: 10px; color: #111; }
+            .header { text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 10px; }
+            .title { font-size: 16px; font-weight: bold; }
+            .info { margin-bottom: 10px; line-height: 1.5; font-size: 12px; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 12px; }
+            .total { border-top: 2px dashed #000; padding-top: 8px; font-size: 14px; font-weight: bold; display: flex; justify-content: space-between; }
+            .footer { text-align: center; margin-top: 20px; font-size: 11px; color: #555; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="title">KOPERASI TANI KALAWAT</div>
+            <div>Struk Resmi Transaksi Komoditas</div>
+            <small>${new Date(order.createdAt).toLocaleString('id-ID')}</small>
+          </div>
+          <div class="info">
+            <strong>No. Nota:</strong> #${order.orderNumber}<br/>
+            <strong>Pembeli:</strong> ${order.pembeli?.name || 'Pelanggan Umum'}<br/>
+            <strong>Metode:</strong> ${order.paymentMethod === 'CASH_KOPERASI' ? 'Tunai Kasir' : 'Transfer'}<br/>
+            <strong>Tipe:</strong> ${order.alamatKirim ? 'Kurir Antar' : 'Ambil di Kantor'}
+          </div>
+          <table>
+            ${itemsRows}
+          </table>
+          <div class="total">
+            <span>TOTAL:</span>
+            <span>Rp ${Number(order.totalAmount).toLocaleString('id-ID')}</span>
+          </div>
+          <div class="footer">
+            <p>Terima kasih telah berbelanja komoditas langsung dari petani binaan Koperasi.</p>
+          </div>
+          <script>
+            window.onload = function() { window.print(); }
+          </script>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(html);
+    printWindow.document.close();
   };
 
-  // Clean unbordered status indicator matching Kravio reference image (In Review, Delivered, In Progress)
-  const renderStatusIndicator = (status: string) => {
+  // Status Badge dengan dot berwarna persis contoh gambar
+  const renderStatusBadge = (status: string) => {
     switch (status) {
       case 'MENUNGGU_PEMBAYARAN':
         return (
-          <span className="inline-flex items-center gap-2 text-[12.5px] font-medium text-slate-700">
-            <span className="w-4 h-4 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-              <span className="w-2 h-2 rounded-full bg-blue-500" />
-            </span>
-            <span>Pesanan Masuk</span>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold bg-slate-100 text-slate-700 border border-slate-200 shadow-2xs">
+            <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
+            <span>Menunggu Bayar</span>
           </span>
         );
       case 'DIPROSES':
         return (
-          <span className="inline-flex items-center gap-2 text-[12.5px] font-medium text-slate-700">
-            <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-            <span>Disiapkan Gudang</span>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold bg-blue-50 text-blue-700 border border-blue-200 shadow-2xs">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
+            <span>In Progress</span>
           </span>
         );
       case 'SIAP_DIAMBIL':
         return (
-          <span className="inline-flex items-center gap-2 text-[12.5px] font-medium text-slate-700">
-            <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-            <span>Siap di Kasir</span>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-2xs">
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-600" />
+            <span>Siap Diambil</span>
           </span>
         );
       case 'SELESAI':
         return (
-          <span className="inline-flex items-center gap-2 text-[12.5px] font-medium text-slate-700">
-            <Check className="w-3.5 h-3.5 text-emerald-500 stroke-[2.5] shrink-0" />
-            <span>Selesai</span>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+            <span>Arrived</span>
           </span>
         );
       case 'DIBATALKAN':
         return (
-          <span className="inline-flex items-center gap-2 text-[12.5px] font-medium text-slate-500">
-            <XCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-            <span>Dibatalkan</span>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold bg-rose-50 text-rose-700 border border-rose-200 shadow-2xs">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-600" />
+            <span>Canceled</span>
           </span>
         );
       default:
-        return <span className="text-[12.5px] text-slate-700">{status}</span>;
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+            {status}
+          </span>
+        );
+    }
+  };
+
+  // Carrier Badge mirip logo kurir di contoh gambar (FedEx, DHL, Regular)
+  const renderCarrierBadge = (order: any) => {
+    const isDelivery = Boolean(order.alamatKirim);
+
+    return (
+      <div className="space-y-1">
+        {isDelivery ? (
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-indigo-950 text-white font-bold text-[10.5px] shadow-2xs">
+            <Truck className="w-3 h-3 text-indigo-300" />
+            <span>Kurir Koperasi</span>
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-amber-100 border border-amber-300 text-amber-900 font-bold text-[10.5px] shadow-2xs">
+            <Store className="w-3 h-3 text-amber-700" />
+            <span>Ambil di Kasir</span>
+          </span>
+        )}
+        <div className="text-[11px] text-slate-400 font-medium">
+          {order.paymentMethod === 'CASH_KOPERASI' ? 'Tunai Kasir' : 'Transfer Bank'}
+        </div>
+      </div>
+    );
+  };
+
+  // Helper cek delay jika pesanan belum bayar > 24 jam
+  const checkIsDelay = (order: any) => {
+    if (order.status === 'MENUNGGU_PEMBAYARAN' || order.status === 'DIPROSES') {
+      const createdTime = new Date(order.createdAt).getTime();
+      const diffHours = (Date.now() - createdTime) / (1000 * 60 * 60);
+      return diffHours > 24;
+    }
+    return false;
+  };
+
+  // Format tanggal ringkas
+  const formatDate = (dateStr: string) => {
+    try {
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('id-ID', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      });
+    } catch {
+      return dateStr;
     }
   };
 
   return (
-    <div className="space-y-5">
-      {/* 1. Kravio Top 3 KPI Cards (Double-Container with Diagonal Hatched Outer Shell) */}
-      {!hideCards && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
-          {/* Card 1: Total Produk */}
-          <div
-            className="rounded-2xl border border-[#E5E7EB] p-1.5"
-            style={HATCHED_BG_STYLE}
-          >
-            <div className="px-3 py-2 flex items-center justify-between">
-              <span className="text-[13px] font-medium text-slate-700">
-                Total Produk
-              </span>
-              <Package className="w-4 h-4 text-slate-500 stroke-[1.75]" />
-            </div>
+    <div className="space-y-4">
+      {/* 1. Dashboard KPI Cards */}
+      {!hideCards && <DashboardKpiCards />}
 
-            <div className="bg-white rounded-xl border border-[#ECEEF2] px-4 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col justify-between min-h-[82px]">
-              <div className="text-[26px] leading-tight font-semibold tracking-tight text-slate-900 tabular-nums truncate">
-                {stats.totalProducts > 0 ? stats.totalProducts.toLocaleString('id-ID') : '0'}
-              </div>
-              <div className="mt-2 flex items-center gap-1.5 text-[12px] text-slate-400">
-                <span>Komoditas aktif</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 2: Total Alat */}
-          <div
-            className="rounded-2xl border border-[#E5E7EB] p-1.5"
-            style={HATCHED_BG_STYLE}
-          >
-            <div className="px-3 py-2 flex items-center justify-between">
-              <span className="text-[13px] font-medium text-slate-700">
-                Total Alat
-              </span>
-              <Tractor className="w-4 h-4 text-slate-500 stroke-[1.75]" />
-            </div>
-
-            <div className="bg-white rounded-xl border border-[#ECEEF2] px-4 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col justify-between min-h-[82px]">
-              <div className="text-[26px] leading-tight font-semibold tracking-tight text-slate-900 tabular-nums truncate">
-                {stats.totalEquipments > 0 ? stats.totalEquipments.toLocaleString('id-ID') : '0'}
-              </div>
-              <div className="mt-2 flex items-center gap-1.5 text-[12px] text-slate-400">
-                <span>Unit sewa alat</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 3: Total Pesanan */}
-          <div
-            className="rounded-2xl border border-[#E5E7EB] p-1.5"
-            style={HATCHED_BG_STYLE}
-          >
-            <div className="px-3 py-2 flex items-center justify-between">
-              <span className="text-[13px] font-medium text-slate-700">
-                Total Pesanan
-              </span>
-              <ShoppingCart className="w-4 h-4 text-slate-500 stroke-[1.75]" />
-            </div>
-
-            <div className="bg-white rounded-xl border border-[#ECEEF2] px-4 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col justify-between min-h-[82px]">
-              <div className="text-[26px] leading-tight font-semibold tracking-tight text-slate-900 tabular-nums truncate">
-                {stats.totalOrders > 0 ? stats.totalOrders.toLocaleString('id-ID') : '0'}
-              </div>
-              <div className="mt-2 flex items-center gap-1.5 text-[12px] text-slate-400">
-                <span>Transaksi masuk</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 4: Total Kategori */}
-          <div
-            className="rounded-2xl border border-[#E5E7EB] p-1.5"
-            style={HATCHED_BG_STYLE}
-          >
-            <div className="px-3 py-2 flex items-center justify-between">
-              <span className="text-[13px] font-medium text-slate-700">
-                Total Kategori
-              </span>
-              <Layers className="w-4 h-4 text-slate-500 stroke-[1.75]" />
-            </div>
-
-            <div className="bg-white rounded-xl border border-[#ECEEF2] px-4 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col justify-between min-h-[82px]">
-              <div className="text-[26px] leading-tight font-semibold tracking-tight text-slate-900 tabular-nums truncate">
-                {stats.totalCategories > 0 ? stats.totalCategories.toLocaleString('id-ID') : '0'}
-              </div>
-              <div className="mt-2 flex items-center gap-1.5 text-[12px] text-slate-400">
-                <span>Kategori produk & alat</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 5: Total Hasil Petani */}
-          <div
-            className="col-span-2 sm:col-span-1 rounded-2xl border border-[#E5E7EB] p-1.5"
-            style={HATCHED_BG_STYLE}
-          >
-            <div className="px-3 py-2 flex items-center justify-between">
-              <span className="text-[13px] font-medium text-slate-700">
-                Total Hasil Petani
-              </span>
-              <HandCoins className="w-4 h-4 text-slate-500 stroke-[1.75]" />
-            </div>
-
-            <div className="bg-white rounded-xl border border-[#ECEEF2] px-4 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col justify-between min-h-[82px]">
-              <div className="text-[26px] leading-tight font-semibold tracking-tight text-slate-900 tabular-nums truncate">
-                {stats.totalHasilPetani > 0
-                  ? stats.totalHasilPetani >= 1000000
-                    ? `Rp ${(stats.totalHasilPetani / 1000000).toFixed(1)} jt`
-                    : `Rp ${stats.totalHasilPetani.toLocaleString('id-ID')}`
-                  : 'Rp 0'}
-              </div>
-              <div className="mt-2 flex items-center gap-1.5 text-[12px] text-slate-400">
-                <span>Bagi hasil penjualan</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 2. Kravio "SLA Monitoring" Double-Container Table */}
+      {/* 2. Kravio Outer Double-Container Shell */}
       <div
         className="rounded-2xl border border-[#E5E7EB] p-1.5"
         style={HATCHED_BG_STYLE}
       >
-        {/* Outer Hatched Header Bar */}
-        <div className="px-3 py-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-slate-600 stroke-[1.8]" />
-            <h2 className="text-[13.5px] font-semibold text-slate-800 tracking-tight">
-              Pesanan Masuk
-            </h2>
-          </div>
+        {/* Navigation Tabs di bagian Atas Tabel (Persis Referensi Gambar) */}
+        {!isDashboard && (
+          <div className="px-3 pt-2 pb-2.5 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/60 mb-1">
+            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
+              {STATUS_TABS.map((tab) => {
+                const isActive = filterStatus === tab.key;
+                let count = stats.totalOrders;
+                if (tab.key === 'MENUNGGU_PEMBAYARAN') count = stats.pendingCount;
+                if (tab.key === 'DIPROSES') count = stats.diprosesCount;
+                if (tab.key === 'SIAP_DIAMBIL') count = stats.siapDiambilCount;
+                if (tab.key === 'SELESAI') count = stats.selesaiCount;
+                if (tab.key === 'DIBATALKAN') count = stats.dibatalkanCount;
 
-          <div className="flex items-center gap-2 self-start sm:self-auto w-full sm:w-auto">
+                return (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => setFilterStatus(tab.key)}
+                    className={`h-8 px-3 rounded-lg text-xs font-semibold flex items-center gap-2 transition cursor-pointer whitespace-nowrap ${
+                      isActive
+                        ? 'bg-slate-900 text-white shadow-2xs'
+                        : 'bg-white/70 hover:bg-white text-slate-600 hover:text-slate-900 border border-slate-200/80'
+                    }`}
+                  >
+                    <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-white' : tab.dot}`} />
+                    <span>{tab.label}</span>
+                    <span
+                      className={`px-1.5 py-0.2 rounded-md text-[10.5px] font-bold tabular-nums ${
+                        isActive
+                          ? 'bg-white/20 text-white'
+                          : 'bg-slate-100 text-slate-600'
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={handleExportCSV}
+                className="h-8 px-3 rounded-lg border border-[#E5E7EB] bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 text-xs font-medium flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
+                title="Ekspor CSV Data Pesanan"
+              >
+                <Download className="w-3.5 h-3.5 text-slate-500" />
+                <span className="hidden sm:inline">Ekspor CSV</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Outer Hatched Toolbar Filter (Persis Referensi Gambar) */}
+        <div className="px-3 py-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             {/* Search Input */}
             <div className="relative flex-1 sm:w-56">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
@@ -581,46 +735,156 @@ export function OrdersDataTable({ hideCards = false }: OrdersDataTableProps) {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Cari pesanan..."
+                placeholder="Cari ID, pembeli, produk..."
                 className="w-full h-8 pl-8 pr-3 text-xs bg-white border border-[#E5E7EB] rounded-lg placeholder:text-slate-400 text-slate-800 focus:outline-none focus:border-slate-400 shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition"
               />
             </div>
 
-            {/* Filter Dropdown */}
+            {/* Date Range Selector (Pill Hitam/Gelap seperti 2 Feb - 14 Apr v di gambar) */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="h-8 px-3 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-2xs shrink-0"
+                  title="Filter Rentang Tanggal"
+                >
+                  <Calendar className="w-3.5 h-3.5 text-slate-300" />
+                  <span>
+                    {DATE_PRESETS.find((p) => p.key === datePreset)?.label || 'Semua Tanggal'}
+                  </span>
+                  <ChevronDown className="w-3 h-3 text-slate-400 ml-0.5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="start"
+                className="w-44 rounded-xl p-1 bg-white border border-slate-200 shadow-xl z-50 text-xs"
+              >
+                {DATE_PRESETS.map((preset) => (
+                  <DropdownMenuItem
+                    key={preset.key}
+                    onClick={() => setDatePreset(preset.key)}
+                    className={`cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center justify-between ${
+                      datePreset === preset.key
+                        ? 'bg-slate-100 font-semibold text-slate-900'
+                        : 'text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span>{preset.label}</span>
+                    {datePreset === preset.key && (
+                      <Check className="w-3.5 h-3.5 text-slate-900" />
+                    )}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Status Dropdown dengan Checkbox & Dot Warna (Persis Pop-up yang Terbuka di Gambar) */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
                   className="h-8 px-3 rounded-lg border border-[#E5E7EB] bg-white hover:bg-slate-50 text-xs font-medium text-slate-700 flex items-center gap-1.5 transition cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,0.02)] shrink-0"
                 >
-                  <Filter className="w-3.5 h-3.5 text-slate-500" />
+                  <span className="w-2 h-2 rounded-full bg-blue-600" />
                   <span>
                     {filterStatus === 'ALL'
-                      ? 'Filter'
+                      ? 'Status: Semua'
                       : STATUS_TABS.find((t) => t.key === filterStatus)?.label}
                   </span>
+                  <ChevronDown className="w-3 h-3 text-slate-400" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
-                align="end"
-                className="w-44 rounded-xl p-1 bg-white border-slate-200 shadow-lg z-50 text-xs"
+                align="start"
+                className="w-52 rounded-xl p-1.5 bg-white border border-slate-200 shadow-2xl z-50 text-xs space-y-0.5"
               >
-                {STATUS_TABS.map((tab) => (
+                <DropdownMenuLabel className="px-2 py-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                  Filter Status Pesanan
+                </DropdownMenuLabel>
+                {STATUS_TABS.map((tab) => {
+                  const isChecked = filterStatus === tab.key;
+                  return (
+                    <DropdownMenuItem
+                      key={tab.key}
+                      onClick={() => setFilterStatus(tab.key)}
+                      className={`cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center justify-between ${
+                        isChecked
+                          ? 'bg-slate-100 text-slate-900 font-bold'
+                          : 'text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        {isChecked ? (
+                          <CheckSquare className="w-3.5 h-3.5 text-slate-900" />
+                        ) : (
+                          <Square className="w-3.5 h-3.5 text-slate-300" />
+                        )}
+                        <span className={`w-2 h-2 rounded-full ${tab.dot}`} />
+                        <span>{tab.label}</span>
+                      </div>
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Carrier / Metode Filter Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="h-8 px-3 rounded-lg border border-[#E5E7EB] bg-white hover:bg-slate-50 text-xs font-medium text-slate-700 flex items-center gap-1.5 transition cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,0.02)] shrink-0"
+                >
+                  <Truck className="w-3.5 h-3.5 text-slate-500" />
+                  <span>
+                    {carrierFilter === 'ALL'
+                      ? 'Kurir / Ambil'
+                      : CARRIER_OPTIONS.find((c) => c.key === carrierFilter)?.label}
+                  </span>
+                  <ChevronDown className="w-3 h-3 text-slate-400" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="start"
+                className="w-48 rounded-xl p-1 bg-white border border-slate-200 shadow-xl z-50 text-xs"
+              >
+                {CARRIER_OPTIONS.map((opt) => (
                   <DropdownMenuItem
-                    key={tab.key}
-                    onClick={() => setFilterStatus(tab.key)}
-                    className={`cursor-pointer rounded-lg px-2.5 py-1.5 ${
-                      filterStatus === tab.key
+                    key={opt.key}
+                    onClick={() => setCarrierFilter(opt.key)}
+                    className={`cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center justify-between ${
+                      carrierFilter === opt.key
                         ? 'bg-slate-100 font-semibold text-slate-900'
-                        : 'text-slate-600'
+                        : 'text-slate-600 hover:bg-slate-50'
                     }`}
                   >
-                    {tab.label}
+                    <span>{opt.label}</span>
+                    {carrierFilter === opt.key && (
+                      <Check className="w-3.5 h-3.5 text-slate-900" />
+                    )}
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
 
+            {/* Reset Filters jika ada filter aktif */}
+            {(filterStatus !== 'ALL' || datePreset !== 'ALL' || carrierFilter !== 'ALL' || searchQuery) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setFilterStatus('ALL');
+                  setDatePreset('ALL');
+                  setCarrierFilter('ALL');
+                  setSearchQuery('');
+                }}
+                className="h-8 px-2.5 text-xs text-rose-600 hover:text-rose-700 font-semibold hover:bg-rose-50 rounded-lg transition cursor-pointer"
+              >
+                Reset
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 self-end sm:self-auto">
             {/* Refresh Button */}
             <button
               type="button"
@@ -676,7 +940,7 @@ export function OrdersDataTable({ hideCards = false }: OrdersDataTableProps) {
                       className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-slate-700 hover:bg-slate-100"
                     >
                       <XCircle className="w-3.5 h-3.5 text-slate-500" />
-                      <span>Batalkan Pilihan (0)</span>
+                      <span>Batalkan Pilihan</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator className="my-1 border-slate-100" />
                     <DropdownMenuItem
@@ -693,29 +957,36 @@ export function OrdersDataTable({ hideCards = false }: OrdersDataTableProps) {
           </div>
         </div>
 
-        {/* Bulk Action Bar saat ada pesanan yang dipilih */}
+        {/* Bulk Action Bar saat ada pesanan yang dipilih (Kravio White Card Style) */}
         {selectedOrders.length > 0 && (
-          <div className="mx-3 mb-2.5 px-3.5 py-2 bg-slate-900 text-white rounded-xl flex items-center justify-between text-xs shadow-sm animate-in fade-in">
+          <div className="mb-2 px-3.5 py-2.5 bg-white rounded-xl border border-[#ECEEF2] shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 animate-in fade-in slide-in-from-top-1 duration-200">
             <div className="flex items-center gap-2.5">
-              <span className="w-5 h-5 rounded-full bg-white/20 text-white font-bold flex items-center justify-center text-[11px]">
+              <span className="w-6 h-6 rounded-lg bg-slate-900 text-white font-bold flex items-center justify-center text-xs tabular-nums shadow-2xs">
                 {selectedOrders.length}
               </span>
-              <span className="font-medium text-slate-100">
-                {selectedOrders.length} pesanan dipilih
-              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[13px] font-semibold text-slate-800 tracking-tight">
+                  {selectedOrders.length} pesanan dipilih
+                </span>
+                <span className="hidden sm:inline-block text-xs text-slate-400 font-normal">
+                  • dari {orders.length} di halaman ini
+                </span>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
+
+            <div className="flex items-center gap-2 self-end sm:self-auto">
               <button
                 type="button"
                 onClick={() => setSelectedOrders([])}
-                className="px-2.5 py-1 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition cursor-pointer font-medium"
+                className="h-8 px-3 rounded-lg border border-[#E5E7EB] bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 text-xs font-medium transition cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex items-center gap-1.5"
               >
-                Batalkan Pilihan
+                <XCircle className="w-3.5 h-3.5 text-slate-400" />
+                <span>Batalkan Pilihan</span>
               </button>
               <button
                 type="button"
                 onClick={() => setIsBulkDeleteOpen(true)}
-                className="px-3 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-medium flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+                className="h-8 px-3.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 <span>Hapus Semua Terpilih ({selectedOrders.length})</span>
@@ -728,7 +999,7 @@ export function OrdersDataTable({ hideCards = false }: OrdersDataTableProps) {
         <div className="bg-white rounded-xl border border-[#ECEEF2] shadow-[0_1px_2px_rgba(0,0,0,0.02)] overflow-hidden">
           <div className="overflow-x-auto">
             <Table>
-              <TableHeader className="bg-white border-b border-[#F1F3F5]">
+              <TableHeader className="bg-[#FAFBFD] border-b border-[#F1F3F5]">
                 <TableRow className="border-[#F1F3F5] hover:bg-transparent">
                   <TableHead className="w-10 text-center py-3">
                     <input
@@ -736,65 +1007,92 @@ export function OrdersDataTable({ hideCards = false }: OrdersDataTableProps) {
                       type="checkbox"
                       checked={orders.length > 0 && selectedOrders.length === orders.length}
                       onChange={handleSelectAll}
-                      className="w-3.5 h-3.5 rounded border-slate-300 accent-[#18181B] cursor-pointer"
+                      className="w-4 h-4 rounded border-slate-300 text-slate-900 accent-slate-900 cursor-pointer transition"
+                      aria-label="Pilih semua pesanan"
                     />
                   </TableHead>
-                  <TableHead className="py-3 text-[12px] font-normal text-slate-400 whitespace-nowrap">
+
+                  {/* 1. Shipment ID / Order ID */}
+                  <TableHead className="py-3 text-[12px] font-medium text-slate-500 whitespace-nowrap min-w-[125px]">
                     <span className="inline-flex items-center gap-1">
-                      Ticket ID <ArrowUpDown className="w-3 h-3 text-slate-300" />
+                      Shipment ID <ArrowUpDown className="w-3 h-3 text-slate-300" />
                     </span>
                   </TableHead>
-                  <TableHead className="py-3 text-[12px] font-normal text-slate-400 min-w-[180px]">
+
+                  {/* 2. Shipment Event (Timeline Pesanan - Persis Referensi) */}
+                  <TableHead className="py-3 text-[12px] font-medium text-slate-500 whitespace-nowrap min-w-[175px]">
                     <span className="inline-flex items-center gap-1">
-                      Komoditas <ArrowUpDown className="w-3 h-3 text-slate-300" />
+                      Shipment Event <ArrowUpDown className="w-3 h-3 text-slate-300" />
                     </span>
                   </TableHead>
-                  <TableHead className="py-3 text-[12px] font-normal text-slate-400 whitespace-nowrap">
-                    <span className="inline-flex items-center gap-1">
-                      Metode <ArrowUpDown className="w-3 h-3 text-slate-300" />
-                    </span>
-                  </TableHead>
-                  <TableHead className="py-3 text-[12px] font-normal text-slate-400 min-w-[150px]">
-                    <span className="inline-flex items-center gap-1">
-                      Pembeli <ArrowUpDown className="w-3 h-3 text-slate-300" />
-                    </span>
-                  </TableHead>
-                  <TableHead className="py-3 text-[12px] font-normal text-slate-400 whitespace-nowrap">
+
+                  {/* 3. Status Badge */}
+                  <TableHead className="py-3 text-[12px] font-medium text-slate-500 whitespace-nowrap min-w-[130px]">
                     <span className="inline-flex items-center gap-1">
                       Status <ArrowUpDown className="w-3 h-3 text-slate-300" />
                     </span>
                   </TableHead>
-                  <TableHead className="py-3 text-[12px] font-normal text-slate-400 whitespace-nowrap">
+
+                  {/* 4. Expected arrived / Tanggal Estimasi */}
+                  <TableHead className="py-3 text-[12px] font-medium text-slate-500 whitespace-nowrap min-w-[130px]">
                     <span className="inline-flex items-center gap-1">
-                      Tanggal <ArrowUpDown className="w-3 h-3 text-slate-300" />
+                      Expected Date <ArrowUpDown className="w-3 h-3 text-slate-300" />
                     </span>
                   </TableHead>
-                  <TableHead className="py-3 text-[12px] font-normal text-slate-400 whitespace-nowrap">
+
+                  {/* 5. Order / Komoditas */}
+                  <TableHead className="py-3 text-[12px] font-medium text-slate-500 min-w-[170px]">
                     <span className="inline-flex items-center gap-1">
-                      Total <ArrowUpDown className="w-3 h-3 text-slate-300" />
+                      Order Items <ArrowUpDown className="w-3 h-3 text-slate-300" />
                     </span>
                   </TableHead>
-                  <TableHead className="w-10 text-center py-3 pr-3" />
+
+                  {/* 6. Pembeli */}
+                  <TableHead className="py-3 text-[12px] font-medium text-slate-500 min-w-[140px]">
+                    <span className="inline-flex items-center gap-1">
+                      Pembeli <ArrowUpDown className="w-3 h-3 text-slate-300" />
+                    </span>
+                  </TableHead>
+
+                  {/* 7. Carrier / Kurir */}
+                  <TableHead className="py-3 text-[12px] font-medium text-slate-500 whitespace-nowrap min-w-[135px]">
+                    <span className="inline-flex items-center gap-1">
+                      Carrier <ArrowUpDown className="w-3 h-3 text-slate-300" />
+                    </span>
+                  </TableHead>
+
+                  {/* 8. Total Amount */}
+                  <TableHead className="py-3 text-[12px] font-medium text-slate-500 whitespace-nowrap min-w-[110px]">
+                    <span className="inline-flex items-center gap-1">
+                      Total Nilai <ArrowUpDown className="w-3 h-3 text-slate-300" />
+                    </span>
+                  </TableHead>
+
+                  {/* 9. Aksi Tiga Titik */}
+                  <TableHead className="w-12 text-center py-3 pr-3" />
                 </TableRow>
               </TableHeader>
 
               <TableBody className="divide-y divide-[#F3F4F6]">
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="py-14 text-center">
+                    <TableCell colSpan={10} className="py-14 text-center">
                       <div className="flex flex-col items-center justify-center gap-2">
                         <RefreshCw className="w-5 h-5 animate-spin text-slate-400" />
-                        <span className="text-xs text-slate-400">Memuat pesanan...</span>
+                        <span className="text-xs text-slate-400">Memuat alur pengiriman pesanan...</span>
                       </div>
                     </TableCell>
                   </TableRow>
                 ) : orders.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="py-14 text-center">
+                    <TableCell colSpan={10} className="py-14 text-center">
                       <div className="flex flex-col items-center justify-center gap-1.5">
-                        <Package className="w-5 h-5 text-slate-300" />
-                        <span className="text-xs font-medium text-slate-500">
-                          Belum ada pesanan masuk
+                        <Package className="w-6 h-6 text-slate-300" />
+                        <span className="text-xs font-semibold text-slate-600">
+                          Tidak ada pesanan ditemukan
+                        </span>
+                        <span className="text-[11.5px] text-slate-400">
+                          Coba sesuaikan kata kunci atau filter status di atas
                         </span>
                       </div>
                     </TableCell>
@@ -808,15 +1106,21 @@ export function OrdersDataTable({ hideCards = false }: OrdersDataTableProps) {
 
                     const buyerName = order.pembeli?.name || 'Pembeli Umum';
                     const buyerInitial = buyerName.charAt(0).toUpperCase();
+                    const isDelayed = checkIsDelay(order);
+                    const totalQty =
+                      order.items?.reduce((acc: number, it: any) => acc + (it.quantity || 1), 0) || 1;
 
                     return (
                       <TableRow
                         key={order.id}
                         onClick={() => setSelectedOrder(order)}
-                        className={`cursor-pointer transition border-[#F3F4F6] ${
-                          isSelected ? 'bg-slate-50/80 hover:bg-slate-100/70' : 'hover:bg-[#F9FAFB]'
+                        className={`cursor-pointer transition-colors border-[#F3F4F6] ${
+                          isSelected
+                            ? 'bg-slate-100/70 hover:bg-slate-100/90 font-medium text-slate-900'
+                            : 'hover:bg-[#F9FAFB]'
                         }`}
                       >
+                        {/* Checkbox */}
                         <TableCell
                           className="text-center py-3.5"
                           onClick={(e) => e.stopPropagation()}
@@ -825,33 +1129,130 @@ export function OrdersDataTable({ hideCards = false }: OrdersDataTableProps) {
                             type="checkbox"
                             checked={isSelected}
                             onChange={() => handleToggleSelect(order.id)}
-                            className="w-3.5 h-3.5 rounded border-slate-300 accent-[#18181B] cursor-pointer"
+                            className="w-4 h-4 rounded border-slate-300 text-slate-900 accent-slate-900 cursor-pointer transition"
+                            aria-label={`Pilih pesanan #${order.orderNumber}`}
                           />
                         </TableCell>
 
-                        <TableCell className="py-3.5 whitespace-nowrap text-[12.5px] font-medium text-slate-600">
-                          #{order.orderNumber}
+                        {/* 1. Shipment ID */}
+                        <TableCell className="py-3.5 whitespace-nowrap">
+                          <span className="font-mono text-[12.5px] font-bold text-slate-800 hover:text-indigo-600 transition tracking-tight">
+                            #{order.orderNumber}
+                          </span>
                         </TableCell>
 
+                        {/* 2. Shipment Event (Timeline Horizontal Node Persis Referensi) */}
+                        <TableCell
+                          className="py-3.5 whitespace-nowrap"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <OrderEventTimeline status={order.status} />
+                        </TableCell>
+
+                        {/* 3. Status Badge (Interactive Click to Change Status) */}
+                        <TableCell
+                          className="py-3.5 whitespace-nowrap"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button
+                                type="button"
+                                className="cursor-pointer hover:opacity-85 transition"
+                                title="Klik untuk ubah status cepat"
+                              >
+                                {renderStatusBadge(order.status)}
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                              align="start"
+                              className="w-48 rounded-xl p-1 bg-white border border-slate-200 shadow-xl z-50 text-xs"
+                            >
+                              <DropdownMenuLabel className="px-2 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                Ubah Status Pesanan
+                              </DropdownMenuLabel>
+                              {order.status !== 'MENUNGGU_PEMBAYARAN' && (
+                                <DropdownMenuItem
+                                  onClick={() => handleUpdateStatus(order.id, 'MENUNGGU_PEMBAYARAN')}
+                                  className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-slate-700 hover:bg-slate-50"
+                                >
+                                  <Clock className="w-3.5 h-3.5 text-slate-500" />
+                                  <span>Menunggu Bayar</span>
+                                </DropdownMenuItem>
+                              )}
+                              {order.status !== 'DIPROSES' && (
+                                <DropdownMenuItem
+                                  onClick={() => handleUpdateStatus(order.id, 'DIPROSES')}
+                                  className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-blue-700 hover:bg-blue-50 font-medium"
+                                >
+                                  <Store className="w-3.5 h-3.5 text-blue-600" />
+                                  <span>Diproses Gudang (In Progress)</span>
+                                </DropdownMenuItem>
+                              )}
+                              {order.status !== 'SIAP_DIAMBIL' && (
+                                <DropdownMenuItem
+                                  onClick={() => handleUpdateStatus(order.id, 'SIAP_DIAMBIL')}
+                                  className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-indigo-700 hover:bg-indigo-50 font-medium"
+                                >
+                                  <Truck className="w-3.5 h-3.5 text-indigo-600" />
+                                  <span>Siap Diambil / Kirim</span>
+                                </DropdownMenuItem>
+                              )}
+                              {order.status !== 'SELESAI' && (
+                                <DropdownMenuItem
+                                  onClick={() => handleUpdateStatus(order.id, 'SELESAI')}
+                                  className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-emerald-700 hover:bg-emerald-50 font-semibold"
+                                >
+                                  <Check className="w-3.5 h-3.5 text-emerald-600" />
+                                  <span>Tandai Selesai (Arrived)</span>
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuSeparator className="my-1 border-slate-100" />
+                              {order.status !== 'DIBATALKAN' && (
+                                <DropdownMenuItem
+                                  onClick={() => handleUpdateStatus(order.id, 'DIBATALKAN')}
+                                  className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-rose-600 hover:bg-rose-50"
+                                >
+                                  <XCircle className="w-3.5 h-3.5 text-rose-600" />
+                                  <span>Batalkan Pesanan</span>
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+
+                        {/* 4. Expected Date (dengan Tag Delay jika tertahan > 24 jam) */}
+                        <TableCell className="py-3.5 whitespace-nowrap">
+                          <div className="space-y-0.5">
+                            <div className="text-[12.5px] font-medium text-slate-700">
+                              {formatDate(order.createdAt)}
+                            </div>
+                            {isDelayed && (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-bold tracking-tight">
+                                <AlertTriangle className="w-2.5 h-2.5 text-amber-600" />
+                                <span>Delay</span>
+                              </span>
+                            )}
+                          </div>
+                        </TableCell>
+
+                        {/* 5. Order Items */}
                         <TableCell className="py-3.5">
                           <div
-                            className="text-[12.5px] font-medium text-slate-800 truncate max-w-[230px]"
+                            className="text-[12.5px] font-semibold text-slate-800 truncate max-w-[210px]"
                             title={itemsSummary}
                           >
                             {itemsSummary}
                           </div>
+                          <div className="text-[11px] text-slate-400 mt-0.5">
+                            {order.items?.length || 1} jenis komoditas • {totalQty} unit
+                          </div>
                         </TableCell>
 
-                        <TableCell className="py-3.5 whitespace-nowrap">
-                          {renderMethodPriority(
-                            order.paymentMethod,
-                            Number(order.totalAmount)
-                          )}
-                        </TableCell>
-
+                        {/* 6. Pembeli */}
                         <TableCell className="py-3.5">
                           <div className="flex items-center gap-2">
-                            <Avatar className="w-5.5 h-5.5 rounded-full border border-slate-200">
+                            <Avatar className="w-6 h-6 rounded-full border border-slate-200 shrink-0">
                               <AvatarImage
                                 src={order.pembeli?.avatarUrl || ''}
                                 alt={buyerName}
@@ -860,24 +1261,45 @@ export function OrdersDataTable({ hideCards = false }: OrdersDataTableProps) {
                                 {buyerInitial}
                               </AvatarFallback>
                             </Avatar>
-                            <span className="text-[12.5px] font-medium text-slate-700 truncate max-w-[130px]">
-                              {buyerName}
-                            </span>
+                            <div className="truncate max-w-[130px]">
+                              <div className="text-[12.5px] font-medium text-slate-800 truncate">
+                                {buyerName}
+                              </div>
+                              {order.pembeli?.phone && (
+                                <a
+                                  href={`https://wa.me/${order.pembeli.phone.replace(/\D/g, '')}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="text-[10.5px] text-emerald-600 hover:underline flex items-center gap-0.5"
+                                >
+                                  <span>{order.pembeli.phone}</span>
+                                </a>
+                              )}
+                            </div>
                           </div>
                         </TableCell>
 
+                        {/* 7. Carrier / Kurir (Persis Referensi FedEx/DHL/Regular) */}
                         <TableCell className="py-3.5 whitespace-nowrap">
-                          {renderStatusIndicator(order.status)}
+                          {renderCarrierBadge(order)}
                         </TableCell>
 
-                        <TableCell className="py-3.5 whitespace-nowrap text-[12.5px] text-slate-600">
-                          {new Date(order.createdAt).toISOString().split('T')[0]}
+                        {/* 8. Total Amount & Status Lunas */}
+                        <TableCell className="py-3.5 whitespace-nowrap">
+                          <div className="text-[13px] font-bold text-slate-900 tabular-nums">
+                            Rp {Number(order.totalAmount).toLocaleString('id-ID')}
+                          </div>
+                          <div className="text-[10.5px] font-medium mt-0.5">
+                            {order.isPaid ? (
+                              <span className="text-emerald-700 font-semibold">✓ Lunas</span>
+                            ) : (
+                              <span className="text-amber-600 font-medium">• Belum Lunas</span>
+                            )}
+                          </div>
                         </TableCell>
 
-                        <TableCell className="py-3.5 whitespace-nowrap text-[12.5px] font-medium text-slate-700 tabular-nums">
-                          Rp {Number(order.totalAmount).toLocaleString('id-ID')}
-                        </TableCell>
-
+                        {/* 9. Aksi Tiga Titik */}
                         <TableCell
                           className="py-3.5 text-center pr-3"
                           onClick={(e) => e.stopPropagation()}
@@ -887,63 +1309,66 @@ export function OrdersDataTable({ hideCards = false }: OrdersDataTableProps) {
                               <button
                                 type="button"
                                 className="w-7 h-7 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center transition cursor-pointer mx-auto"
-                                title="Aksi Pesanan"
+                                title="Menu Aksi Pesanan"
                               >
                                 <MoreVertical className="w-3.5 h-3.5" />
                               </button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent
                               align="end"
-                              className="w-48 rounded-xl p-1 bg-white border border-slate-200 shadow-lg text-xs z-50"
+                              className="w-52 rounded-xl p-1 bg-white border border-slate-200 shadow-xl text-xs z-50 space-y-0.5"
                             >
                               <DropdownMenuItem
                                 onClick={() => setSelectedOrder(order)}
-                                className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-slate-700 hover:bg-slate-100"
+                                className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-slate-700 hover:bg-slate-100 font-medium"
                               >
                                 <Eye className="w-3.5 h-3.5 text-slate-500" />
-                                <span>Lihat Detail</span>
+                                <span>Lihat Tracking Detail</span>
                               </DropdownMenuItem>
+
+                              <DropdownMenuItem
+                                onClick={() => handlePrintReceipt(order)}
+                                className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-slate-700 hover:bg-slate-100"
+                              >
+                                <Printer className="w-3.5 h-3.5 text-slate-500" />
+                                <span>Cetak Struk / Nota</span>
+                              </DropdownMenuItem>
+
                               <DropdownMenuSeparator className="my-1 border-slate-100" />
-                              <DropdownMenuLabel className="px-2.5 py-1 text-[10px] uppercase font-semibold text-slate-400 tracking-wider">
-                                Ubah Status
+
+                              <DropdownMenuLabel className="px-2.5 py-1 text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                                Progres Alur
                               </DropdownMenuLabel>
                               {order.status !== 'DIPROSES' && (
                                 <DropdownMenuItem
                                   onClick={() => handleUpdateStatus(order.id, 'DIPROSES')}
-                                  className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-amber-700 hover:bg-amber-50"
+                                  className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-blue-700 hover:bg-blue-50"
                                 >
-                                  <Clock className="w-3.5 h-3.5 text-amber-500" />
-                                  <span>Disiapkan Gudang</span>
+                                  <Store className="w-3.5 h-3.5 text-blue-600" />
+                                  <span>Kemas di Gudang</span>
                                 </DropdownMenuItem>
                               )}
                               {order.status !== 'SIAP_DIAMBIL' && (
                                 <DropdownMenuItem
                                   onClick={() => handleUpdateStatus(order.id, 'SIAP_DIAMBIL')}
-                                  className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-blue-700 hover:bg-blue-50"
+                                  className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-indigo-700 hover:bg-indigo-50"
                                 >
-                                  <Clock className="w-3.5 h-3.5 text-blue-500" />
-                                  <span>Siap di Kasir</span>
+                                  <Truck className="w-3.5 h-3.5 text-indigo-600" />
+                                  <span>Siap Diambil / Kirim</span>
                                 </DropdownMenuItem>
                               )}
                               {order.status !== 'SELESAI' && (
                                 <DropdownMenuItem
                                   onClick={() => handleUpdateStatus(order.id, 'SELESAI')}
-                                  className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-emerald-700 hover:bg-emerald-50"
+                                  className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-emerald-700 hover:bg-emerald-50 font-semibold"
                                 >
-                                  <Check className="w-3.5 h-3.5 text-emerald-500" />
-                                  <span>Tandai Selesai</span>
+                                  <Check className="w-3.5 h-3.5 text-emerald-600" />
+                                  <span>Tandai Selesai (Arrived)</span>
                                 </DropdownMenuItem>
                               )}
-                              {order.status !== 'DIBATALKAN' && (
-                                <DropdownMenuItem
-                                  onClick={() => handleUpdateStatus(order.id, 'DIBATALKAN')}
-                                  className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-slate-600 hover:bg-slate-100"
-                                >
-                                  <XCircle className="w-3.5 h-3.5 text-rose-500" />
-                                  <span>Batalkan Pesanan</span>
-                                </DropdownMenuItem>
-                              )}
+
                               <DropdownMenuSeparator className="my-1 border-slate-100" />
+
                               <DropdownMenuItem
                                 onClick={() => setOrderToDelete(order)}
                                 className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-rose-600 hover:bg-rose-50"
@@ -962,32 +1387,41 @@ export function OrdersDataTable({ hideCards = false }: OrdersDataTableProps) {
             </Table>
           </div>
 
-          {/* Pagination Footer */}
-          <div className="px-4 py-3 bg-white border-t border-[#F1F3F5] flex items-center justify-between text-xs text-slate-500">
-            <span>
-              Halaman {currentPage} dari {Math.max(1, pagination.totalPages)}
-              {pagination.totalCount > 0 && (
-                <span className="text-slate-400 ml-1.5 font-normal">
-                  (Total {pagination.totalCount} pesanan)
-                </span>
-              )}
-            </span>
+          {/* Footer Pagination */}
+          <div className="px-4 py-3 border-t border-[#F1F3F5] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 bg-white">
+            <div>
+              Menampilkan{' '}
+              <strong className="text-slate-800 font-semibold">
+                {orders.length > 0 ? (currentPage - 1) * pagination.limit + 1 : 0}
+              </strong>{' '}
+              -{' '}
+              <strong className="text-slate-800 font-semibold">
+                {Math.min(currentPage * pagination.limit, pagination.totalCount)}
+              </strong>{' '}
+              dari{' '}
+              <strong className="text-slate-800 font-semibold">
+                {pagination.totalCount}
+              </strong>{' '}
+              total pesanan masuk
+            </div>
+
             <div className="flex items-center gap-1.5">
               <button
                 type="button"
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage <= 1 || isLoading}
-                className="px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 text-slate-700 font-medium transition cursor-pointer"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                className="h-8 px-3 rounded-lg border border-[#E5E7EB] hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-slate-700 transition cursor-pointer shadow-2xs"
               >
                 Sebelumnya
               </button>
+              <span className="px-2 text-slate-600 font-semibold">
+                {currentPage} / {pagination.totalPages || 1}
+              </span>
               <button
                 type="button"
-                onClick={() =>
-                  setCurrentPage((p) => Math.min(pagination.totalPages, p + 1))
-                }
                 disabled={currentPage >= pagination.totalPages || isLoading}
-                className="px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 text-slate-700 font-medium transition cursor-pointer"
+                onClick={() => setCurrentPage((p) => p + 1)}
+                className="h-8 px-3 rounded-lg border border-[#E5E7EB] hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-slate-700 transition cursor-pointer shadow-2xs"
               >
                 Selanjutnya
               </button>
@@ -996,20 +1430,34 @@ export function OrdersDataTable({ hideCards = false }: OrdersDataTableProps) {
         </div>
       </div>
 
-      {/* 3. Order Detail Modal */}
+      {/* 3. Detail & Tracking Timeline Modal */}
       {selectedOrder && (
         <Dialog
           open={Boolean(selectedOrder)}
           onOpenChange={(open) => !open && setSelectedOrder(null)}
         >
-          <DialogContent className="max-w-lg w-[95vw] p-0 bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
-            <div className="bg-[#18181B] p-5 text-white">
+          <DialogContent className="max-w-xl w-[95vw] p-0 bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden max-h-[92vh] flex flex-col">
+            {/* Header Modal */}
+            <div className="bg-slate-900 p-5 text-white">
               <div className="flex items-center justify-between">
                 <div>
-                  <DialogTitle className="text-base font-bold text-white font-mono">
-                    #{selectedOrder.orderNumber}
-                  </DialogTitle>
-                  <p className="text-xs text-slate-300 mt-0.5">
+                  <div className="flex items-center gap-2">
+                    <DialogTitle className="text-base font-bold text-white font-mono">
+                      #{selectedOrder.orderNumber}
+                    </DialogTitle>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(selectedOrder.orderNumber);
+                        showToast('Nomor pesanan disalin ke clipboard');
+                      }}
+                      className="p-1 hover:bg-white/10 rounded text-slate-300 hover:text-white transition"
+                      title="Salin Nomor Pesanan"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  <p className="text-xs text-slate-300 mt-1">
                     Dipesan pada{' '}
                     {new Date(selectedOrder.createdAt).toLocaleDateString('id-ID', {
                       dateStyle: 'full',
@@ -1017,34 +1465,96 @@ export function OrdersDataTable({ hideCards = false }: OrdersDataTableProps) {
                   </p>
                 </div>
 
-                <div className="px-3 py-1 rounded-full text-xs font-semibold bg-white/10 text-white border border-white/15">
-                  {selectedOrder.status.replace('_', ' ')}
-                </div>
+                <div>{renderStatusBadge(selectedOrder.status)}</div>
               </div>
             </div>
 
+            {/* Modal Body */}
             <div className="p-5 space-y-4 overflow-y-auto flex-1 text-xs">
-              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
-                <div className="font-bold text-slate-800 flex items-center gap-1.5">
+              {/* Stepper Timeline Visual Vertikal */}
+              <div className="p-4 bg-slate-50 border border-slate-200/90 rounded-xl space-y-3">
+                <div className="font-bold text-slate-800 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 text-[12.5px]">
+                    <Clock className="w-4 h-4 text-slate-600" />
+                    Alur Tracking Pesanan (Milestone)
+                  </span>
+                  <span className="text-[11px] font-medium text-slate-500">
+                    4 Tahap Pengiriman
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-4 gap-2 pt-2 border-t border-slate-200/70">
+                  <div className="text-center space-y-1">
+                    <div className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center mx-auto shadow-2xs">
+                      <Package className="w-4 h-4" />
+                    </div>
+                    <div className="font-bold text-[11px] text-slate-800">1. Dipesan</div>
+                    <div className="text-[10px] text-slate-400">Checkout masuk</div>
+                  </div>
+
+                  <div className="text-center space-y-1">
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center mx-auto transition ${
+                        ['DIPROSES', 'SIAP_DIAMBIL', 'SELESAI'].includes(selectedOrder.status)
+                          ? 'bg-slate-900 text-white shadow-2xs'
+                          : 'bg-white border border-slate-300 text-slate-300'
+                      }`}
+                    >
+                      <Store className="w-4 h-4" />
+                    </div>
+                    <div className="font-bold text-[11px] text-slate-800">2. Gudang</div>
+                    <div className="text-[10px] text-slate-400">Disiapkan kasir</div>
+                  </div>
+
+                  <div className="text-center space-y-1">
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center mx-auto transition ${
+                        ['SIAP_DIAMBIL', 'SELESAI'].includes(selectedOrder.status)
+                          ? 'bg-slate-900 text-white shadow-2xs'
+                          : 'bg-white border border-slate-300 text-slate-300'
+                      }`}
+                    >
+                      <Truck className="w-4 h-4" />
+                    </div>
+                    <div className="font-bold text-[11px] text-slate-800">3. Siap/Kirim</div>
+                    <div className="text-[10px] text-slate-400">Kurir / Kasir</div>
+                  </div>
+
+                  <div className="text-center space-y-1">
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center mx-auto transition ${
+                        selectedOrder.status === 'SELESAI'
+                          ? 'bg-slate-900 text-white shadow-2xs'
+                          : 'bg-white border border-slate-300 text-slate-300'
+                      }`}
+                    >
+                      <MapPin className="w-4 h-4" />
+                    </div>
+                    <div className="font-bold text-[11px] text-slate-800">4. Selesai</div>
+                    <div className="text-[10px] text-slate-400">Arrived</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Info Pembeli & Pengiriman */}
+              <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-2">
+                <div className="font-bold text-slate-800 flex items-center gap-1.5 text-xs">
                   <User className="w-3.5 h-3.5 text-slate-700" />
-                  <span>Informasi Pembeli & Titik Ambil</span>
+                  <span>Detail Penerima & Titik Serah Terima</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-600 pt-1">
                   <div>
-                    Nama:{' '}
+                    Nama Pembeli:{' '}
                     <strong className="text-slate-900">
-                      {selectedOrder.pembeli?.name}
+                      {selectedOrder.pembeli?.name || 'Pembeli Umum'}
                     </strong>
                   </div>
                   <div>
-                    Kontak:{' '}
+                    WhatsApp:{' '}
                     <strong className="text-slate-900">
                       {selectedOrder.pembeli?.phone ? (
                         <a
-                          href={`https://wa.me/${selectedOrder.pembeli.phone.replace(
-                            /\D/g,
-                            ''
-                          )}`}
+                          href={`https://wa.me/${selectedOrder.pembeli.phone.replace(/\D/g, '')}`}
                           target="_blank"
                           rel="noreferrer"
                           className="text-emerald-700 underline"
@@ -1057,39 +1567,39 @@ export function OrdersDataTable({ hideCards = false }: OrdersDataTableProps) {
                     </strong>
                   </div>
                   <div className="col-span-1 sm:col-span-2">
-                    <span className="text-slate-500">Titik Serah Terima:</span>{' '}
+                    <span className="text-slate-500">Tujuan / Titik Ambil:</span>{' '}
                     <span className="text-slate-900 font-semibold">
-                      {selectedOrder.alamatKirim ||
-                        'Kantor & Gudang Koperasi Kalawat'}
+                      {selectedOrder.alamatKirim || 'Kantor & Gudang Koperasi Kalawat (Ambil Langsung)'}
                     </span>
                   </div>
                 </div>
               </div>
 
+              {/* Rincian Komoditas */}
               <div>
                 <div className="font-bold text-slate-800 mb-2">
-                  Daftar Komoditas:
+                  Komoditas Pertanian Dipesan:
                 </div>
                 <div className="space-y-2">
                   {selectedOrder.items?.map((item: any) => (
                     <div
                       key={item.id}
-                      className="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between gap-3"
+                      className="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between gap-3 shadow-2xs"
                     >
                       <div>
-                        <div className="font-bold text-slate-900">
+                        <div className="font-bold text-slate-900 text-[12.5px]">
                           {item.namaProduk}
                         </div>
-                        <div className="text-[11px] text-slate-500">
+                        <div className="text-[11px] text-slate-500 mt-0.5">
                           {item.quantity} {item.satuan} × Rp{' '}
                           {item.hargaPerSatuan.toLocaleString('id-ID')}
                         </div>
-                        <div className="text-[10px] text-emerald-700 font-semibold mt-0.5">
-                          Setoran: {item.petani?.name || 'Petani Mitra Binaan'}
+                        <div className="text-[10.5px] text-emerald-700 font-semibold mt-0.5">
+                          Petani Mitra: {item.petani?.name || 'Petani Binaan Koperasi'}
                         </div>
                       </div>
 
-                      <div className="font-bold text-slate-900 tabular-nums">
+                      <div className="font-bold text-slate-900 tabular-nums text-right text-[13px]">
                         Rp {item.subtotal.toLocaleString('id-ID')}
                       </div>
                     </div>
@@ -1097,8 +1607,9 @@ export function OrdersDataTable({ hideCards = false }: OrdersDataTableProps) {
                 </div>
               </div>
 
+              {/* Total Card */}
               <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between font-bold">
-                <span className="text-slate-700">Total Pembayaran Kasir:</span>
+                <span className="text-slate-700">Total Nilai Pesanan:</span>
                 <span className="text-base font-bold text-slate-900 tabular-nums">
                   Rp {Number(selectedOrder.totalAmount).toLocaleString('id-ID')}
                 </span>
@@ -1114,78 +1625,54 @@ export function OrdersDataTable({ hideCards = false }: OrdersDataTableProps) {
               )}
             </div>
 
+            {/* Modal Actions */}
             <div className="p-4 bg-white border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={() => handlePrintReceipt(selectedOrder)}
+                className="px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
+              >
+                <Printer className="w-3.5 h-3.5 text-slate-600" />
+                <span>Cetak Struk / Nota</span>
+              </button>
+
               <div className="flex items-center gap-2">
                 {selectedOrder.status === 'MENUNGGU_PEMBAYARAN' && (
                   <button
                     type="button"
-                    onClick={() =>
-                      handleUpdateStatus(selectedOrder.id, 'DIPROSES')
-                    }
+                    onClick={() => handleUpdateStatus(selectedOrder.id, 'DIPROSES')}
                     disabled={isUpdatingStatus}
-                    className="px-3.5 py-2 text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-xl transition cursor-pointer"
+                    className="px-3.5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
                   >
-                    Kirim ke Gudang (Siapkan Komoditas)
+                    <Store className="w-3.5 h-3.5" />
+                    <span>Kirim ke Gudang (Kemas)</span>
                   </button>
                 )}
 
                 {selectedOrder.status === 'DIPROSES' && (
                   <button
                     type="button"
-                    onClick={() =>
-                      handleUpdateStatus(selectedOrder.id, 'SIAP_DIAMBIL')
-                    }
+                    onClick={() => handleUpdateStatus(selectedOrder.id, 'SIAP_DIAMBIL')}
                     disabled={isUpdatingStatus}
-                    className="px-3.5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition cursor-pointer"
+                    className="px-3.5 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
                   >
-                    Komoditas Siap → Pindah ke Kasir
+                    <Truck className="w-3.5 h-3.5" />
+                    <span>Komoditas Siap (Antar / Kasir)</span>
                   </button>
                 )}
 
                 {selectedOrder.status === 'SIAP_DIAMBIL' && (
                   <button
                     type="button"
-                    onClick={() =>
-                      handleUpdateStatus(selectedOrder.id, 'SELESAI')
-                    }
+                    onClick={() => handleUpdateStatus(selectedOrder.id, 'SELESAI')}
                     disabled={isUpdatingStatus}
-                    className="px-3.5 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition cursor-pointer"
+                    className="px-3.5 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
                   >
-                    Terima Bayar di Kasir & Selesaikan Pesanan
+                    <Check className="w-3.5 h-3.5" />
+                    <span>Selesaikan Transaksi (Arrived)</span>
                   </button>
                 )}
-
-                {selectedOrder.status !== 'DIBATALKAN' &&
-                  selectedOrder.status !== 'SELESAI' && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleUpdateStatus(selectedOrder.id, 'DIBATALKAN')
-                      }
-                      disabled={isUpdatingStatus}
-                      className="px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-xl border border-rose-200 transition cursor-pointer"
-                    >
-                      Batalkan Pesanan
-                    </button>
-                  )}
-
-                <button
-                  type="button"
-                  onClick={() => setOrderToDelete(selectedOrder)}
-                  className="px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-xl border border-rose-200 flex items-center gap-1.5 transition cursor-pointer"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>Hapus Pesanan</span>
-                </button>
               </div>
-
-              <button
-                type="button"
-                onClick={() => setSelectedOrder(null)}
-                className="px-4 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer ml-auto"
-              >
-                Tutup
-              </button>
             </div>
           </DialogContent>
         </Dialog>
@@ -1208,7 +1695,7 @@ export function OrdersDataTable({ hideCards = false }: OrdersDataTableProps) {
               <p className="text-xs text-slate-500 leading-relaxed">
                 Apakah Anda yakin ingin menghapus{' '}
                 <strong className="text-slate-800 font-semibold">{selectedOrders.length} pesanan</strong>?
-                Data pesanan akan dihapus permanen dari sistem koperasi dan stok komoditas akan dikembalikan ke gudang bila pesanan belum selesai.
+                Data pesanan akan dihapus permanen dari sistem koperasi dan stok komoditas akan dikembalikan bila belum selesai.
               </p>
             </div>
           </div>
@@ -1259,10 +1746,7 @@ export function OrdersDataTable({ hideCards = false }: OrdersDataTableProps) {
                 Hapus Pesanan #{orderToDelete?.orderNumber}?
               </DialogTitle>
               <p className="text-xs text-slate-500 leading-relaxed">
-                Apakah Anda yakin ingin menghapus pesanan{' '}
-                <strong className="text-slate-800 font-semibold">#{orderToDelete?.orderNumber}</strong>{' '}
-                atas nama <strong className="text-slate-800 font-semibold">{orderToDelete?.pembeli?.name || 'Pembeli Umum'}</strong>?
-                Tindakan ini tidak dapat dibatalkan.
+                Tindakan ini tidak dapat dibatalkan. Data transaksi akan dihapus dari riwayat pesanan koperasi.
               </p>
             </div>
           </div>
@@ -1290,7 +1774,7 @@ export function OrdersDataTable({ hideCards = false }: OrdersDataTableProps) {
               ) : (
                 <>
                   <Trash2 className="w-3.5 h-3.5" />
-                  <span>Ya, Hapus</span>
+                  <span>Hapus Pesanan</span>
                 </>
               )}
             </button>
