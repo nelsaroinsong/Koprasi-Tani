@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { motion, AnimatePresence } from 'motion/react';
+import { validateIndonesianPhone } from '@/lib/phone-validation';
 
 type StepNumber = 1 | 2 | 3 | 4;
 
@@ -242,7 +243,6 @@ export default function OnboardingPage() {
   const handleGoToStep3 = () => {
     setErrorMessage(null);
     const cleanName = name.trim();
-    const cleanPhone = phone.trim();
     const cleanAddress = address.trim();
 
     if (!cleanName || cleanName.length < 3) {
@@ -250,8 +250,9 @@ export default function OnboardingPage() {
       return;
     }
 
-    if (!cleanPhone || cleanPhone.length < 8) {
-      setErrorMessage('Nomor telepon/WhatsApp wajib diisi minimal 8 digit.');
+    const phoneValidation = validateIndonesianPhone(phone, true);
+    if (!phoneValidation.isValid) {
+      setErrorMessage(phoneValidation.error || 'Nomor WhatsApp wajib dimulai dari 08 dan minimal 10 digit.');
       return;
     }
 
@@ -274,7 +275,6 @@ export default function OnboardingPage() {
     setErrorMessage(null);
 
     const cleanName = name.trim();
-    const cleanPhone = phone.trim();
     const cleanAddress = address.trim();
 
     if (!cleanName || cleanName.length < 3) {
@@ -283,11 +283,13 @@ export default function OnboardingPage() {
       return;
     }
 
-    if (!cleanPhone || cleanPhone.length < 8) {
-      setErrorMessage('Nomor telepon/WhatsApp wajib diisi minimal 8 digit.');
+    const phoneValidation = validateIndonesianPhone(phone, true);
+    if (!phoneValidation.isValid) {
+      setErrorMessage(phoneValidation.error || 'Nomor WhatsApp wajib dimulai dari 08 dan minimal 10 digit.');
       setCurrentStep(2);
       return;
     }
+    const cleanPhone = phoneValidation.cleanPhone;
 
     if (!cleanAddress || cleanAddress.length < 5) {
       setErrorMessage('Alamat domisili lengkap wajib diisi.');
@@ -693,7 +695,7 @@ export default function OnboardingPage() {
                     />
                   </div>
                   <p className="text-[13px] text-[#5b6950] mt-1.5">
-                    Digunakan untuk konfirmasi pesanan komoditas di koperasi.
+                    Wajib diawali 08 dan minimal 10 digit (contoh: 08123456789).
                   </p>
                 </div>
 

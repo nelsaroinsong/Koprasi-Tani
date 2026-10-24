@@ -18,6 +18,7 @@ import {
   ChevronsUpDown,
 } from 'lucide-react';
 import { useToast } from '@/context/toast-context';
+import { validateIndonesianPhone } from '@/lib/phone-validation';
 
 export interface EquipmentFormData {
   id?: string;
@@ -284,6 +285,18 @@ export function EquipmentFormPage({
         type: 'error',
       });
       return;
+    }
+
+    if (kontakPj.trim()) {
+      const phoneVal = validateIndonesianPhone(kontakPj.trim(), false);
+      if (!phoneVal.isValid) {
+        showToast({
+          title: 'Nomor WhatsApp Tidak Valid',
+          message: phoneVal.error || 'Nomor WhatsApp PJ Sewa wajib diawali 08 dan minimal 10 digit.',
+          type: 'error',
+        });
+        return;
+      }
     }
 
     const primaryImageUrl = images.join(',');

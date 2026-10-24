@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
+import { validateIndonesianPhone } from '@/lib/phone-validation';
 
 let cachedFollowStats: { followingCount: number; followersCount: number } | null = null;
 let cachedUserCreatedAt: string | null = null;
@@ -203,6 +204,18 @@ export default function ProfilePage() {
         type: 'error',
       });
       return;
+    }
+
+    if (phone.trim()) {
+      const phoneValidation = validateIndonesianPhone(phone.trim(), false);
+      if (!phoneValidation.isValid) {
+        showToast({
+          title: 'Nomor WhatsApp Tidak Valid',
+          message: phoneValidation.error || 'Nomor WhatsApp wajib dimulai dari 08 dan minimal 10 digit.',
+          type: 'error',
+        });
+        return;
+      }
     }
 
     setIsSaving(true);

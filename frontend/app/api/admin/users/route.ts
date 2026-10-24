@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { delCachePattern } from '@/lib/redis';
+import { validateIndonesianPhone } from '@/lib/phone-validation';
 
 // 1. READ: Ambil daftar pengguna dengan server-side pagination, search, dan filter
 export async function GET(request: Request) {
@@ -138,6 +139,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Peran pengguna harus Petani atau Pembeli' }, { status: 400 });
     }
 
+    // Validasi Nomor Telepon / WhatsApp
+    let validatedPhone: string | null = null;
+    if (phone) {
+      const phoneValidation = validateIndonesianPhone(String(phone), false);
+      if (!phoneValidation.isValid) {
+        return NextResponse.json({ error: phoneValidation.error }, { status: 400 });
+      }
+      validatedPhone = phoneValidation.cleanPhone;
+    }
+
     // Cek apakah email sudah terdaftar
     const existing = await prisma.user.findUnique({
       where: { email: cleanEmail },
@@ -151,7 +162,7 @@ export async function POST(request: Request) {
       data: {
         name: name.trim(),
         email: cleanEmail,
-        phone: phone ? String(phone).trim() : null,
+        phone: validatedPhone,
         address: address ? String(address).trim() : null,
         role,
         isVerified: typeof isVerified === 'boolean' ? isVerified : (role === 'PEMBELI'),
@@ -210,7 +221,15 @@ export async function PUT(request: Request) {
     }
 
     if (typeof phone === 'string') {
-      updateData.phone = phone.trim() || null;
+      if (phone.trim()) {
+        const phoneValidation = validateIndonesianPhone(phone, false);
+        if (!phoneValidation.isValid) {
+          return NextResponse.json({ error: phoneValidation.error }, { status: 400 });
+        }
+        updateData.phone = phoneValidation.cleanPhone;
+      } else {
+        updateData.phone = null;
+      }
     }
 
     if (typeof address === 'string') {
@@ -306,7 +325,7 @@ export async function PATCH(request: Request) {
   }
 }
 
-// 5. DELETE: Hapus data pengguna
+// 5. DELETE: Hapus data pengguna (Tunggal & Massal)
 export async function DELETE(request: Request) {
   try {
     const session = await auth();
@@ -320,23 +339,43 @@ export async function DELETE(request: Request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
+    const queryId = searchParams.get('id');
 
-    if (!id) {
+    let idsToDelete: string[] = [];
+    if (queryId) {
+      idsToDelete = [queryId];
+    } else {
+      try {
+        const body = await request.json();
+        if (Array.isArray(body?.ids)) {
+          idsToDelete = body.ids.filter((item: any) => typeof item === 'string' && item.trim());
+        } else if (body?.id && typeof body.id === 'string') {
+          idsToDelete = [body.id];
+        }
+      } catch {}
+    }
+
+    if (idsToDelete.length === 0) {
       return NextResponse.json({ error: 'ID pengguna wajib disertakan' }, { status: 400 });
     }
 
-    const targetUser = await prisma.user.findUnique({ where: { id } });
-    if (!targetUser) {
-      return NextResponse.json({ error: 'Pengguna tidak ditemukan' }, { status: 404 });
+    // Ambil pengguna yang akan dihapus, pastikan bukan ADMIN
+    const usersToDelete = await prisma.user.findMany({
+      where: {
+        id: { in: idsToDelete },
+        role: { not: 'ADMIN' },
+      },
+      select: { id: true, name: true, role: true },
+    });
+
+    if (usersToDelete.length === 0) {
+      return NextResponse.json({ error: 'Tidak ada pengguna valid yang dapat dihapus' }, { status: 404 });
     }
 
-    if (targetUser.role === 'ADMIN') {
-      return NextResponse.json({ error: 'Akun administrator tidak dapat dihapus' }, { status: 403 });
-    }
+    const validIds = usersToDelete.map((u) => u.id);
 
-    await prisma.user.delete({
-      where: { id },
+    await prisma.user.deleteMany({
+      where: { id: { in: validIds } },
     });
 
     // Invalidate user and farmer caches
@@ -345,9 +384,15 @@ export async function DELETE(request: Request) {
       delCachePattern('petani:*'),
     ]).catch(() => {});
 
+    const msg =
+      validIds.length === 1
+        ? `Akun ${usersToDelete[0].name} berhasil dihapus permanen.`
+        : `${validIds.length} akun pengguna berhasil dihapus permanen.`;
+
     return NextResponse.json({
       success: true,
-      message: `Akun ${targetUser.name} berhasil dihapus permanen.`,
+      message: msg,
+      deletedCount: validIds.length,
     });
   } catch (error: any) {
     console.error('Error saat menghapus pengguna:', error);

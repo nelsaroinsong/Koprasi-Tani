@@ -10,6 +10,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { AlertTriangle, Loader2 } from 'lucide-react';
+import { useToast } from '@/context/toast-context';
 
 interface UserDeleteDialogProps {
   isOpen: boolean;
@@ -29,10 +30,18 @@ export function UserDeleteDialog({
   onSuccess,
   user,
 }: UserDeleteDialogProps) {
+  const { showToast } = useToast();
   const [isDeleting, setIsDeleting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   if (!user) return null;
+
+  const roleLabel =
+    user.role === 'PETANI'
+      ? 'Petani mitra'
+      : user.role === 'PEMBELI'
+      ? 'Data pembeli'
+      : 'Pengguna';
 
   const handleDelete = async () => {
     try {
@@ -48,11 +57,23 @@ export function UserDeleteDialog({
         throw new Error(data.error || 'Gagal menghapus pengguna.');
       }
 
+      showToast({
+        title: 'Berhasil Dihapus',
+        message: `${roleLabel} "${user.name}" berhasil dihapus dari sistem koperasi.`,
+        type: 'success',
+      });
+
       onSuccess();
       onClose();
     } catch (err: any) {
       console.error('Error delete user:', err);
-      setErrorMessage(err.message || 'Terjadi kesalahan sistem.');
+      const msg = err.message || 'Terjadi kesalahan sistem saat menghapus.';
+      setErrorMessage(msg);
+      showToast({
+        title: 'Gagal Menghapus',
+        message: msg,
+        type: 'error',
+      });
     } finally {
       setIsDeleting(false);
     }

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { delCachePattern } from '@/lib/redis';
+import { validateIndonesianPhone } from '@/lib/phone-validation';
 import {
   readEquipmentsFromFile,
   writeEquipmentsToFile,
@@ -110,6 +111,15 @@ export async function POST(request: Request) {
       );
     }
 
+    let cleanKontakPj = '081944078924';
+    if (kontakPj) {
+      const phoneValidation = validateIndonesianPhone(kontakPj, false);
+      if (!phoneValidation.isValid) {
+        return NextResponse.json({ error: phoneValidation.error }, { status: 400 });
+      }
+      cleanKontakPj = phoneValidation.cleanPhone;
+    }
+
     const newId = crypto.randomUUID();
     const nowIso = new Date().toISOString();
 
@@ -126,7 +136,7 @@ export async function POST(request: Request) {
       kondisi: kondisi || 'Sangat Baik',
       imageUrl: imageUrl || null,
       isTersedia: Boolean(isTersedia),
-      kontakPj: kontakPj?.trim() || '081944078924',
+      kontakPj: cleanKontakPj,
       createdAt: nowIso,
       updatedAt: nowIso,
     };
@@ -206,6 +216,19 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'ID alat wajib disertakan' }, { status: 400 });
     }
 
+    let cleanUpdatedKontakPj: string | undefined = undefined;
+    if (kontakPj !== undefined) {
+      if (typeof kontakPj === 'string' && kontakPj.trim()) {
+        const phoneValidation = validateIndonesianPhone(kontakPj, false);
+        if (!phoneValidation.isValid) {
+          return NextResponse.json({ error: phoneValidation.error }, { status: 400 });
+        }
+        cleanUpdatedKontakPj = phoneValidation.cleanPhone;
+      } else {
+        cleanUpdatedKontakPj = '081944078924';
+      }
+    }
+
     // Update di PostgreSQL
     try {
       await prisma.$executeRawUnsafe(
@@ -236,7 +259,7 @@ export async function PUT(request: Request) {
         kondisi,
         imageUrl,
         isTersedia !== undefined ? Boolean(isTersedia) : null,
-        kontakPj
+        cleanUpdatedKontakPj ?? kontakPj
       );
     } catch (e) {
       console.warn('Gagal update ke PostgreSQL:', e);

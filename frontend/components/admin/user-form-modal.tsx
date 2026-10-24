@@ -23,6 +23,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { validateIndonesianPhone } from '@/lib/phone-validation';
 
 interface UserFormModalProps {
   isOpen: boolean;
@@ -162,11 +163,11 @@ export function UserFormModal({
       return false;
     }
 
-    // Validasi 3: Nomor Telepon (jika diisi, minimal 8 digit)
+    // Validasi 3: Nomor Telepon / WhatsApp
     if (cleanPhone) {
-      const phoneDigits = cleanPhone.replace(/[^0-9]/g, '');
-      if (phoneDigits.length < 8 || phoneDigits.length > 15) {
-        setErrorMessage('Nomor telepon harus berupa angka antara 8 hingga 15 digit.');
+      const phoneValidation = validateIndonesianPhone(cleanPhone, false);
+      if (!phoneValidation.isValid) {
+        setErrorMessage(phoneValidation.error || 'Nomor telepon tidak valid.');
         return false;
       }
     }
@@ -402,6 +403,9 @@ export function UserFormModal({
                   className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-600 focus:bg-white transition"
                 />
               </div>
+              <p className="text-[11px] text-slate-400 mt-1">
+                Wajib diawali 08 dan minimal 10 digit (contoh: 08123456789).
+              </p>
             </div>
 
             {/* Alamat Domisili */}

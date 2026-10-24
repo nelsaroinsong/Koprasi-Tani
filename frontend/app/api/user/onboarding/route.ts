@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { delCache } from '@/lib/redis';
+import { validateIndonesianPhone } from '@/lib/phone-validation';
 
 export async function POST(request: Request) {
   try {
@@ -19,8 +20,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Nama lengkap wajib diisi.' }, { status: 400 });
     }
 
-    if (!phone || typeof phone !== 'string' || phone.trim().length < 8) {
-      return NextResponse.json({ error: 'Nomor telepon/WhatsApp wajib diisi minimal 8 digit.' }, { status: 400 });
+    const phoneValidation = validateIndonesianPhone(phone, true);
+    if (!phoneValidation.isValid) {
+      return NextResponse.json({ error: phoneValidation.error }, { status: 400 });
     }
 
     if (!address || typeof address !== 'string' || !address.trim()) {
@@ -32,7 +34,7 @@ export async function POST(request: Request) {
     }
 
     const cleanName = name.trim();
-    const cleanPhone = phone.trim();
+    const cleanPhone = phoneValidation.cleanPhone;
     const cleanAddress = address.trim();
 
     // Tentukan status verifikasi berdasarkan peran:

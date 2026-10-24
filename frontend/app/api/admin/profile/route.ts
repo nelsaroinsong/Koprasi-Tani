@@ -3,6 +3,7 @@ import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { hashPassword, verifyPassword } from '@/lib/auth-passwords';
 import { delCache } from '@/lib/redis';
+import { validateIndonesianPhone } from '@/lib/phone-validation';
 
 export async function GET() {
   try {
@@ -91,7 +92,15 @@ export async function POST(request: Request) {
 
     // 2. Validasi & Update Nomor Telepon
     if (phone !== undefined) {
-      updateData.phone = typeof phone === 'string' ? phone.trim() : null;
+      if (typeof phone === 'string' && phone.trim()) {
+        const phoneValidation = validateIndonesianPhone(phone, false);
+        if (!phoneValidation.isValid) {
+          return NextResponse.json({ error: phoneValidation.error }, { status: 400 });
+        }
+        updateData.phone = phoneValidation.cleanPhone;
+      } else {
+        updateData.phone = null;
+      }
     }
 
     // 2b. Validasi & Update Alamat Kantor & Gudang Koperasi

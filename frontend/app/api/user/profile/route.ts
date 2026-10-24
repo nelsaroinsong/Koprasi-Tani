@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { getCache, setCache, delCache, delCachePattern } from '@/lib/redis';
+import { validateIndonesianPhone } from '@/lib/phone-validation';
 
 export async function GET() {
   try {
@@ -98,11 +99,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Tidak terotentikasi' }, { status: 401 });
     }
 
+    let cleanPhone: string | null | undefined = undefined;
+    if (phone !== undefined) {
+      if (typeof phone === 'string' && phone.trim()) {
+        const phoneValidation = validateIndonesianPhone(phone, false);
+        if (!phoneValidation.isValid) {
+          return NextResponse.json({ error: phoneValidation.error }, { status: 400 });
+        }
+        cleanPhone = phoneValidation.cleanPhone;
+      } else {
+        cleanPhone = null;
+      }
+    }
+
     const updated = await prisma.user.update({
       where: { email: targetEmail },
       data: {
-        ...(name && { name }),
-        ...(phone !== undefined && { phone }),
+        ...(name && { name: name.trim() }),
+        ...(cleanPhone !== undefined && { phone: cleanPhone }),
         ...(address !== undefined && { address }),
         ...(avatarUrl !== undefined && { avatarUrl }),
       },

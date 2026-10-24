@@ -33,6 +33,7 @@ import {
 } from '@/components/ui/dialog';
 import { useAdmin } from '@/components/admin/admin-context';
 import type { EquipmentItem } from '@/lib/equipments';
+import { validateIndonesianPhone } from '@/lib/phone-validation';
 
 const KONDISI_PRESETS = ['Sangat Baik', 'Siap Pakai', 'Dalam Perawatan'];
 
@@ -344,6 +345,18 @@ export default function EquipmentsDataTable() {
         type: 'warning',
       });
       return;
+    }
+
+    if (formKontakPj.trim()) {
+      const phoneVal = validateIndonesianPhone(formKontakPj.trim(), false);
+      if (!phoneVal.isValid) {
+        showToast({
+          title: 'Nomor WhatsApp Tidak Valid',
+          message: phoneVal.error || 'Nomor WhatsApp PJ Sewa wajib diawali 08 dan minimal 10 digit.',
+          type: 'warning',
+        });
+        return;
+      }
     }
 
     try {

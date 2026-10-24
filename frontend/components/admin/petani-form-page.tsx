@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/context/toast-context';
+import { validateIndonesianPhone } from '@/lib/phone-validation';
 
 const HATCHED_BG_STYLE: React.CSSProperties = {
   backgroundImage:
@@ -138,9 +139,9 @@ export function PetaniFormPage({
     }
 
     if (cleanPhone) {
-      const phoneDigits = cleanPhone.replace(/[^0-9]/g, '');
-      if (phoneDigits.length < 8 || phoneDigits.length > 15) {
-        setErrorMessage('Nomor WhatsApp/telepon harus berupa angka antara 8 hingga 15 digit.');
+      const phoneValidation = validateIndonesianPhone(cleanPhone, false);
+      if (!phoneValidation.isValid) {
+        setErrorMessage(phoneValidation.error || 'Nomor WhatsApp tidak valid.');
         return false;
       }
     }
@@ -369,7 +370,7 @@ export function PetaniFormPage({
                     />
                   </div>
                   <p className="text-[11px] text-slate-400">
-                    Nomor aktif untuk konfirmasi penyerahan hasil panen dan bagi hasil.
+                    Wajib diawali 08 dan minimal 10 digit angka (contoh: 08123456789).
                   </p>
                 </div>
 

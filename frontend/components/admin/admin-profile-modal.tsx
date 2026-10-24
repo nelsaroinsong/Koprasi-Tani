@@ -23,6 +23,7 @@ import {
   KeyRound,
   MapPin,
 } from 'lucide-react';
+import { validateIndonesianPhone } from '@/lib/phone-validation';
 
 interface AdminProfileModalProps {
   isOpen: boolean;
@@ -154,6 +155,14 @@ export function AdminProfileModal({
     if (!name.trim()) {
       setErrorMessage('Nama administrator tidak boleh kosong.');
       return;
+    }
+
+    if (phone.trim()) {
+      const phoneVal = validateIndonesianPhone(phone.trim(), false);
+      if (!phoneVal.isValid) {
+        setErrorMessage(phoneVal.error || 'Nomor telepon tidak valid.');
+        return;
+      }
     }
 
     if (changePassword) {
