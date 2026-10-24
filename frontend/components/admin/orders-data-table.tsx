@@ -1329,13 +1329,21 @@ export function OrdersDataTable({
           open={Boolean(selectedOrder)}
           onOpenChange={(open) => !open && setSelectedOrder(null)}
         >
-          <DialogContent className="max-w-xl w-[95vw] p-0 bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden max-h-[92vh] flex flex-col">
+          <DialogContent
+            data-lenis-prevent="true"
+            data-lenis-prevent-wheel="true"
+            data-lenis-prevent-touch="true"
+            className="sm:max-w-xl w-[95vw] gap-0 p-0 bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden max-h-[85vh] flex flex-col"
+          >
             {/* Header Modal */}
-            <div className="bg-slate-900 p-5 text-white">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <DialogTitle className="text-base font-bold text-white font-mono">
+            <div className="px-5 pt-5 pb-4 pr-12 border-b border-slate-100 shrink-0">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">
+                    Detail Pesanan
+                  </p>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <DialogTitle className="text-[17px] font-semibold text-slate-900 tabular-nums tracking-tight">
                       #{selectedOrder.orderNumber}
                     </DialogTitle>
                     <button
@@ -1344,182 +1352,213 @@ export function OrdersDataTable({
                         navigator.clipboard.writeText(selectedOrder.orderNumber);
                         showToast('Nomor pesanan disalin ke clipboard');
                       }}
-                      className="p-1 hover:bg-white/10 rounded text-slate-300 hover:text-white transition"
+                      className="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
                       title="Salin Nomor Pesanan"
                     >
                       <Copy className="w-3.5 h-3.5" />
                     </button>
                   </div>
-                  <p className="text-xs text-slate-300 mt-1">
-                    Dipesan pada{' '}
+                  <p className="text-xs text-slate-500 mt-1 flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-slate-400" />
                     {new Date(selectedOrder.createdAt).toLocaleDateString('id-ID', {
                       dateStyle: 'full',
                     })}
                   </p>
                 </div>
-
-                <div>{renderStatusBadge(selectedOrder.status)}</div>
+                <div className="shrink-0 pt-0.5">{renderStatusBadge(selectedOrder.status)}</div>
               </div>
             </div>
 
             {/* Modal Body */}
-            <div className="p-5 space-y-4 overflow-y-auto flex-1 text-xs">
-              {/* Stepper Timeline Visual Vertikal */}
-              <div className="p-4 bg-slate-50 border border-slate-200/90 rounded-xl space-y-3">
-                <div className="font-bold text-slate-800 flex items-center justify-between">
-                  <span className="flex items-center gap-1.5 text-[12.5px]">
-                    <Clock className="w-4 h-4 text-slate-600" />
-                    Alur Tracking Pesanan (Milestone)
-                  </span>
-                  <span className="text-[11px] font-medium text-slate-500">
-                    4 Tahap Pengiriman
-                  </span>
+            <div
+              data-lenis-prevent="true"
+              data-lenis-prevent-wheel="true"
+              data-lenis-prevent-touch="true"
+              className="px-5 py-5 space-y-5 overflow-y-auto flex-1 min-h-0 text-xs overscroll-contain"
+              onWheel={(e) => e.stopPropagation()}
+            >
+              {/* Stepper Timeline Horizontal */}
+              {(() => {
+                const status = selectedOrder.status;
+                const isCanceled = status === 'DIBATALKAN';
+                const level =
+                  status === 'SELESAI' ? 4 : status === 'SIAP_DIAMBIL' ? 3 : status === 'DIPROSES' ? 2 : 1;
+                const steps = [
+                  { label: 'Dipesan', desc: 'Checkout masuk', icon: Package },
+                  { label: 'Gudang', desc: 'Disiapkan kasir', icon: Store },
+                  { label: 'Siap Diambil', desc: 'Di kasir koperasi', icon: Truck },
+                  { label: 'Selesai', desc: 'Diterima pembeli', icon: Check },
+                ];
+                return (
+                  <section>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-[12.5px] font-semibold text-slate-800">Alur Pesanan</h3>
+                      <span className="text-[11px] text-slate-400">
+                        {isCanceled ? 'Pesanan dibatalkan' : `Tahap ${level} dari 4`}
+                      </span>
+                    </div>
+                    <ol className="grid grid-cols-4">
+                      {steps.map((s, i) => {
+                        const num = i + 1;
+                        const Icon = isCanceled && num === 2 ? XCircle : s.icon;
+                        const done = !isCanceled && level >= num;
+                        const current = !isCanceled && level === num;
+                        const canceledNode = isCanceled && num === 2;
+                        const lineFilled = !isCanceled ? level > num : num === 1;
+                        return (
+                          <li key={s.label} className="relative flex flex-col items-center text-center">
+                            {i < steps.length - 1 && (
+                              <span
+                                className={`absolute top-4 left-1/2 w-full h-0.5 ${
+                                  lineFilled
+                                    ? isCanceled
+                                      ? 'bg-rose-200'
+                                      : 'bg-slate-900'
+                                    : 'bg-slate-200'
+                                }`}
+                              />
+                            )}
+                            <span
+                              className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center transition ${
+                                canceledNode
+                                  ? 'bg-rose-50 text-rose-600 ring-1 ring-rose-200'
+                                  : done || (isCanceled && num === 1)
+                                  ? 'bg-slate-900 text-white'
+                                  : 'bg-white text-slate-300 ring-1 ring-slate-200'
+                              } ${current && num < 4 ? 'ring-4 ring-slate-900/10' : ''}`}
+                            >
+                              <Icon className="w-4 h-4" strokeWidth={num === 4 ? 2.5 : 2} />
+                            </span>
+                            <span
+                              className={`mt-2 text-[11.5px] font-semibold ${
+                                canceledNode
+                                  ? 'text-rose-600'
+                                  : done || (isCanceled && num === 1)
+                                  ? 'text-slate-900'
+                                  : 'text-slate-400'
+                              }`}
+                            >
+                              {canceledNode ? 'Dibatalkan' : s.label}
+                            </span>
+                            <span className="text-[10.5px] text-slate-400 mt-0.5 leading-tight px-1">
+                              {canceledNode ? 'Pesanan dihentikan' : s.desc}
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ol>
+                  </section>
+                );
+              })()}
+
+              {/* Info Pembeli & Serah Terima */}
+              <section className="rounded-xl border border-slate-200 overflow-hidden">
+                <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5 text-slate-500" />
+                  <h3 className="text-[12px] font-semibold text-slate-800">Pembeli & Serah Terima</h3>
                 </div>
-
-                <div className="grid grid-cols-4 gap-2 pt-2 border-t border-slate-200/70">
-                  <div className="text-center space-y-1">
-                    <div className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center mx-auto shadow-2xs">
-                      <Package className="w-4 h-4" />
-                    </div>
-                    <div className="font-bold text-[11px] text-slate-800">1. Dipesan</div>
-                    <div className="text-[10px] text-slate-400">Checkout masuk</div>
-                  </div>
-
-                  <div className="text-center space-y-1">
-                    <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center mx-auto transition ${
-                        ['DIPROSES', 'SIAP_DIAMBIL', 'SELESAI'].includes(selectedOrder.status)
-                          ? 'bg-slate-900 text-white shadow-2xs'
-                          : 'bg-white border border-slate-300 text-slate-300'
-                      }`}
-                    >
-                      <Store className="w-4 h-4" />
-                    </div>
-                    <div className="font-bold text-[11px] text-slate-800">2. Gudang</div>
-                    <div className="text-[10px] text-slate-400">Disiapkan kasir</div>
-                  </div>
-
-                  <div className="text-center space-y-1">
-                    <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center mx-auto transition ${
-                        ['SIAP_DIAMBIL', 'SELESAI'].includes(selectedOrder.status)
-                          ? 'bg-slate-900 text-white shadow-2xs'
-                          : 'bg-white border border-slate-300 text-slate-300'
-                      }`}
-                    >
-                      <Truck className="w-4 h-4" />
-                    </div>
-                    <div className="font-bold text-[11px] text-slate-800">3. Siap Diambil</div>
-                    <div className="text-[10px] text-slate-400">Di kasir koperasi</div>
-                  </div>
-
-                  <div className="text-center space-y-1">
-                    <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center mx-auto transition ${
-                        selectedOrder.status === 'SELESAI'
-                          ? 'bg-slate-900 text-white shadow-2xs'
-                          : 'bg-white border border-slate-300 text-slate-300'
-                      }`}
-                    >
-                      <Check className="w-4 h-4" strokeWidth={2.5} />
-                    </div>
-                    <div className="font-bold text-[11px] text-slate-800">4. Selesai</div>
-                    <div className="text-[10px] text-slate-400">Diterima pembeli</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Info Pembeli & Pengiriman */}
-              <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-2">
-                <div className="font-bold text-slate-800 flex items-center gap-1.5 text-xs">
-                  <User className="w-3.5 h-3.5 text-slate-700" />
-                  <span>Detail Penerima & Titik Serah Terima</span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-600 pt-1">
-                  <div>
-                    Nama Pembeli:{' '}
-                    <strong className="text-slate-900">
+                <dl className="divide-y divide-slate-100">
+                  <div className="px-4 py-2.5 grid grid-cols-[110px_1fr] gap-3">
+                    <dt className="text-slate-500">Nama</dt>
+                    <dd className="font-medium text-slate-900">
                       {selectedOrder.pembeli?.name || 'Pembeli Umum'}
-                    </strong>
+                    </dd>
                   </div>
-                  <div>
-                    WhatsApp:{' '}
-                    <strong className="text-slate-900">
+                  <div className="px-4 py-2.5 grid grid-cols-[110px_1fr] gap-3">
+                    <dt className="text-slate-500">WhatsApp</dt>
+                    <dd className="font-medium">
                       {selectedOrder.pembeli?.phone ? (
                         <a
                           href={`https://wa.me/${selectedOrder.pembeli.phone.replace(/\D/g, '')}`}
                           target="_blank"
                           rel="noreferrer"
-                          className="text-emerald-700 underline"
+                          className="text-emerald-700 hover:underline inline-flex items-center gap-1"
                         >
                           {selectedOrder.pembeli.phone}
+                          <ExternalLink className="w-3 h-3" />
                         </a>
                       ) : (
-                        '-'
+                        <span className="text-slate-400">-</span>
                       )}
-                    </strong>
+                    </dd>
                   </div>
-                  <div className="col-span-1 sm:col-span-2">
-                    <span className="text-slate-500">Pembayaran:</span>{' '}<span className="text-slate-900 font-semibold">Tunai Kasir</span><br /><span className="text-slate-500">Titik Ambil:</span>{' '}
-                    <span className="text-slate-900 font-semibold">
+                  <div className="px-4 py-2.5 grid grid-cols-[110px_1fr] gap-3">
+                    <dt className="text-slate-500">Pembayaran</dt>
+                    <dd className="font-medium text-slate-900 flex items-center gap-2">
+                      Tunai Kasir
+                      {selectedOrder.isPaid ? (
+                        <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 text-[10.5px] font-semibold">
+                          Lunas
+                        </span>
+                      ) : (
+                        <span className="px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 text-[10.5px] font-semibold">
+                          Belum lunas
+                        </span>
+                      )}
+                    </dd>
+                  </div>
+                  <div className="px-4 py-2.5 grid grid-cols-[110px_1fr] gap-3">
+                    <dt className="text-slate-500">Titik Ambil</dt>
+                    <dd className="font-medium text-slate-900 leading-relaxed">
                       {selectedOrder.alamatKirim || 'Kantor & Gudang Koperasi (Ambil Langsung)'}
-                    </span>
+                    </dd>
                   </div>
-                </div>
-              </div>
+                </dl>
+              </section>
 
-              {/* Rincian Komoditas */}
-              <div>
-                <div className="font-bold text-slate-800 mb-2">
-                  Komoditas Pertanian Dipesan:
+              {/* Rincian Komoditas + Total */}
+              <section className="rounded-xl border border-slate-200 overflow-hidden">
+                <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <ShoppingBag className="w-3.5 h-3.5 text-slate-500" />
+                    <h3 className="text-[12px] font-semibold text-slate-800">Komoditas Dipesan</h3>
+                  </div>
+                  <span className="text-[11px] text-slate-400">
+                    {selectedOrder.items?.length || 0} item
+                  </span>
                 </div>
-                <div className="space-y-2">
+                <ul className="divide-y divide-slate-100">
                   {selectedOrder.items?.map((item: any) => (
-                    <div
-                      key={item.id}
-                      className="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between gap-3 shadow-2xs"
-                    >
-                      <div>
-                        <div className="font-bold text-slate-900 text-[12.5px]">
+                    <li key={item.id} className="px-4 py-3 flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="font-semibold text-slate-900 text-[12.5px]">
                           {item.namaProduk}
                         </div>
-                        <div className="text-[11px] text-slate-500 mt-0.5">
+                        <div className="text-[11px] text-slate-500 mt-0.5 tabular-nums">
                           {item.quantity} {item.satuan} × Rp{' '}
-                          {item.hargaPerSatuan.toLocaleString('id-ID')}
+                          {Number(item.hargaPerSatuan).toLocaleString('id-ID')}
                         </div>
-                        <div className="text-[10.5px] text-emerald-700 font-semibold mt-0.5">
-                          Petani Mitra: {item.petani?.name || 'Petani Binaan Koperasi'}
+                        <div className="text-[10.5px] text-slate-400 mt-0.5">
+                          Petani mitra:{' '}
+                          <span className="text-emerald-700 font-medium">
+                            {item.petani?.name || 'Petani Binaan Koperasi'}
+                          </span>
                         </div>
                       </div>
-
-                      <div className="font-bold text-slate-900 tabular-nums text-right text-[13px]">
-                        Rp {item.subtotal.toLocaleString('id-ID')}
+                      <div className="font-semibold text-slate-900 tabular-nums text-right text-[12.5px] shrink-0">
+                        Rp {Number(item.subtotal).toLocaleString('id-ID')}
                       </div>
-                    </div>
+                    </li>
                   ))}
+                </ul>
+                <div className="px-4 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+                  <span className="text-slate-600 font-medium">Total Pesanan</span>
+                  <span className="text-[15px] font-bold text-slate-900 tabular-nums">
+                    Rp {Number(selectedOrder.totalAmount).toLocaleString('id-ID')}
+                  </span>
                 </div>
-              </div>
-
-              {/* Total Card */}
-              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between font-bold">
-                <span className="text-slate-700">Total Nilai Pesanan:</span>
-                <span className="text-base font-bold text-slate-900 tabular-nums">
-                  Rp {Number(selectedOrder.totalAmount).toLocaleString('id-ID')}
-                </span>
-              </div>
+              </section>
 
               {selectedOrder.catatan && (
-                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-600">
-                  <span className="font-bold text-slate-800 block mb-0.5">
-                    Catatan Pembeli:
-                  </span>
+                <section className="p-3.5 rounded-xl border border-amber-200 bg-amber-50/60 text-slate-700">
+                  <span className="font-semibold text-amber-800 block mb-0.5">Catatan Pembeli</span>
                   {selectedOrder.catatan}
-                </div>
+                </section>
               )}
             </div>
 
             {/* Modal Actions */}
-            <div className="p-4 bg-white border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
+            <div className="p-4 bg-white border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 shrink-0">
               <button
                 type="button"
                 onClick={() => handlePrintReceipt(selectedOrder)}
