@@ -88,12 +88,31 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Data pengajuan sewa tidak ditemukan' }, { status: 404 });
     }
 
-    const updated = { ...rentals[targetIdx] };
+    const currentRental = rentals[targetIdx];
+
+    // Guard: status final (SELESAI, DITOLAK, DIBATALKAN) tidak boleh diubah lagi
+    if (currentRental.status === 'SELESAI') {
+      return NextResponse.json(
+        { error: 'Sewa alat telah selesai dan unit telah dikembalikan. Status tidak dapat diubah lagi.' },
+        { status: 400 }
+      );
+    }
+    if (currentRental.status === 'DITOLAK' || currentRental.status === 'DIBATALKAN') {
+      return NextResponse.json(
+        { error: 'Pengajuan sewa telah ditolak/dibatalkan. Status tidak dapat diubah lagi.' },
+        { status: 400 }
+      );
+    }
+
+    const updated = { ...currentRental };
     updated.status = status as EquipmentRentalStatus;
     updated.updatedAt = new Date().toISOString();
 
     if (status === 'DISETUJUI') {
       updated.approvedAt = new Date().toISOString();
+    }
+    if (status === 'SELESAI') {
+      updated.isPaid = true;
     }
     if (isPaid !== undefined) {
       updated.isPaid = Boolean(isPaid);

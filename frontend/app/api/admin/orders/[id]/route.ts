@@ -31,6 +31,38 @@ export async function PATCH(
       return NextResponse.json({ error: 'Pesanan tidak ditemukan' }, { status: 404 });
     }
 
+    if (status !== undefined && status !== existingOrder.status) {
+      // 1. Guard pesanan final: Selesai atau Dibatalkan tidak boleh diubah lagi
+      if (existingOrder.status === 'SELESAI') {
+        return NextResponse.json(
+          { error: 'Pesanan telah selesai dan lunas. Status tidak dapat diubah lagi.' },
+          { status: 400 }
+        );
+      }
+
+      if (existingOrder.status === 'DIBATALKAN') {
+        return NextResponse.json(
+          { error: 'Pesanan telah dibatalkan. Status tidak dapat diubah kembali.' },
+          { status: 400 }
+        );
+      }
+
+      // 2. Guard transisi status yang sah (Forward-only & Batal)
+      const VALID_TRANSITIONS: Record<string, string[]> = {
+        MENUNGGU_PEMBAYARAN: ['DIPROSES', 'DIBATALKAN'],
+        DIPROSES: ['SIAP_DIAMBIL', 'DIBATALKAN'],
+        SIAP_DIAMBIL: ['SELESAI', 'DIBATALKAN'],
+      };
+
+      const allowedNext = VALID_TRANSITIONS[existingOrder.status] || [];
+      if (!allowedNext.includes(status)) {
+        return NextResponse.json(
+          { error: `Transisi status tidak sah dari ${existingOrder.status} ke ${status}.` },
+          { status: 400 }
+        );
+      }
+    }
+
     // Jalankan transaksi database
     const updatedOrder = await prisma.$transaction(async (tx) => {
       const updateData: Record<string, any> = {};
@@ -38,8 +70,8 @@ export async function PATCH(
       if (status !== undefined) {
         updateData.status = status;
 
-        // Pembayaran lunas diterima saat pesanan selesai / serah terima
-        if (status === 'SELESAI' || status === 'SIAP_DIAMBIL') {
+        // Pembayaran lunas diterima saat pesanan selesai / serah terima fisik di kasir
+        if (status === 'SELESAI') {
           updateData.isPaid = true;
           if (!existingOrder.paidAt) {
             updateData.paidAt = new Date();

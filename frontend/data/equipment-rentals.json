@@ -47,7 +47,7 @@
     "catatan": "bagus",
     "totalEstimasi": 150000,
     "paymentMethod": "CASH_KOPERASI",
-    "isPaid": false,
+    "isPaid": true,
     "items": [
       {
         "equipmentId": "9a9096e8-1384-4eb3-872c-115b3064d32e",
@@ -81,7 +81,7 @@
     "catatan": "",
     "totalEstimasi": 150000,
     "paymentMethod": "CASH_KOPERASI",
-    "isPaid": false,
+    "isPaid": true,
     "items": [
       {
         "equipmentId": "9a9096e8-1384-4eb3-872c-115b3064d32e",

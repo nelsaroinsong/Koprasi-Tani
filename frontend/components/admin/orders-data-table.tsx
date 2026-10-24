@@ -1053,61 +1053,68 @@ export function OrdersDataTable({
                           className="py-3 whitespace-nowrap"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <button
-                                type="button"
-                                className="cursor-pointer hover:opacity-85 transition"
-                                title="Klik untuk ubah status cepat"
-                              >
-                                {renderStatusBadge(order.status)}
-                              </button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent
-                              align="start"
-                              className="w-48 rounded-xl p-1 bg-white border border-slate-200 shadow-xl z-50 text-xs"
+                          {order.status === 'SELESAI' || order.status === 'DIBATALKAN' ? (
+                            <div
+                              className="inline-block cursor-default select-none opacity-95"
+                              title={
+                                order.status === 'SELESAI'
+                                  ? 'Pesanan telah selesai & lunas (status permanen)'
+                                  : 'Pesanan telah dibatalkan (status permanen)'
+                              }
                             >
-                              <DropdownMenuLabel className="px-2 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                                Ubah Status Pesanan
-                              </DropdownMenuLabel>
-                              {order.status !== 'MENUNGGU_PEMBAYARAN' && (
-                                <DropdownMenuItem
-                                  onClick={() => handleUpdateStatus(order.id, 'MENUNGGU_PEMBAYARAN')}
-                                  className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-slate-700 hover:bg-slate-50"
+                              {renderStatusBadge(order.status)}
+                            </div>
+                          ) : (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <button
+                                  type="button"
+                                  className="cursor-pointer hover:opacity-85 transition"
+                                  title="Klik untuk ubah status ke tahap berikutnya"
                                 >
-                                  <Clock className="w-3.5 h-3.5 text-slate-500" />
-                                  <span>Menunggu Bayar</span>
-                                </DropdownMenuItem>
-                              )}
-                              {order.status !== 'DIPROSES' && (
-                                <DropdownMenuItem
-                                  onClick={() => handleUpdateStatus(order.id, 'DIPROSES')}
-                                  className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-blue-700 hover:bg-blue-50 font-medium"
-                                >
-                                  <Store className="w-3.5 h-3.5 text-blue-600" />
-                                  <span>Diproses Gudang</span>
-                                </DropdownMenuItem>
-                              )}
-                              {order.status !== 'SIAP_DIAMBIL' && (
-                                <DropdownMenuItem
-                                  onClick={() => handleUpdateStatus(order.id, 'SIAP_DIAMBIL')}
-                                  className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-indigo-700 hover:bg-indigo-50 font-medium"
-                                >
-                                  <Truck className="w-3.5 h-3.5 text-indigo-600" />
-                                  <span>Siap Diambil</span>
-                                </DropdownMenuItem>
-                              )}
-                              {order.status !== 'SELESAI' && (
-                                <DropdownMenuItem
-                                  onClick={() => handleUpdateStatus(order.id, 'SELESAI')}
-                                  className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-emerald-700 hover:bg-emerald-50 font-semibold"
-                                >
-                                  <Check className="w-3.5 h-3.5 text-emerald-600" />
-                                  <span>Tandai Selesai</span>
-                                </DropdownMenuItem>
-                              )}
-                              <DropdownMenuSeparator className="my-1 border-slate-100" />
-                              {order.status !== 'DIBATALKAN' && (
+                                  {renderStatusBadge(order.status)}
+                                </button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent
+                                align="start"
+                                className="w-52 rounded-xl p-1 bg-white border border-slate-200 shadow-xl z-50 text-xs"
+                              >
+                                <DropdownMenuLabel className="px-2 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                  Progres Alur Pesanan
+                                </DropdownMenuLabel>
+
+                                {order.status === 'MENUNGGU_PEMBAYARAN' && (
+                                  <DropdownMenuItem
+                                    onClick={() => handleUpdateStatus(order.id, 'DIPROSES')}
+                                    className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-blue-700 hover:bg-blue-50 font-medium"
+                                  >
+                                    <Store className="w-3.5 h-3.5 text-blue-600" />
+                                    <span>Kirim ke Gudang (Kemas)</span>
+                                  </DropdownMenuItem>
+                                )}
+
+                                {order.status === 'DIPROSES' && (
+                                  <DropdownMenuItem
+                                    onClick={() => handleUpdateStatus(order.id, 'SIAP_DIAMBIL')}
+                                    className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-indigo-700 hover:bg-indigo-50 font-medium"
+                                  >
+                                    <Truck className="w-3.5 h-3.5 text-indigo-600" />
+                                    <span>Komoditas Siap Diambil</span>
+                                  </DropdownMenuItem>
+                                )}
+
+                                {order.status === 'SIAP_DIAMBIL' && (
+                                  <DropdownMenuItem
+                                    onClick={() => handleUpdateStatus(order.id, 'SELESAI')}
+                                    className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-emerald-700 hover:bg-emerald-50 font-semibold"
+                                  >
+                                    <Check className="w-3.5 h-3.5 text-emerald-600" strokeWidth={2.5} />
+                                    <span>Terima Tunai & Selesaikan</span>
+                                  </DropdownMenuItem>
+                                )}
+
+                                <DropdownMenuSeparator className="my-1 border-slate-100" />
+
                                 <DropdownMenuItem
                                   onClick={() => handleUpdateStatus(order.id, 'DIBATALKAN')}
                                   className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-rose-600 hover:bg-rose-50"
@@ -1115,9 +1122,9 @@ export function OrdersDataTable({
                                   <XCircle className="w-3.5 h-3.5 text-rose-600" />
                                   <span>Batalkan Pesanan</span>
                                 </DropdownMenuItem>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
                         </TableCell>
 
                         {/* 4. Expected Date (dengan Tag Delay jika tertahan > 24 jam) */}
@@ -1229,37 +1236,52 @@ export function OrdersDataTable({
                                 <span>Cetak Struk / Nota</span>
                               </DropdownMenuItem>
 
-                              <DropdownMenuSeparator className="my-1 border-slate-100" />
+                              {!['SELESAI', 'DIBATALKAN'].includes(order.status) && (
+                                <>
+                                  <DropdownMenuSeparator className="my-1 border-slate-100" />
 
-                              <DropdownMenuLabel className="px-2.5 py-1 text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                                Progres Alur
-                              </DropdownMenuLabel>
-                              {order.status !== 'DIPROSES' && (
-                                <DropdownMenuItem
-                                  onClick={() => handleUpdateStatus(order.id, 'DIPROSES')}
-                                  className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-blue-700 hover:bg-blue-50"
-                                >
-                                  <Store className="w-3.5 h-3.5 text-blue-600" />
-                                  <span>Kemas di Gudang</span>
-                                </DropdownMenuItem>
-                              )}
-                              {order.status !== 'SIAP_DIAMBIL' && (
-                                <DropdownMenuItem
-                                  onClick={() => handleUpdateStatus(order.id, 'SIAP_DIAMBIL')}
-                                  className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-indigo-700 hover:bg-indigo-50"
-                                >
-                                  <Truck className="w-3.5 h-3.5 text-indigo-600" />
-                                  <span>Siap Diambil</span>
-                                </DropdownMenuItem>
-                              )}
-                              {order.status !== 'SELESAI' && (
-                                <DropdownMenuItem
-                                  onClick={() => handleUpdateStatus(order.id, 'SELESAI')}
-                                  className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-emerald-700 hover:bg-emerald-50 font-semibold"
-                                >
-                                  <Check className="w-3.5 h-3.5 text-emerald-600" />
-                                  <span>Tandai Selesai</span>
-                                </DropdownMenuItem>
+                                  <DropdownMenuLabel className="px-2.5 py-1 text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                                    Progres Alur
+                                  </DropdownMenuLabel>
+
+                                  {order.status === 'MENUNGGU_PEMBAYARAN' && (
+                                    <DropdownMenuItem
+                                      onClick={() => handleUpdateStatus(order.id, 'DIPROSES')}
+                                      className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-blue-700 hover:bg-blue-50 font-medium"
+                                    >
+                                      <Store className="w-3.5 h-3.5 text-blue-600" />
+                                      <span>Kirim ke Gudang</span>
+                                    </DropdownMenuItem>
+                                  )}
+
+                                  {order.status === 'DIPROSES' && (
+                                    <DropdownMenuItem
+                                      onClick={() => handleUpdateStatus(order.id, 'SIAP_DIAMBIL')}
+                                      className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-indigo-700 hover:bg-indigo-50 font-medium"
+                                    >
+                                      <Truck className="w-3.5 h-3.5 text-indigo-600" />
+                                      <span>Siap Diambil di Kasir</span>
+                                    </DropdownMenuItem>
+                                  )}
+
+                                  {order.status === 'SIAP_DIAMBIL' && (
+                                    <DropdownMenuItem
+                                      onClick={() => handleUpdateStatus(order.id, 'SELESAI')}
+                                      className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-emerald-700 hover:bg-emerald-50 font-semibold"
+                                    >
+                                      <Check className="w-3.5 h-3.5 text-emerald-600" strokeWidth={2.5} />
+                                      <span>Terima Tunai & Selesaikan</span>
+                                    </DropdownMenuItem>
+                                  )}
+
+                                  <DropdownMenuItem
+                                    onClick={() => handleUpdateStatus(order.id, 'DIBATALKAN')}
+                                    className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-rose-600 hover:bg-rose-50"
+                                  >
+                                    <XCircle className="w-3.5 h-3.5 text-rose-600" />
+                                    <span>Batalkan Pesanan</span>
+                                  </DropdownMenuItem>
+                                </>
                               )}
 
                               <DropdownMenuSeparator className="my-1 border-slate-100" />
@@ -1475,14 +1497,14 @@ export function OrdersDataTable({
                   <h3 className="text-[12px] font-semibold text-slate-800">Pembeli & Serah Terima</h3>
                 </div>
                 <dl className="divide-y divide-slate-100">
-                  <div className="px-4 py-2.5 grid grid-cols-[110px_1fr] gap-3">
+                  <div className="px-4 py-2.5 grid grid-cols-[120px_1fr] gap-3">
                     <dt className="text-slate-500">Nama</dt>
                     <dd className="font-medium text-slate-900">
                       {selectedOrder.pembeli?.name || 'Pembeli Umum'}
                     </dd>
                   </div>
-                  <div className="px-4 py-2.5 grid grid-cols-[110px_1fr] gap-3">
-                    <dt className="text-slate-500">WhatsApp</dt>
+                  <div className="px-4 py-2.5 grid grid-cols-[120px_1fr] gap-3">
+                    <dt className="text-slate-500">No. Telp / WA</dt>
                     <dd className="font-medium">
                       {selectedOrder.pembeli?.phone ? (
                         <a
@@ -1490,6 +1512,7 @@ export function OrdersDataTable({
                           target="_blank"
                           rel="noreferrer"
                           className="text-emerald-700 hover:underline inline-flex items-center gap-1"
+                          title="Hubungi via WhatsApp"
                         >
                           {selectedOrder.pembeli.phone}
                           <ExternalLink className="w-3 h-3" />
@@ -1499,7 +1522,7 @@ export function OrdersDataTable({
                       )}
                     </dd>
                   </div>
-                  <div className="px-4 py-2.5 grid grid-cols-[110px_1fr] gap-3">
+                  <div className="px-4 py-2.5 grid grid-cols-[120px_1fr] gap-3">
                     <dt className="text-slate-500">Pembayaran</dt>
                     <dd className="font-medium text-slate-900 flex items-center gap-2">
                       Tunai Kasir
@@ -1514,7 +1537,7 @@ export function OrdersDataTable({
                       )}
                     </dd>
                   </div>
-                  <div className="px-4 py-2.5 grid grid-cols-[110px_1fr] gap-3">
+                  <div className="px-4 py-2.5 grid grid-cols-[120px_1fr] gap-3">
                     <dt className="text-slate-500">Titik Ambil</dt>
                     <dd className="font-medium text-slate-900 leading-relaxed">
                       {selectedOrder.alamatKirim || 'Kantor & Gudang Koperasi (Ambil Langsung)'}
@@ -1586,6 +1609,18 @@ export function OrdersDataTable({
               </button>
 
               <div className="flex items-center gap-2">
+                {['MENUNGGU_PEMBAYARAN', 'DIPROSES', 'SIAP_DIAMBIL'].includes(selectedOrder.status) && (
+                  <button
+                    type="button"
+                    onClick={() => handleUpdateStatus(selectedOrder.id, 'DIBATALKAN')}
+                    disabled={isUpdatingStatus}
+                    className="px-3.5 py-2 text-xs font-semibold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                  >
+                    <XCircle className="w-3.5 h-3.5" />
+                    <span>Batalkan</span>
+                  </button>
+                )}
+
                 {selectedOrder.status === 'MENUNGGU_PEMBAYARAN' && (
                   <button
                     type="button"
@@ -1617,9 +1652,23 @@ export function OrdersDataTable({
                     disabled={isUpdatingStatus}
                     className="px-3.5 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
                   >
-                    <Check className="w-3.5 h-3.5" />
-                    <span>Selesaikan Transaksi</span>
+                    <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
+                    <span>Terima Tunai & Selesaikan</span>
                   </button>
+                )}
+
+                {selectedOrder.status === 'SELESAI' && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-medium">
+                    <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
+                    <span>Transaksi telah selesai & lunas</span>
+                  </span>
+                )}
+
+                {selectedOrder.status === 'DIBATALKAN' && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 text-rose-600 border border-rose-200 text-xs font-medium">
+                    <XCircle className="w-3.5 h-3.5" />
+                    <span>Pesanan telah dibatalkan</span>
+                  </span>
                 )}
               </div>
             </div>
