@@ -47,8 +47,13 @@ export async function GET(request: Request) {
       ];
     }
 
-    // Query data dan total count secara paralel
-    const [totalCount, users] = await Promise.all([
+    const baseRoleCondition: Record<string, any> =
+      roleParam && (roleParam === 'PETANI' || roleParam === 'PEMBELI' || roleParam === 'ADMIN')
+        ? { role: roleParam as any }
+        : {};
+
+    // Query data, total count, dan stats secara paralel
+    const [totalCount, users, totalRoleCount, verifiedCount, pendingCount] = await Promise.all([
       prisma.user.count({ where: whereCondition }),
       prisma.user.findMany({
         where: whereCondition,
@@ -58,6 +63,9 @@ export async function GET(request: Request) {
         skip,
         take: limit,
       }),
+      prisma.user.count({ where: baseRoleCondition }),
+      prisma.user.count({ where: { ...baseRoleCondition, isVerified: true } }),
+      prisma.user.count({ where: { ...baseRoleCondition, isVerified: false } }),
     ]);
 
     const totalPages = Math.ceil(totalCount / limit) || 1;
@@ -77,6 +85,11 @@ export async function GET(request: Request) {
         isActive: u.isActive,
         createdAt: u.createdAt,
       })),
+      stats: {
+        total: totalRoleCount,
+        verified: verifiedCount,
+        pending: pendingCount,
+      },
       pagination: {
         totalCount,
         totalPages,

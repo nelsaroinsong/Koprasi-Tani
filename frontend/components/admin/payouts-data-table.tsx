@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Table,
   TableHeader,
@@ -9,28 +9,34 @@ import {
   TableRow,
   TableCell,
 } from '@/components/ui/table';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import {
   HandCoins,
   CheckCircle2,
   Clock,
   RefreshCw,
   Loader2,
-  Calendar,
-  Package,
   Check,
-  User,
-  Phone,
-  FileText,
+  Search,
+  XCircle,
+  X,
+  Wallet,
+  Users,
+  ExternalLink,
+  Package,
+  ChevronRight,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/context/toast-context';
+
+const HATCHED_BG_STYLE: React.CSSProperties = {
+  backgroundImage:
+    'repeating-linear-gradient(-45deg, #F3F4F6, #F3F4F6 4px, #F9FAFB 4px, #F9FAFB 8px)',
+};
+
+type FilterKey = 'ALL' | 'PENDING' | 'LUNAS';
+
+const rp = (n: number) => `Rp ${Number(n || 0).toLocaleString('id-ID')}`;
 
 export function PayoutsDataTable() {
   const { showToast } = useToast();
@@ -42,10 +48,11 @@ export function PayoutsDataTable() {
     totalPetaniAktif: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filter, setFilter] = useState<FilterKey>('ALL');
 
   // Modal States
   const [selectedPetaniPayout, setSelectedPetaniPayout] = useState<any | null>(null);
-  const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [petaniToPayCash, setPetaniToPayCash] = useState<any | null>(null);
   const [isPayingCash, setIsPayingCash] = useState(false);
 
@@ -69,6 +76,28 @@ export function PayoutsDataTable() {
   useEffect(() => {
     fetchPayouts();
   }, [fetchPayouts]);
+
+  const counts = useMemo(() => {
+    const pending = payoutList.filter((p) => p.siapDicairkanCash > 0).length;
+    return { all: payoutList.length, pending, lunas: payoutList.length - pending };
+  }, [payoutList]);
+
+  const filteredList = useMemo(() => {
+    let list = payoutList;
+    if (filter === 'PENDING') list = list.filter((p) => p.siapDicairkanCash > 0);
+    if (filter === 'LUNAS') list = list.filter((p) => p.siapDicairkanCash <= 0);
+    const q = searchQuery.toLowerCase().trim();
+    if (q) {
+      list = list.filter(
+        (p) =>
+          p.petani.name?.toLowerCase().includes(q) ||
+          p.petani.phone?.includes(q) ||
+          p.petani.email?.toLowerCase().includes(q)
+      );
+    }
+    // Yang menunggu diserahkan selalu di atas, terbesar dulu
+    return [...list].sort((a, b) => b.siapDicairkanCash - a.siapDicairkanCash);
+  }, [payoutList, filter, searchQuery]);
 
   // Handler: Serahkan Cash ke Petani
   const handleConfirmPayCash = async () => {
@@ -94,6 +123,7 @@ export function PayoutsDataTable() {
       });
 
       setPetaniToPayCash(null);
+      setSelectedPetaniPayout(null);
       fetchPayouts();
     } catch (err: any) {
       showToast({
@@ -106,400 +136,546 @@ export function PayoutsDataTable() {
     }
   };
 
+  const TABS: { key: FilterKey; label: string; dot?: string; count: number }[] = [
+    { key: 'ALL', label: 'Semua', count: counts.all },
+    { key: 'PENDING', label: 'Menunggu Diserahkan', dot: 'bg-amber-500', count: counts.pending },
+    { key: 'LUNAS', label: 'Sudah Lunas', dot: 'bg-emerald-500', count: counts.lunas },
+  ];
+
+  const totalHak = summary.totalSiapDiserahkanCash + summary.totalSudahDiserahkanCash;
+  const progressPct = totalHak > 0 ? Math.round((summary.totalSudahDiserahkanCash / totalHak) * 100) : 0;
+
   return (
-    <div className="space-y-5">
-      {/* 1. Header Info */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-lg font-bold text-slate-900">
-              Penyerahan Uang Cash Hasil Panen Petani
-            </h1>
-            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-              {summary.totalPetaniAktif} Petani Mitra
+    <div className="space-y-4">
+      {/* 1. KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="bg-white rounded-2xl border border-[#ECEEF2] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+          <div className="flex items-center justify-between">
+            <span className="text-[12px] font-medium text-slate-500">Cash Siap Diserahkan</span>
+            <span className="w-7 h-7 rounded-lg bg-amber-50 border border-amber-100 flex items-center justify-center">
+              <Clock className="w-3.5 h-3.5 text-amber-600" />
             </span>
           </div>
-          <p className="text-xs text-slate-500 mt-1">
-            Rekap keuntungan uang tunai milik petani yang komoditasnya sudah laku terjual di Koperasi Sinar Pagi Sejahtera.
+          <div className="mt-2 text-[22px] font-semibold text-slate-900 tabular-nums tracking-tight">
+            {rp(summary.totalSiapDiserahkanCash)}
+          </div>
+          <p className="text-[11.5px] text-slate-400 mt-0.5">
+            {counts.pending} petani menunggu pengambilan di kas
           </p>
         </div>
 
-        <button
-          onClick={fetchPayouts}
-          disabled={isLoading}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-emerald-50/50 hover:border-emerald-300 text-slate-600 hover:text-emerald-800 text-xs font-semibold transition cursor-pointer disabled:opacity-60 shadow-2xs self-start sm:self-auto"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-emerald-700' : ''}`} />
-          <span>Segarkan Data</span>
-        </button>
-      </div>
-
-      {/* 2. KPI Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Total Cash Siap Diserahkan */}
-        <div className="bg-gradient-to-br from-emerald-800 to-teal-800 p-5 rounded-3xl text-white shadow-sm flex items-center justify-between">
-          <div>
-            <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-200">
-              Total Cash Siap Diserahkan ke Petani
-            </div>
-            <div className="text-2xl sm:text-3xl font-black mt-1">
-              Rp {summary.totalSiapDiserahkanCash.toLocaleString('id-ID')}
-            </div>
-            <p className="text-xs text-emerald-100/90 mt-1">
-              Uang tunai di kas koperasi yang menunggu diambil oleh para petani mitra.
-            </p>
+        <div className="bg-white rounded-2xl border border-[#ECEEF2] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+          <div className="flex items-center justify-between">
+            <span className="text-[12px] font-medium text-slate-500">Cash Sudah Diserahkan</span>
+            <span className="w-7 h-7 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+            </span>
           </div>
-          <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 shrink-0">
-            <HandCoins className="w-7 h-7 text-emerald-200" />
+          <div className="mt-2 text-[22px] font-semibold text-slate-900 tabular-nums tracking-tight">
+            {rp(summary.totalSudahDiserahkanCash)}
+          </div>
+          <div className="mt-2 flex items-center gap-2">
+            <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+              <div
+                className="h-full bg-emerald-500 rounded-full transition-all"
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
+            <span className="text-[11px] text-slate-500 tabular-nums">{progressPct}%</span>
           </div>
         </div>
 
-        {/* Total Cash Sudah Diserahkan */}
-        <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-2xs flex items-center justify-between">
-          <div>
-            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-              Total Cash yang Sudah Diserahkan
-            </div>
-            <div className="text-2xl sm:text-3xl font-black text-slate-800 mt-1">
-              Rp {summary.totalSudahDiserahkanCash.toLocaleString('id-ID')}
-            </div>
-            <p className="text-xs text-slate-500 mt-1">
-              Total keuntungan tunai yang telah berhasil diterima oleh petani binaan.
-            </p>
+        <div className="bg-white rounded-2xl border border-[#ECEEF2] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+          <div className="flex items-center justify-between">
+            <span className="text-[12px] font-medium text-slate-500">Petani Mitra Aktif</span>
+            <span className="w-7 h-7 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center">
+              <Users className="w-3.5 h-3.5 text-slate-600" />
+            </span>
           </div>
-          <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center border border-emerald-100 shrink-0">
-            <CheckCircle2 className="w-7 h-7 text-emerald-700" />
+          <div className="mt-2 text-[22px] font-semibold text-slate-900 tabular-nums tracking-tight">
+            {summary.totalPetaniAktif}
           </div>
+          <p className="text-[11.5px] text-slate-400 mt-0.5">
+            Total hak petani: {rp(totalHak)}
+          </p>
         </div>
       </div>
 
-      {/* 3. Tabel Rekap Petani */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
-        <Table>
-          <TableHeader className="bg-emerald-50/70 border-b border-emerald-100">
-            <TableRow className="hover:bg-transparent border-emerald-100">
-              <TableHead className="w-12 text-center text-emerald-950 font-bold text-xs py-3.5">
-                No
-              </TableHead>
-              <TableHead className="text-emerald-950 font-bold text-xs">
-                Petani Mitra
-              </TableHead>
-              <TableHead className="text-emerald-950 font-bold text-xs">
-                Total Panen Terjual
-              </TableHead>
-              <TableHead className="text-emerald-950 font-bold text-xs">
-                Cash Siap Diserahkan
-              </TableHead>
-              <TableHead className="text-emerald-950 font-bold text-xs">
-                Cash Sudah Diserahkan
-              </TableHead>
-              <TableHead className="text-right text-emerald-950 font-bold text-xs pr-4">
-                Aksi Serah Terima
-              </TableHead>
-            </TableRow>
-          </TableHeader>
+      {/* 2. Outer Shell */}
+      <div className="rounded-2xl border border-[#E5E7EB] p-1.5" style={HATCHED_BG_STYLE}>
+        {/* Header */}
+        <div className="px-3 pt-2 pb-1 flex items-center gap-2">
+          <HandCoins className="w-4 h-4 text-slate-600 stroke-[1.8]" />
+          <h2 className="text-[13.5px] font-semibold text-slate-800 tracking-tight">
+            Bagi Hasil Petani
+          </h2>
+          <span className="h-5 px-1.5 rounded-md bg-white border border-slate-200 text-[11px] font-semibold text-slate-600 tabular-nums flex items-center">
+            {counts.all}
+          </span>
+        </div>
 
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={6} className="h-40 text-center text-slate-500">
-                  <div className="flex flex-col items-center justify-center gap-2">
-                    <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
-                    <span className="text-xs">Memuat rekap cash petani...</span>
+        {/* Tabs */}
+        <div className="px-3 py-2 overflow-x-auto">
+          <div className="inline-flex items-center gap-0.5 p-0.5 rounded-lg bg-white border border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+            {TABS.map((tab) => {
+              const isActive = filter === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setFilter(tab.key)}
+                  className={`h-7 px-2.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+                    isActive ? 'bg-slate-900 text-white' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                  }`}
+                >
+                  {tab.dot && <span className={`w-1.5 h-1.5 rounded-full ${tab.dot}`} />}
+                  <span>{tab.label}</span>
+                  <span className={`text-[10.5px] tabular-nums ${isActive ? 'text-white/70' : 'text-slate-400'}`}>
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Toolbar */}
+        <div className="px-3 pb-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="relative flex-1 sm:flex-none sm:w-72">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Cari nama petani, no. telp..."
+                className="w-full h-8 pl-8 pr-3 text-xs rounded-lg border border-[#E5E7EB] bg-white text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-900 focus:border-slate-900 transition shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
+              />
+            </div>
+            {(searchQuery || filter !== 'ALL') && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery('');
+                  setFilter('ALL');
+                }}
+                className="h-8 px-2.5 text-xs text-slate-500 hover:text-slate-900 font-medium rounded-lg hover:bg-white transition cursor-pointer flex items-center gap-1"
+              >
+                <XCircle className="w-3.5 h-3.5" />
+                Reset
+              </button>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={fetchPayouts}
+            disabled={isLoading}
+            className="w-8 h-8 rounded-lg border border-[#E5E7EB] bg-white hover:bg-slate-50 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,0.02)] shrink-0 self-end sm:self-auto"
+            title="Segarkan data"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-slate-800' : ''}`} />
+          </button>
+        </div>
+
+        {/* Table */}
+        <div className="bg-white rounded-xl border border-[#ECEEF2] shadow-[0_1px_2px_rgba(0,0,0,0.02)] overflow-hidden">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader className="bg-[#FAFBFD] border-b border-[#F1F3F5]">
+                <TableRow className="border-[#F1F3F5] hover:bg-transparent">
+                  <TableHead className="py-3 pl-4 text-[11.5px] font-medium text-slate-500 whitespace-nowrap">Petani Mitra</TableHead>
+                  <TableHead className="py-3 text-[11.5px] font-medium text-slate-500 whitespace-nowrap">Panen Terjual</TableHead>
+                  <TableHead className="py-3 text-[11.5px] font-medium text-slate-500 whitespace-nowrap">Status</TableHead>
+                  <TableHead className="py-3 text-[11.5px] font-medium text-slate-500 whitespace-nowrap text-right">Siap Diserahkan</TableHead>
+                  <TableHead className="py-3 text-[11.5px] font-medium text-slate-500 whitespace-nowrap text-right">Sudah Diserahkan</TableHead>
+                  <TableHead className="py-3 pr-4 text-[11.5px] font-medium text-slate-500 whitespace-nowrap text-right">Aksi</TableHead>
+                </TableRow>
+              </TableHeader>
+
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="py-14 text-center">
+                      <div className="flex flex-col items-center gap-2">
+                        <RefreshCw className="w-5 h-5 animate-spin text-slate-400" />
+                        <span className="text-xs text-slate-400">Memuat rekap bagi hasil petani...</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : filteredList.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="py-14 text-center">
+                      <div className="flex flex-col items-center gap-1.5">
+                        <HandCoins className="w-6 h-6 text-slate-300" />
+                        <span className="text-xs font-semibold text-slate-600">
+                          {payoutList.length === 0
+                            ? 'Belum ada hasil panen petani yang terjual'
+                            : 'Tidak ada data yang cocok'}
+                        </span>
+                        <span className="text-[11.5px] text-slate-400 max-w-sm">
+                          {payoutList.length === 0
+                            ? 'Rekap hak uang tunai petani otomatis muncul setelah pesanan komoditas selesai.'
+                            : 'Coba sesuaikan kata kunci atau filter di atas.'}
+                        </span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredList.map((item) => {
+                    const isPending = item.siapDicairkanCash > 0;
+                    const trxCount = item.pendingItems.length + item.completedItems.length;
+                    return (
+                      <TableRow
+                        key={item.petani.id}
+                        onClick={() => setSelectedPetaniPayout(item)}
+                        className="cursor-pointer transition-colors border-[#F3F4F6] hover:bg-[#F9FAFB]"
+                      >
+                        <TableCell className="py-3 pl-4">
+                          <div className="flex items-center gap-2.5">
+                            <Avatar className="w-8 h-8 rounded-full border border-slate-200 shrink-0">
+                              <AvatarImage src={item.petani.avatarUrl || ''} alt={item.petani.name} />
+                              <AvatarFallback className="bg-emerald-600 text-white text-[11px] font-semibold">
+                                {item.petani.name.charAt(0).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="min-w-0">
+                              <div className="text-[12.5px] font-medium text-slate-800 truncate">
+                                {item.petani.name}
+                              </div>
+                              <div className="text-[11px] text-slate-400 truncate">
+                                {item.petani.phone || item.petani.email}
+                              </div>
+                            </div>
+                          </div>
+                        </TableCell>
+
+                        <TableCell className="py-3 whitespace-nowrap">
+                          <div className="text-[12.5px] font-medium text-slate-800 tabular-nums">
+                            {item.totalQtyTerjual.toLocaleString('id-ID')} unit
+                          </div>
+                          <div className="text-[11px] text-slate-400">{trxCount} transaksi</div>
+                        </TableCell>
+
+                        <TableCell className="py-3 whitespace-nowrap">
+                          {isPending ? (
+                            <span className="inline-flex items-center gap-1.5 h-6 px-2 rounded-md border text-[11.5px] font-medium bg-amber-50 text-amber-700 border-amber-200">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                              Menunggu Diambil
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 h-6 px-2 rounded-md border text-[11.5px] font-medium bg-emerald-50 text-emerald-700 border-emerald-200">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                              Lunas
+                            </span>
+                          )}
+                        </TableCell>
+
+                        <TableCell className="py-3 whitespace-nowrap text-right">
+                          <span
+                            className={`text-[13px] font-semibold tabular-nums ${
+                              isPending ? 'text-slate-900' : 'text-slate-300'
+                            }`}
+                          >
+                            {rp(item.siapDicairkanCash)}
+                          </span>
+                        </TableCell>
+
+                        <TableCell className="py-3 whitespace-nowrap text-right">
+                          <span className="text-[12.5px] text-slate-600 tabular-nums">
+                            {rp(item.sudahDiserahkanCash)}
+                          </span>
+                        </TableCell>
+
+                        <TableCell className="py-3 pr-4 text-right" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-end gap-1.5">
+                            {isPending ? (
+                              <button
+                                type="button"
+                                onClick={() => setPetaniToPayCash(item)}
+                                className="h-7 px-2.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-[11.5px] font-medium flex items-center gap-1.5 transition cursor-pointer"
+                              >
+                                <HandCoins className="w-3.5 h-3.5" />
+                                Serahkan
+                              </button>
+                            ) : (
+                              <span className="h-7 px-2 inline-flex items-center gap-1 text-[11.5px] text-emerald-600">
+                                <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
+                                Selesai
+                              </span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => setSelectedPetaniPayout(item)}
+                              className="w-7 h-7 rounded-lg border border-[#E5E7EB] bg-white hover:bg-slate-50 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer"
+                              title="Lihat rincian"
+                            >
+                              <ChevronRight className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {!isLoading && filteredList.length > 0 && (
+            <div className="px-4 py-2.5 border-t border-slate-100 text-[11.5px] text-slate-500 flex items-center justify-between">
+              <span>
+                Menampilkan <strong className="text-slate-800">{filteredList.length}</strong> dari{' '}
+                {payoutList.length} petani
+              </span>
+              <span className="hidden sm:inline">Klik baris untuk melihat rincian penjualan</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Modal Konfirmasi Serahkan Cash */}
+      <Dialog open={Boolean(petaniToPayCash)} onOpenChange={(open) => !open && !isPayingCash && setPetaniToPayCash(null)}>
+        <DialogContent showCloseButton={false} className="max-w-md p-0 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden">
+          {petaniToPayCash && (
+            <>
+              <div className="p-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center shrink-0">
+                    <HandCoins className="w-5 h-5 text-emerald-700" />
                   </div>
-                </TableCell>
-              </TableRow>
-            ) : payoutList.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="h-40 text-center text-slate-500">
-                  <div className="flex flex-col items-center justify-center gap-2">
-                    <HandCoins className="w-8 h-8 text-slate-300 stroke-1" />
-                    <span className="text-xs font-bold text-slate-700">
-                      Belum ada hasil panen petani yang terjual
-                    </span>
-                    <p className="text-[11px] text-slate-400">
-                      Saat pembeli membeli komoditas di toko online, rekap hak uang tunai petani akan otomatis muncul di sini.
+                  <div>
+                    <DialogTitle className="text-[15px] font-semibold text-slate-900">
+                      Konfirmasi Serah Terima Cash
+                    </DialogTitle>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Pastikan uang fisik sudah diterima petani.
                     </p>
                   </div>
-                </TableCell>
-              </TableRow>
-            ) : (
-              payoutList.map((item, index) => (
-                <TableRow
-                  key={item.petani.id}
-                  className="hover:bg-emerald-50/30 transition-colors border-slate-100"
-                >
-                  <TableCell className="text-center font-medium text-xs text-slate-400">
-                    {index + 1}
-                  </TableCell>
+                </div>
 
-                  {/* Petani Info */}
-                  <TableCell>
-                    <div className="flex items-center gap-2.5">
-                      <Avatar className="h-8 w-8 rounded-xl border border-emerald-200 shrink-0">
-                        <AvatarImage src={item.petani.avatarUrl || ''} alt={item.petani.name} />
-                        <AvatarFallback className="rounded-xl bg-emerald-100 text-emerald-800 font-bold text-xs">
-                          {item.petani.name.charAt(0).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="min-w-0">
-                        <div className="font-bold text-xs text-slate-900 truncate">
-                          {item.petani.name}
-                        </div>
-                        <div className="text-[11px] text-slate-400 truncate">
-                          {item.petani.phone || item.petani.email}
-                        </div>
-                      </div>
-                    </div>
-                  </TableCell>
-
-                  {/* Total Panen Terjual */}
-                  <TableCell>
-                    <div className="text-xs font-bold text-slate-800">
-                      {item.totalQtyTerjual.toLocaleString('id-ID')} unit
-                    </div>
-                    <div className="text-[10px] text-slate-400">
-                      {item.pendingItems.length + item.completedItems.length} transaksi
-                    </div>
-                  </TableCell>
-
-                  {/* Cash Siap Diserahkan */}
-                  <TableCell>
-                    <div className="text-sm font-black text-emerald-800">
-                      Rp {item.siapDicairkanCash.toLocaleString('id-ID')}
-                    </div>
-                    {item.siapDicairkanCash > 0 ? (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 mt-0.5">
-                        <Clock className="w-2.5 h-2.5" />
-                        <span>Menunggu Diambil</span>
-                      </span>
-                    ) : (
-                      <span className="text-[10px] text-slate-400">Nihil / Sudah Lunas</span>
-                    )}
-                  </TableCell>
-
-                  {/* Cash Sudah Diserahkan */}
-                  <TableCell>
-                    <div className="text-xs font-bold text-slate-700">
-                      Rp {item.sudahDiserahkanCash.toLocaleString('id-ID')}
-                    </div>
-                    <span className="text-[10px] text-emerald-700 flex items-center gap-1 mt-0.5">
-                      <Check className="w-3 h-3" />
-                      <span>Telah Diterima Petani</span>
+                <div className="mt-4 rounded-xl border border-slate-200 divide-y divide-slate-100 text-xs">
+                  <div className="px-4 py-2.5 flex justify-between">
+                    <span className="text-slate-500">Penerima</span>
+                    <span className="font-medium text-slate-900">{petaniToPayCash.petani.name}</span>
+                  </div>
+                  <div className="px-4 py-2.5 flex justify-between">
+                    <span className="text-slate-500">Jumlah item</span>
+                    <span className="font-medium text-slate-900">{petaniToPayCash.pendingItems.length} item</span>
+                  </div>
+                  <div className="px-4 py-3 flex justify-between items-center bg-slate-50/60">
+                    <span className="text-slate-700 font-medium">Total diserahkan</span>
+                    <span className="text-lg font-semibold text-slate-900 tabular-nums">
+                      {rp(petaniToPayCash.siapDicairkanCash)}
                     </span>
-                  </TableCell>
+                  </div>
+                </div>
 
-                  {/* Aksi Serah Terima */}
-                  <TableCell className="text-right pr-4">
-                    <div className="flex items-center justify-end gap-1.5">
-                      {/* Tombol Serahkan Cash */}
-                      {item.siapDicairkanCash > 0 && (
-                        <button
-                          onClick={() => setPetaniToPayCash(item)}
-                          className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white rounded-lg text-xs font-bold transition cursor-pointer shadow-xs flex items-center gap-1.5"
-                          title="Serahkan Uang Cash ke Petani"
-                        >
-                          <HandCoins className="w-3.5 h-3.5" />
-                          <span>Serahkan Cash</span>
-                        </button>
-                      )}
+                <p className="text-[11px] text-slate-400 mt-3 leading-relaxed">
+                  Setelah dikonfirmasi, transaksi dicatat lunas dan muncul di riwayat akun petani. Tindakan ini tidak dapat dibatalkan.
+                </p>
+              </div>
 
-                      {/* Tombol Rincian */}
-                      <button
-                        onClick={() => {
-                          setSelectedPetaniPayout(item);
-                          setIsDetailOpen(true);
-                        }}
-                        className="px-2.5 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-semibold transition cursor-pointer"
+              <div className="px-5 py-3.5 border-t border-slate-100 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPetaniToPayCash(null)}
+                  disabled={isPayingCash}
+                  className="h-8 px-3.5 text-xs font-medium text-slate-700 border border-slate-200 rounded-lg hover:bg-slate-50 transition cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmPayCash}
+                  disabled={isPayingCash}
+                  className="h-8 px-3.5 inline-flex items-center gap-1.5 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition cursor-pointer disabled:opacity-60"
+                >
+                  {isPayingCash ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Memproses...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
+                      Ya, Sudah Diserahkan
+                    </>
+                  )}
+                </button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Rincian */}
+      <Dialog open={Boolean(selectedPetaniPayout)} onOpenChange={(open) => !open && setSelectedPetaniPayout(null)}>
+        <DialogContent
+          showCloseButton={false}
+          data-lenis-prevent="true"
+          className="max-w-lg w-[95vw] p-0 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col"
+        >
+          {selectedPetaniPayout && (
+            <>
+              {/* Header */}
+              <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-3 shrink-0">
+                <div className="flex items-center gap-3 min-w-0">
+                  <Avatar className="w-10 h-10 rounded-full border border-slate-200 shrink-0">
+                    <AvatarImage src={selectedPetaniPayout.petani.avatarUrl || ''} />
+                    <AvatarFallback className="bg-emerald-600 text-white text-sm font-semibold">
+                      {selectedPetaniPayout.petani.name.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0">
+                    <DialogTitle className="text-[15px] font-semibold text-slate-900 truncate">
+                      {selectedPetaniPayout.petani.name}
+                    </DialogTitle>
+                    {selectedPetaniPayout.petani.phone ? (
+                      <a
+                        href={`https://wa.me/${selectedPetaniPayout.petani.phone.replace(/\D/g, '')}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs text-emerald-700 hover:underline inline-flex items-center gap-1"
                       >
-                        Rincian
-                      </button>
+                        {selectedPetaniPayout.petani.phone}
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    ) : (
+                      <span className="text-xs text-slate-400">{selectedPetaniPayout.petani.email}</span>
+                    )}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedPetaniPayout(null)}
+                  className="w-8 h-8 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer shrink-0"
+                  aria-label="Tutup"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div
+                className="p-5 space-y-4 overflow-y-auto overscroll-contain flex-1 min-h-0 text-xs"
+                onWheel={(e) => e.stopPropagation()}
+              >
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-3">
+                    <div className="text-[11px] text-amber-700 font-medium flex items-center gap-1">
+                      <Clock className="w-3 h-3" /> Siap diserahkan
                     </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      {/* Modal Dialog Konfirmasi Serahkan Cash ke Petani */}
-      {petaniToPayCash && (
-        <Dialog open={Boolean(petaniToPayCash)} onOpenChange={(open) => !open && setPetaniToPayCash(null)}>
-          <DialogContent className="max-w-md p-6 bg-white border border-slate-200 rounded-3xl shadow-xl">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-100">
-                <HandCoins className="w-6 h-6 text-emerald-700" />
-              </div>
-
-              <div className="space-y-1 flex-1">
-                <DialogTitle className="text-base font-bold text-slate-900">
-                  Konfirmasi Serahkan Uang Tunai
-                </DialogTitle>
-                <p className="text-xs text-slate-500 leading-relaxed">
-                  Apakah Anda sudah menyerahkan uang cash fisik sebesar:
-                </p>
-
-                <div className="p-3 my-2 bg-emerald-50 border border-emerald-200 rounded-2xl text-center">
-                  <div className="text-xs text-emerald-800 font-semibold">Total Uang Cash:</div>
-                  <div className="text-2xl font-black text-emerald-900 mt-0.5">
-                    Rp {petaniToPayCash.siapDicairkanCash.toLocaleString('id-ID')}
+                    <div className="text-base font-semibold text-slate-900 mt-1 tabular-nums">
+                      {rp(selectedPetaniPayout.siapDicairkanCash)}
+                    </div>
                   </div>
-                  <div className="text-[11px] text-emerald-700 mt-1 font-medium">
-                    Kepada Petani: <strong>{petaniToPayCash.petani.name}</strong>
+                  <div className="rounded-xl border border-slate-200 p-3">
+                    <div className="text-[11px] text-slate-500 font-medium flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Sudah diserahkan
+                    </div>
+                    <div className="text-base font-semibold text-slate-900 mt-1 tabular-nums">
+                      {rp(selectedPetaniPayout.sudahDiserahkanCash)}
+                    </div>
                   </div>
                 </div>
 
-                <p className="text-[11px] text-slate-400">
-                  Setelah dikonfirmasi, sistem akan mencatat transaksi ini lunas dan riwayat pembayaran akan langsung tercatat di akun petani.
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-end gap-2.5">
-              <button
-                type="button"
-                onClick={() => setPetaniToPayCash(null)}
-                disabled={isPayingCash}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 border border-slate-200 rounded-xl hover:bg-slate-50 transition cursor-pointer"
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmPayCash}
-                disabled={isPayingCash}
-                className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 rounded-xl shadow-xs transition cursor-pointer disabled:opacity-60"
-              >
-                {isPayingCash ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>Memproses...</span>
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>Sudah Diserahkan Tunai</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {/* Modal Rincian Penjualan Komoditas Petani */}
-      {selectedPetaniPayout && (
-        <Dialog open={isDetailOpen} onOpenChange={(open) => !open && setIsDetailOpen(false)}>
-          <DialogContent className="max-w-lg w-[95vw] p-0 bg-white border border-slate-200 rounded-3xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col">
-            <div className="bg-gradient-to-r from-emerald-800 to-teal-800 p-5 text-white">
-              <DialogTitle className="text-base font-bold text-white">
-                Rincian Penjualan: {selectedPetaniPayout.petani.name}
-              </DialogTitle>
-              <p className="text-xs text-emerald-100/90 mt-0.5">
-                Daftar komoditas panen yang terjual melalui Koperasi Sinar Pagi Sejahtera.
-              </p>
-            </div>
-
-            <div className="p-5 space-y-4 overflow-y-auto flex-1 text-xs">
-              {/* Saldo Status */}
-              <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 border border-slate-200 rounded-2xl">
-                <div>
-                  <span className="text-slate-400 block text-[10px] font-bold uppercase">Siap Diambil Cash:</span>
-                  <strong className="text-base font-black text-emerald-800">
-                    Rp {selectedPetaniPayout.siapDicairkanCash.toLocaleString('id-ID')}
-                  </strong>
-                </div>
-                <div>
-                  <span className="text-slate-400 block text-[10px] font-bold uppercase">Sudah Diserahkan:</span>
-                  <strong className="text-base font-black text-slate-800">
-                    Rp {selectedPetaniPayout.sudahDiserahkanCash.toLocaleString('id-ID')}
-                  </strong>
-                </div>
-              </div>
-
-              {/* Items Menunggu Cash */}
-              <div>
-                <div className="font-bold text-slate-800 mb-2 flex items-center justify-between">
-                  <span>Hasil Panen Terjual (Menunggu Cash):</span>
-                  <span className="text-amber-700 font-semibold">{selectedPetaniPayout.pendingItems.length} item</span>
-                </div>
-
-                {selectedPetaniPayout.pendingItems.length === 0 ? (
-                  <div className="p-4 text-center text-slate-400 bg-slate-50 rounded-xl border border-slate-200">
-                    Semua hasil panen yang terjual telah lunas diserahkan uang cash-nya.
+                {/* Pending items */}
+                <section className="rounded-xl border border-slate-200 overflow-hidden">
+                  <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <Wallet className="w-3.5 h-3.5 text-slate-500" />
+                      <h3 className="text-[12px] font-semibold text-slate-800">Menunggu Diserahkan</h3>
+                    </div>
+                    <span className="text-[11px] text-slate-400">{selectedPetaniPayout.pendingItems.length} item</span>
                   </div>
-                ) : (
-                  <div className="space-y-2">
-                    {selectedPetaniPayout.pendingItems.map((it: any) => (
-                      <div
-                        key={it.id}
-                        className="p-3 bg-amber-50/40 border border-amber-200/80 rounded-xl flex items-center justify-between gap-3"
-                      >
-                        <div>
-                          <div className="font-bold text-slate-900">{it.namaProduk}</div>
-                          <div className="text-[11px] text-slate-500">
-                            {it.quantity} {it.satuan} × Rp {it.hargaPerSatuan.toLocaleString('id-ID')}
-                          </div>
-                          <div className="text-[10px] text-slate-400 mt-0.5">
-                            No. Pesanan: {it.orderNumber}
-                          </div>
-                        </div>
-                        <div className="font-extrabold text-amber-800 text-sm">
-                          Rp {it.subtotal.toLocaleString('id-ID')}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Items Sudah Diserahkan */}
-              {selectedPetaniPayout.completedItems.length > 0 && (
-                <div>
-                  <div className="font-bold text-slate-800 mb-2 flex items-center justify-between">
-                    <span>Riwayat yang Sudah Diserahkan Cash:</span>
-                    <span className="text-slate-500 font-normal">{selectedPetaniPayout.completedItems.length} item</span>
-                  </div>
-                  <div className="space-y-2">
-                    {selectedPetaniPayout.completedItems.map((it: any) => (
-                      <div
-                        key={it.id}
-                        className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-3 text-slate-600"
-                      >
-                        <div>
-                          <div className="font-bold text-slate-800">{it.namaProduk}</div>
-                          <div className="text-[11px] text-slate-500">
-                            {it.quantity} {it.satuan} • {it.orderNumber}
-                          </div>
-                          {it.payoutAt && (
-                            <div className="text-[10px] text-emerald-700 font-semibold mt-0.5">
-                              Diserahkan: {new Date(it.payoutAt).toLocaleDateString('id-ID')}
+                  {selectedPetaniPayout.pendingItems.length === 0 ? (
+                    <div className="px-4 py-5 text-center text-slate-400">
+                      Semua hasil panen sudah lunas diserahkan.
+                    </div>
+                  ) : (
+                    <ul className="divide-y divide-slate-100">
+                      {selectedPetaniPayout.pendingItems.map((it: any) => (
+                        <li key={it.id} className="px-4 py-3 flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="font-semibold text-slate-900 text-[12.5px]">{it.namaProduk}</div>
+                            <div className="text-[11px] text-slate-500 mt-0.5 tabular-nums">
+                              {it.quantity} {it.satuan} × {rp(it.hargaPerSatuan)}
                             </div>
-                          )}
-                        </div>
-                        <div className="font-bold text-slate-800">
-                          Rp {it.subtotal.toLocaleString('id-ID')}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+                            <div className="text-[10.5px] text-slate-400 mt-0.5">#{it.orderNumber}</div>
+                          </div>
+                          <div className="font-semibold text-slate-900 tabular-nums whitespace-nowrap">
+                            {rp(it.subtotal)}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
 
-            <div className="p-4 bg-white border-t border-slate-100 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setIsDetailOpen(false)}
-                className="px-4 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer"
-              >
-                Tutup
-              </button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
+                {/* Completed items */}
+                {selectedPetaniPayout.completedItems.length > 0 && (
+                  <section className="rounded-xl border border-slate-200 overflow-hidden">
+                    <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <Package className="w-3.5 h-3.5 text-slate-500" />
+                        <h3 className="text-[12px] font-semibold text-slate-800">Riwayat Diserahkan</h3>
+                      </div>
+                      <span className="text-[11px] text-slate-400">{selectedPetaniPayout.completedItems.length} item</span>
+                    </div>
+                    <ul className="divide-y divide-slate-100">
+                      {selectedPetaniPayout.completedItems.map((it: any) => (
+                        <li key={it.id} className="px-4 py-3 flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="font-medium text-slate-700 text-[12.5px]">{it.namaProduk}</div>
+                            <div className="text-[11px] text-slate-400 mt-0.5">
+                              {it.quantity} {it.satuan} • #{it.orderNumber}
+                            </div>
+                            {it.payoutAt && (
+                              <div className="text-[10.5px] text-emerald-700 mt-0.5 inline-flex items-center gap-1">
+                                <Check className="w-3 h-3" strokeWidth={2.5} />
+                                {new Date(it.payoutAt).toLocaleDateString('id-ID', {
+                                  day: '2-digit',
+                                  month: 'short',
+                                  year: 'numeric',
+                                })}
+                              </div>
+                            )}
+                          </div>
+                          <div className="font-medium text-slate-600 tabular-nums whitespace-nowrap">
+                            {rp(it.subtotal)}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="px-5 py-3.5 border-t border-slate-100 flex items-center justify-end gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setSelectedPetaniPayout(null)}
+                  className="h-8 px-3.5 text-xs font-medium text-slate-700 border border-slate-200 rounded-lg hover:bg-slate-50 transition cursor-pointer"
+                >
+                  Tutup
+                </button>
+                {selectedPetaniPayout.siapDicairkanCash > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setPetaniToPayCash(selectedPetaniPayout)}
+                    className="h-8 px-3.5 inline-flex items-center gap-1.5 text-xs font-medium text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition cursor-pointer"
+                  >
+                    <HandCoins className="w-3.5 h-3.5" />
+                    Serahkan {rp(selectedPetaniPayout.siapDicairkanCash)}
+                  </button>
+                )}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

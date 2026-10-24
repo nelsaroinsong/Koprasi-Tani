@@ -17,6 +17,7 @@ import {
   PaginationPrevious,
   PaginationNext,
 } from '@/components/ui/pagination';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import {
   Search,
   CheckCircle2,
@@ -31,13 +32,26 @@ import {
   Loader2,
   Mail,
   Calendar,
+  XCircle,
+  X,
+  Download,
+  ExternalLink,
+  ShieldCheck,
+  Eye,
+  Check,
+  User,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { UserFormModal } from '@/components/admin/user-form-modal';
 import { UserDeleteDialog } from '@/components/admin/user-delete-dialog';
 import { UserVerifyDialog } from '@/components/admin/user-verify-dialog';
 import { useDebounce } from '@/hooks/use-debounce';
-import { Combobox, ComboboxOption } from '@/components/ui/combobox';
+import { useToast } from '@/context/toast-context';
+
+const HATCHED_BG_STYLE: React.CSSProperties = {
+  backgroundImage:
+    'repeating-linear-gradient(-45deg, #F3F4F6, #F3F4F6 4px, #F9FAFB 4px, #F9FAFB 8px)',
+};
 
 interface PetaniUser {
   id: string;
@@ -60,23 +74,37 @@ interface PaginationMeta {
   limit: number;
 }
 
+interface UserStats {
+  total: number;
+  verified: number;
+  pending: number;
+}
+
+type FilterKey = 'ALL' | 'VERIFIED' | 'PENDING';
+
 export function PetaniDataTable() {
+  const { showToast } = useToast();
+
   const [petaniList, setPetaniList] = useState<PetaniUser[]>([]);
+  const [stats, setStats] = useState<UserStats>({
+    total: 0,
+    verified: 0,
+    pending: 0,
+  });
   const [pagination, setPagination] = useState<PaginationMeta>({
     totalCount: 0,
     totalPages: 1,
     currentPage: 1,
-    limit: 8,
+    limit: 10,
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState<'ALL' | 'VERIFIED' | 'PENDING'>('ALL');
+  const [filterStatus, setFilterStatus] = useState<FilterKey>('ALL');
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Optimasi 1: Debounce 300ms untuk input pencarian
+  // Debounce 300ms untuk search
   const debouncedSearch = useDebounce(searchQuery, 300);
-
-  // Optimasi 2: AbortController untuk membatalkan request lama
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Modal States
@@ -90,24 +118,8 @@ export function PetaniDataTable() {
   const [verifyDialogOpen, setVerifyDialogOpen] = useState(false);
   const [petaniToVerify, setPetaniToVerify] = useState<PetaniUser | null>(null);
 
-  // Opsi Status Filter (memoized)
-  const statusOptions: ComboboxOption[] = useMemo(() => [
-    {
-      value: 'ALL',
-      label: 'Semua Status',
-      icon: <span className="w-2 h-2 rounded-full bg-slate-400" />,
-    },
-    {
-      value: 'VERIFIED',
-      label: 'Terverifikasi',
-      icon: <span className="w-2 h-2 rounded-full bg-emerald-500" />,
-    },
-    {
-      value: 'PENDING',
-      label: 'Menunggu',
-      icon: <span className="w-2 h-2 rounded-full bg-amber-500" />,
-    },
-  ], []);
+  // Detail Modal
+  const [detailPetani, setDetailPetani] = useState<PetaniUser | null>(null);
 
   // Reset ke halaman 1 saat filter atau search berubah
   useEffect(() => {
@@ -126,7 +138,7 @@ export function PetaniDataTable() {
       const params = new URLSearchParams({
         role: 'PETANI',
         page: String(currentPage),
-        limit: '8',
+        limit: '10',
       });
 
       if (debouncedSearch) {
@@ -147,6 +159,9 @@ export function PetaniDataTable() {
         if (data.pagination) {
           setPagination(data.pagination);
         }
+        if (data.stats) {
+          setStats(data.stats);
+        }
       }
     } catch (err: any) {
       if (err.name !== 'AbortError') {
@@ -166,326 +181,681 @@ export function PetaniDataTable() {
     };
   }, [fetchPetani]);
 
+  // Ekspor CSV Data Petani
+  const handleExportCSV = async () => {
+    try {
+      setIsExporting(true);
+      // Ambil seluruh data tanpa limit untuk diekspor
+      const params = new URLSearchParams({
+        role: 'PETANI',
+        page: '1',
+        limit: '500',
+      });
+      if (debouncedSearch) params.set('q', debouncedSearch);
+      if (filterStatus !== 'ALL') params.set('status', filterStatus);
+
+      const res = await fetch(`/api/admin/users?${params.toString()}`);
+      const data = await res.json();
+      const exportList: PetaniUser[] = data.success && Array.isArray(data.users) ? data.users : petaniList;
+
+      const headers = ['No', 'Nama Petani', 'Email', 'No. WhatsApp', 'Alamat', 'Status Verifikasi', 'Terdaftar Sejak'];
+      const escapeCell = (val: string) => `"${(val || '').replace(/"/g, '""')}"`;
+
+      const rows = exportList.map((p, idx) => [
+        idx + 1,
+        escapeCell(p.name),
+        escapeCell(p.email),
+        escapeCell(p.phone || '-'),
+        escapeCell(p.address || '-'),
+        escapeCell(p.isVerified ? 'Terverifikasi' : 'Menunggu Verifikasi'),
+        escapeCell(new Date(p.createdAt).toISOString().split('T')[0]),
+      ]);
+
+      const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n');
+      const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `data-petani-mitra-${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      showToast(`Berhasil mengekspor ${exportList.length} data petani mitra`);
+    } catch (err) {
+      console.error(err);
+      showToast('Gagal mengekspor data petani');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const TABS: { key: FilterKey; label: string; dot?: string; count: number }[] = [
+    { key: 'ALL', label: 'Semua', count: stats.total },
+    { key: 'VERIFIED', label: 'Terverifikasi', dot: 'bg-emerald-500', count: stats.verified },
+    { key: 'PENDING', label: 'Menunggu Verifikasi', dot: 'bg-amber-500', count: stats.pending },
+  ];
+
+  const verifiedPct = stats.total > 0 ? Math.round((stats.verified / stats.total) * 100) : 0;
+
   return (
     <div className="space-y-4">
-      {/* Header Info */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-lg font-bold text-slate-900">
-              Data Petani Koperasi
-            </h1>
-            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-              {pagination.totalCount} Petani Terdaftar
+      {/* 1. KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="bg-white rounded-2xl border border-[#ECEEF2] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+          <div className="flex items-center justify-between">
+            <span className="text-[12px] font-medium text-slate-500">Total Petani Mitra</span>
+            <span className="w-7 h-7 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center">
+              <Sprout className="w-3.5 h-3.5 text-emerald-600" />
             </span>
           </div>
-          <p className="text-xs text-slate-500 mt-1">
-            Kelola data dan verifikasi permohonan kemitraan petani Koperasi Sinar Pagi Sejahtera Minahasa Utara.
+          <div className="mt-2 text-[22px] font-semibold text-slate-900 tabular-nums tracking-tight">
+            {stats.total}
+          </div>
+          <p className="text-[11.5px] text-slate-400 mt-0.5">
+            Petani binaan terdaftar di Koperasi
           </p>
         </div>
 
-        {/* Header Action Buttons */}
-        <div className="flex items-center gap-2.5">
-          <button
-            onClick={fetchPetani}
-            disabled={isLoading}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-emerald-50/50 hover:border-emerald-300 text-slate-600 hover:text-emerald-800 text-xs font-semibold transition cursor-pointer disabled:opacity-60 shadow-2xs"
-            title="Segarkan Data"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-emerald-700' : ''}`} />
-            <span className="hidden sm:inline">Segarkan Data</span>
-          </button>
+        <div className="bg-white rounded-2xl border border-[#ECEEF2] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+          <div className="flex items-center justify-between">
+            <span className="text-[12px] font-medium text-slate-500">Mitra Terverifikasi</span>
+            <span className="w-7 h-7 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+            </span>
+          </div>
+          <div className="mt-2 text-[22px] font-semibold text-slate-900 tabular-nums tracking-tight">
+            {stats.verified}
+          </div>
+          <div className="mt-2 flex items-center gap-2">
+            <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+              <div
+                className="h-full bg-emerald-500 rounded-full transition-all"
+                style={{ width: `${verifiedPct}%` }}
+              />
+            </div>
+            <span className="text-[11px] text-slate-500 tabular-nums">{verifiedPct}%</span>
+          </div>
+        </div>
 
-          {/* Button Tambah Petani */}
-          <button
-            onClick={() => {
-              setSelectedPetani(null);
-              setFormMode('CREATE');
-              setFormModalOpen(true);
-            }}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold shadow-xs transition cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Tambah Petani</span>
-          </button>
+        <div className="bg-white rounded-2xl border border-[#ECEEF2] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+          <div className="flex items-center justify-between">
+            <span className="text-[12px] font-medium text-slate-500">Menunggu Verifikasi</span>
+            <span className="w-7 h-7 rounded-lg bg-amber-50 border border-amber-100 flex items-center justify-center">
+              <Clock className="w-3.5 h-3.5 text-amber-600" />
+            </span>
+          </div>
+          <div className="mt-2 text-[22px] font-semibold text-slate-900 tabular-nums tracking-tight">
+            {stats.pending}
+          </div>
+          <p className="text-[11.5px] mt-0.5">
+            {stats.pending > 0 ? (
+              <span className="text-amber-600 font-medium">{stats.pending} permohonan kemitraan baru</span>
+            ) : (
+              <span className="text-slate-400">Semua permohonan telah ditinjau</span>
+            )}
+          </p>
         </div>
       </div>
 
-      {/* Toolbar: Search & Status Combobox Filtering */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1 max-w-xl">
-          {/* Search input */}
-          <div className="relative flex-1">
-            <Search className="absolute inset-y-0 left-3 my-auto w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Cari nama petani, kontak, atau alamat..."
-              className="w-full pl-9 pr-4 py-2 text-xs bg-white border border-slate-200 rounded-xl placeholder-slate-400 text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 shadow-2xs transition"
-            />
+      {/* 2. Kravio Outer Double-Container Shell */}
+      <div className="rounded-2xl border border-[#E5E7EB] p-1.5" style={HATCHED_BG_STYLE}>
+        {/* Header: Judul + Counter */}
+        <div className="px-3 pt-2 pb-1 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 shrink-0">
+            <Sprout className="w-4 h-4 text-slate-600 stroke-[1.8]" />
+            <h2 className="text-[13.5px] font-semibold text-slate-800 tracking-tight">
+              Data Petani Mitra
+            </h2>
+            <span className="h-5 px-1.5 rounded-md bg-white border border-slate-200 text-[11px] font-semibold text-slate-600 tabular-nums flex items-center">
+              {pagination.totalCount}
+            </span>
+          </div>
+        </div>
+
+        {/* Status Filter Tabs (Pill Style) */}
+        <div className="px-3 py-2 overflow-x-auto no-scrollbar">
+          <div className="inline-flex items-center gap-0.5 p-0.5 rounded-lg bg-white border border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+            {TABS.map((tab) => {
+              const isActive = filterStatus === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setFilterStatus(tab.key)}
+                  className={`h-7 px-2.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+                    isActive
+                      ? 'bg-slate-900 text-white'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                  }`}
+                >
+                  {tab.dot && <span className={`w-1.5 h-1.5 rounded-full ${tab.dot}`} />}
+                  <span>{tab.label}</span>
+                  <span
+                    className={`text-[10.5px] tabular-nums ${
+                      isActive ? 'text-white/70' : 'text-slate-400'
+                    }`}
+                  >
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Toolbar: Search, Reset, Ekspor, Refresh, Tambah */}
+        <div className="px-3 pb-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <div className="relative flex-1 sm:flex-none sm:w-72">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Cari nama petani, kontak, alamat..."
+                className="w-full h-8 pl-8 pr-3 text-xs rounded-lg border border-[#E5E7EB] bg-white text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-900 focus:border-slate-900 transition shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
+              />
+            </div>
+
+            {(searchQuery || filterStatus !== 'ALL') && (
+              <button
+                type="button"
+                onClick={() => {
+                  setFilterStatus('ALL');
+                  setSearchQuery('');
+                }}
+                className="h-8 px-2.5 text-xs text-slate-500 hover:text-slate-900 font-medium rounded-lg hover:bg-white transition cursor-pointer flex items-center gap-1"
+              >
+                <XCircle className="w-3.5 h-3.5" />
+                Reset
+              </button>
+            )}
           </div>
 
-          {/* Combobox Filter Status */}
-          <Combobox
-            options={statusOptions}
-            value={filterStatus}
-            onValueChange={(val) => setFilterStatus(val as any)}
-            placeholder="Status Verifikasi..."
-            searchPlaceholder="Cari status..."
-            className="w-full sm:w-44"
-          />
+          <div className="flex items-center gap-2 self-end sm:self-auto">
+            <button
+              type="button"
+              onClick={handleExportCSV}
+              disabled={isExporting}
+              className="h-8 px-3 rounded-lg border border-[#E5E7EB] bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium flex items-center gap-1.5 transition cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,0.02)] disabled:opacity-50"
+            >
+              {isExporting ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-500" />
+              ) : (
+                <Download className="w-3.5 h-3.5 text-slate-500" />
+              )}
+              <span>{isExporting ? 'Mengekspor...' : 'Ekspor'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={fetchPetani}
+              disabled={isLoading}
+              className="w-8 h-8 rounded-lg border border-[#E5E7EB] bg-white hover:bg-slate-50 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,0.02)] shrink-0"
+              title="Segarkan data"
+            >
+              <RefreshCw
+                className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-slate-800' : ''}`}
+              />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedPetani(null);
+                setFormMode('CREATE');
+                setFormModalOpen(true);
+              }}
+              className="h-8 px-3 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Tambah Petani</span>
+            </button>
+          </div>
         </div>
 
-        <div className="text-xs text-slate-500 hidden sm:block shrink-0">
-          Total Terdata: <strong className="text-emerald-700 font-semibold">{pagination.totalCount}</strong>
-        </div>
-      </div>
+        {/* Inner White Table Box */}
+        <div className="bg-white rounded-xl border border-[#ECEEF2] shadow-[0_1px_2px_rgba(0,0,0,0.02)] overflow-hidden">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader className="bg-[#FAFBFD] border-b border-[#F1F3F5]">
+                <TableRow className="border-[#F1F3F5] hover:bg-transparent">
+                  <TableHead className="w-12 text-center py-3 text-[11.5px] font-medium text-slate-500">
+                    No
+                  </TableHead>
+                  <TableHead className="py-3 text-[11.5px] font-medium text-slate-500 whitespace-nowrap">
+                    Petani Mitra
+                  </TableHead>
+                  <TableHead className="py-3 text-[11.5px] font-medium text-slate-500 whitespace-nowrap">
+                    Kontak & WhatsApp
+                  </TableHead>
+                  <TableHead className="py-3 text-[11.5px] font-medium text-slate-500 whitespace-nowrap">
+                    Wilayah / Alamat
+                  </TableHead>
+                  <TableHead className="py-3 text-[11.5px] font-medium text-slate-500 whitespace-nowrap">
+                    Terdaftar
+                  </TableHead>
+                  <TableHead className="py-3 text-[11.5px] font-medium text-slate-500 whitespace-nowrap">
+                    Status Verifikasi
+                  </TableHead>
+                  <TableHead className="w-28 py-3 text-right pr-4 text-[11.5px] font-medium text-slate-500 whitespace-nowrap">
+                    Aksi
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
 
-      {/* Shadcn Data Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
-        <Table>
-          <TableHeader className="bg-emerald-50/70 border-b border-emerald-100">
-            <TableRow className="hover:bg-transparent border-emerald-100">
-              <TableHead className="w-12 text-center text-emerald-950 font-bold text-xs py-3.5">
-                No
-              </TableHead>
-              <TableHead className="text-emerald-950 font-bold text-xs">
-                Petani
-              </TableHead>
-              <TableHead className="text-emerald-950 font-bold text-xs">
-                Kontak & Alamat
-              </TableHead>
-              <TableHead className="text-emerald-950 font-bold text-xs">
-                Terdaftar Sejak
-              </TableHead>
-              <TableHead className="text-emerald-950 font-bold text-xs">
-                Status Verifikasi
-              </TableHead>
-              <TableHead className="text-right text-emerald-950 font-bold text-xs pr-4">
-                Aksi & Pengelolaan
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={6} className="h-40 text-center text-slate-500">
-                  <div className="flex flex-col items-center justify-center gap-2">
-                    <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
-                    <span className="text-xs">Memuat data petani dari database...</span>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : petaniList.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="h-44 text-center text-slate-500">
-                  <div className="flex flex-col items-center justify-center gap-2">
-                    <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
-                      <Sprout className="w-5 h-5" />
-                    </div>
-                    <span className="text-xs font-bold text-slate-800">
-                      {searchQuery
-                        ? 'Tidak ada data petani yang cocok dengan pencarian'
-                        : 'Belum ada data petani terdaftar di database'}
-                    </span>
-                    <p className="text-[11px] text-slate-400 max-w-sm">
-                      {searchQuery
-                        ? 'Coba gunakan kata kunci pencarian lain.'
-                        : 'Mulai daftarkan petani mitra koperasi dengan menekan tombol di bawah.'}
-                    </p>
-                    {!searchQuery && (
-                      <button
-                        onClick={() => {
-                          setSelectedPetani(null);
-                          setFormMode('CREATE');
-                          setFormModalOpen(true);
-                        }}
-                        className="mt-1 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold shadow-xs transition cursor-pointer"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>Tambah Petani Sekarang</span>
-                      </button>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : (
-              petaniList.map((petani, index) => {
-                const initial = petani.name.charAt(0).toUpperCase();
-                const rowNumber = (pagination.currentPage - 1) * pagination.limit + (index + 1);
-
-                return (
-                  <TableRow
-                    key={petani.id}
-                    className="hover:bg-emerald-50/30 transition-colors border-slate-100"
-                  >
-                    {/* No */}
-                    <TableCell className="text-center font-medium text-xs text-slate-400">
-                      {rowNumber}
-                    </TableCell>
-
-                    {/* Petani Info */}
-                    <TableCell>
-                      <div className="flex items-center gap-2.5">
-                        <Avatar className="h-9 w-9 rounded-xl border border-emerald-200 shrink-0">
-                          <AvatarImage src={petani.avatarUrl || ''} alt={petani.name} className="object-cover" />
-                          <AvatarFallback className="rounded-xl bg-emerald-100 text-emerald-800 font-bold text-xs">
-                            {initial}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0">
-                          <div className="font-bold text-xs text-slate-900 truncate">
-                            {petani.name}
-                          </div>
-                          <div className="text-[11px] text-slate-400 truncate flex items-center gap-1">
-                            <Mail className="w-3 h-3 text-slate-400 shrink-0" />
-                            <span>{petani.email}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </TableCell>
-
-                    {/* Kontak & Alamat */}
-                    <TableCell>
-                      <div className="space-y-0.5">
-                        <div className="flex items-center gap-1.5 text-xs text-slate-700">
-                          <Phone className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                          <span>{petani.phone || '-'}</span>
-                        </div>
-                        {petani.address && (
-                          <div className="flex items-center gap-1 text-[11px] text-slate-500 truncate max-w-xs">
-                            <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
-                            <span className="truncate">{petani.address}</span>
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-
-                    {/* Terdaftar Sejak */}
-                    <TableCell>
-                      <div className="flex items-center gap-1.5 text-xs text-slate-600">
-                        <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                        <span>
-                          {new Date(petani.createdAt).toLocaleDateString('id-ID', {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric',
-                          })}
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="py-14 text-center">
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <RefreshCw className="w-5 h-5 animate-spin text-slate-400" />
+                        <span className="text-xs text-slate-400">
+                          Memuat data petani mitra...
                         </span>
                       </div>
                     </TableCell>
-
-                    {/* Status Verifikasi (Clickable for quick modal verification) */}
-                    <TableCell>
-                      <button
-                        onClick={() => {
-                          setPetaniToVerify(petani);
-                          setVerifyDialogOpen(true);
-                        }}
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold transition cursor-pointer hover:scale-105 active:scale-95 ${
-                          petani.isVerified
-                            ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100'
-                            : 'bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100'
-                        }`}
-                        title="Klik untuk mengubah status verifikasi"
-                      >
-                        {petani.isVerified ? (
-                          <>
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                            <span>Terverifikasi</span>
-                          </>
-                        ) : (
-                          <>
-                            <Clock className="w-3.5 h-3.5 text-amber-600" />
-                            <span>Menunggu</span>
-                          </>
-                        )}
-                      </button>
-                    </TableCell>
-
-                    {/* Action Buttons (Edit & Delete with pop-up modal dialogs) */}
-                    <TableCell className="text-right pr-4">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => {
-                            setSelectedPetani(petani);
-                            setFormMode('EDIT');
-                            setFormModalOpen(true);
-                          }}
-                          className="p-1.5 rounded-lg border border-slate-200 hover:bg-emerald-50 hover:border-emerald-300 text-slate-600 hover:text-emerald-800 transition cursor-pointer"
-                          title="Edit Data Petani"
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                        </button>
-
-                        <button
-                          onClick={() => {
-                            setPetaniToDelete(petani);
-                            setDeleteDialogOpen(true);
-                          }}
-                          className="p-1.5 rounded-lg border border-slate-200 hover:bg-red-50 hover:border-red-300 text-slate-400 hover:text-red-600 transition cursor-pointer"
-                          title="Hapus Petani"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                  </TableRow>
+                ) : petaniList.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="py-14 text-center">
+                      <div className="flex flex-col items-center justify-center gap-1.5">
+                        <Sprout className="w-6 h-6 text-slate-300" />
+                        <span className="text-xs font-semibold text-slate-600">
+                          {searchQuery
+                            ? 'Tidak ada petani yang cocok dengan pencarian'
+                            : 'Belum ada data petani terdaftar'}
+                        </span>
+                        <span className="text-[11.5px] text-slate-400 max-w-sm">
+                          {searchQuery
+                            ? 'Coba sesuaikan kata kunci pencarian Anda'
+                            : 'Mulai daftarkan petani binaan dengan menekan tombol Tambah Petani.'}
+                        </span>
                       </div>
                     </TableCell>
                   </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
+                ) : (
+                  petaniList.map((petani, index) => {
+                    const initial = petani.name.charAt(0).toUpperCase();
+                    const rowNumber =
+                      (pagination.currentPage - 1) * pagination.limit + (index + 1);
 
-        {/* Table Footer with Info & shadcn Pagination */}
-        <div className="p-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="text-xs text-slate-500">
-            Menampilkan{' '}
-            <strong className="text-slate-800">
-              {petaniList.length > 0 ? (pagination.currentPage - 1) * pagination.limit + 1 : 0}
-            </strong>
-            -
-            <strong className="text-slate-800">
-              {Math.min(pagination.currentPage * pagination.limit, pagination.totalCount)}
-            </strong>{' '}
-            dari <strong className="text-slate-800">{pagination.totalCount}</strong> petani
+                    return (
+                      <TableRow
+                        key={petani.id}
+                        onClick={() => setDetailPetani(petani)}
+                        className="cursor-pointer transition-colors border-[#F3F4F6] hover:bg-[#F9FAFB]"
+                      >
+                        {/* No */}
+                        <TableCell className="text-center font-medium text-xs text-slate-400 py-3">
+                          {rowNumber}
+                        </TableCell>
+
+                        {/* 1. Petani Mitra (Avatar, Name, Email) */}
+                        <TableCell className="py-3">
+                          <div className="flex items-center gap-2.5">
+                            <Avatar className="w-8 h-8 rounded-full border border-slate-200 shrink-0">
+                              <AvatarImage
+                                src={petani.avatarUrl || ''}
+                                alt={petani.name}
+                                className="object-cover"
+                              />
+                              <AvatarFallback className="bg-emerald-700 text-white font-semibold text-xs">
+                                {initial}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="min-w-0">
+                              <div className="text-[12.5px] font-medium text-slate-900 truncate">
+                                {petani.name}
+                              </div>
+                              <div className="text-[11px] text-slate-400 truncate flex items-center gap-1 mt-0.5">
+                                <Mail className="w-3 h-3 text-slate-400 shrink-0" />
+                                <span>{petani.email}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </TableCell>
+
+                        {/* 2. Kontak & WhatsApp */}
+                        <TableCell className="py-3 whitespace-nowrap">
+                          {petani.phone ? (
+                            <a
+                              href={`https://wa.me/${petani.phone.replace(/\D/g, '')}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-[12px] text-emerald-700 hover:underline inline-flex items-center gap-1.5 font-medium"
+                              title="Hubungi via WhatsApp"
+                            >
+                              <Phone className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                              <span>{petani.phone}</span>
+                              <ExternalLink className="w-3 h-3 text-emerald-500 opacity-70" />
+                            </a>
+                          ) : (
+                            <span className="text-[12px] text-slate-400">-</span>
+                          )}
+                        </TableCell>
+
+                        {/* 3. Wilayah & Alamat */}
+                        <TableCell className="py-3">
+                          {petani.address ? (
+                            <div className="flex items-center gap-1.5 text-[12px] text-slate-600 max-w-[220px]">
+                              <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                              <span className="truncate" title={petani.address}>
+                                {petani.address}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-[12px] text-slate-400">-</span>
+                          )}
+                        </TableCell>
+
+                        {/* 4. Terdaftar Sejak */}
+                        <TableCell className="py-3 whitespace-nowrap">
+                          <span className="text-[12px] text-slate-600">
+                            {new Date(petani.createdAt).toLocaleDateString('id-ID', {
+                              day: '2-digit',
+                              month: 'short',
+                              year: 'numeric',
+                            })}
+                          </span>
+                        </TableCell>
+
+                        {/* 5. Status Verifikasi (Klik untuk ubah cepat) */}
+                        <TableCell className="py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setPetaniToVerify(petani);
+                              setVerifyDialogOpen(true);
+                            }}
+                            className={`inline-flex items-center gap-1.5 h-6 px-2 rounded-md border text-[11.5px] font-medium transition cursor-pointer hover:opacity-80 ${
+                              petani.isVerified
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                : 'bg-amber-50 text-amber-700 border-amber-200'
+                            }`}
+                            title="Klik untuk mengubah status verifikasi"
+                          >
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full ${
+                                petani.isVerified ? 'bg-emerald-500' : 'bg-amber-500'
+                              }`}
+                            />
+                            <span>{petani.isVerified ? 'Terverifikasi' : 'Menunggu'}</span>
+                          </button>
+                        </TableCell>
+
+                        {/* 6. Aksi & Pengelolaan */}
+                        <TableCell className="py-3 pr-4 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              type="button"
+                              onClick={() => setDetailPetani(petani)}
+                              className="w-7 h-7 rounded-lg border border-[#E5E7EB] bg-white hover:bg-slate-50 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer"
+                              title="Lihat Detail Profil"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedPetani(petani);
+                                setFormMode('EDIT');
+                                setFormModalOpen(true);
+                              }}
+                              className="w-7 h-7 rounded-lg border border-[#E5E7EB] bg-white hover:bg-slate-50 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer"
+                              title="Edit Data Petani"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setPetaniToDelete(petani);
+                                setDeleteDialogOpen(true);
+                              }}
+                              className="w-7 h-7 rounded-lg border border-[#E5E7EB] bg-white hover:bg-rose-50 text-slate-400 hover:text-rose-600 flex items-center justify-center transition cursor-pointer"
+                              title="Hapus Petani"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
           </div>
 
-          {pagination.totalPages > 1 && (
-            <Pagination className="mx-0 w-auto justify-end">
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    disabled={currentPage <= 1 || isLoading}
-                  />
-                </PaginationItem>
+          {/* Table Footer with Info & Pagination */}
+          <div className="px-4 py-3 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 bg-white">
+            <div>
+              Menampilkan{' '}
+              <strong className="text-slate-800">
+                {petaniList.length > 0 ? (pagination.currentPage - 1) * pagination.limit + 1 : 0}
+              </strong>
+              -
+              <strong className="text-slate-800">
+                {Math.min(pagination.currentPage * pagination.limit, pagination.totalCount)}
+              </strong>{' '}
+              dari <strong className="text-slate-800">{pagination.totalCount}</strong> petani
+            </div>
 
-                {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((pageNum) => (
-                  <PaginationItem key={pageNum}>
-                    <PaginationLink
-                      isActive={pageNum === currentPage}
-                      onClick={() => setCurrentPage(pageNum)}
-                      disabled={isLoading}
-                    >
-                      {pageNum}
-                    </PaginationLink>
+            {pagination.totalPages > 1 && (
+              <Pagination className="mx-0 w-auto justify-end">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage <= 1 || isLoading}
+                    />
                   </PaginationItem>
-                ))}
 
-                <PaginationItem>
-                  <PaginationNext
-                    onClick={() => setCurrentPage((p) => Math.min(pagination.totalPages, p + 1))}
-                    disabled={currentPage >= pagination.totalPages || isLoading}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-          )}
+                  {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((pageNum) => (
+                    <PaginationItem key={pageNum}>
+                      <PaginationLink
+                        isActive={pageNum === currentPage}
+                        onClick={() => setCurrentPage(pageNum)}
+                        disabled={isLoading}
+                      >
+                        {pageNum}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ))}
+
+                  <PaginationItem>
+                    <PaginationNext
+                      onClick={() => setCurrentPage((p) => Math.min(pagination.totalPages, p + 1))}
+                      disabled={currentPage >= pagination.totalPages || isLoading}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Modal Detail Profil Petani Mitra (Smooth scroll & Lenis safe) */}
+      <Dialog open={Boolean(detailPetani)} onOpenChange={(open) => !open && setDetailPetani(null)}>
+        <DialogContent
+          showCloseButton={false}
+          data-lenis-prevent="true"
+          className="max-w-md w-[95vw] p-0 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col"
+        >
+          {detailPetani && (
+            <>
+              {/* Header Modal */}
+              <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-3 shrink-0 bg-[#FAFBFD]">
+                <div className="flex items-center gap-3 min-w-0">
+                  <Avatar className="w-10 h-10 rounded-full border border-slate-200 shrink-0">
+                    <AvatarImage src={detailPetani.avatarUrl || ''} alt={detailPetani.name} />
+                    <AvatarFallback className="bg-emerald-700 text-white font-semibold text-sm">
+                      {detailPetani.name.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0">
+                    <DialogTitle className="text-[15px] font-semibold text-slate-900 truncate">
+                      {detailPetani.name}
+                    </DialogTitle>
+                    <span className="text-[11px] text-slate-400">Petani Mitra Koperasi</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <span
+                    className={`inline-flex items-center gap-1.5 h-6 px-2 rounded-md border text-[11px] font-medium ${
+                      detailPetani.isVerified
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : 'bg-amber-50 text-amber-700 border-amber-200'
+                    }`}
+                  >
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full ${
+                        detailPetani.isVerified ? 'bg-emerald-500' : 'bg-amber-500'
+                      }`}
+                    />
+                    {detailPetani.isVerified ? 'Terverifikasi' : 'Menunggu'}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => setDetailPetani(null)}
+                    className="w-8 h-8 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer"
+                    aria-label="Tutup"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Body Modal Detail */}
+              <div
+                className="p-5 space-y-4 overflow-y-auto overscroll-contain flex-1 min-h-0 text-xs"
+                onWheel={(e) => e.stopPropagation()}
+              >
+                {/* Biodata Section */}
+                <section className="rounded-xl border border-slate-200 overflow-hidden">
+                  <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center gap-1.5">
+                    <User className="w-3.5 h-3.5 text-slate-500" />
+                    <h3 className="text-[12px] font-semibold text-slate-800">
+                      Informasi Kontak & Akun
+                    </h3>
+                  </div>
+
+                  <dl className="divide-y divide-slate-100">
+                    <div className="px-4 py-2.5 grid grid-cols-[120px_1fr] gap-3">
+                      <dt className="text-slate-500">Nama Lengkap</dt>
+                      <dd className="font-medium text-slate-900">{detailPetani.name}</dd>
+                    </div>
+
+                    <div className="px-4 py-2.5 grid grid-cols-[120px_1fr] gap-3">
+                      <dt className="text-slate-500">Email</dt>
+                      <dd className="font-medium text-slate-900">{detailPetani.email}</dd>
+                    </div>
+
+                    <div className="px-4 py-2.5 grid grid-cols-[120px_1fr] gap-3">
+                      <dt className="text-slate-500">No. Telp / WA</dt>
+                      <dd className="font-medium">
+                        {detailPetani.phone ? (
+                          <a
+                            href={`https://wa.me/${detailPetani.phone.replace(/\D/g, '')}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-emerald-700 hover:underline inline-flex items-center gap-1"
+                            title="Hubungi via WhatsApp"
+                          >
+                            {detailPetani.phone}
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        ) : (
+                          <span className="text-slate-400">-</span>
+                        )}
+                      </dd>
+                    </div>
+
+                    <div className="px-4 py-2.5 grid grid-cols-[120px_1fr] gap-3">
+                      <dt className="text-slate-500">Alamat Lengkap</dt>
+                      <dd className="font-medium text-slate-900 leading-relaxed">
+                        {detailPetani.address || '-'}
+                      </dd>
+                    </div>
+
+                    <div className="px-4 py-2.5 grid grid-cols-[120px_1fr] gap-3">
+                      <dt className="text-slate-500">Terdaftar Sejak</dt>
+                      <dd className="font-medium text-slate-900">
+                        {new Date(detailPetani.createdAt).toLocaleDateString('id-ID', {
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric',
+                        })}
+                      </dd>
+                    </div>
+                  </dl>
+                </section>
+              </div>
+
+              {/* Footer Modal Actions */}
+              <div className="px-5 py-3.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 shrink-0 bg-white">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const toDelete = detailPetani;
+                    setDetailPetani(null);
+                    setPetaniToDelete(toDelete);
+                    setDeleteDialogOpen(true);
+                  }}
+                  className="px-2.5 py-1.5 text-xs font-semibold text-rose-600 bg-white border border-rose-200 hover:bg-rose-50 rounded-xl transition cursor-pointer flex items-center gap-1"
+                >
+                  <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                  <span>Hapus</span>
+                </button>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const toEdit = detailPetani;
+                      setDetailPetani(null);
+                      setSelectedPetani(toEdit);
+                      setFormMode('EDIT');
+                      setFormModalOpen(true);
+                    }}
+                    className="h-8 px-3 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-medium flex items-center gap-1.5 transition cursor-pointer"
+                  >
+                    <Pencil className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Edit Data</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const toVerify = detailPetani;
+                      setDetailPetani(null);
+                      setPetaniToVerify(toVerify);
+                      setVerifyDialogOpen(true);
+                    }}
+                    className={`h-8 px-3 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-xs ${
+                      detailPetani.isVerified
+                        ? 'bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200'
+                        : 'bg-emerald-700 hover:bg-emerald-800 text-white'
+                    }`}
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    <span>{detailPetani.isVerified ? 'Batalkan Verifikasi' : 'Verifikasi Akun'}</span>
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Modal 1: Create & Edit Form Dialog */}
       <UserFormModal
