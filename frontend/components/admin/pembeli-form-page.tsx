@@ -7,7 +7,6 @@ import {
   Upload,
   Trash2,
   Loader2,
-  ShoppingBag,
   User,
   Mail,
   Phone,
