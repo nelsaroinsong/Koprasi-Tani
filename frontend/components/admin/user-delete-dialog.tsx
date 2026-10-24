@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -33,6 +33,13 @@ export function UserDeleteDialog({
   const { showToast } = useToast();
   const [isDeleting, setIsDeleting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Reset pesan error saat modal dibuka
+  useEffect(() => {
+    if (isOpen) {
+      setErrorMessage(null);
+    }
+  }, [isOpen]);
 
   if (!user) return null;
 
@@ -67,7 +74,21 @@ export function UserDeleteDialog({
       onClose();
     } catch (err: any) {
       console.error('Error delete user:', err);
-      const msg = err.message || 'Terjadi kesalahan sistem saat menghapus.';
+      const rawMsg = String(err.message || '');
+      let msg = 'Terjadi kesalahan sistem saat menghapus pengguna.';
+
+      if (
+        rawMsg.includes('Foreign key') ||
+        rawMsg.includes('foreign key') ||
+        rawMsg.includes('prisma') ||
+        rawMsg.includes('invocation') ||
+        rawMsg.includes('constraint')
+      ) {
+        msg = 'Tidak dapat menghapus akun karena masih memiliki data keterkaitan transaksi aktif.';
+      } else if (rawMsg && !rawMsg.includes('`') && !rawMsg.includes('{')) {
+        msg = rawMsg;
+      }
+
       setErrorMessage(msg);
       showToast({
         title: 'Gagal Menghapus',

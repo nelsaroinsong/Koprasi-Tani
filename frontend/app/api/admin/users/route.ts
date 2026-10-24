@@ -3,6 +3,7 @@ import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { delCachePattern } from '@/lib/redis';
 import { validateIndonesianPhone } from '@/lib/phone-validation';
+import { isEmailVerified } from '@/lib/otp-store';
 
 // 1. READ: Ambil daftar pengguna dengan server-side pagination, search, dan filter
 export async function GET(request: Request) {
@@ -156,6 +157,17 @@ export async function POST(request: Request) {
 
     if (existing) {
       return NextResponse.json({ error: 'Email tersebut sudah terdaftar di sistem' }, { status: 409 });
+    }
+
+    // Untuk pendaftaran akun pembeli baru secara manual, pastikan email telah diverifikasi via OTP
+    if (role === 'PEMBELI') {
+      const verified = await isEmailVerified(cleanEmail);
+      if (!verified) {
+        return NextResponse.json(
+          { error: 'Email pembeli harus diverifikasi dengan kode OTP terlebih dahulu.' },
+          { status: 400 }
+        );
+      }
     }
 
     const newUser = await prisma.user.create({
@@ -374,14 +386,120 @@ export async function DELETE(request: Request) {
 
     const validIds = usersToDelete.map((u) => u.id);
 
-    await prisma.user.deleteMany({
-      where: { id: { in: validIds } },
+    // Hapus seluruh data berelasi pengguna dalam satu transaksi aman (Cascade Cleanup)
+    await prisma.$transaction(async (tx) => {
+      // 1. Hapus ulasan (reviews) yang ditulis oleh pengguna ini
+      await tx.review.deleteMany({
+        where: { userId: { in: validIds } },
+      });
+
+      // 2. Hapus relasi pertemanan / follow (following & followers)
+      await tx.follow.deleteMany({
+        where: {
+          OR: [
+            { followerId: { in: validIds } },
+            { petaniId: { in: validIds } },
+          ],
+        },
+      });
+
+      // 3. Tangani komoditas produk yang dimiliki petani ini jika ada
+      const farmerProducts = await tx.product.findMany({
+        where: { petaniId: { in: validIds } },
+        select: { id: true },
+      });
+      const farmerProductIds = farmerProducts.map((p) => p.id);
+
+      if (farmerProductIds.length > 0) {
+        // Hapus ulasan pada produk petani ini
+        await tx.review.deleteMany({
+          where: { productId: { in: farmerProductIds } },
+        });
+
+        // Ambil ID pesanan yang memuat produk petani ini
+        const relatedItems = await tx.orderItem.findMany({
+          where: {
+            OR: [
+              { productId: { in: farmerProductIds } },
+              { petaniId: { in: validIds } },
+            ],
+          },
+          select: { orderId: true },
+        });
+        const orderIds = Array.from(new Set(relatedItems.map((i) => i.orderId)));
+
+        // Hapus order items produk petani ini
+        await tx.orderItem.deleteMany({
+          where: {
+            OR: [
+              { productId: { in: farmerProductIds } },
+              { petaniId: { in: validIds } },
+            ],
+          },
+        });
+
+        // Bersihkan pesanan yang menjadi kosong
+        for (const orderId of orderIds) {
+          const remaining = await tx.orderItem.count({ where: { orderId } });
+          if (remaining === 0) {
+            await tx.order.delete({ where: { id: orderId } });
+          }
+        }
+
+        // Hapus produk milik petani ini
+        await tx.product.deleteMany({
+          where: { id: { in: farmerProductIds } },
+        });
+      }
+
+      // 4. Hapus sisa item penjualan petani (soldItems) jika ada
+      const leftoverSoldItems = await tx.orderItem.findMany({
+        where: { petaniId: { in: validIds } },
+        select: { orderId: true },
+      });
+      if (leftoverSoldItems.length > 0) {
+        const leftoverOrderIds = Array.from(new Set(leftoverSoldItems.map((i) => i.orderId)));
+        await tx.orderItem.deleteMany({
+          where: { petaniId: { in: validIds } },
+        });
+        for (const orderId of leftoverOrderIds) {
+          const remaining = await tx.orderItem.count({ where: { orderId } });
+          if (remaining === 0) {
+            await tx.order.delete({ where: { id: orderId } });
+          }
+        }
+      }
+
+      // 5. Tangani pesanan yang pernah dibeli oleh pengguna ini (jika peran pembeli)
+      const userOrders = await tx.order.findMany({
+        where: { pembeliId: { in: validIds } },
+        select: { id: true },
+      });
+      const userOrderIds = userOrders.map((o) => o.id);
+
+      if (userOrderIds.length > 0) {
+        await tx.orderItem.deleteMany({
+          where: { orderId: { in: userOrderIds } },
+        });
+        await tx.order.deleteMany({
+          where: { id: { in: userOrderIds } },
+        });
+      }
+
+      // 6. Terakhir, hapus pengguna secara aman
+      await tx.user.deleteMany({
+        where: { id: { in: validIds } },
+      });
     });
 
-    // Invalidate user and farmer caches
+    // Invalidate seluruh cache terkait pengguna, petani, produk, dan pesanan
     await Promise.all([
       delCachePattern('user:profile:*'),
       delCachePattern('petani:*'),
+      delCachePattern('products:*'),
+      delCachePattern('admin:orders:*'),
+      delCachePattern('admin:payouts:*'),
+      delCachePattern('user:orders:*'),
     ]).catch(() => {});
 
     const msg =
@@ -396,6 +514,11 @@ export async function DELETE(request: Request) {
     });
   } catch (error: any) {
     console.error('Error saat menghapus pengguna:', error);
-    return NextResponse.json({ error: error.message || 'Gagal menghapus pengguna' }, { status: 500 });
+    let friendlyError = 'Terjadi kesalahan sistem saat menghapus data pengguna.';
+    const errMsg = String(error?.message || '');
+    if (error?.code === 'P2003' || errMsg.includes('Foreign key') || errMsg.includes('foreign key')) {
+      friendlyError = 'Tidak dapat menghapus akun karena masih memiliki keterkaitan data transaksi aktif.';
+    }
+    return NextResponse.json({ error: friendlyError }, { status: 500 });
   }
 }
