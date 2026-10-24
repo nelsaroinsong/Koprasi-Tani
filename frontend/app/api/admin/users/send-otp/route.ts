@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { email } = body;
+    const { email, role } = body;
 
     if (!email || typeof email !== 'string') {
       return NextResponse.json({ error: 'Alamat email wajib diisi.' }, { status: 400 });
@@ -49,7 +49,11 @@ export async function POST(request: Request) {
     await saveOtp(cleanEmail, otpCode, 300);
 
     // Kirim email OTP
-    const mailResult = await sendOtpEmail(cleanEmail, otpCode);
+    const mailResult = await sendOtpEmail(
+      cleanEmail,
+      otpCode,
+      role === 'PETANI' ? 'PETANI' : 'PEMBELI'
+    );
 
     return NextResponse.json({
       success: true,

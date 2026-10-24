@@ -8,17 +8,27 @@ const SMTP_USER = process.env.SMTP_USER || process.env.EMAIL_USER;
 const SMTP_PASS = process.env.SMTP_PASS || process.env.EMAIL_PASS || process.env.EMAIL_APP_PASSWORD;
 
 /**
- * Mengirimkan Email Kode Verifikasi (OTP) ke alamat email pembeli/pelanggan
+ * Mengirimkan Email Kode Verifikasi (OTP) ke alamat email pembeli atau petani
  */
-export async function sendOtpEmail(toEmail: string, otpCode: string): Promise<{
+export async function sendOtpEmail(
+  toEmail: string,
+  otpCode: string,
+  role: 'PETANI' | 'PEMBELI' = 'PEMBELI'
+): Promise<{
   success: boolean;
   isDev?: boolean;
   message?: string;
 }> {
+  const roleTitle = role === 'PETANI' ? 'Petani Mitra' : 'Pembeli & Pelanggan';
+  const roleDesc =
+    role === 'PETANI'
+      ? 'Alamat email ini didaftarkan sebagai akun <strong>Petani Mitra</strong> binaan pada sistem digital <strong>Koperasi Sinar Pagi Sejahtera</strong>.'
+      : 'Alamat email ini didaftarkan sebagai akun pembeli komoditas agribisnis pada sistem digital <strong>Koperasi Sinar Pagi Sejahtera</strong>.';
+
   // Jika kredensial SMTP belum diatur di .env, aktifkan fallback Development Mode
   if (!SMTP_USER || !SMTP_PASS) {
     console.log('\n============================================================');
-    console.log(' [KOPERASI EMAIL OTP - DEV MODE]');
+    console.log(` [KOPERASI EMAIL OTP - DEV MODE] Role: ${role}`);
     console.log(` Ke Email: ${toEmail}`);
     console.log(` Kode OTP : ${otpCode} (Berlaku 5 menit)`);
     console.log(' Catatan : Tambahkan SMTP_USER dan SMTP_PASS di .env untuk pengiriman asli.');
@@ -62,7 +72,7 @@ export async function sendOtpEmail(toEmail: string, otpCode: string): Promise<{
     const mailOptions = {
       from: `"Koperasi Sinar Pagi Sejahtera" <${cleanUser}>`,
       to: toEmail,
-      subject: `Kode Verifikasi Pendaftaran Akun Koperasi: ${otpCode}`,
+      subject: `Kode Verifikasi Pendaftaran ${roleTitle} Koperasi: ${otpCode}`,
       html: `
         <!DOCTYPE html>
         <html>
@@ -83,12 +93,12 @@ export async function sendOtpEmail(toEmail: string, otpCode: string): Promise<{
           <div class="container">
             <div class="header">
               <h1 class="logo-title">Koperasi Sinar Pagi Sejahtera</h1>
-              <div class="logo-sub">Verifikasi Pendaftaran Akun Pembeli & Pelanggan</div>
+              <div class="logo-sub">Verifikasi Pendaftaran Akun ${roleTitle}</div>
             </div>
             
             <p style="font-size: 14px; line-height: 1.6; margin: 0 0 16px;">Halo,</p>
             <p style="font-size: 14px; line-height: 1.6; margin: 0 0 20px; color: #475569;">
-              Alamat email ini didaftarkan sebagai akun pembeli komoditas agribisnis pada sistem digital <strong>Koperasi Sinar Pagi Sejahtera</strong>.
+              ${roleDesc}
               Gunakan kode verifikasi (OTP) berikut untuk menyelesaikan pendaftaran akun Anda:
             </p>
 

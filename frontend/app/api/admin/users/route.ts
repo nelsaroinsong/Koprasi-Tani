@@ -159,15 +159,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Email tersebut sudah terdaftar di sistem' }, { status: 409 });
     }
 
-    // Untuk pendaftaran akun pembeli baru secara manual, pastikan email telah diverifikasi via OTP
-    if (role === 'PEMBELI') {
-      const verified = await isEmailVerified(cleanEmail);
-      if (!verified) {
-        return NextResponse.json(
-          { error: 'Email pembeli harus diverifikasi dengan kode OTP terlebih dahulu.' },
-          { status: 400 }
-        );
-      }
+    // Untuk pendaftaran akun pengguna baru secara manual (Petani maupun Pembeli), pastikan email telah diverifikasi via OTP
+    const verified = await isEmailVerified(cleanEmail);
+    if (!verified) {
+      const roleLabel = role === 'PETANI' ? 'petani' : 'pembeli';
+      return NextResponse.json(
+        { error: `Email ${roleLabel} harus diverifikasi dengan kode OTP terlebih dahulu.` },
+        { status: 400 }
+      );
     }
 
     const newUser = await prisma.user.create({
