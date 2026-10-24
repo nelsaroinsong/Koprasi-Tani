@@ -47,11 +47,12 @@ interface PaginationMeta {
 
 export function RecentUsersTable() {
   const [users, setUsers] = useState<RegisteredUser[]>([]);
+  const [limit, setLimit] = useState(10);
   const [pagination, setPagination] = useState<PaginationMeta>({
     totalCount: 0,
     totalPages: 1,
     currentPage: 1,
-    limit: 6,
+    limit: 10,
   });
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -75,7 +76,7 @@ export function RecentUsersTable() {
       setIsLoading(true);
       const params = new URLSearchParams({
         page: String(currentPage),
-        limit: '6',
+        limit: String(limit),
       });
 
       if (debouncedSearch) {
@@ -100,7 +101,7 @@ export function RecentUsersTable() {
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, debouncedSearch]);
+  }, [currentPage, limit, debouncedSearch]);
 
   useEffect(() => {
     fetchUsers();
@@ -330,32 +331,61 @@ export function RecentUsersTable() {
           </Table>
         </div>
 
-        {/* Pagination Footer - Format & tombol persis Pesanan Masuk */}
-        <div className="px-4 py-3 bg-white border-t border-[#F1F3F5] flex items-center justify-between text-xs text-slate-500">
-          <span>
-            Halaman {currentPage} dari {Math.max(1, pagination.totalPages)}
-            {pagination.totalCount > 0 && (
-              <span className="text-slate-400 ml-1.5 font-normal">
-                (Total {pagination.totalCount} user)
-              </span>
-            )}
-          </span>
+        {/* Footer Pagination Persis Gambar 3 & Gambar 4 */}
+        <div className="px-4 py-3 border-t border-[#F1F3F5] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 bg-white">
+          <div className="flex items-center gap-3">
+            <div>
+              Menampilkan{' '}
+              <strong className="text-slate-800 font-semibold">
+                {users.length > 0 ? (currentPage - 1) * limit + 1 : 0}
+              </strong>{' '}
+              -{' '}
+              <strong className="text-slate-800 font-semibold">
+                {Math.min(currentPage * limit, pagination.totalCount)}
+              </strong>{' '}
+              dari{' '}
+              <strong className="text-slate-800 font-semibold">
+                {pagination.totalCount}
+              </strong>{' '}
+              total pengguna
+            </div>
+
+            {/* Limit Dropdown Persis Gambar 4 */}
+            <div className="flex items-center gap-1.5 ml-2">
+              <span className="text-[11px] text-slate-400">Limit:</span>
+              <select
+                value={limit}
+                onChange={(e) => {
+                  setLimit(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="h-7 px-2 rounded-md border border-slate-200 bg-white text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-900 cursor-pointer"
+              >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+              </select>
+            </div>
+          </div>
+
           <div className="flex items-center gap-1.5">
             <button
               type="button"
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage <= 1 || isLoading}
-              className="px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 text-slate-700 font-medium transition cursor-pointer"
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              className="h-8 px-3 rounded-lg border border-[#E5E7EB] hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-slate-700 transition cursor-pointer shadow-2xs"
             >
               Sebelumnya
             </button>
+            <span className="px-2 text-slate-600 font-semibold tabular-nums">
+              {currentPage} / {pagination.totalPages || 1}
+            </span>
             <button
               type="button"
-              onClick={() =>
-                setCurrentPage((p) => Math.min(pagination.totalPages, p + 1))
-              }
               disabled={currentPage >= pagination.totalPages || isLoading}
-              className="px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 text-slate-700 font-medium transition cursor-pointer"
+              onClick={() => setCurrentPage((p) => p + 1)}
+              className="h-8 px-3 rounded-lg border border-[#E5E7EB] hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-slate-700 transition cursor-pointer shadow-2xs"
             >
               Selanjutnya
             </button>

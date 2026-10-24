@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Table,
   TableHeader,
@@ -9,14 +9,6 @@ import {
   TableRow,
   TableCell,
 } from '@/components/ui/table';
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationPrevious,
-  PaginationNext,
-} from '@/components/ui/pagination';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import {
   Search,
@@ -38,11 +30,10 @@ import {
   ExternalLink,
   ShieldCheck,
   Eye,
-  Check,
   User,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { UserFormModal } from '@/components/admin/user-form-modal';
+import { PetaniFormPage } from '@/components/admin/petani-form-page';
 import { UserDeleteDialog } from '@/components/admin/user-delete-dialog';
 import { UserVerifyDialog } from '@/components/admin/user-verify-dialog';
 import { useDebounce } from '@/hooks/use-debounce';
@@ -85,6 +76,10 @@ type FilterKey = 'ALL' | 'VERIFIED' | 'PENDING';
 export function PetaniDataTable() {
   const { showToast } = useToast();
 
+  // Mode Tampilan: 'TABLE' atau 'FORM' (Halaman Penuh untuk Tambah & Edit Petani)
+  const [viewMode, setViewMode] = useState<'TABLE' | 'FORM'>('TABLE');
+  const [selectedPetani, setSelectedPetani] = useState<PetaniUser | null>(null);
+
   const [petaniList, setPetaniList] = useState<PetaniUser[]>([]);
   const [stats, setStats] = useState<UserStats>({
     total: 0,
@@ -97,21 +92,18 @@ export function PetaniDataTable() {
     currentPage: 1,
     limit: 10,
   });
+  const [limit, setLimit] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<FilterKey>('ALL');
-  const [currentPage, setCurrentPage] = useState(1);
 
   // Debounce 300ms untuk search
   const debouncedSearch = useDebounce(searchQuery, 300);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Modal States
-  const [formModalOpen, setFormModalOpen] = useState(false);
-  const [formMode, setFormMode] = useState<'CREATE' | 'EDIT'>('CREATE');
-  const [selectedPetani, setSelectedPetani] = useState<PetaniUser | null>(null);
-
+  // Modal Dialogs (Delete & Verify)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [petaniToDelete, setPetaniToDelete] = useState<PetaniUser | null>(null);
 
@@ -121,10 +113,10 @@ export function PetaniDataTable() {
   // Detail Modal
   const [detailPetani, setDetailPetani] = useState<PetaniUser | null>(null);
 
-  // Reset ke halaman 1 saat filter atau search berubah
+  // Reset ke halaman 1 saat filter, limit, atau search berubah
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch, filterStatus]);
+  }, [debouncedSearch, filterStatus, limit]);
 
   const fetchPetani = useCallback(async () => {
     if (abortControllerRef.current) {
@@ -138,7 +130,7 @@ export function PetaniDataTable() {
       const params = new URLSearchParams({
         role: 'PETANI',
         page: String(currentPage),
-        limit: '10',
+        limit: String(limit),
       });
 
       if (debouncedSearch) {
@@ -170,7 +162,7 @@ export function PetaniDataTable() {
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, debouncedSearch, filterStatus]);
+  }, [currentPage, limit, debouncedSearch, filterStatus]);
 
   useEffect(() => {
     fetchPetani();
@@ -185,7 +177,6 @@ export function PetaniDataTable() {
   const handleExportCSV = async () => {
     try {
       setIsExporting(true);
-      // Ambil seluruh data tanpa limit untuk diekspor
       const params = new URLSearchParams({
         role: 'PETANI',
         page: '1',
@@ -196,9 +187,18 @@ export function PetaniDataTable() {
 
       const res = await fetch(`/api/admin/users?${params.toString()}`);
       const data = await res.json();
-      const exportList: PetaniUser[] = data.success && Array.isArray(data.users) ? data.users : petaniList;
+      const exportList: PetaniUser[] =
+        data.success && Array.isArray(data.users) ? data.users : petaniList;
 
-      const headers = ['No', 'Nama Petani', 'Email', 'No. WhatsApp', 'Alamat', 'Status Verifikasi', 'Terdaftar Sejak'];
+      const headers = [
+        'No',
+        'Nama Petani',
+        'Email',
+        'No. WhatsApp',
+        'Alamat',
+        'Status Verifikasi',
+        'Terdaftar Sejak',
+      ];
       const escapeCell = (val: string) => `"${(val || '').replace(/"/g, '""')}"`;
 
       const rows = exportList.map((p, idx) => [
@@ -237,69 +237,27 @@ export function PetaniDataTable() {
     { key: 'PENDING', label: 'Menunggu Verifikasi', dot: 'bg-amber-500', count: stats.pending },
   ];
 
-  const verifiedPct = stats.total > 0 ? Math.round((stats.verified / stats.total) * 100) : 0;
+  // Jika sedang membuka Form Tambah / Edit Petani, render Halaman Penuh Form
+  if (viewMode === 'FORM') {
+    return (
+      <PetaniFormPage
+        initialData={selectedPetani}
+        onCancel={() => {
+          setViewMode('TABLE');
+          setSelectedPetani(null);
+        }}
+        onSuccess={() => {
+          setViewMode('TABLE');
+          setSelectedPetani(null);
+          fetchPetani();
+        }}
+      />
+    );
+  }
 
   return (
     <div className="space-y-4">
-      {/* 1. KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="bg-white rounded-2xl border border-[#ECEEF2] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-          <div className="flex items-center justify-between">
-            <span className="text-[12px] font-medium text-slate-500">Total Petani Mitra</span>
-            <span className="w-7 h-7 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center">
-              <Sprout className="w-3.5 h-3.5 text-emerald-600" />
-            </span>
-          </div>
-          <div className="mt-2 text-[22px] font-semibold text-slate-900 tabular-nums tracking-tight">
-            {stats.total}
-          </div>
-          <p className="text-[11.5px] text-slate-400 mt-0.5">
-            Petani binaan terdaftar di Koperasi
-          </p>
-        </div>
-
-        <div className="bg-white rounded-2xl border border-[#ECEEF2] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-          <div className="flex items-center justify-between">
-            <span className="text-[12px] font-medium text-slate-500">Mitra Terverifikasi</span>
-            <span className="w-7 h-7 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-            </span>
-          </div>
-          <div className="mt-2 text-[22px] font-semibold text-slate-900 tabular-nums tracking-tight">
-            {stats.verified}
-          </div>
-          <div className="mt-2 flex items-center gap-2">
-            <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
-              <div
-                className="h-full bg-emerald-500 rounded-full transition-all"
-                style={{ width: `${verifiedPct}%` }}
-              />
-            </div>
-            <span className="text-[11px] text-slate-500 tabular-nums">{verifiedPct}%</span>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl border border-[#ECEEF2] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-          <div className="flex items-center justify-between">
-            <span className="text-[12px] font-medium text-slate-500">Menunggu Verifikasi</span>
-            <span className="w-7 h-7 rounded-lg bg-amber-50 border border-amber-100 flex items-center justify-center">
-              <Clock className="w-3.5 h-3.5 text-amber-600" />
-            </span>
-          </div>
-          <div className="mt-2 text-[22px] font-semibold text-slate-900 tabular-nums tracking-tight">
-            {stats.pending}
-          </div>
-          <p className="text-[11.5px] mt-0.5">
-            {stats.pending > 0 ? (
-              <span className="text-amber-600 font-medium">{stats.pending} permohonan kemitraan baru</span>
-            ) : (
-              <span className="text-slate-400">Semua permohonan telah ditinjau</span>
-            )}
-          </p>
-        </div>
-      </div>
-
-      {/* 2. Kravio Outer Double-Container Shell */}
+      {/* Kravio Outer Double-Container Shell */}
       <div className="rounded-2xl border border-[#E5E7EB] p-1.5" style={HATCHED_BG_STYLE}>
         {/* Header: Judul + Counter */}
         <div className="px-3 pt-2 pb-1 flex items-center justify-between gap-3">
@@ -345,7 +303,7 @@ export function PetaniDataTable() {
           </div>
         </div>
 
-        {/* Toolbar: Search, Reset, Ekspor, Refresh, Tambah */}
+        {/* Toolbar: Search, Reset, Ekspor, Refresh, Tambah (Buka Halaman Baru) */}
         <div className="px-3 pb-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             <div className="relative flex-1 sm:flex-none sm:w-72">
@@ -401,12 +359,12 @@ export function PetaniDataTable() {
               />
             </button>
 
+            {/* Tombol Buka Halaman Baru Tambah Petani */}
             <button
               type="button"
               onClick={() => {
                 setSelectedPetani(null);
-                setFormMode('CREATE');
-                setFormModalOpen(true);
+                setViewMode('FORM');
               }}
               className="h-8 px-3 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
             >
@@ -479,8 +437,7 @@ export function PetaniDataTable() {
                 ) : (
                   petaniList.map((petani, index) => {
                     const initial = petani.name.charAt(0).toUpperCase();
-                    const rowNumber =
-                      (pagination.currentPage - 1) * pagination.limit + (index + 1);
+                    const rowNumber = (currentPage - 1) * limit + (index + 1);
 
                     return (
                       <TableRow
@@ -599,15 +556,15 @@ export function PetaniDataTable() {
                               <Eye className="w-3.5 h-3.5" />
                             </button>
 
+                            {/* Tombol Edit Buka Halaman Penuh */}
                             <button
                               type="button"
                               onClick={() => {
                                 setSelectedPetani(petani);
-                                setFormMode('EDIT');
-                                setFormModalOpen(true);
+                                setViewMode('FORM');
                               }}
                               className="w-7 h-7 rounded-lg border border-[#E5E7EB] bg-white hover:bg-slate-50 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer"
-                              title="Edit Data Petani"
+                              title="Edit Data Petani (Halaman Baru)"
                             >
                               <Pencil className="w-3.5 h-3.5" />
                             </button>
@@ -633,56 +590,71 @@ export function PetaniDataTable() {
             </Table>
           </div>
 
-          {/* Table Footer with Info & Pagination */}
-          <div className="px-4 py-3 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 bg-white">
-            <div>
-              Menampilkan{' '}
-              <strong className="text-slate-800">
-                {petaniList.length > 0 ? (pagination.currentPage - 1) * pagination.limit + 1 : 0}
-              </strong>
-              -
-              <strong className="text-slate-800">
-                {Math.min(pagination.currentPage * pagination.limit, pagination.totalCount)}
-              </strong>{' '}
-              dari <strong className="text-slate-800">{pagination.totalCount}</strong> petani
+          {/* Footer Pagination Persis Gambar 3 & Gambar 4 */}
+          <div className="px-4 py-3 border-t border-[#F1F3F5] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 bg-white">
+            <div className="flex items-center gap-3">
+              <div>
+                Menampilkan{' '}
+                <strong className="text-slate-800 font-semibold">
+                  {pagination.totalCount > 0 ? (currentPage - 1) * limit + 1 : 0}
+                </strong>{' '}
+                -{' '}
+                <strong className="text-slate-800 font-semibold">
+                  {Math.min(currentPage * limit, pagination.totalCount)}
+                </strong>{' '}
+                dari{' '}
+                <strong className="text-slate-800 font-semibold">
+                  {pagination.totalCount}
+                </strong>{' '}
+                total petani mitra
+              </div>
+
+              {/* Limit Dropdown Persis Gambar 4 */}
+              <div className="flex items-center gap-1.5 ml-2">
+                <span className="text-[11px] text-slate-400">Limit:</span>
+                <select
+                  value={limit}
+                  onChange={(e) => {
+                    setLimit(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="h-7 px-2 rounded-md border border-slate-200 bg-white text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-900 cursor-pointer"
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+              </div>
             </div>
 
-            {pagination.totalPages > 1 && (
-              <Pagination className="mx-0 w-auto justify-end">
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious
-                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                      disabled={currentPage <= 1 || isLoading}
-                    />
-                  </PaginationItem>
-
-                  {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((pageNum) => (
-                    <PaginationItem key={pageNum}>
-                      <PaginationLink
-                        isActive={pageNum === currentPage}
-                        onClick={() => setCurrentPage(pageNum)}
-                        disabled={isLoading}
-                      >
-                        {pageNum}
-                      </PaginationLink>
-                    </PaginationItem>
-                  ))}
-
-                  <PaginationItem>
-                    <PaginationNext
-                      onClick={() => setCurrentPage((p) => Math.min(pagination.totalPages, p + 1))}
-                      disabled={currentPage >= pagination.totalPages || isLoading}
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
-            )}
+            {/* Pagination Nav Persis Gambar 3 */}
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                disabled={currentPage <= 1 || isLoading}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                className="h-8 px-3 rounded-lg border border-[#E5E7EB] hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-slate-700 transition cursor-pointer shadow-2xs"
+              >
+                Sebelumnya
+              </button>
+              <span className="px-2 text-slate-600 font-semibold tabular-nums">
+                {currentPage} / {pagination.totalPages || 1}
+              </span>
+              <button
+                type="button"
+                disabled={currentPage >= pagination.totalPages || isLoading}
+                onClick={() => setCurrentPage((p) => p + 1)}
+                className="h-8 px-3 rounded-lg border border-[#E5E7EB] hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-slate-700 transition cursor-pointer shadow-2xs"
+              >
+                Selanjutnya
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Modal Detail Profil Petani Mitra (Smooth scroll & Lenis safe) */}
+      {/* Modal Detail Profil Petani Mitra */}
       <Dialog open={Boolean(detailPetani)} onOpenChange={(open) => !open && setDetailPetani(null)}>
         <DialogContent
           showCloseButton={false}
@@ -740,7 +712,6 @@ export function PetaniDataTable() {
                 className="p-5 space-y-4 overflow-y-auto overscroll-contain flex-1 min-h-0 text-xs"
                 onWheel={(e) => e.stopPropagation()}
               >
-                {/* Biodata Section */}
                 <section className="rounded-xl border border-slate-200 overflow-hidden">
                   <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center gap-1.5">
                     <User className="w-3.5 h-3.5 text-slate-500" />
@@ -824,8 +795,7 @@ export function PetaniDataTable() {
                       const toEdit = detailPetani;
                       setDetailPetani(null);
                       setSelectedPetani(toEdit);
-                      setFormMode('EDIT');
-                      setFormModalOpen(true);
+                      setViewMode('FORM');
                     }}
                     className="h-8 px-3 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-medium flex items-center gap-1.5 transition cursor-pointer"
                   >
@@ -857,29 +827,7 @@ export function PetaniDataTable() {
         </DialogContent>
       </Dialog>
 
-      {/* Modal 1: Create & Edit Form Dialog */}
-      <UserFormModal
-        isOpen={formModalOpen}
-        onClose={() => setFormModalOpen(false)}
-        onSuccess={fetchPetani}
-        mode={formMode}
-        role="PETANI"
-        initialData={
-          selectedPetani
-            ? {
-                id: selectedPetani.id,
-                name: selectedPetani.name,
-                email: selectedPetani.email,
-                phone: selectedPetani.phone,
-                address: selectedPetani.address,
-                avatarUrl: selectedPetani.avatarUrl,
-                isVerified: selectedPetani.isVerified,
-              }
-            : null
-        }
-      />
-
-      {/* Modal 2: Delete Confirmation Dialog */}
+      {/* Modal Konfirmasi Hapus Petani */}
       <UserDeleteDialog
         isOpen={deleteDialogOpen}
         onClose={() => setDeleteDialogOpen(false)}
@@ -887,7 +835,7 @@ export function PetaniDataTable() {
         user={petaniToDelete}
       />
 
-      {/* Modal 3: Verification Confirmation Dialog */}
+      {/* Modal Konfirmasi Verifikasi Petani */}
       <UserVerifyDialog
         isOpen={verifyDialogOpen}
         onClose={() => setVerifyDialogOpen(false)}

@@ -50,6 +50,8 @@ export function PayoutsDataTable() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<FilterKey>('ALL');
+  const [limit, setLimit] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Modal States
   const [selectedPetaniPayout, setSelectedPetaniPayout] = useState<any | null>(null);
@@ -98,6 +100,18 @@ export function PayoutsDataTable() {
     // Yang menunggu diserahkan selalu di atas, terbesar dulu
     return [...list].sort((a, b) => b.siapDicairkanCash - a.siapDicairkanCash);
   }, [payoutList, filter, searchQuery]);
+
+  // Reset page when filter/search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filter, searchQuery]);
+
+  // Pagination Calculation
+  const totalPages = Math.max(1, Math.ceil(filteredList.length / limit));
+  const paginatedList = useMemo(() => {
+    const start = (currentPage - 1) * limit;
+    return filteredList.slice(start, start + limit);
+  }, [filteredList, currentPage, limit]);
 
   // Handler: Serahkan Cash ke Petani
   const handleConfirmPayCash = async () => {
@@ -322,7 +336,7 @@ export function PayoutsDataTable() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredList.map((item) => {
+                  paginatedList.map((item) => {
                     const isPending = item.siapDicairkanCash > 0;
                     const trxCount = item.pendingItems.length + item.completedItems.length;
                     return (
@@ -422,15 +436,66 @@ export function PayoutsDataTable() {
             </Table>
           </div>
 
-          {!isLoading && filteredList.length > 0 && (
-            <div className="px-4 py-2.5 border-t border-slate-100 text-[11.5px] text-slate-500 flex items-center justify-between">
-              <span>
-                Menampilkan <strong className="text-slate-800">{filteredList.length}</strong> dari{' '}
-                {payoutList.length} petani
-              </span>
-              <span className="hidden sm:inline">Klik baris untuk melihat rincian penjualan</span>
+          {/* Footer Pagination Persis Gambar 3 & Gambar 4 */}
+          <div className="px-4 py-3 border-t border-[#F1F3F5] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 bg-white">
+            <div className="flex items-center gap-3">
+              <div>
+                Menampilkan{' '}
+                <strong className="text-slate-800 font-semibold">
+                  {filteredList.length > 0 ? (currentPage - 1) * limit + 1 : 0}
+                </strong>{' '}
+                -{' '}
+                <strong className="text-slate-800 font-semibold">
+                  {Math.min(currentPage * limit, filteredList.length)}
+                </strong>{' '}
+                dari{' '}
+                <strong className="text-slate-800 font-semibold">
+                  {filteredList.length}
+                </strong>{' '}
+                total bagi hasil petani
+              </div>
+
+              {/* Limit Dropdown Persis Gambar 4 */}
+              <div className="flex items-center gap-1.5 ml-2">
+                <span className="text-[11px] text-slate-400">Limit:</span>
+                <select
+                  value={limit}
+                  onChange={(e) => {
+                    setLimit(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="h-7 px-2 rounded-md border border-slate-200 bg-white text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-900 cursor-pointer"
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+              </div>
             </div>
-          )}
+
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                disabled={currentPage <= 1 || isLoading}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                className="h-8 px-3 rounded-lg border border-[#E5E7EB] hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-slate-700 transition cursor-pointer shadow-2xs"
+              >
+                Sebelumnya
+              </button>
+              <span className="px-2 text-slate-600 font-semibold tabular-nums">
+                {currentPage} / {totalPages || 1}
+              </span>
+              <button
+                type="button"
+                disabled={currentPage >= totalPages || isLoading}
+                onClick={() => setCurrentPage((p) => p + 1)}
+                className="h-8 px-3 rounded-lg border border-[#E5E7EB] hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-slate-700 transition cursor-pointer shadow-2xs"
+              >
+                Selanjutnya
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 

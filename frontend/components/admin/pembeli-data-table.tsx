@@ -60,8 +60,9 @@ export function PembeliDataTable() {
     totalCount: 0,
     totalPages: 1,
     currentPage: 1,
-    limit: 8,
+    limit: 10,
   });
+  const [limit, setLimit] = useState(10);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -80,10 +81,10 @@ export function PembeliDataTable() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [pembeliToDelete, setPembeliToDelete] = useState<PembeliUser | null>(null);
 
-  // Reset page saat pencarian berubah
+  // Reset page saat pencarian atau limit berubah
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch]);
+  }, [debouncedSearch, limit]);
 
   const fetchPembeli = useCallback(async () => {
     // Batalkan request yang sedang berjalan jika ada
@@ -98,7 +99,7 @@ export function PembeliDataTable() {
       const params = new URLSearchParams({
         role: 'PEMBELI',
         page: String(currentPage),
-        limit: '8',
+        limit: String(limit),
       });
 
       if (debouncedSearch) {
@@ -123,7 +124,7 @@ export function PembeliDataTable() {
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, debouncedSearch]);
+  }, [currentPage, limit, debouncedSearch]);
 
   useEffect(() => {
     fetchPembeli();
@@ -374,51 +375,65 @@ export function PembeliDataTable() {
           </TableBody>
         </Table>
 
-        {/* Footer with shadcn Pagination Component */}
-        <div className="px-4 py-3 bg-slate-50 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
-          <div>
-            Menampilkan{' '}
-            <strong className="text-slate-800">
-              {pembeliList.length > 0 ? (pagination.currentPage - 1) * pagination.limit + 1 : 0}
-            </strong>
-            -
-            <strong className="text-slate-800">
-              {Math.min(pagination.currentPage * pagination.limit, pagination.totalCount)}
-            </strong>{' '}
-            dari <strong className="text-slate-800">{pagination.totalCount}</strong> pembeli
+        {/* Footer Pagination Persis Gambar 3 & Gambar 4 */}
+        <div className="px-4 py-3 border-t border-[#F1F3F5] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 bg-white">
+          <div className="flex items-center gap-3">
+            <div>
+              Menampilkan{' '}
+              <strong className="text-slate-800 font-semibold">
+                {pembeliList.length > 0 ? (currentPage - 1) * limit + 1 : 0}
+              </strong>{' '}
+              -{' '}
+              <strong className="text-slate-800 font-semibold">
+                {Math.min(currentPage * limit, pagination.totalCount)}
+              </strong>{' '}
+              dari{' '}
+              <strong className="text-slate-800 font-semibold">
+                {pagination.totalCount}
+              </strong>{' '}
+              total pembeli terdaftar
+            </div>
+
+            {/* Limit Dropdown Persis Gambar 4 */}
+            <div className="flex items-center gap-1.5 ml-2">
+              <span className="text-[11px] text-slate-400">Limit:</span>
+              <select
+                value={limit}
+                onChange={(e) => {
+                  setLimit(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="h-7 px-2 rounded-md border border-slate-200 bg-white text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-900 cursor-pointer"
+              >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+              </select>
+            </div>
           </div>
 
-          {pagination.totalPages > 1 && (
-            <Pagination className="mx-0 w-auto justify-end">
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    disabled={currentPage <= 1 || isLoading}
-                  />
-                </PaginationItem>
-
-                {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((pageNum) => (
-                  <PaginationItem key={pageNum}>
-                    <PaginationLink
-                      isActive={pageNum === currentPage}
-                      onClick={() => setCurrentPage(pageNum)}
-                      disabled={isLoading}
-                    >
-                      {pageNum}
-                    </PaginationLink>
-                  </PaginationItem>
-                ))}
-
-                <PaginationItem>
-                  <PaginationNext
-                    onClick={() => setCurrentPage((p) => Math.min(pagination.totalPages, p + 1))}
-                    disabled={currentPage >= pagination.totalPages || isLoading}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-          )}
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              disabled={currentPage <= 1 || isLoading}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              className="h-8 px-3 rounded-lg border border-[#E5E7EB] hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-slate-700 transition cursor-pointer shadow-2xs"
+            >
+              Sebelumnya
+            </button>
+            <span className="px-2 text-slate-600 font-semibold tabular-nums">
+              {currentPage} / {pagination.totalPages || 1}
+            </span>
+            <button
+              type="button"
+              disabled={currentPage >= pagination.totalPages || isLoading}
+              onClick={() => setCurrentPage((p) => p + 1)}
+              className="h-8 px-3 rounded-lg border border-[#E5E7EB] hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-slate-700 transition cursor-pointer shadow-2xs"
+            >
+              Selanjutnya
+            </button>
+          </div>
         </div>
       </div>
 

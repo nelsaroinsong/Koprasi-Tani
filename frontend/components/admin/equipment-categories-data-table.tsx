@@ -23,14 +23,6 @@ import {
   TableRow,
   TableCell,
 } from '@/components/ui/table';
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationPrevious,
-  PaginationNext,
-} from '@/components/ui/pagination';
 import { useToast } from '@/context/toast-context';
 import {
   Dialog,
@@ -47,14 +39,13 @@ export interface EquipmentCategoryItem {
   equipmentCount?: number;
 }
 
-const PAGE_SIZE = 10;
-
 export function EquipmentCategoriesDataTable() {
   const { showToast } = useToast();
   const [categories, setCategories] = useState<EquipmentCategoryItem[]>([]);
   const [equipments, setEquipments] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [limit, setLimit] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
 
   // Selected for Bulk Actions
@@ -150,11 +141,11 @@ export function EquipmentCategoriesDataTable() {
     return result;
   }, [categories, searchQuery]);
 
-  const totalPages = Math.ceil(filteredCategories.length / PAGE_SIZE) || 1;
+  const totalPages = Math.ceil(filteredCategories.length / limit) || 1;
   const paginatedCategories = useMemo(() => {
-    const start = (currentPage - 1) * PAGE_SIZE;
-    return filteredCategories.slice(start, start + PAGE_SIZE);
-  }, [filteredCategories, currentPage]);
+    const start = (currentPage - 1) * limit;
+    return filteredCategories.slice(start, start + limit);
+  }, [filteredCategories, currentPage, limit]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -468,7 +459,7 @@ export function EquipmentCategoriesDataTable() {
               ) : (
                 paginatedCategories.map((item, index) => {
                   const isChecked = selectedIds.includes(item.id);
-                  const rowNumber = (currentPage - 1) * PAGE_SIZE + index + 1;
+                  const rowNumber = (currentPage - 1) * limit + index + 1;
 
                   return (
                     <TableRow
@@ -529,49 +520,65 @@ export function EquipmentCategoriesDataTable() {
           </Table>
         </div>
 
-        {/* Table Footer with Pagination */}
-        <div className="p-3.5 sm:p-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-          <div className="text-slate-500">
-            Menampilkan{' '}
-            <strong className="text-slate-800">
-              {filteredCategories.length > 0 ? (currentPage - 1) * PAGE_SIZE + 1 : 0}
-            </strong>{' '}
-            -{' '}
-            <strong className="text-slate-800">
-              {Math.min(currentPage * PAGE_SIZE, filteredCategories.length)}
-            </strong>{' '}
-            dari <strong className="text-slate-800">{filteredCategories.length}</strong> kategori
+        {/* Table Footer with Info & Pagination Persis Gambar 3 & Gambar 4 */}
+        <div className="px-4 py-3 border-t border-[#F1F3F5] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 bg-white">
+          <div className="flex items-center gap-3">
+            <div>
+              Menampilkan{' '}
+              <strong className="text-slate-800 font-semibold">
+                {filteredCategories.length > 0 ? (currentPage - 1) * limit + 1 : 0}
+              </strong>{' '}
+              -{' '}
+              <strong className="text-slate-800 font-semibold">
+                {Math.min(currentPage * limit, filteredCategories.length)}
+              </strong>{' '}
+              dari{' '}
+              <strong className="text-slate-800 font-semibold">
+                {filteredCategories.length}
+              </strong>{' '}
+              total kategori alat pertanian
+            </div>
+
+            {/* Limit Dropdown Persis Gambar 4 */}
+            <div className="flex items-center gap-1.5 ml-2">
+              <span className="text-[11px] text-slate-400">Limit:</span>
+              <select
+                value={limit}
+                onChange={(e) => {
+                  setLimit(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="h-7 px-2 rounded-md border border-slate-200 bg-white text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-900 cursor-pointer"
+              >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+              </select>
+            </div>
           </div>
 
-          {totalPages > 1 && (
-            <Pagination className="mx-0 w-auto justify-end">
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    disabled={currentPage <= 1 || isLoading}
-                  />
-                </PaginationItem>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                  <PaginationItem key={p}>
-                    <PaginationLink
-                      isActive={p === currentPage}
-                      onClick={() => setCurrentPage(p)}
-                      disabled={isLoading}
-                    >
-                      {p}
-                    </PaginationLink>
-                  </PaginationItem>
-                ))}
-                <PaginationItem>
-                  <PaginationNext
-                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={currentPage >= totalPages || isLoading}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-          )}
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              disabled={currentPage <= 1 || isLoading}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              className="h-8 px-3 rounded-lg border border-[#E5E7EB] hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-slate-700 transition cursor-pointer shadow-2xs"
+            >
+              Sebelumnya
+            </button>
+            <span className="px-2 text-slate-600 font-semibold tabular-nums">
+              {currentPage} / {totalPages || 1}
+            </span>
+            <button
+              type="button"
+              disabled={currentPage >= totalPages || isLoading}
+              onClick={() => setCurrentPage((p) => p + 1)}
+              className="h-8 px-3 rounded-lg border border-[#E5E7EB] hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-slate-700 transition cursor-pointer shadow-2xs"
+            >
+              Selanjutnya
+            </button>
+          </div>
         </div>
       </div>
 

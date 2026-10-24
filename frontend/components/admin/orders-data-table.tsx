@@ -192,6 +192,7 @@ export function OrdersDataTable({
     currentPage: 1,
     limit: 10,
   });
+  const [limit, setLimit] = useState(10);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>(() =>
@@ -216,7 +217,7 @@ export function OrdersDataTable({
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch, filterStatus, datePreset, isDashboard]);
+  }, [debouncedSearch, filterStatus, datePreset, isDashboard, limit]);
 
   // Efek indeterminate untuk checkbox header
   const isAllSelected = orders.length > 0 && selectedOrders.length === orders.length;
@@ -260,7 +261,7 @@ export function OrdersDataTable({
       setIsLoading(true);
       const params = new URLSearchParams({
         page: String(currentPage),
-        limit: '10',
+        limit: String(limit),
       });
 
       if (debouncedSearch) {
@@ -299,7 +300,7 @@ export function OrdersDataTable({
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, debouncedSearch, filterStatus, dateRange, isDashboard]);
+  }, [currentPage, limit, debouncedSearch, filterStatus, dateRange, isDashboard]);
 
   useEffect(() => {
     fetchOrders();
@@ -1312,22 +1313,42 @@ export function OrdersDataTable({
             </Table>
           </div>
 
-          {/* Footer Pagination */}
+          {/* Footer Pagination Persis Gambar 3 & Gambar 4 */}
           <div className="px-4 py-3 border-t border-[#F1F3F5] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 bg-white">
-            <div>
-              Menampilkan{' '}
-              <strong className="text-slate-800 font-semibold">
-                {orders.length > 0 ? (currentPage - 1) * pagination.limit + 1 : 0}
-              </strong>{' '}
-              -{' '}
-              <strong className="text-slate-800 font-semibold">
-                {Math.min(currentPage * pagination.limit, pagination.totalCount)}
-              </strong>{' '}
-              dari{' '}
-              <strong className="text-slate-800 font-semibold">
-                {pagination.totalCount}
-              </strong>{' '}
-              total pesanan masuk
+            <div className="flex items-center gap-3">
+              <div>
+                Menampilkan{' '}
+                <strong className="text-slate-800 font-semibold">
+                  {orders.length > 0 ? (currentPage - 1) * limit + 1 : 0}
+                </strong>{' '}
+                -{' '}
+                <strong className="text-slate-800 font-semibold">
+                  {Math.min(currentPage * limit, pagination.totalCount)}
+                </strong>{' '}
+                dari{' '}
+                <strong className="text-slate-800 font-semibold">
+                  {pagination.totalCount}
+                </strong>{' '}
+                total pesanan masuk
+              </div>
+
+              {/* Limit Dropdown Persis Gambar 4 */}
+              <div className="flex items-center gap-1.5 ml-2">
+                <span className="text-[11px] text-slate-400">Limit:</span>
+                <select
+                  value={limit}
+                  onChange={(e) => {
+                    setLimit(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="h-7 px-2 rounded-md border border-slate-200 bg-white text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-900 cursor-pointer"
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+              </div>
             </div>
 
             <div className="flex items-center gap-1.5">
@@ -1339,7 +1360,7 @@ export function OrdersDataTable({
               >
                 Sebelumnya
               </button>
-              <span className="px-2 text-slate-600 font-semibold">
+              <span className="px-2 text-slate-600 font-semibold tabular-nums">
                 {currentPage} / {pagination.totalPages || 1}
               </span>
               <button

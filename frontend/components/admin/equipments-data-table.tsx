@@ -35,7 +35,6 @@ import { useAdmin } from '@/components/admin/admin-context';
 import type { EquipmentItem } from '@/lib/equipments';
 
 const KONDISI_PRESETS = ['Sangat Baik', 'Siap Pakai', 'Dalam Perawatan'];
-const PAGE_SIZE = 10;
 
 interface EquipmentCategoryItem {
   id: string;
@@ -52,6 +51,7 @@ export default function EquipmentsDataTable() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedKategori, setSelectedKategori] = useState('SEMUA');
+  const [limit, setLimit] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
 
   // Checkbox Select States
@@ -166,11 +166,11 @@ export default function EquipmentsDataTable() {
   }, [selectedKategori, searchQuery]);
 
   // Pagination Calculation
-  const totalPages = Math.max(1, Math.ceil(filteredEquipments.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(filteredEquipments.length / limit));
   const paginatedEquipments = useMemo(() => {
-    const start = (currentPage - 1) * PAGE_SIZE;
-    return filteredEquipments.slice(start, start + PAGE_SIZE);
-  }, [filteredEquipments, currentPage]);
+    const start = (currentPage - 1) * limit;
+    return filteredEquipments.slice(start, start + limit);
+  }, [filteredEquipments, currentPage, limit]);
 
   // Statistik Ringkas
   const stats = useMemo(() => {
@@ -944,54 +944,63 @@ export default function EquipmentsDataTable() {
               </table>
             </div>
 
-            {/* Pagination Controls (Maksimal 10 Data per Halaman) */}
-            <div className="p-3 sm:p-4 border-t border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-              <span className="text-slate-500 font-medium">
-                Menampilkan{' '}
-                <strong className="text-slate-800">
-                  {(currentPage - 1) * PAGE_SIZE + 1}
-                </strong>{' '}
-                -{' '}
-                <strong className="text-slate-800">
-                  {Math.min(currentPage * PAGE_SIZE, filteredEquipments.length)}
-                </strong>{' '}
-                dari <strong className="text-slate-800">{filteredEquipments.length}</strong> unit alat
-              </span>
+            {/* Footer Pagination Persis Gambar 3 & Gambar 4 */}
+            <div className="px-4 py-3 border-t border-[#F1F3F5] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 bg-white">
+              <div className="flex items-center gap-3">
+                <div>
+                  Menampilkan{' '}
+                  <strong className="text-slate-800 font-semibold">
+                    {filteredEquipments.length > 0 ? (currentPage - 1) * limit + 1 : 0}
+                  </strong>{' '}
+                  -{' '}
+                  <strong className="text-slate-800 font-semibold">
+                    {Math.min(currentPage * limit, filteredEquipments.length)}
+                  </strong>{' '}
+                  dari{' '}
+                  <strong className="text-slate-800 font-semibold">
+                    {filteredEquipments.length}
+                  </strong>{' '}
+                  total alat pertanian
+                </div>
+
+                {/* Limit Dropdown Persis Gambar 4 */}
+                <div className="flex items-center gap-1.5 ml-2">
+                  <span className="text-[11px] text-slate-400">Limit:</span>
+                  <select
+                    value={limit}
+                    onChange={(e) => {
+                      setLimit(Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
+                    className="h-7 px-2 rounded-md border border-slate-200 bg-white text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-900 cursor-pointer"
+                  >
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                  </select>
+                </div>
+              </div>
 
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
+                  disabled={currentPage <= 1 || isLoading}
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage <= 1}
-                  className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed font-semibold flex items-center gap-1 transition shadow-2xs"
+                  className="h-8 px-3 rounded-lg border border-[#E5E7EB] hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-slate-700 transition cursor-pointer shadow-2xs"
                 >
-                  <ChevronLeft className="w-3.5 h-3.5" />
-                  <span>Sebelumnya</span>
+                  Sebelumnya
                 </button>
-
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <button
-                    key={page}
-                    type="button"
-                    onClick={() => setCurrentPage(page)}
-                    className={`w-8 h-8 rounded-lg font-bold text-xs transition shadow-2xs ${
-                      currentPage === page
-                        ? 'bg-emerald-700 text-white shadow-xs'
-                        : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
-                    }`}
-                  >
-                    {page}
-                  </button>
-                ))}
-
+                <span className="px-2 text-slate-600 font-semibold tabular-nums">
+                  {currentPage} / {totalPages || 1}
+                </span>
                 <button
                   type="button"
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={currentPage >= totalPages}
-                  className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed font-semibold flex items-center gap-1 transition shadow-2xs"
+                  disabled={currentPage >= totalPages || isLoading}
+                  onClick={() => setCurrentPage((p) => p + 1)}
+                  className="h-8 px-3 rounded-lg border border-[#E5E7EB] hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-slate-700 transition cursor-pointer shadow-2xs"
                 >
-                  <span>Berikutnya</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
+                  Selanjutnya
                 </button>
               </div>
             </div>

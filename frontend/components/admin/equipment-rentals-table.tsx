@@ -1360,22 +1360,26 @@ export function EquipmentRentalsTable() {
             </Table>
           </div>
 
-          {/* Baris Bawah: Pagination */}
-          <div className="px-4 py-3 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 bg-white">
-            <div className="flex items-center gap-2">
-              <span>
+          {/* Baris Bawah: Pagination Persis Gambar 3 & Gambar 4 */}
+          <div className="px-4 py-3 border-t border-[#F1F3F5] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 bg-white">
+            <div className="flex items-center gap-3">
+              <div>
                 Menampilkan{' '}
-                <strong className="text-slate-800">
+                <strong className="text-slate-800 font-semibold">
                   {filteredRentals.length === 0
                     ? 0
                     : (currentPage - 1) * itemsPerPage + 1}
-                </strong>
-                -
-                <strong className="text-slate-800">
+                </strong>{' '}
+                -{' '}
+                <strong className="text-slate-800 font-semibold">
                   {Math.min(currentPage * itemsPerPage, filteredRentals.length)}
                 </strong>{' '}
-                dari <strong className="text-slate-800">{filteredRentals.length}</strong> data
-              </span>
+                dari{' '}
+                <strong className="text-slate-800 font-semibold">
+                  {filteredRentals.length}
+                </strong>{' '}
+                total sewa alat
+              </div>
 
               <div className="flex items-center gap-1.5 ml-2">
                 <span className="text-[11px] text-slate-400">Limit:</span>
@@ -1387,6 +1391,7 @@ export function EquipmentRentalsTable() {
                   }}
                   className="h-7 px-2 rounded-md border border-slate-200 bg-white text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-900 cursor-pointer"
                 >
+                  <option value={5}>5</option>
                   <option value={10}>10</option>
                   <option value={20}>20</option>
                   <option value={50}>50</option>
@@ -1403,8 +1408,8 @@ export function EquipmentRentalsTable() {
               >
                 Sebelumnya
               </button>
-              <span className="px-2 text-xs font-semibold text-slate-700 tabular-nums">
-                Halaman {currentPage} dari {totalPages}
+              <span className="px-2 text-slate-600 font-semibold tabular-nums">
+                {currentPage} / {totalPages || 1}
               </span>
               <button
                 type="button"
