@@ -13,6 +13,7 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
+  DialogClose,
 } from '@/components/ui/dialog';
 import {
   Search,
@@ -20,6 +21,7 @@ import {
   Clock,
   Package,
   Check,
+  X,
   XCircle,
   RefreshCw,
   User,
@@ -1330,13 +1332,14 @@ export function OrdersDataTable({
           onOpenChange={(open) => !open && setSelectedOrder(null)}
         >
           <DialogContent
+            showCloseButton={false}
             data-lenis-prevent="true"
             data-lenis-prevent-wheel="true"
             data-lenis-prevent-touch="true"
             className="sm:max-w-xl w-[95vw] gap-0 p-0 bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden max-h-[85vh] flex flex-col"
           >
             {/* Header Modal */}
-            <div className="px-5 pt-5 pb-4 pr-12 border-b border-slate-100 shrink-0">
+            <div className="px-5 py-4 border-b border-slate-100 shrink-0">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">
@@ -1365,7 +1368,21 @@ export function OrdersDataTable({
                     })}
                   </p>
                 </div>
-                <div className="shrink-0 pt-0.5">{renderStatusBadge(selectedOrder.status)}</div>
+
+                {/* Badge Status & Tombol Tutup Bersih & Rapi */}
+                <div className="flex items-center gap-2 shrink-0 pt-0.5">
+                  {renderStatusBadge(selectedOrder.status)}
+                  <DialogClose asChild>
+                    <button
+                      type="button"
+                      className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer border border-slate-200/80 shadow-2xs"
+                      title="Tutup dialog"
+                      aria-label="Tutup"
+                    >
+                      <X className="w-3.5 h-3.5" strokeWidth={2.5} />
+                    </button>
+                  </DialogClose>
+                </div>
               </div>
             </div>
 
