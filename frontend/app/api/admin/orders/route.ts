@@ -24,13 +24,16 @@ export async function GET(request: Request) {
     const methodParam = searchParams.get('method');
     const startDateParam = searchParams.get('startDate');
     const endDateParam = searchParams.get('endDate');
+    const isExport = searchParams.get('export') === 'true';
     const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
-    const limit = Math.max(1, Math.min(50, parseInt(searchParams.get('limit') || '10', 10)));
-    const skip = (page - 1) * limit;
+    const limit = isExport
+      ? 1000
+      : Math.max(1, Math.min(50, parseInt(searchParams.get('limit') || '10', 10)));
+    const skip = isExport ? 0 : (page - 1) * limit;
 
-    const cacheKey = `admin:orders:v3:p=${page}:l=${limit}:s=${statusParam || 'all'}:m=${methodParam || 'all'}:sd=${startDateParam || ''}:ed=${endDateParam || ''}:q=${search || ''}`;
+    const cacheKey = `admin:orders:v3:p=${page}:l=${limit}:s=${statusParam || 'all'}:m=${methodParam || 'all'}:sd=${startDateParam || ''}:ed=${endDateParam || ''}:q=${search || ''}:exp=${isExport}`;
     const cachedResponse = await getCache<any>(cacheKey);
-    if (cachedResponse) {
+    if (cachedResponse && !isExport) {
       return NextResponse.json(cachedResponse);
     }
 
@@ -213,8 +216,10 @@ export async function GET(request: Request) {
       },
     };
 
-    // Cache for 30 seconds
-    await setCache(cacheKey, responseData, 30);
+    // Cache for 30 seconds (skip cache if export)
+    if (!isExport) {
+      await setCache(cacheKey, responseData, 30);
+    }
 
     return NextResponse.json(responseData);
   } catch (error) {

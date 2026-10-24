@@ -33,7 +33,6 @@ import {
   Loader2,
   Store,
   Truck,
-  MapPin,
   Calendar,
   ChevronDown,
   Printer,
@@ -202,6 +201,7 @@ export function OrdersDataTable({
 
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   // States untuk Hapus Tunggal & Hapus Masal
   const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
@@ -435,47 +435,143 @@ export function OrdersDataTable({
     }
   };
 
-  // Fungsi Ekspor CSV
-  const handleExportCSV = () => {
-    if (orders.length === 0) {
-      showToast('Tidak ada data pesanan untuk diekspor');
-      return;
+  // Fungsi Ekspor CSV / Excel
+  const handleExportCSV = async () => {
+    try {
+      setIsExporting(true);
+
+      let dataToExport: any[] = [];
+
+      // Jika user memilih checkbox pesanan tertentu, ekspor pesanan terpilih
+      if (selectedOrders.length > 0) {
+        dataToExport = orders.filter((o) => selectedOrders.includes(o.id));
+      } else {
+        // Ambil seluruh data pesanan sesuai filter saat ini dari server
+        try {
+          const params = new URLSearchParams({ export: 'true' });
+          if (debouncedSearch) params.set('q', debouncedSearch);
+          const targetStatus = isDashboard ? 'MENUNGGU_PEMBAYARAN' : filterStatus;
+          if (targetStatus !== 'ALL') params.set('status', targetStatus);
+          if (dateRange) {
+            params.set('startDate', dateRange.start);
+            params.set('endDate', dateRange.end);
+          }
+          const res = await fetch(`/api/admin/orders?${params.toString()}`);
+          const data = await res.json();
+          if (data.success && Array.isArray(data.orders)) {
+            dataToExport = data.orders;
+          }
+        } catch (fetchErr) {
+          console.warn('Gagal fetch all untuk ekspor, fallback ke data saat ini:', fetchErr);
+        }
+
+        if (dataToExport.length === 0) {
+          dataToExport = orders;
+        }
+      }
+
+      if (dataToExport.length === 0) {
+        showToast('Tidak ada data pesanan untuk diekspor');
+        return;
+      }
+
+      const headers = [
+        'Ticket ID',
+        'Komoditas',
+        'Pembayaran',
+        'Pembeli',
+        'Status',
+        'Tanggal',
+        'Total (Rp)',
+      ];
+
+      const STATUS_LABEL_MAP: Record<string, string> = {
+        MENUNGGU_PEMBAYARAN: 'Menunggu Pembayaran',
+        DIPROSES: 'Diproses Gudang',
+        SIAP_DIAMBIL: 'Siap Diambil',
+        SELESAI: 'Selesai Diterima',
+        DIBATALKAN: 'Dibatalkan',
+      };
+
+      const escapeCell = (val: any) => {
+        if (val === null || val === undefined) return '""';
+        const str = String(val);
+        return `"${str.replace(/"/g, '""')}"`;
+      };
+
+      const rows = dataToExport.map((o) => {
+        const ticketId = o.orderNumber
+          ? `#${o.orderNumber}`
+          : `#${o.id ? o.id.slice(0, 8) : '-'}`;
+
+        const komoditas =
+          o.items && o.items.length > 0
+            ? o.items
+                .map(
+                  (it: any) =>
+                    `${it.namaProduk || 'Komoditas'}${
+                      it.quantity
+                        ? ` (${it.quantity} ${it.satuan || 'unit'})`
+                        : ''
+                    }`
+                )
+                .join('; ')
+            : 'Komoditas Koperasi';
+
+        const statusBayar = o.isPaid ? 'Lunas' : 'Belum Lunas';
+        const pembayaran = `Tunai Kasir (${statusBayar})`;
+
+        const pembeli = o.pembeli?.name
+          ? `${o.pembeli.name}${o.pembeli.phone ? ` (${o.pembeli.phone})` : ''}`
+          : 'Pembeli Umum';
+
+        const statusLabel = STATUS_LABEL_MAP[o.status] || o.status;
+
+        const tanggal = o.createdAt
+          ? new Date(o.createdAt).toISOString().split('T')[0]
+          : '-';
+
+        const totalRp = Number(o.totalAmount || 0);
+
+        return [
+          escapeCell(ticketId),
+          escapeCell(komoditas),
+          escapeCell(pembayaran),
+          escapeCell(pembeli),
+          escapeCell(statusLabel),
+          escapeCell(tanggal),
+          totalRp,
+        ];
+      });
+
+      const csvContent = [
+        headers.map((h) => `"${h}"`).join(','),
+        ...rows.map((r) => r.join(',')),
+      ].join('\r\n');
+
+      // Gunakan Blob dengan UTF-8 BOM (\uFEFF) agar Microsoft Excel membaca isi file dengan benar tanpa terpotong
+      const blob = new Blob(['\uFEFF' + csvContent], {
+        type: 'text/csv;charset=utf-8;',
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute(
+        'download',
+        `pesanan-koperasi-${new Date().toISOString().slice(0, 10)}.csv`
+      );
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      showToast(`Berhasil mengekspor ${dataToExport.length} pesanan ke Excel/CSV`);
+    } catch (err) {
+      console.error('Gagal mengekspor pesanan:', err);
+      showToast('Gagal mengekspor pesanan');
+    } finally {
+      setIsExporting(false);
     }
-
-    const headers = [
-      'Ticket ID',
-      'Komoditas',
-      'Pembayaran',
-      'Pembeli',
-      'Status',
-      'Tanggal',
-      'Total (Rp)',
-    ];
-
-    const rows = orders.map((o) => [
-      `#${o.orderNumber}`,
-      `"${(o.items?.map((it: any) => it.namaProduk).join('; ') || 'Komoditas Koperasi').replace(/"/g, '""')}"`,
-      'Tunai Kasir',
-      `"${(o.pembeli?.name || 'Pembeli Umum').replace(/"/g, '""')}"`,
-      o.status,
-      new Date(o.createdAt).toISOString().split('T')[0],
-      Number(o.totalAmount),
-    ]);
-
-    const csvContent =
-      'data:text/csv;charset=utf-8,' +
-      [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute(
-      'download',
-      `pesanan-koperasi-${new Date().toISOString().slice(0, 10)}.csv`
-    );
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    showToast('Daftar pesanan berhasil diekspor ke CSV');
   };
 
   // Fungsi Cetak Struk / Nota Pesanan
@@ -742,10 +838,15 @@ export function OrdersDataTable({
             <button
               type="button"
               onClick={handleExportCSV}
-              className="h-8 px-3 rounded-lg border border-[#E5E7EB] bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium flex items-center gap-1.5 transition cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
+              disabled={isExporting}
+              className="h-8 px-3 rounded-lg border border-[#E5E7EB] bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium flex items-center gap-1.5 transition cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,0.02)] disabled:opacity-50"
             >
-              <Download className="w-3.5 h-3.5 text-slate-500" />
-              <span>Ekspor</span>
+              {isExporting ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-500" />
+              ) : (
+                <Download className="w-3.5 h-3.5 text-slate-500" />
+              )}
+              <span>{isExporting ? 'Mengekspor...' : 'Ekspor'}</span>
             </button>
 
             <button
@@ -1320,7 +1421,7 @@ export function OrdersDataTable({
                           : 'bg-white border border-slate-300 text-slate-300'
                       }`}
                     >
-                      <MapPin className="w-4 h-4" />
+                      <Check className="w-4 h-4" strokeWidth={2.5} />
                     </div>
                     <div className="font-bold text-[11px] text-slate-800">4. Selesai</div>
                     <div className="text-[10px] text-slate-400">Diterima pembeli</div>
