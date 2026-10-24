@@ -238,6 +238,8 @@ export async function GET() {
             where: { id: exp.id },
             data: {
               status: 'DIBATALKAN',
+              isPaid: false,
+              paidAt: null,
               catatan: exp.catatan
                 ? `${exp.catatan} (Otomatis dibatalkan sistem: Melewati batas pembayaran 24 jam)`
                 : '(Otomatis dibatalkan sistem: Melewati batas pembayaran 24 jam)',

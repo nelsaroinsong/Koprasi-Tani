@@ -1011,7 +1011,7 @@ export function EquipmentRentalsTable() {
                             Rp {Number(rental.totalEstimasi).toLocaleString('id-ID')}
                           </div>
                           <div className="text-[11px] font-medium">
-                            {rental.isPaid || rental.status === 'SELESAI' ? (
+                            {rental.status !== 'DIBATALKAN' && rental.status !== 'DITOLAK' && (rental.isPaid || rental.status === 'SELESAI') ? (
                               <span className="text-emerald-600">Lunas</span>
                             ) : (
                               <span className="text-amber-600">Belum lunas</span>
@@ -1401,7 +1401,7 @@ export function EquipmentRentalsTable() {
                     <dt className="text-slate-500">Pembayaran</dt>
                     <dd className="font-medium text-slate-900 flex items-center gap-2">
                       Tunai Kasir
-                      {selectedRental.isPaid || selectedRental.status === 'SELESAI' ? (
+                      {selectedRental.status !== 'DIBATALKAN' && selectedRental.status !== 'DITOLAK' && (selectedRental.isPaid || selectedRental.status === 'SELESAI') ? (
                         <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 text-[10.5px] font-semibold">
                           Lunas
                         </span>

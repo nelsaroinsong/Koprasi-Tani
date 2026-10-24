@@ -78,25 +78,32 @@ export async function PATCH(
           }
         }
 
-        // Jika status DIBATALKAN dan sebelumnya belum dibatalkan, KEMBALIKAN STOK FISIK KE GUDANG KOPERASI!
-        if (status === 'DIBATALKAN' && existingOrder.status !== 'DIBATALKAN') {
-          for (const item of existingOrder.items) {
-            await tx.product.update({
-              where: { id: item.productId },
-              data: {
-                stok: {
-                  increment: item.quantity,
+        // Jika status DIBATALKAN, pastikan status bayar false dan KEMBALIKAN STOK FISIK KE GUDANG KOPERASI!
+        if (status === 'DIBATALKAN') {
+          updateData.isPaid = false;
+          updateData.paidAt = null;
+
+          if (existingOrder.status !== 'DIBATALKAN') {
+            for (const item of existingOrder.items) {
+              await tx.product.update({
+                where: { id: item.productId },
+                data: {
+                  stok: {
+                    increment: item.quantity,
+                  },
                 },
-              },
-            });
+              });
+            }
           }
         }
       }
 
-      if (isPaid !== undefined) {
+      if (isPaid !== undefined && status !== 'DIBATALKAN' && existingOrder.status !== 'DIBATALKAN') {
         updateData.isPaid = Boolean(isPaid);
         if (Boolean(isPaid) && !existingOrder.paidAt) {
           updateData.paidAt = new Date();
+        } else if (!Boolean(isPaid)) {
+          updateData.paidAt = null;
         }
       }
 

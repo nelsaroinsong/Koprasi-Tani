@@ -329,7 +329,11 @@ export function OrdersDataTable({
       setOrders((prev) =>
         prev.map((o) =>
           o.id === orderId
-            ? { ...o, status: newStatus, isPaid: newStatus === 'SELESAI' ? true : o.isPaid }
+            ? {
+                ...o,
+                status: newStatus,
+                isPaid: newStatus === 'SELESAI' ? true : newStatus === 'DIBATALKAN' ? false : o.isPaid,
+              }
             : o
         )
       );
@@ -337,7 +341,11 @@ export function OrdersDataTable({
       if (selectedOrder && selectedOrder.id === orderId) {
         setSelectedOrder((prev: any) =>
           prev
-            ? { ...prev, status: newStatus, isPaid: newStatus === 'SELESAI' ? true : prev.isPaid }
+            ? {
+                ...prev,
+                status: newStatus,
+                isPaid: newStatus === 'SELESAI' ? true : newStatus === 'DIBATALKAN' ? false : prev.isPaid,
+              }
             : null
         );
       }
@@ -520,7 +528,7 @@ export function OrdersDataTable({
                 .join('; ')
             : 'Komoditas Koperasi';
 
-        const statusBayar = o.isPaid ? 'Lunas' : 'Belum Lunas';
+        const statusBayar = o.status === 'DIBATALKAN' || !o.isPaid ? 'Belum Lunas' : 'Lunas';
         const pembayaran = `Tunai Kasir (${statusBayar})`;
 
         const pembeli = o.pembeli?.name
@@ -675,10 +683,10 @@ export function OrdersDataTable({
         Tunai Kasir
       </span>
       <div className="text-[11px] font-medium">
-        {order.isPaid ? (
-          <span className="text-emerald-600">Lunas</span>
-        ) : (
+        {order.status === 'DIBATALKAN' || !order.isPaid ? (
           <span className="text-amber-600">Belum lunas</span>
+        ) : (
+          <span className="text-emerald-600">Lunas</span>
         )}
       </div>
     </div>
@@ -1526,13 +1534,13 @@ export function OrdersDataTable({
                     <dt className="text-slate-500">Pembayaran</dt>
                     <dd className="font-medium text-slate-900 flex items-center gap-2">
                       Tunai Kasir
-                      {selectedOrder.isPaid ? (
-                        <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 text-[10.5px] font-semibold">
-                          Lunas
-                        </span>
-                      ) : (
+                      {selectedOrder.status === 'DIBATALKAN' || !selectedOrder.isPaid ? (
                         <span className="px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 text-[10.5px] font-semibold">
                           Belum lunas
+                        </span>
+                      ) : (
+                        <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 text-[10.5px] font-semibold">
+                          Lunas
                         </span>
                       )}
                     </dd>

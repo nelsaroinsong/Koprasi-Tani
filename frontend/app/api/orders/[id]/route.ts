@@ -41,6 +41,8 @@ async function checkAndAutoCancelExpiredOrder(order: any) {
           where: { id: order.id },
           data: {
             status: 'DIBATALKAN',
+            isPaid: false,
+            paidAt: null,
             catatan: order.catatan
               ? `${order.catatan} (Otomatis dibatalkan sistem: Melewati batas waktu 24 jam)`
               : '(Otomatis dibatalkan sistem: Melewati batas waktu 24 jam)',
@@ -266,6 +268,8 @@ export async function PATCH(
         where: { id: order.id },
         data: {
           status: 'DIBATALKAN',
+          isPaid: false,
+          paidAt: null,
           catatan: order.catatan ? `${order.catatan}${noteSuffix}` : noteSuffix.trim(),
         },
         include: {
