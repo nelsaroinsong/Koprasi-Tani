@@ -90,7 +90,7 @@ const HATCHED_BG_STYLE: React.CSSProperties = {
  * Tahap 1: Dipesan (Package)
  * Tahap 2: Diproses Gudang (Store/Warehouse)
  * Tahap 3: Pengiriman / Siap (Truck)
- * Tahap 4: Sampai / Selesai (MapPin)
+ * Tahap 4: Sampai / Selesai (Check)
  */
 function OrderEventTimeline({ status }: { status: string }) {
   const isCanceled = status === 'DIBATALKAN';
@@ -104,7 +104,7 @@ function OrderEventTimeline({ status }: { status: string }) {
     { num: 1, label: 'Dipesan', icon: Package },
     { num: 2, label: 'Diproses Gudang', icon: Store },
     { num: 3, label: 'Siap Diambil', icon: Truck },
-    { num: 4, label: 'Selesai Diterima', icon: MapPin },
+    { num: 4, label: 'Selesai Diterima', icon: Check },
   ];
 
   return (
@@ -141,6 +141,7 @@ function OrderEventTimeline({ status }: { status: string }) {
                       ? 'text-white'
                       : 'text-slate-400'
                   }`}
+                  strokeWidth={m.num === 4 ? 2.5 : 2}
                 />
               )}
             </div>
