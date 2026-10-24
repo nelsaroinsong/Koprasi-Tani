@@ -7,7 +7,7 @@
     "userEmail": "nelsaroinsong@gmail.com",
     "userPhone": "0123456789",
     "userRole": "PEMBELI",
-    "status": "MENUNGGU_PERSETUJUAN_ADMIN",
+    "status": "DISETUJUI",
     "startDate": "2026-10-14",
     "lokasiLahan": "Ranotana Weru, Wanea, Manado, Sulawesi Utara, 95161, Indonesia",
     "catatan": "",
@@ -30,8 +30,8 @@
       }
     ],
     "createdAt": "2026-10-14T05:20:10.484Z",
-    "updatedAt": "2026-10-14T05:20:10.484Z",
-    "approvedAt": null
+    "updatedAt": "2026-10-24T06:16:38.427Z",
+    "approvedAt": "2026-10-24T06:16:38.427Z"
   },
   {
     "id": "rent-1791952273376-dmnw",

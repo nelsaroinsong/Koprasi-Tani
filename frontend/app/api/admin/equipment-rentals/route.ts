@@ -139,3 +139,62 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: error.message || 'Gagal memperbarui status sewa' }, { status: 500 });
   }
 }
+
+// DELETE: Hapus banyak data sewa alat sekaligus (Bulk Delete) atau hapus tunggal
+export async function DELETE(request: Request) {
+  try {
+    const session = await auth();
+    const isAdmin = await checkIsAdmin(session);
+    if (!isAdmin) {
+      return NextResponse.json({ error: 'Akses khusus administrator' }, { status: 403 });
+    }
+
+    const body = await request.json();
+    const { rentalIds, id } = body;
+
+    const idsToDelete: string[] = Array.isArray(rentalIds)
+      ? rentalIds
+      : id
+      ? [id]
+      : [];
+
+    if (idsToDelete.length === 0) {
+      return NextResponse.json(
+        { error: 'Daftar ID sewa alat tidak boleh kosong' },
+        { status: 400 }
+      );
+    }
+
+    const rentals = readEquipmentRentals();
+    const initialCount = rentals.length;
+    const remainingRentals = rentals.filter(
+      (r) => !idsToDelete.includes(r.id) && !idsToDelete.includes(r.rentalCode)
+    );
+    const deletedCount = initialCount - remainingRentals.length;
+
+    if (deletedCount === 0) {
+      return NextResponse.json(
+        { error: 'Tidak ada data pengajuan sewa yang cocok untuk dihapus' },
+        { status: 404 }
+      );
+    }
+
+    writeEquipmentRentals(remainingRentals);
+
+    // Invalidate Redis caches
+    try {
+      const { delCache } = await import('@/lib/redis');
+      await delCache('equipments:list:public');
+    } catch {}
+
+    return NextResponse.json({
+      success: true,
+      message: `${deletedCount} data sewa alat berhasil dihapus dari sistem.`,
+    });
+  } catch (error: any) {
+    return NextResponse.json(
+      { error: error.message || 'Gagal menghapus data sewa alat' },
+      { status: 500 }
+    );
+  }
+}

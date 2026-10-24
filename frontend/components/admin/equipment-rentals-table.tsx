@@ -49,6 +49,7 @@ import {
   FileText,
   Wallet,
   ChevronDown,
+  Trash2,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useDebounce } from '@/hooks/use-debounce';
@@ -157,8 +158,14 @@ export function EquipmentRentalsTable() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
+  const [datePreset, setDatePreset] = useState<'ALL' | 'TODAY' | 'WEEK' | 'MONTH'>('ALL');
   const [selectedRentals, setSelectedRentals] = useState<string[]>([]);
   const [isExporting, setIsExporting] = useState(false);
+
+  // Modal konfirmasi hapus data sewa
+  const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
+  const [rentalToDelete, setRentalToDelete] = useState<EquipmentRentalOrder | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -173,7 +180,28 @@ export function EquipmentRentalsTable() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch, filterStatus]);
+  }, [debouncedSearch, filterStatus, datePreset]);
+
+  // Hitung range tanggal dari preset
+  const dateRange = useMemo(() => {
+    if (datePreset === 'ALL') return null;
+    const now = new Date();
+    const end = now.toISOString();
+
+    if (datePreset === 'TODAY') {
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+      return { start, end };
+    }
+    if (datePreset === 'WEEK') {
+      const start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      return { start, end };
+    }
+    if (datePreset === 'MONTH') {
+      const start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      return { start, end };
+    }
+    return null;
+  }, [datePreset]);
 
   // Fetch Rentals from Admin API
   const fetchRentals = useCallback(async () => {
@@ -210,6 +238,15 @@ export function EquipmentRentalsTable() {
       }
     }
 
+    if (dateRange) {
+      const startMs = new Date(dateRange.start).getTime();
+      const endMs = new Date(dateRange.end).getTime();
+      result = result.filter((r) => {
+        const itemTime = new Date(r.createdAt).getTime();
+        return itemTime >= startMs && itemTime <= endMs;
+      });
+    }
+
     if (debouncedSearch.trim()) {
       const q = debouncedSearch.toLowerCase().trim();
       result = result.filter(
@@ -224,7 +261,7 @@ export function EquipmentRentalsTable() {
     }
 
     return result;
-  }, [rentals, filterStatus, debouncedSearch]);
+  }, [rentals, filterStatus, debouncedSearch, dateRange]);
 
   // Status counts for tabs
   const stats = useMemo(() => {
@@ -283,6 +320,63 @@ export function EquipmentRentalsTable() {
     setSelectedRentals((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
     );
+  };
+
+  // Fungsi Hapus Masal (Bulk Delete)
+  const handleBulkDelete = async () => {
+    if (selectedRentals.length === 0) return;
+    try {
+      setIsDeleting(true);
+      const res = await fetch('/api/admin/equipment-rentals', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rentalIds: selectedRentals }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Gagal menghapus pengajuan sewa terpilih');
+      }
+
+      showToast(data.message || `${selectedRentals.length} pengajuan sewa berhasil dihapus`);
+      setSelectedRentals([]);
+      setIsBulkDeleteOpen(false);
+      fetchRentals();
+    } catch (err: any) {
+      showToast(err.message || 'Terjadi kesalahan saat menghapus data sewa');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Fungsi Hapus Tunggal (Single Delete)
+  const handleSingleDelete = async () => {
+    if (!rentalToDelete) return;
+    try {
+      setIsDeleting(true);
+      const res = await fetch('/api/admin/equipment-rentals', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rentalIds: [rentalToDelete.id] }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Gagal menghapus data sewa alat');
+      }
+
+      showToast(data.message || `Sewa #${rentalToDelete.rentalCode} berhasil dihapus`);
+      setSelectedRentals((prev) => prev.filter((id) => id !== rentalToDelete.id));
+      if (selectedRental?.id === rentalToDelete.id) {
+        setSelectedRental(null);
+      }
+      setRentalToDelete(null);
+      fetchRentals();
+    } catch (err: any) {
+      showToast(err.message || 'Terjadi kesalahan saat menghapus data sewa');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   // Update Status Pengajuan Sewa
@@ -673,7 +767,7 @@ export function EquipmentRentalsTable() {
           </div>
         </div>
 
-        {/* Toolbar: cari, reset, ekspor, refresh */}
+        {/* Toolbar: cari, tanggal, reset, ekspor, refresh, menu aksi */}
         <div className="px-3 pb-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             <div className="relative flex-1 sm:flex-none sm:w-72">
@@ -687,11 +781,63 @@ export function EquipmentRentalsTable() {
               />
             </div>
 
-            {(searchQuery || filterStatus !== 'ALL') && (
+            {/* Filter Tanggal Preset */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="h-8 px-2.5 rounded-lg border border-[#E5E7EB] bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium flex items-center gap-1.5 transition cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,0.02)] shrink-0"
+                >
+                  <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                  <span>
+                    {datePreset === 'ALL'
+                      ? 'Semua Tanggal'
+                      : datePreset === 'TODAY'
+                      ? 'Hari Ini'
+                      : datePreset === 'WEEK'
+                      ? '7 Hari Terakhir'
+                      : '30 Hari Terakhir'}
+                  </span>
+                  <ChevronDown className="w-3 h-3 text-slate-400" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="start"
+                className="w-40 rounded-xl p-1 bg-white border border-slate-200 shadow-lg text-xs z-50"
+              >
+                <DropdownMenuItem
+                  onClick={() => setDatePreset('ALL')}
+                  className="cursor-pointer rounded-lg px-2.5 py-1.5"
+                >
+                  Semua Tanggal
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setDatePreset('TODAY')}
+                  className="cursor-pointer rounded-lg px-2.5 py-1.5"
+                >
+                  Hari Ini
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setDatePreset('WEEK')}
+                  className="cursor-pointer rounded-lg px-2.5 py-1.5"
+                >
+                  7 Hari Terakhir
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setDatePreset('MONTH')}
+                  className="cursor-pointer rounded-lg px-2.5 py-1.5"
+                >
+                  30 Hari Terakhir
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {(searchQuery || filterStatus !== 'ALL' || datePreset !== 'ALL') && (
               <button
                 type="button"
                 onClick={() => {
                   setFilterStatus('ALL');
+                  setDatePreset('ALL');
                   setSearchQuery('');
                 }}
                 className="h-8 px-2.5 text-xs text-slate-500 hover:text-slate-900 font-medium rounded-lg hover:bg-white transition cursor-pointer flex items-center gap-1"
@@ -728,8 +874,92 @@ export function EquipmentRentalsTable() {
                 className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-slate-800' : ''}`}
               />
             </button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="w-8 h-8 rounded-lg border border-[#E5E7EB] bg-white hover:bg-slate-50 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,0.02)] shrink-0"
+                  title="Opsi tabel"
+                >
+                  <MoreVertical className="w-3.5 h-3.5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="w-52 rounded-xl p-1 bg-white border border-slate-200 shadow-lg text-xs z-50"
+              >
+                <DropdownMenuItem
+                  onClick={() => {
+                    const pageIds = paginatedRentals.map((r) => r.id);
+                    setSelectedRentals((prev) => Array.from(new Set([...prev, ...pageIds])));
+                  }}
+                  className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-slate-700"
+                >
+                  <Check className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Pilih Semua di Halaman</span>
+                </DropdownMenuItem>
+                {selectedRentals.length > 0 && (
+                  <>
+                    <DropdownMenuItem
+                      onClick={() => setSelectedRentals([])}
+                      className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-slate-700"
+                    >
+                      <XCircle className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Batalkan Pilihan</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator className="my-1 border-slate-100" />
+                    <DropdownMenuItem
+                      onClick={() => setIsBulkDeleteOpen(true)}
+                      className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-rose-600"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                      <span>Hapus Terpilih ({selectedRentals.length})</span>
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
+
+        {/* Bulk Action Bar saat ada sewa alat yang dipilih (Kravio White Card Style) */}
+        {selectedRentals.length > 0 && (
+          <div className="mb-2 px-3.5 py-2.5 bg-white rounded-xl border border-[#ECEEF2] shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 animate-in fade-in slide-in-from-top-1 duration-200">
+            <div className="flex items-center gap-2.5">
+              <span className="w-6 h-6 rounded-lg bg-slate-900 text-white font-bold flex items-center justify-center text-xs tabular-nums shadow-2xs">
+                {selectedRentals.length}
+              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[13px] font-semibold text-slate-800 tracking-tight">
+                  {selectedRentals.length} pesanan dipilih
+                </span>
+                <span className="hidden sm:inline-block text-xs text-slate-400 font-normal">
+                  • dari {paginatedRentals.length} di halaman ini
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 self-end sm:self-auto">
+              <button
+                type="button"
+                onClick={() => setSelectedRentals([])}
+                className="h-8 px-3 rounded-lg border border-[#E5E7EB] bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 text-xs font-medium transition cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex items-center gap-1.5"
+              >
+                <XCircle className="w-3.5 h-3.5 text-slate-400" />
+                <span>Batalkan Pilihan</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsBulkDeleteOpen(true)}
+                className="h-8 px-3.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Hapus Semua Terpilih ({selectedRentals.length})</span>
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Inner Card Tabel Data Sewa Alat */}
         <div className="rounded-xl border border-slate-200/80 bg-white overflow-hidden shadow-2xs">
@@ -1110,6 +1340,15 @@ export function EquipmentRentalsTable() {
                                   </DropdownMenuItem>
                                 </>
                               )}
+
+                              <DropdownMenuSeparator className="my-1 border-slate-100" />
+                              <DropdownMenuItem
+                                onClick={() => setRentalToDelete(rental)}
+                                className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-rose-600 hover:bg-rose-50"
+                              >
+                                <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                                <span>Hapus Data Sewa</span>
+                              </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
@@ -1480,14 +1719,26 @@ export function EquipmentRentalsTable() {
 
             {/* Modal Actions */}
             <div className="p-4 bg-white border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 shrink-0">
-              <button
-                type="button"
-                onClick={() => handlePrintReceipt(selectedRental)}
-                className="px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
-              >
-                <Printer className="w-3.5 h-3.5 text-slate-600" />
-                <span>Cetak Surat Jalan / Bukti</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handlePrintReceipt(selectedRental)}
+                  className="px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                >
+                  <Printer className="w-3.5 h-3.5 text-slate-600" />
+                  <span>Cetak Surat Jalan / Bukti</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setRentalToDelete(selectedRental)}
+                  className="px-2.5 py-2 text-xs font-semibold text-rose-600 bg-white border border-rose-200 hover:bg-rose-50 rounded-xl transition cursor-pointer flex items-center gap-1 shadow-2xs"
+                  title="Hapus data sewa ini"
+                >
+                  <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                  <span className="hidden sm:inline">Hapus</span>
+                </button>
+              </div>
 
               <div className="flex items-center gap-2">
                 {['MENUNGGU_PERSETUJUAN_ADMIN', 'DISETUJUI', 'SIAP_DIAMBIL'].includes(
@@ -1571,6 +1822,112 @@ export function EquipmentRentalsTable() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Modal Konfirmasi Hapus Masal (Bulk Delete) */}
+      <Dialog
+        open={isBulkDeleteOpen}
+        onOpenChange={(open) => !open && !isDeleting && setIsBulkDeleteOpen(false)}
+      >
+        <DialogContent className="max-w-md p-6 bg-white border border-slate-200 rounded-2xl shadow-xl">
+          <div className="flex items-start gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0 border border-rose-100">
+              <AlertTriangle className="w-5 h-5 text-rose-600" />
+            </div>
+            <div className="space-y-1.5 flex-1">
+              <DialogTitle className="text-base font-bold text-slate-900">
+                Hapus {selectedRentals.length} Sewa Alat Terpilih?
+              </DialogTitle>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Apakah Anda yakin ingin menghapus{' '}
+                <strong className="text-slate-800 font-semibold">{selectedRentals.length} data sewa alat</strong>?
+                Data pengajuan sewa ini akan dihapus secara permanen dari sistem koperasi.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5 flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+            <button
+              type="button"
+              disabled={isDeleting}
+              onClick={() => setIsBulkDeleteOpen(false)}
+              className="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 transition cursor-pointer"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              disabled={isDeleting}
+              onClick={handleBulkDelete}
+              className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Menghapus...</span>
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Ya, Hapus Semua</span>
+                </>
+              )}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Konfirmasi Hapus 1 Sewa Alat */}
+      <Dialog
+        open={Boolean(rentalToDelete)}
+        onOpenChange={(open) => !open && !isDeleting && setRentalToDelete(null)}
+      >
+        <DialogContent className="max-w-md p-6 bg-white border border-slate-200 rounded-2xl shadow-xl">
+          <div className="flex items-start gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0 border border-rose-100">
+              <AlertTriangle className="w-5 h-5 text-rose-600" />
+            </div>
+            <div className="space-y-1.5 flex-1">
+              <DialogTitle className="text-base font-bold text-slate-900">
+                Hapus Pengajuan Sewa #{rentalToDelete?.rentalCode}?
+              </DialogTitle>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Apakah Anda yakin ingin menghapus data sewa pemohon{' '}
+                <strong className="text-slate-800 font-semibold">{rentalToDelete?.userName || 'Umum'}</strong>?
+                Tindakan ini tidak dapat dibatalkan.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5 flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+            <button
+              type="button"
+              disabled={isDeleting}
+              onClick={() => setRentalToDelete(null)}
+              className="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 transition cursor-pointer"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              disabled={isDeleting}
+              onClick={handleSingleDelete}
+              className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Menghapus...</span>
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Hapus Data</span>
+                </>
+              )}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
