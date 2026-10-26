@@ -197,35 +197,33 @@ export function TokoProductFormPage({
     };
   }, [debouncedPetaniSearch]);
 
-  // Load petani options (khusus role PETANI) and check draft if in CREATE mode
+  // Sinkronisasi data petani jika sedang EDIT atau jika ada petaniId tapi selectedPetani belum terisi
   useEffect(() => {
-    async function loadPetani() {
-      try {
-        const res = await fetch('/api/admin/users?role=PETANI&limit=100');
-        if (res.ok) {
-          const data = await res.json();
-          if (Array.isArray(data.users)) {
-            const onlyPetani = data.users.filter((u: any) => u.role === 'PETANI');
-            setPetaniOptions(onlyPetani);
-
-            // Jika ada petaniId pada initialData, cocokkan dan set petani mitra
-            const currentPetaniId = initialData?.petaniId || initialData?.petani?.id;
-            if (currentPetaniId) {
-              const matched = onlyPetani.find((u: any) => u.id === currentPetaniId);
+    const currentPetaniId = initialData?.petaniId || initialData?.petani?.id || petaniId;
+    if (currentPetaniId && !selectedPetani) {
+      async function resolveCurrentPetani() {
+        try {
+          const res = await fetch(`/api/admin/users?role=PETANI&limit=1&q=${encodeURIComponent(currentPetaniId)}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data.users)) {
+              const matched = data.users.find((u: any) => u.id === currentPetaniId && u.role === 'PETANI');
               if (matched) {
                 setSelectedPetani(matched);
                 setPetaniId(matched.id);
               }
             }
           }
+        } catch (err) {
+          console.error('Failed to resolve current petani', err);
         }
-      } catch (err) {
-        console.error('Failed to load petani options', err);
       }
+      resolveCurrentPetani();
     }
-    loadPetani();
+  }, [initialData, petaniId, selectedPetani]);
 
-    // Load draft if CREATE mode and fields are empty
+  // Load draft if CREATE mode and fields are empty
+  useEffect(() => {
     if (!isEdit) {
       try {
         const savedDraft = localStorage.getItem('admin_product_draft');
@@ -263,40 +261,8 @@ export function TokoProductFormPage({
     };
   }, [isPetaniOpen]);
 
-  // Sinkronisasi data petani jika petaniId ada tapi selectedPetani belum terisi
-  useEffect(() => {
-    if (petaniId && !selectedPetani) {
-      fetch(`/api/admin/users?role=PETANI&limit=20&q=${encodeURIComponent(petaniId)}`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (Array.isArray(data.users)) {
-            const found = data.users.find((u: any) => u.id === petaniId);
-            if (found) setSelectedPetani(found);
-          }
-        })
-        .catch(() => {});
-    }
-  }, [petaniId, selectedPetani]);
-
-  // Daftar Petani Mitra yang ditampilkan pada popover (Khusus akun dengan role PETANI)
-  const displayedPetaniList = useMemo(() => {
-    const q = petaniSearch.trim().toLowerCase();
-    if (!q) {
-      return petaniOptions;
-    }
-    const combined = [...searchedPetaniResults];
-    for (const p of petaniOptions) {
-      if (!combined.some((item) => item.id === p.id)) {
-        if (
-          p.email.toLowerCase().includes(q) ||
-          p.name.toLowerCase().includes(q)
-        ) {
-          combined.push(p);
-        }
-      }
-    }
-    return combined;
-  }, [petaniSearch, petaniOptions, searchedPetaniResults]);
+  // Daftar Petani Mitra yang ditampilkan pada popover (Hanya hasil pencarian server role PETANI)
+  const displayedPetaniList = searchedPetaniResults;
 
   // Handler Upload Foto Tambahan (Bisa upload beberapa image)
   const handlePhotoUpload = async (
@@ -682,15 +648,19 @@ export function TokoProductFormPage({
                         onChange={(e) => {
                           const val = e.target.value;
                           setPetaniSearch(val);
-                          setIsPetaniOpen(true);
+                          setIsPetaniOpen(val.trim().length > 0);
                         }}
                         onFocus={() => {
-                          setIsPetaniOpen(true);
+                          if (petaniSearch.trim().length > 0) {
+                            setIsPetaniOpen(true);
+                          }
                         }}
                         onClick={() => {
-                          setIsPetaniOpen(true);
+                          if (petaniSearch.trim().length > 0) {
+                            setIsPetaniOpen(true);
+                          }
                         }}
-                        placeholder="Ketik & cari email mitra petani..."
+                        placeholder="Ketik nama atau email mitra petani..."
                         className="w-full text-xs pl-8 pr-8 py-2.5 bg-slate-100 border border-transparent rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 focus:bg-white transition text-slate-800 font-medium"
                       />
                       {petaniSearch && (
@@ -698,6 +668,7 @@ export function TokoProductFormPage({
                           type="button"
                           onClick={() => {
                             setPetaniSearch('');
+                            setIsPetaniOpen(false);
                           }}
                           className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs p-0.5 cursor-pointer"
                           title="Hapus pencarian"
@@ -708,13 +679,10 @@ export function TokoProductFormPage({
                     </div>
 
                     {/* Popover Hasil Pencarian Email Petani */}
-                    {isPetaniOpen && (
+                    {isPetaniOpen && petaniSearch.trim().length > 0 && (
                       <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-30 max-h-56 overflow-hidden flex flex-col animate-in fade-in zoom-in-95">
-                        <div className="px-3 py-1.5 text-[10.5px] font-semibold text-slate-500 uppercase tracking-wider bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                        <div className="px-3 py-1.5 text-[10px] font-medium text-slate-400 bg-slate-50/80 border-b border-slate-100">
                           <span>Daftar Petani Mitra ({displayedPetaniList.length})</span>
-                          <span className="text-[10px] text-emerald-700 font-semibold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200/60 normal-case">
-                            Hanya Role Petani
-                          </span>
                         </div>
                         <div className="overflow-y-auto p-1 divide-y divide-slate-50 max-h-48">
                           {isSearchingPetani ? (
