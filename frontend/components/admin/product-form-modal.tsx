@@ -351,8 +351,11 @@ export function ProductFormModal({
     try {
       setIsSubmitting(true);
 
-      // Gambar utama adalah activeImageIndex atau gambar pertama
-      const primaryImageUrl = images[activeImageIndex] || images[0] || '';
+      // Urutkan gambar: activeImageIndex menjadi gambar utama paling depan, diikuti gambar lainnya
+      const orderedImages = activeImageIndex >= 0 && activeImageIndex < images.length
+        ? [images[activeImageIndex], ...images.filter((_, i) => i !== activeImageIndex)]
+        : images;
+      const combinedImageUrl = orderedImages.filter(Boolean).join(',');
 
       const payload = {
         nama: nama.trim(),
@@ -361,7 +364,7 @@ export function ProductFormModal({
         hargaPerSatuan: hargaNum,
         satuan: satuan.trim(),
         stok: stokNum,
-        imageUrl: primaryImageUrl || null,
+        imageUrl: combinedImageUrl || null,
         deskripsi: deskripsi.trim() || null,
         isTersedia,
       };

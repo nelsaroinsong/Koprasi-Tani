@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, use, useCallback } from 'react';
+import React, { useState, useEffect, use, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import AppHeader from '@/components/AppHeader';
@@ -55,6 +55,10 @@ export default function ProductDetailPage({
 
   // Stepper state
   const [quantity, setQuantity] = useState(1);
+
+  // Carousel & Image States
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const carouselRef = useRef<HTMLDivElement>(null);
 
   // Lightbox Modal Gambar Ukuran Asli
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
@@ -379,6 +383,35 @@ export default function ProductDetailPage({
   const totalPrice = unitPrice * quantity;
   const isOutOfStock = !product.isTersedia || Number(product.stok || 0) <= 0;
 
+  // Multiple Images Parser (Daftar seluruh foto produk terdaftar)
+  const rawImageUrl = product?.imageUrl;
+  const productImages: string[] = rawImageUrl
+    ? (rawImageUrl.includes(',')
+        ? rawImageUrl.split(',').map((s: string) => s.trim()).filter(Boolean)
+        : [rawImageUrl])
+    : ['https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=800&q=80'];
+
+  const handleScroll = () => {
+    if (!carouselRef.current) return;
+    const { scrollLeft, clientWidth } = carouselRef.current;
+    if (clientWidth > 0) {
+      const newIndex = Math.round(scrollLeft / clientWidth);
+      if (newIndex !== currentImageIndex && newIndex >= 0 && newIndex < productImages.length) {
+        setCurrentImageIndex(newIndex);
+      }
+    }
+  };
+
+  const scrollToImage = (index: number) => {
+    if (!carouselRef.current) return;
+    const clientWidth = carouselRef.current.clientWidth;
+    carouselRef.current.scrollTo({
+      left: index * clientWidth,
+      behavior: 'smooth',
+    });
+    setCurrentImageIndex(index);
+  };
+
   // Preset options for quantity pills (like 50 ml / 100 ml / 150 ml in Gambar 5)
   const quickPresets = [1, 2, 5, 10, 25].filter(
     (val) => val <= maxStock || val === 1
@@ -426,13 +459,9 @@ export default function ProductDetailPage({
         {/* Top Product Detail Section (Edge-to-edge on mobile, 2 columns on desktop) */}
         <div className="bg-white sm:rounded-3xl sm:border sm:border-[#dce1d6] p-0 sm:p-6 lg:p-8 overflow-hidden">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-0 sm:gap-8 lg:gap-10 items-start">
-            {/* Left Column: Clean Edge-to-Edge Product Image Card with Floating Back Button & Total Photo Pill (Gambar 2 Style) */}
+            {/* Left Column: Clean Edge-to-Edge Product Image Card with Floating Back Button & Dynamic Photo Pill */}
             <div className="md:col-span-5 flex flex-col items-center w-full">
-              <div
-                onClick={() => setIsImageModalOpen(true)}
-                className="relative aspect-square w-full sm:rounded-3xl rounded-none overflow-hidden bg-[#f4f5f1] border-b border-[#EAEDE7] sm:border group cursor-zoom-in"
-                title="Klik untuk memperbesar foto"
-              >
+              <div className="relative aspect-square w-full sm:rounded-3xl rounded-none overflow-hidden bg-[#f4f5f1] border-b border-[#EAEDE7] sm:border group">
                 {/* Floating Back Button directly on top of the product photo (Mobile only) */}
                 <button
                   type="button"
@@ -446,25 +475,94 @@ export default function ProductDetailPage({
                   <ChevronLeft className="w-5 h-5 text-neutral-800" />
                 </button>
 
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={
-                    product.imageUrl ||
-                    'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=800&q=80'
-                  }
-                  alt={product.nama}
-                  loading="eager"
-                  decoding="async"
-                  className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300"
-                />
+                {/* Horizontal Swipe / Scroll Image Carousel */}
+                <div
+                  ref={carouselRef}
+                  onScroll={handleScroll}
+                  onClick={() => setIsImageModalOpen(true)}
+                  className="w-full h-full flex overflow-x-auto snap-x snap-mandatory scroll-smooth no-scrollbar cursor-zoom-in"
+                  title="Klik untuk memperbesar foto atau geser ke samping"
+                >
+                  {productImages.map((imgSrc, idx) => (
+                    <div
+                      key={idx}
+                      className="w-full h-full shrink-0 snap-center relative aspect-square overflow-hidden"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={imgSrc}
+                        alt={`${product.nama} - Foto ${idx + 1}`}
+                        loading={idx === 0 ? 'eager' : 'lazy'}
+                        decoding="async"
+                        className="w-full h-full object-cover pointer-events-none select-none"
+                      />
+                    </div>
+                  ))}
+                </div>
 
-                {/* Total Photo Pill Badge on Bottom-Right (Gambar 2 style: "1/1") */}
+                {/* Desktop Prev / Next Navigation Arrows (Only when > 1 image) */}
+                {productImages.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        scrollToImage(Math.max(0, currentImageIndex - 1));
+                      }}
+                      disabled={currentImageIndex === 0}
+                      className="hidden sm:flex absolute left-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white/85 hover:bg-white text-slate-800 backdrop-blur-md shadow-md border border-slate-200/80 items-center justify-center transition cursor-pointer disabled:opacity-0 disabled:pointer-events-none"
+                      title="Foto sebelumnya"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        scrollToImage(Math.min(productImages.length - 1, currentImageIndex + 1));
+                      }}
+                      disabled={currentImageIndex === productImages.length - 1}
+                      className="hidden sm:flex absolute right-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white/85 hover:bg-white text-slate-800 backdrop-blur-md shadow-md border border-slate-200/80 items-center justify-center transition cursor-pointer disabled:opacity-0 disabled:pointer-events-none"
+                      title="Foto berikutnya"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </>
+                )}
+
+                {/* Total Photo Pill Badge on Bottom-Right (Dynamic "{currentImageIndex + 1}/{productImages.length}") */}
                 <div className="absolute bottom-4 right-4 z-20 px-2.5 py-1 rounded-full bg-white/85 backdrop-blur-md border border-black/5 shadow-xs flex items-center justify-center pointer-events-none">
                   <span className="text-[11px] sm:text-xs font-semibold text-neutral-700 tabular-nums">
-                    1/1
+                    {currentImageIndex + 1}/{productImages.length}
                   </span>
                 </div>
               </div>
+
+              {/* Thumbnails list below main image (Only when > 1 image) */}
+              {productImages.length > 1 && (
+                <div className="w-full flex items-center justify-center gap-2 mt-3 px-2 overflow-x-auto no-scrollbar">
+                  {productImages.map((thumbSrc, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => scrollToImage(idx)}
+                      className={`relative w-12 h-12 rounded-xl overflow-hidden border-2 transition cursor-pointer shrink-0 ${
+                        currentImageIndex === idx
+                          ? 'border-[#233414] shadow-xs ring-1 ring-[#233414]'
+                          : 'border-slate-200 opacity-60 hover:opacity-100'
+                      }`}
+                      title={`Lihat foto ${idx + 1}`}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={thumbSrc}
+                        alt={`Thumbnail ${idx + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Right Column: Clean Product Details */}
@@ -812,14 +910,14 @@ export default function ProductDetailPage({
         </button>
       </div>
 
-      {/* Lightbox / Modal Tampilan Gambar Resolusi Penuh (Format Bersih Identik dengan Sewa Alat) */}
+      {/* Lightbox / Modal Tampilan Gambar Resolusi Penuh */}
       {isImageModalOpen && (
         <div
           className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 cursor-zoom-out"
           onClick={() => setIsImageModalOpen(false)}
         >
           <div
-            className="relative max-w-4xl max-h-[90vh] bg-white border border-[#dce1d6] rounded-3xl overflow-hidden shadow-2xl p-2 cursor-default"
+            className="relative max-w-4xl max-h-[90vh] bg-white border border-[#dce1d6] rounded-3xl overflow-hidden shadow-2xl p-2 cursor-default flex flex-col items-center"
             onClick={(e) => e.stopPropagation()}
           >
             <button
@@ -829,17 +927,48 @@ export default function ProductDetailPage({
             >
               <X className="w-5 h-5" />
             </button>
+
+            {productImages.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setCurrentImageIndex((prev) => Math.max(0, prev - 1))}
+                  disabled={currentImageIndex === 0}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white/90 hover:bg-white text-slate-800 shadow-md border border-slate-200 disabled:opacity-0 disabled:pointer-events-none transition cursor-pointer"
+                  title="Foto sebelumnya"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrentImageIndex((prev) => Math.min(productImages.length - 1, prev + 1))}
+                  disabled={currentImageIndex === productImages.length - 1}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white/90 hover:bg-white text-slate-800 shadow-md border border-slate-200 disabled:opacity-0 disabled:pointer-events-none transition cursor-pointer"
+                  title="Foto berikutnya"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </>
+            )}
+
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={
-                product.imageUrl ||
+                productImages[currentImageIndex] ||
+                productImages[0] ||
                 'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=1200&q=90'
               }
-              alt={product.nama}
+              alt={`${product.nama} - Foto ${currentImageIndex + 1}`}
               loading="lazy"
               decoding="async"
-              className="max-h-[82vh] w-auto object-contain mx-auto rounded-2xl"
+              className="max-h-[80vh] w-auto object-contain mx-auto rounded-2xl"
             />
+
+            {productImages.length > 1 && (
+              <div className="mt-2 text-xs font-semibold text-slate-600 bg-slate-100 px-3 py-1 rounded-full tabular-nums">
+                {currentImageIndex + 1} / {productImages.length}
+              </div>
+            )}
           </div>
         </div>
       )}
