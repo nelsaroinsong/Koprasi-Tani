@@ -986,47 +986,56 @@ export default function EquipmentDetailPage({
         </button>
       </div>
 
-      {/* MODAL 1: Lightbox Foto Ukuran Asli */}
+      {/* MODAL 1: Lightbox Foto Ukuran Asli (Clean Image-Only Cinema View) */}
       {isImageModalOpen && (
         <div
-          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 cursor-zoom-out"
+          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 cursor-zoom-out select-none"
           onClick={() => setIsImageModalOpen(false)}
         >
+          {/* Close button on top-right */}
+          <button
+            onClick={() => setIsImageModalOpen(false)}
+            className="fixed top-4 right-4 z-50 w-8.5 h-8.5 sm:w-9 sm:h-9 rounded-full bg-black/45 hover:bg-black/65 active:scale-95 text-white/90 hover:text-white backdrop-blur-md border border-white/15 flex items-center justify-center transition-all cursor-pointer shadow-md"
+            title="Tutup (Esc)"
+          >
+            <X className="w-4 h-4" />
+          </button>
+
+          {/* Prev / Next Chevrons */}
+          {equipmentImages.length > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCurrentImageIndex((prev) => Math.max(0, prev - 1));
+                }}
+                disabled={currentImageIndex === 0}
+                className="fixed left-2 sm:left-6 top-1/2 -translate-y-1/2 z-50 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-black/45 hover:bg-black/65 active:scale-95 text-white/90 hover:text-white backdrop-blur-md border border-white/15 shadow-md flex items-center justify-center transition-all cursor-pointer disabled:opacity-0 disabled:pointer-events-none"
+                title="Foto sebelumnya"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCurrentImageIndex((prev) => Math.min(equipmentImages.length - 1, prev + 1));
+                }}
+                disabled={currentImageIndex === equipmentImages.length - 1}
+                className="fixed right-2 sm:right-6 top-1/2 -translate-y-1/2 z-50 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-black/45 hover:bg-black/65 active:scale-95 text-white/90 hover:text-white backdrop-blur-md border border-white/15 shadow-md flex items-center justify-center transition-all cursor-pointer disabled:opacity-0 disabled:pointer-events-none"
+                title="Foto berikutnya"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </>
+          )}
+
+          {/* Pure Image Only - No White Card/Background */}
           <div
-            className="relative w-full max-w-sm sm:max-w-xl md:max-w-2xl aspect-square sm:aspect-auto sm:max-h-[85vh] bg-white border border-[#dce1d6] rounded-3xl overflow-hidden shadow-2xl p-3 sm:p-4 cursor-default flex flex-col items-center justify-center"
+            className="relative max-w-[92vw] max-h-[85vh] flex items-center justify-center cursor-default"
             onClick={(e) => e.stopPropagation()}
           >
-            <button
-              onClick={() => setIsImageModalOpen(false)}
-              className="absolute top-3.5 right-3.5 z-20 w-9 h-9 rounded-full bg-[#233414] hover:bg-[#344d15] text-white flex items-center justify-center transition-colors shadow-sm cursor-pointer"
-              title="Tutup (Esc)"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            {equipmentImages.length > 1 && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setCurrentImageIndex((prev) => Math.max(0, prev - 1))}
-                  disabled={currentImageIndex === 0}
-                  className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white/90 hover:bg-white text-slate-800 shadow-md border border-slate-200 disabled:opacity-0 disabled:pointer-events-none transition cursor-pointer flex items-center justify-center"
-                  title="Foto sebelumnya"
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCurrentImageIndex((prev) => Math.min(equipmentImages.length - 1, prev + 1))}
-                  disabled={currentImageIndex === equipmentImages.length - 1}
-                  className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white/90 hover:bg-white text-slate-800 shadow-md border border-slate-200 disabled:opacity-0 disabled:pointer-events-none transition cursor-pointer flex items-center justify-center"
-                  title="Foto berikutnya"
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-              </>
-            )}
-
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={
@@ -1037,19 +1046,20 @@ export default function EquipmentDetailPage({
               alt={`${equipment.nama} - Foto ${currentImageIndex + 1}`}
               loading="lazy"
               decoding="async"
-              className="w-full h-full max-h-[75vh] object-contain mx-auto rounded-2xl select-none"
+              className="max-w-[92vw] max-h-[82vh] w-auto h-auto object-contain rounded-xl select-none drop-shadow-2xl"
               onError={(e) => {
                 (e.target as HTMLImageElement).src =
                   'https://picsum.photos/seed/sewa-alat-koperasi/1200/1200';
               }}
             />
-
-            {equipmentImages.length > 1 && (
-              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 text-[11px] font-semibold text-slate-700 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full shadow-xs border border-slate-200/60 tabular-nums">
-                {currentImageIndex + 1} / {equipmentImages.length}
-              </div>
-            )}
           </div>
+
+          {/* Photo Counter Pill at bottom */}
+          {equipmentImages.length > 1 && (
+            <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 px-3 py-1 rounded-full bg-black/45 backdrop-blur-md border border-white/15 text-white/90 font-medium text-[11px] sm:text-xs tabular-nums">
+              {currentImageIndex + 1} / {equipmentImages.length}
+            </div>
+          )}
         </div>
       )}
 
