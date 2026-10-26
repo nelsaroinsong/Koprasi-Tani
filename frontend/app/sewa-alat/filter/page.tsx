@@ -442,7 +442,7 @@ function FilterContent() {
                       Semua Unit Alat
                     </div>
                     <div className="text-[11px] text-[#526046] truncate">
-                      Tampilkan seluruh armada alat (tersedia & sedang disewa)
+                      Tampilkan seluruh unit alat (tersedia & sedang disewa)
                     </div>
                   </div>
                 </div>

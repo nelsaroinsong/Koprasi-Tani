@@ -688,7 +688,7 @@ export default function EquipmentDetailPage({
                   <span className="font-bold text-[#1a2610]">{stats?.avgRating || '5.0'}</span>
                   <span className="text-[#68785b]">({stats?.totalReviews || 0} ulasan)</span>
                   <span className="text-[#cfd6c9]">•</span>
-                  <span className="text-[#526046] font-medium">{equipment.stokUnit} unit armada</span>
+                  <span className="text-[#526046] font-medium">{equipment.stokUnit} unit</span>
                 </div>
 
                 {/* Bold Price */}
@@ -715,14 +715,14 @@ export default function EquipmentDetailPage({
                     </span>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="grid grid-cols-5 gap-1.5 sm:gap-2 w-full">
                     {durationPresets.map((preset) => (
                       <button
                         key={preset}
                         type="button"
                         onClick={() => setDurasi(preset)}
                         disabled={isOutOfStock}
-                        className={`h-9 px-3.5 rounded-xl text-xs transition-all cursor-pointer tabular-nums ${
+                        className={`h-9 w-full flex items-center justify-center rounded-xl text-[11px] sm:text-xs transition-all cursor-pointer tabular-nums ${
                           durasi === preset
                             ? 'bg-white text-[#1a2610] border-2 border-[#1a2610] font-extrabold shadow-2xs'
                             : 'bg-white text-[#526046] border border-[#dce1d6] hover:border-[#344d15] font-semibold'
@@ -734,11 +734,11 @@ export default function EquipmentDetailPage({
                   </div>
                 </div>
 
-                {/* Baris 2: Jumlah Unit Armada (Label di kiri, Stepper di kanan) */}
+                {/* Baris 2: Jumlah Unit (Label di kiri, Stepper di kanan) */}
                 <div className="flex items-center justify-between pt-1">
                   <div className="text-xs">
                     <span className="font-semibold text-[#526046] block">
-                      Jumlah Unit Armada
+                      Jumlah Unit
                     </span>
                     <span className="text-[11px] text-[#5b6950]">
                       Maksimal {maxUnits} unit tersedia
