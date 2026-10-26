@@ -36,6 +36,26 @@ export function AdminBreadcrumb() {
           /
         </BreadcrumbSeparator>
 
+        {(activeTab.item === 'Lokasi Gudang' || activeTab.item === 'Tambah Komoditas') && (
+          <>
+            <BreadcrumbItem>
+              <BreadcrumbLink
+                href="/admin"
+                onClick={(e) => {
+                  e.preventDefault()
+                  setActiveTab('Produk dan Layanan', 'Toko Online')
+                }}
+                className="hover:text-slate-900 transition font-medium"
+              >
+                Katalog Komoditas
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator className="text-slate-300">
+              /
+            </BreadcrumbSeparator>
+          </>
+        )}
+
         <BreadcrumbItem>
           <BreadcrumbPage className="text-slate-900 font-semibold">
             {isDashboard
