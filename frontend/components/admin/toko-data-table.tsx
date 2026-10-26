@@ -87,7 +87,7 @@ export function TokoOnlineDataTable() {
 
   const [productList, setProductList] = useState<AdminProductData[]>([]);
   const [petaniOptions, setPetaniOptions] = useState<PetaniOption[]>([]);
-  const [stats, setStats] = useState({ total: 0, active: 0, inactive: 0 });
+  const [stats, setStats] = useState({ total: 0, active: 0, inactive: 0, totalStok: 0 });
   const [limit, setLimit] = useState(10);
   const [pagination, setPagination] = useState<PaginationMeta>({
     totalCount: 0,
@@ -613,34 +613,34 @@ export function TokoOnlineDataTable() {
 
   return (
     <div className="space-y-4">
-      {/* 1. Stat Cards: 3 Kartu Ringkasan di Atas */}
+      {/* 1. Stat Cards: 3 Kartu Ringkasan di Atas (Standar Industri & Selaras Sewa Alat) */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {/* Card 1: Total Komoditas */}
+        {/* Card 1: Total Komoditas Pertanian */}
         <div className="bg-white rounded-2xl border border-[#ECEEF2] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[12px] font-medium text-slate-500">Total Komoditas (Gudang)</span>
+            <span className="text-[12px] font-medium text-slate-500">Total Komoditas Pertanian</span>
             <span className="w-7 h-7 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center">
               <Package className="w-3.5 h-3.5 text-slate-600" />
             </span>
           </div>
           <div className="mt-2 text-[22px] font-semibold text-slate-900 tabular-nums tracking-tight">
-            {stats.total || pagination.totalCount}
+            {stats.total || pagination.totalCount} <span className="text-xs font-normal text-slate-500">Komoditas ({stats.totalStok ?? stats.total} Stok)</span>
           </div>
           <p className="text-[11.5px] text-slate-400 mt-0.5">
             Total ragam hasil panen di gudang
           </p>
         </div>
 
-        {/* Card 2: Stok Siap Jual */}
+        {/* Card 2: Komoditas Siap Jual */}
         <div className="bg-white rounded-2xl border border-[#ECEEF2] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[12px] font-medium text-slate-500">Stok Siap Jual / Aktif</span>
+            <span className="text-[12px] font-medium text-slate-500">Komoditas Siap Jual</span>
             <span className="w-7 h-7 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center">
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
             </span>
           </div>
           <div className="mt-2 text-[22px] font-semibold text-slate-900 tabular-nums tracking-tight">
-            {stats.active}
+            {stats.active} <span className="text-xs font-normal text-slate-500">Komoditas Siap Jual</span>
           </div>
           <p className="text-[11.5px] text-slate-400 mt-0.5">
             Komoditas tayang aktif di toko online
@@ -656,7 +656,7 @@ export function TokoOnlineDataTable() {
             </span>
           </div>
           <div className="mt-2 text-[22px] font-semibold text-slate-900 tabular-nums tracking-tight">
-            {stats.inactive}
+            {stats.inactive} <span className="text-xs font-normal text-slate-500">Komoditas</span>
           </div>
           <p className="text-[11.5px] text-slate-400 mt-0.5">
             Perlu restok panen atau penyesuaian

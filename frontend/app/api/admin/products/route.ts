@@ -52,11 +52,14 @@ export async function GET(request: Request) {
     }
 
     // Query data produk, total count, stats, dan opsi petani secara paralel
-    const [totalCount, totalAll, activeCount, inactiveCount, products, petaniUsers] = await Promise.all([
+    const [totalCount, totalAll, activeCount, inactiveCount, totalStockAgg, products, petaniUsers] = await Promise.all([
       prisma.product.count({ where: whereCondition }),
       prisma.product.count(),
       prisma.product.count({ where: { isTersedia: true, stok: { gt: 0 } } }),
       prisma.product.count({ where: { OR: [{ isTersedia: false }, { stok: { lte: 0 } }] } }),
+      prisma.product.aggregate({
+        _sum: { stok: true },
+      }),
       prisma.product.findMany({
         where: whereCondition,
         include: {
@@ -100,6 +103,7 @@ export async function GET(request: Request) {
         total: totalAll,
         active: activeCount,
         inactive: inactiveCount,
+        totalStok: totalStockAgg._sum.stok ?? 0,
       },
       products: products.map((p) => ({
         id: p.id,

@@ -24,6 +24,10 @@ import {
   ChevronRight,
   Store,
   ExternalLink,
+  Download,
+  ChevronDown,
+  XCircle,
+  Package,
 } from 'lucide-react';
 import { useToast } from '@/context/toast-context';
 import {
@@ -33,6 +37,12 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu';
 import { useAdmin } from '@/components/admin/admin-context';
 import type { EquipmentItem } from '@/lib/equipments';
 import { validateIndonesianPhone } from '@/lib/phone-validation';
@@ -67,6 +77,7 @@ export default function EquipmentsDataTable() {
   const [statusFilter, setStatusFilter] = useState<StatusFilterKey>('ALL');
   const [limit, setLimit] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Checkbox Select States
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -239,6 +250,78 @@ export default function EquipmentsDataTable() {
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
     );
+  };
+
+  // Ekspor CSV Inventaris Sewa Alat
+  const handleExportCSV = () => {
+    try {
+      setIsExporting(true);
+      const exportList = filteredEquipments.length > 0 ? filteredEquipments : equipments;
+      if (exportList.length === 0) {
+        showToast({
+          title: 'Tidak Ada Data',
+          message: 'Belum ada data inventaris alat untuk diekspor.',
+          type: 'warning',
+        });
+        return;
+      }
+
+      const headers = [
+        'No',
+        'Nama Alat',
+        'Kategori',
+        'Spesifikasi',
+        'Tarif Sewa (Rp)',
+        'Satuan Sewa',
+        'Biaya Operator (Rp)',
+        'Stok Unit',
+        'Kondisi Fisik',
+        'Status Ketersediaan',
+        'Kontak Penanggung Jawab',
+      ];
+      const escapeCell = (val: string | number | null | undefined) =>
+        `"${String(val ?? '').replace(/"/g, '""')}"`;
+
+      const rows = exportList.map((item, idx) => [
+        idx + 1,
+        escapeCell(item.nama),
+        escapeCell(item.kategori),
+        escapeCell(item.spesifikasi || '-'),
+        escapeCell(Number(item.hargaSewa || 0)),
+        escapeCell(item.satuanSewa || 'hari'),
+        escapeCell(Number(item.biayaOperator || 0)),
+        escapeCell(Number(item.stokUnit || 1)),
+        escapeCell(item.kondisi || 'Sangat Baik'),
+        escapeCell(item.isTersedia ? 'Tersedia' : 'Nonaktif / Perawatan'),
+        escapeCell(item.kontakPj || '-'),
+      ]);
+
+      const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n');
+      const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `inventaris-sewa-alat-${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      showToast({
+        title: 'Ekspor Berhasil',
+        message: `Berhasil mengunduh ${exportList.length} data alat pertanian ke file CSV.`,
+        type: 'success',
+      });
+    } catch (err) {
+      console.error('Export CSV error:', err);
+      showToast({
+        title: 'Gagal Ekspor',
+        message: 'Terjadi gangguan saat mengekspor data alat.',
+        type: 'error',
+      });
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   // Upload Foto (Kamera / Galeri ke Cloudflare R2)
@@ -767,9 +850,9 @@ export default function EquipmentsDataTable() {
           </div>
         </div>
 
-        {/* Toolbar: Search, Category Filter, Refresh, Kelola Kategori, Tambah Alat */}
+        {/* Toolbar: Search, Filter Kategori, Reset, Ekspor, Refresh, Kelola Kategori, Tambah */}
         <div className="px-3 pb-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div className="flex flex-wrap items-center gap-2 flex-1">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto flex-1">
             {/* Search Box */}
             <div className="relative flex-1 sm:flex-none sm:w-64">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
@@ -782,39 +865,138 @@ export default function EquipmentsDataTable() {
               />
             </div>
 
-            {/* Dynamic Category Filter Dropdown */}
-            <select
-              value={selectedKategori}
-              onChange={(e) => setSelectedKategori(e.target.value)}
-              className="h-8 px-2.5 text-xs bg-white border border-[#E5E7EB] rounded-lg font-medium text-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-900 cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
+            {/* Kategori Filter Dropdown (Custom UI Radix Dropdown) */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className={`h-8 px-2.5 rounded-lg border text-xs font-medium flex items-center gap-1.5 transition cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,0.02)] shrink-0 outline-none ${
+                    selectedKategori !== 'SEMUA'
+                      ? 'border-emerald-300 bg-emerald-50/70 text-emerald-900 font-semibold'
+                      : 'border-[#E5E7EB] bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300'
+                  }`}
+                >
+                  <Tag className={`w-3.5 h-3.5 ${selectedKategori !== 'SEMUA' ? 'text-emerald-700' : 'text-slate-400'}`} />
+                  <span>
+                    {selectedKategori === 'SEMUA'
+                      ? 'Semua Kategori'
+                      : categoriesList.find((c) => c.name === selectedKategori)?.emoji
+                      ? `${categoriesList.find((c) => c.name === selectedKategori)?.emoji} ${selectedKategori}`
+                      : selectedKategori}
+                  </span>
+                  <ChevronDown className="w-3 h-3 text-slate-400 opacity-70 ml-0.5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="start"
+                className="w-56 rounded-xl p-1.5 bg-white border border-slate-200 shadow-xl text-xs z-50 max-h-72 overflow-y-auto"
+              >
+                <div className="px-2.5 py-1 text-[10.5px] font-semibold text-slate-400 uppercase tracking-wider">
+                  Filter Kategori Alat
+                </div>
+                <DropdownMenuItem
+                  onClick={() => setSelectedKategori('SEMUA')}
+                  className={`cursor-pointer rounded-lg px-2.5 py-2 flex items-center justify-between text-xs transition ${
+                    selectedKategori === 'SEMUA'
+                      ? 'bg-slate-100 font-semibold text-slate-900'
+                      : 'text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <Package className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Semua Kategori</span>
+                  </span>
+                  {selectedKategori === 'SEMUA' && (
+                    <Check className="w-3.5 h-3.5 text-slate-900" />
+                  )}
+                </DropdownMenuItem>
+
+                <div className="h-px bg-slate-100 my-1" />
+
+                {categoriesList.map((cat: any) => {
+                  const isSelected = selectedKategori === cat.name;
+                  return (
+                    <DropdownMenuItem
+                      key={cat.id || cat.slug || cat.name}
+                      onClick={() => setSelectedKategori(cat.name)}
+                      className={`cursor-pointer rounded-lg px-2.5 py-2 flex items-center justify-between text-xs transition ${
+                        isSelected
+                          ? 'bg-emerald-50 font-semibold text-emerald-900'
+                          : 'text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2 truncate">
+                        {cat.emoji ? (
+                          <span className="text-sm leading-none shrink-0">{cat.emoji}</span>
+                        ) : (
+                          <Tag className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        )}
+                        <span className="truncate">{cat.name}</span>
+                      </span>
+                      {isSelected && (
+                        <Check className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                      )}
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Reset Button */}
+            {(searchQuery || selectedKategori !== 'SEMUA' || statusFilter !== 'ALL') && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery('');
+                  setSelectedKategori('SEMUA');
+                  setStatusFilter('ALL');
+                }}
+                className="h-8 px-2.5 text-xs text-slate-500 hover:text-slate-900 font-medium rounded-lg hover:bg-white transition cursor-pointer flex items-center gap-1"
+                title="Reset semua filter pencarian"
+              >
+                <XCircle className="w-3.5 h-3.5" />
+                <span>Reset</span>
+              </button>
+            )}
+          </div>
+
+          {/* Action Buttons: Ekspor, Refresh, Kelola Kategori, Tambah Alat */}
+          <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+            <button
+              type="button"
+              onClick={handleExportCSV}
+              disabled={isExporting}
+              className="h-8 px-3 rounded-lg border border-[#E5E7EB] bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium flex items-center gap-1.5 transition cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,0.02)] disabled:opacity-50"
+              title="Ekspor inventaris sewa alat ke file CSV"
             >
-              <option value="SEMUA">Semua Kategori ({categoriesList.length})</option>
-              {categoriesList.map((cat) => (
-                <option key={cat.id} value={cat.name}>
-                  {cat.emoji || '⚙️'} {cat.name}
-                </option>
-              ))}
-            </select>
+              {isExporting ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-500" />
+              ) : (
+                <Download className="w-3.5 h-3.5 text-slate-500" />
+              )}
+              <span>{isExporting ? 'Mengekspor...' : 'Ekspor'}</span>
+            </button>
 
             <button
+              type="button"
               onClick={() => {
                 fetchEquipments();
                 fetchCategories();
               }}
-              title="Segarkan Data"
+              disabled={isLoading}
               className="w-8 h-8 rounded-lg border border-[#E5E7EB] bg-white hover:bg-slate-50 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,0.02)] shrink-0"
+              title="Segarkan data inventaris"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-slate-800' : ''}`} />
+              <RefreshCw
+                className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-slate-800' : ''}`}
+              />
             </button>
-          </div>
 
-          {/* Action Buttons: Kelola Kategori Alat & Tambah Alat */}
-          <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
               onClick={() => setActiveTab('Produk dan Layanan', 'Kategori Sewa Alat')}
-              className="h-8 px-3 rounded-lg border border-[#E5E7EB] bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
-              title="Kelola Kategori Alat Pertanian"
+              className="h-8 px-3 rounded-lg border border-[#E5E7EB] bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium flex items-center gap-1.5 transition cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
+              title="Buka manajemen kategori sewa alat"
             >
               <Tag className="w-3.5 h-3.5 text-slate-500" />
               <span>Kelola Kategori</span>
@@ -823,7 +1005,7 @@ export default function EquipmentsDataTable() {
             <button
               type="button"
               onClick={() => setActiveTab('Produk dan Layanan', 'Tambah Alat')}
-              className="h-8 px-3.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+              className="h-8 px-3 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Tambah Alat Pertanian</span>
