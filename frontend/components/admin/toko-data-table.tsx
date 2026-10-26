@@ -2,14 +2,6 @@
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableHead,
-  TableRow,
-  TableCell,
-} from '@/components/ui/table';
-import {
   Search,
   Package,
   Plus,
@@ -22,8 +14,6 @@ import {
   Tag,
   ShoppingBag,
   MapPin,
-  Camera,
-  Upload,
   LocateFixed,
   Download,
   XCircle,
@@ -116,13 +106,6 @@ export function TokoOnlineDataTable() {
   // Single Delete Dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<AdminProductData | null>(null);
-
-  // Quick Photo Upload States
-  const [quickPhotoProduct, setQuickPhotoProduct] = useState<AdminProductData | null>(null);
-  const [isQuickPhotoOpen, setIsQuickPhotoOpen] = useState(false);
-  const [quickUploadingSource, setQuickUploadingSource] = useState<'CAMERA' | 'GALLERY' | null>(null);
-  const quickCameraInputRef = useRef<HTMLInputElement>(null);
-  const quickGalleryInputRef = useRef<HTMLInputElement>(null);
 
   // Warehouse Address States
   const [warehouseAddress, setWarehouseAddress] = useState(
@@ -344,88 +327,6 @@ export function TokoOnlineDataTable() {
         type: 'error',
       });
       fetchProducts();
-    }
-  };
-
-  // Upload Foto Cepat
-  const handleQuickPhotoUpload = async (
-    e: React.ChangeEvent<HTMLInputElement>,
-    source: 'CAMERA' | 'GALLERY'
-  ) => {
-    const file = e.target.files?.[0];
-    if (!file || !quickPhotoProduct) return;
-
-    if (!file.type.startsWith('image/')) {
-      showToast({
-        title: 'Format Salah',
-        message: 'Berkas harus berupa gambar (JPG, PNG, atau WebP).',
-        type: 'error',
-      });
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      showToast({
-        title: 'Ukuran Terlalu Besar',
-        message: 'Ukuran gambar maksimal 5 MB.',
-        type: 'error',
-      });
-      return;
-    }
-
-    try {
-      setQuickUploadingSource(source);
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const res = await fetch('/api/upload/product', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const data = await res.json();
-      if (!res.ok || data.error) {
-        throw new Error(data.error || 'Gagal mengunggah foto produk.');
-      }
-
-      const newImageUrl = data.url;
-
-      const updateRes = await fetch(`/api/admin/products/${quickPhotoProduct.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          imageUrl: newImageUrl,
-        }),
-      });
-
-      const updateData = await updateRes.json();
-      if (!updateRes.ok) {
-        throw new Error(updateData.error || 'Gagal memperbarui foto komoditas di database.');
-      }
-
-      showToast({
-        title: 'Foto Komoditas Diperbarui',
-        message: `Foto fisik untuk "${quickPhotoProduct.nama}" berhasil disimpan & tayang.`,
-        type: 'success',
-      });
-
-      setProductList((prev) =>
-        prev.map((p) => (p.id === quickPhotoProduct.id ? { ...p, imageUrl: newImageUrl } : p))
-      );
-
-      setIsQuickPhotoOpen(false);
-      setQuickPhotoProduct(null);
-    } catch (err: any) {
-      console.error(err);
-      showToast({
-        title: 'Gagal Memperbarui Foto',
-        message: err.message || 'Terjadi gangguan saat mengunggah foto.',
-        type: 'error',
-      });
-    } finally {
-      setQuickUploadingSource(null);
-      if (quickCameraInputRef.current) quickCameraInputRef.current.value = '';
-      if (quickGalleryInputRef.current) quickGalleryInputRef.current.value = '';
     }
   };
 
@@ -951,201 +852,165 @@ export function TokoOnlineDataTable() {
         )}
 
         {/* Inner White Table Box */}
-        <div className="bg-white rounded-xl border border-[#ECEEF2] shadow-[0_1px_2px_rgba(0,0,0,0.02)] overflow-hidden">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader className="bg-[#FAFBFD] border-b border-[#F1F3F5]">
-                <TableRow className="border-[#F1F3F5] hover:bg-transparent">
-                  <TableHead className="w-10 text-center py-3.5">
-                    <input
-                      type="checkbox"
-                      checked={isAllCurrentPageSelected}
-                      onChange={toggleSelectAllCurrentPage}
-                      aria-label="Pilih semua di halaman ini"
-                      className="w-3.5 h-3.5 rounded border-slate-300 text-slate-900 focus:ring-slate-900 cursor-pointer accent-slate-900"
-                    />
-                  </TableHead>
-                  <TableHead className="w-12 text-center py-3.5 text-[11.5px] font-semibold text-slate-500 whitespace-nowrap">
-                    No
-                  </TableHead>
-                  <TableHead className="py-3.5 text-[11.5px] font-semibold text-slate-600 whitespace-nowrap min-w-[220px]">
-                    Komoditas
-                  </TableHead>
-                  <TableHead className="py-3.5 text-[11.5px] font-semibold text-slate-600 whitespace-nowrap min-w-[130px]">
-                    Kategori
-                  </TableHead>
-                  <TableHead className="py-3.5 text-[11.5px] font-semibold text-slate-600 whitespace-nowrap min-w-[160px]">
-                    Petani / Pemilik
-                  </TableHead>
-                  <TableHead className="py-3.5 text-[11.5px] font-semibold text-slate-600 whitespace-nowrap min-w-[130px]">
-                    Harga per Satuan
-                  </TableHead>
-                  <TableHead className="py-3.5 text-[11.5px] font-semibold text-slate-600 whitespace-nowrap min-w-[120px]">
-                    Stok Tersedia
-                  </TableHead>
-                  <TableHead className="py-3.5 text-[11.5px] font-semibold text-slate-600 whitespace-nowrap min-w-[130px]">
-                    Status Ketersediaan
-                  </TableHead>
-                  <TableHead className="w-28 py-3.5 text-right pr-4 text-[11.5px] font-semibold text-slate-600 whitespace-nowrap">
-                    Aksi
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-
-              <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="py-14 text-center">
-                      <div className="flex flex-col items-center justify-center gap-2">
-                        <RefreshCw className="w-5 h-5 animate-spin text-slate-400" />
-                        <span className="text-xs text-slate-400">
-                          Memuat katalog komoditas dari database...
-                        </span>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : productList.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="py-14 text-center">
-                      <div className="flex flex-col items-center justify-center gap-1.5">
-                        <Package className="w-6 h-6 text-slate-300" />
-                        <span className="text-xs font-semibold text-slate-600">
-                          {searchQuery || filterKategori !== 'SEMUA' || filterStatus !== 'ALL'
-                            ? 'Tidak ada komoditas yang cocok dengan filter'
-                            : 'Belum ada data komoditas di katalog toko'}
-                        </span>
-                        <span className="text-[11.5px] text-slate-400 max-w-sm">
-                          {searchQuery || filterKategori !== 'SEMUA' || filterStatus !== 'ALL'
-                            ? 'Coba sesuaikan kata kunci pencarian atau reset filter kategori/status.'
-                            : 'Mulai daftarkan hasil panen kelapa, cengkeh, atau komoditas lainnya dengan menekan tombol Input Komoditas.'}
-                        </span>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  productList.map((prod, index) => {
-                    const rowNumber = (pagination.currentPage - 1) * pagination.limit + (index + 1);
+        <div className="bg-white rounded-xl border border-[#E5E7EB] overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+          {isLoading ? (
+            <div className="py-20 flex flex-col items-center justify-center gap-3">
+              <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
+              <span className="text-xs text-slate-500 font-medium">Memuat katalog komoditas...</span>
+            </div>
+          ) : productList.length === 0 ? (
+            <div className="py-16 px-4 text-center flex flex-col items-center justify-center">
+              <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center mb-3">
+                <Package className="w-7 h-7" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-800">Tidak ada data komoditas</h3>
+              <p className="text-xs text-slate-500 mt-1 max-w-sm">
+                {searchQuery || filterKategori !== 'SEMUA' || filterStatus !== 'ALL'
+                  ? 'Tidak ditemukan komoditas yang cocok dengan filter atau kata kunci pencarian.'
+                  : 'Belum ada komoditas yang didaftarkan. Klik tombol Input Komoditas untuk mulai menambahkan hasil panen.'}
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-slate-50/80 border-b border-[#E5E7EB] text-slate-500 font-semibold text-[11px] uppercase tracking-wider">
+                    {/* Checkbox Select All */}
+                    <th className="py-2.5 px-3 w-10 text-center">
+                      <input
+                        type="checkbox"
+                        checked={isAllCurrentPageSelected}
+                        onChange={toggleSelectAllCurrentPage}
+                        title="Pilih semua di halaman ini"
+                        className="w-3.5 h-3.5 rounded border-slate-300 text-slate-900 focus:ring-slate-900 cursor-pointer"
+                      />
+                    </th>
+                    <th className="py-2.5 px-3">Komoditas & Deskripsi</th>
+                    <th className="py-2.5 px-3">Kategori</th>
+                    <th className="py-2.5 px-3">Petani / Pemilik</th>
+                    <th className="py-2.5 px-3">Harga per Satuan</th>
+                    <th className="py-2.5 px-3">Stok Tersedia</th>
+                    <th className="py-2.5 px-3 text-center">Ketersediaan</th>
+                    <th className="py-2.5 px-3 text-right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#F1F3F5]">
+                  {productList.map((prod, index) => {
                     const isSelected = prod.id ? selectedIds.includes(prod.id) : false;
                     const catEmoji = getCategoryEmoji(prod.kategori);
 
                     return (
-                      <TableRow
+                      <tr
                         key={prod.id || index}
-                        className={`transition-colors border-[#F3F4F6] hover:bg-[#F9FAFB] ${
-                          isSelected ? 'bg-slate-50/70' : ''
+                        className={`transition-colors ${
+                          isSelected ? 'bg-slate-50/90' : 'hover:bg-slate-50/60'
                         }`}
                       >
-                        {/* Checkbox Select Row */}
-                        <TableCell className="text-center py-3.5">
+                        {/* Checkbox Single Select */}
+                        <td className="py-3 px-3 text-center">
                           <input
                             type="checkbox"
                             checked={isSelected}
                             onChange={() => prod.id && toggleSelectRow(prod.id)}
-                            aria-label={`Pilih ${prod.nama}`}
-                            className="w-3.5 h-3.5 rounded border-slate-300 text-slate-900 focus:ring-slate-900 cursor-pointer accent-slate-900"
+                            className="w-3.5 h-3.5 rounded border-slate-300 text-slate-900 focus:ring-slate-900 cursor-pointer"
                           />
-                        </TableCell>
+                        </td>
 
-                        {/* No */}
-                        <TableCell className="text-center font-medium text-xs text-slate-400 py-3.5 tabular-nums">
-                          {rowNumber}
-                        </TableCell>
-
-                        {/* Komoditas: Thumbnail Image + Nama + Deskripsi */}
-                        <TableCell className="py-3.5">
-                          <div className="flex items-center gap-3">
-                            <div className="w-11 h-11 rounded-xl bg-slate-100 border border-slate-200/90 overflow-hidden shrink-0 shadow-2xs">
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img
-                                src={
-                                  prod.imageUrl ||
-                                  'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=300&q=80'
-                                }
-                                alt={prod.nama}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).src =
-                                    'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=300&q=80';
-                                }}
-                              />
+                        {/* Komoditas & Deskripsi */}
+                        <td className="py-3 px-3">
+                          <div className="flex items-start gap-3">
+                            <div className="w-11 h-11 rounded-lg bg-slate-100 border border-slate-200 overflow-hidden shrink-0 relative">
+                              {prod.imageUrl ? (
+                                <img
+                                  src={prod.imageUrl}
+                                  alt={prod.nama}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-slate-400">
+                                  <Package className="w-5 h-5 text-slate-400" />
+                                </div>
+                              )}
                             </div>
-
-                            <div className="min-w-0 flex-1">
-                              <div className="text-xs sm:text-[13px] font-semibold text-slate-900 truncate max-w-[200px] sm:max-w-xs leading-tight">
+                            <div className="min-w-0">
+                              <div className="font-semibold text-slate-900 text-xs sm:text-[13px] tracking-tight">
                                 {prod.nama}
                               </div>
-                              <p className="text-[11px] text-slate-400 truncate max-w-[200px] sm:max-w-xs mt-0.5">
-                                {prod.deskripsi || 'Kualitas hasil panen prima'}
-                              </p>
+                              {prod.deskripsi ? (
+                                <div className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">
+                                  {prod.deskripsi}
+                                </div>
+                              ) : (
+                                <div className="text-[10.5px] text-slate-400 line-clamp-1 mt-0.5">
+                                  Kualitas hasil panen prima
+                                </div>
+                              )}
                             </div>
                           </div>
-                        </TableCell>
+                        </td>
 
-                        {/* Kategori (Kolom Khusus Mandiri) */}
-                        <TableCell className="py-3.5">
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-50 text-slate-700 border border-slate-200/80 shadow-2xs">
-                            {catEmoji ? (
-                              <span className="text-xs leading-none">{catEmoji}</span>
-                            ) : (
-                              <Tag className="w-3 h-3 text-slate-400" />
-                            )}
-                            <span className="font-medium">{prod.kategori}</span>
+                        {/* Kategori */}
+                        <td className="py-3 px-3 whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-700 border border-slate-200/70">
+                            {catEmoji && <span className="text-xs leading-none">{catEmoji}</span>}
+                            <span>{prod.kategori}</span>
                           </span>
-                        </TableCell>
+                        </td>
 
                         {/* Petani / Pemilik */}
-                        <TableCell className="py-3.5">
-                          <div className="flex items-center gap-2.5">
-                            <Avatar className="h-7 w-7 rounded-full border border-slate-200 shrink-0 shadow-2xs">
+                        <td className="py-3 px-3 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <Avatar className="h-6 w-6 rounded-full border border-slate-200 shrink-0">
                               <AvatarImage src={prod.petani?.avatarUrl || ''} alt={prod.petani?.name || ''} />
-                              <AvatarFallback className="rounded-full bg-slate-100 text-slate-700 font-semibold text-[10px]">
+                              <AvatarFallback className="rounded-full bg-slate-100 text-slate-700 font-semibold text-[9px]">
                                 {prod.petani?.name ? prod.petani.name.charAt(0).toUpperCase() : 'P'}
                               </AvatarFallback>
                             </Avatar>
                             <div className="min-w-0">
-                              <div className="text-xs font-semibold text-slate-800 truncate max-w-[150px]">
+                              <div className="text-xs font-semibold text-slate-800 truncate max-w-[140px]">
                                 {prod.petani?.name || 'Petani Koperasi'}
                               </div>
-                              <div className="text-[10.5px] text-slate-400 truncate max-w-[150px]">
+                              <div className="text-[10px] text-slate-400 truncate max-w-[140px]">
                                 {prod.petani?.email || prod.petani?.phone || '-'}
                               </div>
                             </div>
                           </div>
-                        </TableCell>
+                        </td>
 
                         {/* Harga per Satuan */}
-                        <TableCell className="py-3.5">
-                          <div className="text-xs font-semibold text-slate-900 tabular-nums">
+                        <td className="py-3 px-3 whitespace-nowrap">
+                          <div className="font-semibold text-slate-900 text-xs sm:text-[13px]">
                             Rp {Number(prod.hargaPerSatuan || 0).toLocaleString('id-ID')}
-                            <span className="font-normal text-slate-400 text-[11px]">
-                              {' '}/{prod.satuan}
+                            <span className="text-[11px] text-slate-400 font-normal">
+                              {' '}/ {prod.satuan}
                             </span>
                           </div>
-                        </TableCell>
+                          <div className="text-[10px] text-slate-500 mt-0.5">
+                            Standar Toko Koperasi
+                          </div>
+                        </td>
 
                         {/* Stok Tersedia */}
-                        <TableCell className="py-3.5">
-                          {Number(prod.stok) <= 0 ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200/70 shadow-2xs">
-                              <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                              Habis (0 {prod.satuan})
+                        <td className="py-3 px-3 whitespace-nowrap">
+                          <div className="font-medium text-slate-800 text-xs">
+                            {Number(prod.stok).toLocaleString('id-ID')} {prod.satuan} Tersedia
+                          </div>
+                          <div className="text-[10.5px] mt-0.5">
+                            <span
+                              className={`font-semibold ${
+                                Number(prod.stok) > 0
+                                  ? 'text-emerald-700'
+                                  : 'text-rose-600'
+                              }`}
+                            >
+                              {Number(prod.stok) > 0 ? 'Siap Kirim' : 'Habis'}
                             </span>
-                          ) : Number(prod.stok) <= 10 ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200/70 shadow-2xs">
-                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                              {Number(prod.stok).toLocaleString('id-ID')} {prod.satuan}
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-50 text-slate-700 border border-slate-200 shadow-2xs">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                              {Number(prod.stok).toLocaleString('id-ID')} {prod.satuan}
-                            </span>
-                          )}
-                        </TableCell>
+                          </div>
+                        </td>
 
-                        {/* Status Ketersediaan (Taste-Skills Switch Toggle) */}
-                        <TableCell className="py-3.5">
-                          <div className="inline-flex items-center gap-2">
+                        {/* Ketersediaan (Taste-Skills Switch Toggle) */}
+                        <td className="py-3 px-3 text-center whitespace-nowrap">
+                          <div className="inline-flex items-center justify-center gap-2">
                             <button
                               type="button"
                               role="switch"
@@ -1154,13 +1019,13 @@ export function TokoOnlineDataTable() {
                               title={`Klik untuk ${
                                 prod.isTersedia ? 'menonaktifkan' : 'mengaktifkan'
                               } komoditas ini di etalase toko`}
-                              className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 ${
+                              className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 ${
                                 prod.isTersedia
-                                  ? 'bg-emerald-600'
-                                  : 'bg-slate-300 hover:bg-slate-400'
+                                  ? 'bg-slate-900'
+                                  : 'bg-slate-200 hover:bg-slate-300'
                               }`}
                             >
-                              <span className="sr-only">Toggle status ketersediaan</span>
+                              <span className="sr-only">Toggle status ketersediaan komoditas</span>
                               <span
                                 aria-hidden="true"
                                 className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
@@ -1169,66 +1034,48 @@ export function TokoOnlineDataTable() {
                               />
                             </button>
                             <span
-                              className={`text-[11.5px] font-medium select-none w-20 text-left ${
+                              className={`text-[11.5px] font-medium select-none w-16 text-left ${
                                 prod.isTersedia
-                                  ? 'text-emerald-700 font-semibold'
+                                  ? 'text-slate-900 font-semibold'
                                   : 'text-slate-400'
                               }`}
                             >
-                              {prod.isTersedia ? 'Aktif Dijual' : 'Nonaktif'}
+                              {prod.isTersedia ? 'Tersedia' : 'Nonaktif'}
                             </span>
                           </div>
-                        </TableCell>
+                        </td>
 
                         {/* Aksi */}
-                        <TableCell className="py-3.5 text-right pr-4">
-                          <div className="flex items-center justify-end gap-1.5">
-                            {/* Quick Photo Upload Button */}
+                        <td className="py-3 px-3 text-right whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-1">
                             <button
                               type="button"
-                              onClick={() => {
-                                setQuickPhotoProduct(prod);
-                                setIsQuickPhotoOpen(true);
-                              }}
-                              className="w-7 h-7 rounded-lg border border-[#E5E7EB] bg-white hover:bg-slate-50 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer shadow-2xs"
-                              title="Ganti Foto Fisik Komoditas (Kamera HP / Galeri)"
-                            >
-                              <Camera className="w-3.5 h-3.5" />
-                            </button>
-
-                            {/* Edit Button */}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setActiveTab('Produk dan Layanan', 'Tambah Komoditas', prod);
-                              }}
-                              className="w-7 h-7 rounded-lg border border-[#E5E7EB] bg-white hover:bg-slate-50 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer shadow-2xs"
-                              title="Edit Data Komoditas Lengkap"
+                              onClick={() => setActiveTab('Produk dan Layanan', 'Tambah Komoditas', prod)}
+                              title="Edit Komoditas"
+                              className="w-7 h-7 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-lg flex items-center justify-center transition cursor-pointer"
                             >
                               <Pencil className="w-3.5 h-3.5" />
                             </button>
-
-                            {/* Delete Button */}
                             <button
                               type="button"
                               onClick={() => {
                                 setProductToDelete(prod);
                                 setDeleteDialogOpen(true);
                               }}
-                              className="w-7 h-7 rounded-lg border border-[#E5E7EB] bg-white hover:bg-rose-50 text-slate-400 hover:text-rose-600 hover:border-rose-200 flex items-center justify-center transition cursor-pointer shadow-2xs"
                               title="Hapus Komoditas"
+                              className="w-7 h-7 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg flex items-center justify-center transition cursor-pointer"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
-                        </TableCell>
-                      </TableRow>
+                        </td>
+                      </tr>
                     );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
 
           {/* Footer Pagination Persis Halaman Petani, Pembeli & Orders */}
           <div className="px-4 py-3 border-t border-[#F1F3F5] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 bg-white">
@@ -1419,154 +1266,6 @@ export function TokoOnlineDataTable() {
               </button>
             </DialogFooter>
           </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Modal 4: Quick Photo Upload Dialog (Kamera HP / Galeri) */}
-      <Dialog
-        open={isQuickPhotoOpen}
-        onOpenChange={(open) => {
-          if (!quickUploadingSource) {
-            setIsQuickPhotoOpen(open);
-            if (!open) setQuickPhotoProduct(null);
-          }
-        }}
-      >
-        <DialogContent className="sm:max-w-md rounded-2xl p-6 bg-white border border-slate-200 shadow-xl">
-          <DialogHeader>
-            <DialogTitle className="text-base font-semibold text-slate-900 flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
-                <Camera className="w-4 h-4" />
-              </div>
-              <div>
-                <div>Foto Fisik Komoditas</div>
-                <p className="text-xs font-normal text-slate-400 mt-0.5">
-                  Perbarui foto cepat tanpa membuka form edit
-                </p>
-              </div>
-            </DialogTitle>
-          </DialogHeader>
-
-          {quickPhotoProduct && (
-            <div className="space-y-4 my-2">
-              {/* Product Info & Current Preview */}
-              <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl flex items-center gap-3">
-                <div className="w-12 h-12 rounded-lg overflow-hidden bg-slate-200 border border-slate-200 shrink-0 relative">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={
-                      quickPhotoProduct.imageUrl ||
-                      'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=300&q=80'
-                    }
-                    alt={quickPhotoProduct.nama}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src =
-                        'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=300&q=80';
-                    }}
-                  />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-xs font-semibold text-slate-800 truncate">
-                    {quickPhotoProduct.nama}
-                  </div>
-                  <div className="text-[11px] text-slate-500 flex items-center gap-1.5 mt-0.5">
-                    <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200/60 font-semibold text-[10px]">
-                      {quickPhotoProduct.kategori}
-                    </span>
-                    <span>•</span>
-                    <span className="truncate">
-                      {quickPhotoProduct.petani?.name || 'Petani Koperasi'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Hidden file inputs for Camera & Gallery */}
-              <input
-                ref={quickCameraInputRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                disabled={quickUploadingSource !== null}
-                onChange={(e) => handleQuickPhotoUpload(e, 'CAMERA')}
-              />
-              <input
-                ref={quickGalleryInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                disabled={quickUploadingSource !== null}
-                onChange={(e) => handleQuickPhotoUpload(e, 'GALLERY')}
-              />
-
-              {/* Upload Action Buttons */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                {/* 1. Tombol Kamera HP */}
-                <button
-                  type="button"
-                  onClick={() => quickCameraInputRef.current?.click()}
-                  disabled={quickUploadingSource !== null}
-                  className="w-full flex flex-col items-center justify-center p-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 transition cursor-pointer text-center group disabled:opacity-60 disabled:cursor-not-allowed shadow-2xs"
-                >
-                  <div className="w-10 h-10 rounded-full bg-slate-900 text-white flex items-center justify-center mb-2 group-hover:scale-105 transition-transform shadow-xs">
-                    {quickUploadingSource === 'CAMERA' ? (
-                      <Loader2 className="w-4 h-4 animate-spin text-white" />
-                    ) : (
-                      <Camera className="w-4 h-4" />
-                    )}
-                  </div>
-                  <span className="text-xs font-semibold text-slate-800">
-                    {quickUploadingSource === 'CAMERA' ? 'Mengunggah...' : 'Jepret Kamera HP'}
-                  </span>
-                  <span className="text-[10.5px] text-slate-400 mt-0.5">
-                    Kamera belakang ponsel
-                  </span>
-                </button>
-
-                {/* 2. Tombol Galeri Foto */}
-                <button
-                  type="button"
-                  onClick={() => quickGalleryInputRef.current?.click()}
-                  disabled={quickUploadingSource !== null}
-                  className="w-full flex flex-col items-center justify-center p-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 transition cursor-pointer text-center group disabled:opacity-60 disabled:cursor-not-allowed shadow-2xs"
-                >
-                  <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
-                    {quickUploadingSource === 'GALLERY' ? (
-                      <Loader2 className="w-4 h-4 animate-spin text-slate-600" />
-                    ) : (
-                      <Upload className="w-4 h-4" />
-                    )}
-                  </div>
-                  <span className="text-xs font-semibold text-slate-800">
-                    {quickUploadingSource === 'GALLERY' ? 'Mengunggah...' : 'Pilih dari Galeri'}
-                  </span>
-                  <span className="text-[10.5px] text-slate-400 mt-0.5">
-                    JPG, PNG, atau WebP
-                  </span>
-                </button>
-              </div>
-
-              <p className="text-[11px] text-slate-400 text-center leading-relaxed">
-                Foto akan otomatis dioptimasi dan langsung diperbarui di etalase toko.
-              </p>
-            </div>
-          )}
-
-          <DialogFooter className="pt-2 border-t border-slate-100">
-            <button
-              type="button"
-              disabled={quickUploadingSource !== null}
-              onClick={() => {
-                setIsQuickPhotoOpen(false);
-                setQuickPhotoProduct(null);
-              }}
-              className="w-full sm:w-auto px-4 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg text-xs font-medium cursor-pointer disabled:opacity-60"
-            >
-              Tutup
-            </button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
