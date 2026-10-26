@@ -995,17 +995,13 @@ export function TokoOnlineDataTable() {
                           <div className="font-medium text-slate-800 text-xs">
                             {Number(prod.stok).toLocaleString('id-ID')} {prod.satuan} Tersedia
                           </div>
-                          <div className="text-[10.5px] mt-0.5">
-                            <span
-                              className={`font-semibold ${
-                                Number(prod.stok) > 0
-                                  ? 'text-emerald-700'
-                                  : 'text-rose-600'
-                              }`}
-                            >
-                              {Number(prod.stok) > 0 ? 'Siap Kirim' : 'Habis'}
-                            </span>
-                          </div>
+                          {Number(prod.stok) <= 0 && (
+                            <div className="text-[10.5px] mt-0.5">
+                              <span className="font-semibold text-rose-600">
+                                Habis
+                              </span>
+                            </div>
+                          )}
                         </td>
 
                         {/* Ketersediaan (Taste-Skills Switch Toggle) */}

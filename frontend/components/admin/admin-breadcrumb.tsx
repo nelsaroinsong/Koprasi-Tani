@@ -56,12 +56,36 @@ export function AdminBreadcrumb() {
           </>
         )}
 
+        {activeTab.item === 'Tambah Alat' && (
+          <>
+            <BreadcrumbItem>
+              <BreadcrumbLink
+                href="/admin"
+                onClick={(e) => {
+                  e.preventDefault()
+                  setActiveTab('Produk dan Layanan', 'Sewa Alat')
+                }}
+                className="hover:text-slate-900 transition font-medium"
+              >
+                Katalog Sewa Alat
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator className="text-slate-300">
+              /
+            </BreadcrumbSeparator>
+          </>
+        )}
+
         <BreadcrumbItem>
           <BreadcrumbPage className="text-slate-900 font-semibold">
             {isDashboard
               ? 'Dashboard'
               : activeTab.item === 'Toko Online'
               ? 'Katalog Komoditas'
+              : activeTab.item === 'Sewa Alat'
+              ? 'Katalog Sewa Alat'
+              : activeTab.item === 'Tambah Alat'
+              ? 'Form Sewa Alat'
               : activeTab.item === 'Lokasi Gudang'
               ? 'Titik Lokasi Gudang'
               : activeTab.item || activeTab.group}

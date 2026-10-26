@@ -114,11 +114,22 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
   // Collapsible Menu States
   const [isTransaksiOpen, setIsTransaksiOpen] = React.useState(true)
   const [isKeanggotaanOpen, setIsKeanggotaanOpen] = React.useState(false)
+  const [isKatalogOpen, setIsKatalogOpen] = React.useState(true)
   const [isKategoriOpen, setIsKategoriOpen] = React.useState(false)
 
   // Auto-expand section if activeTab is inside it
   React.useEffect(() => {
     if (activeTab.group === "Pengguna") setIsKeanggotaanOpen(true)
+    if (
+      activeTab.group === "Produk dan Layanan" &&
+      (activeTab.item === "Toko Online" ||
+        activeTab.item === "Lokasi Gudang" ||
+        activeTab.item === "Tambah Komoditas" ||
+        activeTab.item === "Sewa Alat" ||
+        activeTab.item === "Tambah Alat")
+    ) {
+      setIsKatalogOpen(true)
+    }
     if (
       activeTab.group === "Produk dan Layanan" &&
       (activeTab.item === "Kategori Komoditas" ||
@@ -147,7 +158,7 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
     { group: "Pengguna", item: "Petani", label: "Petani Mitra" },
     { group: "Pengguna", item: "Pembeli", label: "Pembeli" },
     { group: "Produk dan Layanan", item: "Toko Online", label: "Katalog Komoditas" },
-    { group: "Produk dan Layanan", item: "Sewa Alat", label: "Sewa Alat" },
+    { group: "Produk dan Layanan", item: "Sewa Alat", label: "Katalog Sewa Alat" },
     { group: "Produk dan Layanan", item: "Kategori Komoditas", label: "Kategori Produk" },
     { group: "Produk dan Layanan", item: "Kategori Sewa Alat", label: "Kategori Sewa Alat" },
     { group: "Pengaturan Web", item: "Logo Mitra", label: "Logo Mitra" },
@@ -500,12 +511,19 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
                   )}
                 </SidebarMenuItem>
 
-                {/* 4. Katalog Komoditas */}
+                {/* 4. Katalog (Dropdown / Collapsible with curved branch: Katalog Komoditas & Katalog Sewa Alat) */}
                 <SidebarMenuItem>
                   {(() => {
-                    const isActive =
+                    const isKomoditasActive =
                       activeTab.group === "Produk dan Layanan" &&
-                      (activeTab.item === "Toko Online" || activeTab.item === "Lokasi Gudang")
+                      (activeTab.item === "Toko Online" ||
+                        activeTab.item === "Lokasi Gudang" ||
+                        activeTab.item === "Tambah Komoditas")
+                    const isSewaAlatActive =
+                      activeTab.group === "Produk dan Layanan" &&
+                      (activeTab.item === "Sewa Alat" ||
+                        activeTab.item === "Tambah Alat")
+                    const isKatalogActive = isKomoditasActive || isSewaAlatActive
 
                     return isCollapsed ? (
                       <Tooltip>
@@ -513,10 +531,13 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
                           <button
                             type="button"
                             onClick={() =>
-                              setActiveTab("Produk dan Layanan", "Toko Online")
+                              setActiveTab(
+                                "Produk dan Layanan",
+                                isSewaAlatActive ? "Sewa Alat" : "Toko Online"
+                              )
                             }
                             className={`w-8 h-8 mx-auto rounded-lg flex items-center justify-center transition cursor-pointer ${
-                              isActive
+                              isKatalogActive
                                 ? "bg-white text-slate-900 border border-[#E5E7EB] shadow-2xs"
                                 : "text-slate-500 hover:bg-slate-200/50 hover:text-slate-900"
                             }`}
@@ -525,79 +546,47 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
                           </button>
                         </TooltipTrigger>
                         <TooltipContent side="right" className="font-medium text-xs">
-                          Katalog Komoditas
+                          Katalog
                         </TooltipContent>
                       </Tooltip>
                     ) : (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setActiveTab("Produk dan Layanan", "Toko Online")
-                        }
-                        className={`flex items-center gap-2.5 px-2.5 py-2 w-full rounded-lg text-[13px] transition-all cursor-pointer text-left ${
-                          isActive
-                            ? "bg-white text-slate-900 font-semibold border border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
-                            : "text-slate-600 hover:bg-slate-200/40 hover:text-slate-900 font-medium"
-                        }`}
-                      >
-                        <Package
-                          className={`w-4 h-4 shrink-0 stroke-[1.8] ${
-                            isActive ? "text-slate-800" : "text-slate-500"
-                          }`}
-                        />
-                        <span className="truncate">Katalog Komoditas</span>
-                      </button>
-                    )
-                  })()}
-                </SidebarMenuItem>
-
-                {/* 5. Sewa Alat */}
-                <SidebarMenuItem>
-                  {(() => {
-                    const isActive =
-                      activeTab.group === "Produk dan Layanan" &&
-                      activeTab.item === "Sewa Alat"
-
-                    return isCollapsed ? (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setActiveTab("Produk dan Layanan", "Sewa Alat")
-                            }
-                            className={`w-8 h-8 mx-auto rounded-lg flex items-center justify-center transition cursor-pointer ${
-                              isActive
-                                ? "bg-white text-slate-900 border border-[#E5E7EB] shadow-2xs"
-                                : "text-slate-500 hover:bg-slate-200/50 hover:text-slate-900"
+                      <div>
+                        <button
+                          type="button"
+                          onClick={() => setIsKatalogOpen((prev) => !prev)}
+                          className="flex items-center justify-between w-full px-2.5 py-2 rounded-lg text-[13px] font-medium text-slate-700 hover:bg-slate-200/40 hover:text-slate-900 transition cursor-pointer"
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <Package className="w-4 h-4 text-slate-500 shrink-0 stroke-[1.8]" />
+                            <span>Katalog</span>
+                          </div>
+                          <ChevronDown
+                            className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
+                              isKatalogOpen ? "rotate-180" : "rotate-0"
                             }`}
-                          >
-                            <Tractor className="w-4 h-4 stroke-[1.8]" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="right" className="font-medium text-xs">
-                          Sewa Alat
-                        </TooltipContent>
-                      </Tooltip>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setActiveTab("Produk dan Layanan", "Sewa Alat")
-                        }
-                        className={`flex items-center gap-2.5 px-2.5 py-2 w-full rounded-lg text-[13px] transition-all cursor-pointer text-left ${
-                          isActive
-                            ? "bg-white text-slate-900 font-semibold border border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
-                            : "text-slate-600 hover:bg-slate-200/40 hover:text-slate-900 font-medium"
-                        }`}
-                      >
-                        <Tractor
-                          className={`w-4 h-4 shrink-0 stroke-[1.8] ${
-                            isActive ? "text-slate-800" : "text-slate-500"
-                          }`}
-                        />
-                        <span className="truncate">Sewa Alat</span>
-                      </button>
+                          />
+                        </button>
+
+                        {isKatalogOpen && (
+                          <div className="mt-0.5 space-y-0.5">
+                            <TreeBranchItem
+                              label="Katalog Komoditas"
+                              isActive={isKomoditasActive}
+                              onClick={() =>
+                                setActiveTab("Produk dan Layanan", "Toko Online")
+                              }
+                            />
+                            <TreeBranchItem
+                              label="Katalog Sewa Alat"
+                              isLast
+                              isActive={isSewaAlatActive}
+                              onClick={() =>
+                                setActiveTab("Produk dan Layanan", "Sewa Alat")
+                              }
+                            />
+                          </div>
+                        )}
+                      </div>
                     )
                   })()}
                 </SidebarMenuItem>

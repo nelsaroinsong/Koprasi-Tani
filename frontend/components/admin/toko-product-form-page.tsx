@@ -439,7 +439,7 @@ export function TokoProductFormPage({
   const primaryImage = images[activeImageIndex] || images[0] || null;
 
   return (
-    <div className="w-full max-w-5xl mx-auto space-y-6 pb-40 sm:pb-48">
+    <div className="w-full max-w-5xl mx-auto space-y-6 pb-24">
       {/* Hidden File Inputs */}
       <input
         ref={fileInputRef}
@@ -458,14 +458,14 @@ export function TokoProductFormPage({
         className="hidden"
       />
 
-      {/* Top Header Bar Sesuai Gambar 2 */}
+      {/* Top Header Bar Sesuai Katalog Sewa Alat */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={onCancel}
             className="p-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition cursor-pointer shadow-2xs"
-            title="Kembali"
+            title="Kembali ke Katalog Komoditas"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
@@ -475,7 +475,7 @@ export function TokoProductFormPage({
             </div>
             <div>
               <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-                {isEdit ? 'Ubah Data Produk' : 'Tambah Produk Baru'}
+                {isEdit ? 'Ubah Data Komoditas' : 'Tambah Produk Baru'}
               </h1>
               <p className="text-xs text-slate-500 mt-0.5">
                 Kelola informasi komoditas, harga satuan, dan galeri foto
@@ -484,7 +484,7 @@ export function TokoProductFormPage({
           </div>
         </div>
 
-        {/* Action Buttons Sesuai Gambar 2 */}
+        {/* Action Buttons Top Right */}
         <div className="flex items-center gap-2 self-end sm:self-center">
           <button
             type="button"
@@ -499,10 +499,10 @@ export function TokoProductFormPage({
             type="button"
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-xs disabled:opacity-60"
+            className="px-4 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-xs disabled:opacity-60"
           >
             {isSubmitting ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
             ) : (
               <Check className="w-3.5 h-3.5" />
             )}
@@ -511,18 +511,20 @@ export function TokoProductFormPage({
         </div>
       </div>
 
-      {/* 2-Column Form Layout Sesuai Gambar 2 */}
+      {/* 2-Column Form Layout Sesuai Katalog Sewa Alat */}
       <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6">
         {/* Kolom Kiri: Informasi Umum & Harga dan Stok (7 Kolom) */}
         <div className="lg:col-span-7 space-y-5">
-          {/* Card 1: Informasi Umum (General Information) */}
-          <div className="p-5 bg-white border border-slate-200 rounded-xl space-y-4">
-            <h3 className="text-sm font-bold text-slate-800">Informasi Umum</h3>
+          {/* Card 1: Informasi Umum */}
+          <div className="p-5 bg-white border border-slate-200 rounded-xl space-y-4 shadow-2xs">
+            <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+              <span>Informasi Umum</span>
+            </h3>
 
             {/* Nama Produk */}
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-                Nama Produk
+                Nama Produk <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -530,27 +532,27 @@ export function TokoProductFormPage({
                 value={nama}
                 onChange={(e) => setNama(e.target.value)}
                 placeholder="Contoh: Kelapa Butir Hibrida, Jagung Pipil Kering Super"
-                className="w-full text-xs px-3.5 py-2.5 bg-slate-100 border border-transparent rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-600 focus:bg-white transition text-slate-800"
+                className="w-full text-xs px-3.5 py-2.5 bg-slate-100 border border-transparent rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 focus:bg-white transition text-slate-800 font-semibold"
               />
             </div>
 
-            {/* Deskripsi Produk */}
+            {/* Deskripsi Lengkap */}
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-                Deskripsi Produk
+                Deskripsi Lengkap
               </label>
               <textarea
                 rows={4}
                 value={deskripsi}
                 onChange={(e) => setDeskripsi(e.target.value)}
                 placeholder="Jelaskan kualitas panen, varietas benih, keunggulan komoditas, dan cara penyimpanan..."
-                className="w-full text-xs px-3.5 py-2.5 bg-slate-100 border border-transparent rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-600 focus:bg-white transition text-slate-800 resize-none leading-relaxed"
+                className="w-full text-xs px-3.5 py-2.5 bg-slate-100 border border-transparent rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 focus:bg-white transition text-slate-800 resize-none leading-relaxed"
               />
             </div>
 
             {/* Satuan & Mitra Petani Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-              {/* Satuan Komoditas (Pilihan Box Style) */}
+              {/* Satuan Komoditas (Pills Style Sesuai Sewa Alat) */}
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1.5">
                   Satuan Penjualan
@@ -565,11 +567,11 @@ export function TokoProductFormPage({
                         onClick={() => setSatuan(opt)}
                         className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer border ${
                           isSelected
-                            ? 'bg-emerald-100 border-emerald-400 text-emerald-900 font-bold'
+                            ? 'bg-slate-900 border-slate-900 text-white font-bold'
                             : 'bg-slate-100 border-transparent text-slate-600 hover:bg-slate-200'
                         }`}
                       >
-                        {opt}
+                        /{opt}
                       </button>
                     );
                   })}
@@ -587,9 +589,9 @@ export function TokoProductFormPage({
 
                 {selectedPetani ? (
                   /* Kartu Petani Terpilih */
-                  <div className="w-full text-xs p-2.5 bg-emerald-50/70 border border-emerald-200/90 rounded-lg flex items-center justify-between animate-in fade-in">
+                  <div className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between animate-in fade-in">
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                      <div className="w-7 h-7 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center shrink-0">
                         <Mail className="w-3.5 h-3.5" />
                       </div>
                       <div className="min-w-0">
@@ -640,7 +642,7 @@ export function TokoProductFormPage({
                           }
                         }}
                         placeholder="Ketik email mitra petani..."
-                        className="w-full text-xs pl-8 pr-8 py-2.5 bg-slate-100 border border-transparent rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-600 focus:bg-white transition text-slate-800"
+                        className="w-full text-xs pl-8 pr-8 py-2.5 bg-slate-100 border border-transparent rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 focus:bg-white transition text-slate-800"
                       />
                       {petaniSearch && (
                         <button
@@ -657,19 +659,19 @@ export function TokoProductFormPage({
                       )}
                     </div>
 
-                    {/* Popover Hasil Pencarian Email Petani - Hanya muncul setelah diketik */}
+                    {/* Popover Hasil Pencarian Email Petani */}
                     {isPetaniOpen && petaniSearch.trim().length > 0 && (
                       <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-30 max-h-56 overflow-hidden flex flex-col animate-in fade-in zoom-in-95">
                         <div className="px-3 py-1.5 text-[10.5px] font-semibold text-slate-400 uppercase tracking-wider bg-slate-50 border-b border-slate-100 flex items-center justify-between">
                           <span>Hasil Pencarian ({searchedPetaniResults.length})</span>
-                          <span className="text-[10px] text-emerald-600 font-normal">
+                          <span className="text-[10px] text-slate-600 font-normal">
                             Email: &quot;{petaniSearch}&quot;
                           </span>
                         </div>
                         <div className="overflow-y-auto p-1 divide-y divide-slate-50 max-h-48">
                           {isSearchingPetani ? (
                             <div className="p-4 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
-                              <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
+                              <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-600" />
                               <span>Mencari di database...</span>
                             </div>
                           ) : searchedPetaniResults.length === 0 ? (
@@ -687,11 +689,11 @@ export function TokoProductFormPage({
                                   setIsPetaniOpen(false);
                                   setPetaniSearch('');
                                 }}
-                                className="w-full text-left p-2 rounded-lg text-xs hover:bg-emerald-50/70 transition cursor-pointer flex items-center justify-between group"
+                                className="w-full text-left p-2 rounded-lg text-xs hover:bg-slate-50 transition cursor-pointer flex items-center justify-between group"
                               >
                                 <div className="min-w-0 flex-1 pr-2">
-                                  <div className="font-semibold text-slate-800 group-hover:text-emerald-900 truncate flex items-center gap-1.5">
-                                    <Mail className="w-3 h-3 text-emerald-600 shrink-0" />
+                                  <div className="font-semibold text-slate-800 group-hover:text-slate-900 truncate flex items-center gap-1.5">
+                                    <Mail className="w-3 h-3 text-slate-400 shrink-0" />
                                     <span>{petani.email}</span>
                                   </div>
                                   <div className="text-[11px] text-slate-400 truncate flex items-center gap-1 mt-0.5">
@@ -699,7 +701,7 @@ export function TokoProductFormPage({
                                     <span>{petani.name}</span>
                                   </div>
                                 </div>
-                                <span className="text-[11px] font-semibold text-emerald-700 bg-white group-hover:bg-emerald-100 border border-slate-200 group-hover:border-emerald-300 px-2 py-0.5 rounded-md transition shrink-0">
+                                <span className="text-[11px] font-semibold text-slate-700 bg-white group-hover:bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md transition shrink-0">
                                   Pilih
                                 </span>
                               </button>
@@ -714,32 +716,37 @@ export function TokoProductFormPage({
             </div>
           </div>
 
-          {/* Card 2: Harga dan Stok (Pricing And Stock) */}
-          <div className="p-5 bg-white border border-slate-200 rounded-xl space-y-4">
+          {/* Card 2: Harga dan Stok */}
+          <div className="p-5 bg-white border border-slate-200 rounded-xl space-y-4 shadow-2xs">
             <h3 className="text-sm font-bold text-slate-800">Harga dan Stok</h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Harga Satuan */}
+              {/* Harga Satuan dengan Rp Prefix */}
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-                  Harga Satuan (Rp)
+                  Harga Satuan Pokok (Rp) <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="number"
-                  required
-                  min={0}
-                  step={500}
-                  value={hargaPerSatuan}
-                  onChange={(e) => setHargaPerSatuan(e.target.value)}
-                  placeholder="Contoh: 5000"
-                  className="w-full text-xs px-3.5 py-2.5 bg-slate-100 border border-transparent rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-600 focus:bg-white transition text-slate-800 font-semibold"
-                />
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs pointer-events-none">
+                    Rp
+                  </span>
+                  <input
+                    type="number"
+                    required
+                    min={0}
+                    step={500}
+                    value={hargaPerSatuan}
+                    onChange={(e) => setHargaPerSatuan(e.target.value)}
+                    placeholder="8000"
+                    className="w-full text-xs pl-9 pr-3.5 py-2.5 bg-slate-100 border border-transparent rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 focus:bg-white transition text-slate-800 font-semibold"
+                  />
+                </div>
               </div>
 
               {/* Stok */}
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-                  Jumlah Stok Tersedia
+                  Jumlah Stok Tersedia <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
@@ -747,54 +754,72 @@ export function TokoProductFormPage({
                   min={0}
                   value={stok}
                   onChange={(e) => setStok(e.target.value)}
-                  placeholder="Contoh: 100"
-                  className="w-full text-xs px-3.5 py-2.5 bg-slate-100 border border-transparent rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-600 focus:bg-white transition text-slate-800 font-semibold"
+                  placeholder="100"
+                  className="w-full text-xs px-3.5 py-2.5 bg-slate-100 border border-transparent rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 focus:bg-white transition text-slate-800 font-semibold"
                 />
               </div>
             </div>
 
-            {/* Status Ketersediaan */}
+            {/* Status Ketersediaan (Taste-Skills Switch Toggle) */}
             <div className="pt-2 flex items-center justify-between border-t border-slate-100 text-xs">
               <div>
                 <span className="font-semibold text-slate-700 block">Status Ketersediaan Toko</span>
                 <span className="text-[11px] text-slate-400">
-                  {isTersedia ? 'Aktif dan dapat dipesan oleh anggota' : 'Stok habis / dinonaktifkan sementara'}
+                  {isTersedia ? 'Komoditas siap dibeli dan dapat dipesan oleh anggota' : 'Stok habis / dinonaktifkan sementara'}
                 </span>
               </div>
               <button
                 type="button"
+                role="switch"
+                aria-checked={isTersedia}
                 onClick={() => setIsTersedia(!isTersedia)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer border ${
-                  isTersedia
-                    ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                    : 'bg-slate-100 text-slate-600 border-slate-200'
+                title={`Klik untuk ${isTersedia ? 'menonaktifkan' : 'mengaktifkan'} produk ini`}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 ${
+                  isTersedia ? 'bg-slate-900' : 'bg-slate-200 hover:bg-slate-300'
                 }`}
               >
-                {isTersedia ? 'Tersedia' : 'Nonaktif'}
+                <span className="sr-only">Toggle status ketersediaan komoditas</span>
+                <span
+                  aria-hidden="true"
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                    isTersedia ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
               </button>
             </div>
           </div>
         </div>
 
-        {/* Kolom Kanan: Upload Img & Category (5 Kolom) */}
+        {/* Kolom Kanan: Foto Komoditas & Kategori (5 Kolom) */}
         <div className="lg:col-span-5 space-y-5">
-          {/* Card 1: Upload Img (Unggah Foto Produk) */}
-          <div className="p-5 bg-white border border-slate-200 rounded-xl space-y-3">
+          {/* Card 3: Foto Komoditas */}
+          <div className="p-5 bg-white border border-slate-200 rounded-xl space-y-3 shadow-2xs">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-slate-800">Unggah Foto</h3>
+              <h3 className="text-sm font-bold text-slate-800">Foto Komoditas</h3>
               <span className="text-[11px] font-semibold text-slate-400">
                 {images.length} Foto
               </span>
             </div>
 
-            {/* Main Large Image Container Sesuai Gambar 2 */}
+            {/* Main Large Image Container */}
             <div className="w-full aspect-square rounded-xl bg-slate-100 border border-slate-200 overflow-hidden relative flex items-center justify-center group">
               {primaryImage ? (
-                <img
-                  src={primaryImage}
-                  alt="Preview Produk"
-                  className="w-full h-full object-cover"
-                />
+                <>
+                  <img
+                    src={primaryImage}
+                    alt="Preview Produk"
+                    className="w-full h-full object-cover"
+                  />
+                  {/* Delete Button on active preview */}
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveImage(activeImageIndex)}
+                    className="absolute top-2.5 right-2.5 p-1.5 rounded-lg bg-black/60 hover:bg-rose-600 text-white shadow-sm transition cursor-pointer"
+                    title="Hapus foto aktif ini"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </>
               ) : (
                 <div className="flex flex-col items-center justify-center p-6 text-center text-slate-400">
                   <ImageIcon className="w-12 h-12 stroke-1 mb-2 text-slate-300" />
@@ -802,7 +827,7 @@ export function TokoProductFormPage({
                     Belum ada foto komoditas
                   </span>
                   <span className="text-[10px] text-slate-400 mt-0.5">
-                    Klik tombol + di bawah atau jepret kamera
+                    Gunakan kamera atau pilih file foto dari galeri
                   </span>
                 </div>
               )}
@@ -813,7 +838,7 @@ export function TokoProductFormPage({
                   type="button"
                   disabled={Boolean(uploadingSource)}
                   onClick={() => fileInputRef.current?.click()}
-                  className="px-3 py-1.5 rounded-lg bg-white/95 text-slate-800 text-xs font-bold hover:bg-white shadow-xs transition flex items-center gap-1.5"
+                  className="px-3 py-1.5 rounded-lg bg-white/95 text-slate-800 text-xs font-bold hover:bg-white shadow-xs transition flex items-center gap-1.5 cursor-pointer"
                 >
                   <Upload className="w-3.5 h-3.5" />
                   <span>Galeri</span>
@@ -822,7 +847,7 @@ export function TokoProductFormPage({
                   type="button"
                   disabled={Boolean(uploadingSource)}
                   onClick={() => cameraInputRef.current?.click()}
-                  className="px-3 py-1.5 rounded-lg bg-white/95 text-slate-800 text-xs font-bold hover:bg-white shadow-xs transition flex items-center gap-1.5"
+                  className="px-3 py-1.5 rounded-lg bg-white/95 text-slate-800 text-xs font-bold hover:bg-white shadow-xs transition flex items-center gap-1.5 cursor-pointer"
                 >
                   <Camera className="w-3.5 h-3.5" />
                   <span>Kamera</span>
@@ -831,13 +856,13 @@ export function TokoProductFormPage({
 
               {uploadingSource && (
                 <div className="absolute inset-0 bg-white/80 backdrop-blur-2xs flex flex-col items-center justify-center gap-2">
-                  <Loader2 className="w-6 h-6 text-emerald-600 animate-spin" />
+                  <Loader2 className="w-6 h-6 text-slate-900 animate-spin" />
                   <span className="text-xs font-bold text-slate-700">Mengunggah foto...</span>
                 </div>
               )}
             </div>
 
-            {/* Thumbnails Row Sesuai Gambar 2 (+ button for multi upload) */}
+            {/* Thumbnails Row + Dashed Add Button */}
             <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar pt-1">
               {images.map((imgUrl, idx) => {
                 const isActive = idx === activeImageIndex;
@@ -846,7 +871,7 @@ export function TokoProductFormPage({
                     key={idx}
                     className={`relative w-14 h-14 rounded-lg overflow-hidden border-2 cursor-pointer shrink-0 transition ${
                       isActive
-                        ? 'border-emerald-600 ring-2 ring-emerald-200'
+                        ? 'border-slate-900 ring-2 ring-slate-200'
                         : 'border-slate-200 hover:border-slate-300'
                     }`}
                     onClick={() => setActiveImageIndex(idx)}
@@ -862,7 +887,7 @@ export function TokoProductFormPage({
                         e.stopPropagation();
                         handleRemoveImage(idx);
                       }}
-                      className="absolute top-0.5 right-0.5 w-4 h-4 rounded-md bg-black/60 text-white flex items-center justify-center text-[10px] hover:bg-red-600 transition"
+                      className="absolute top-0.5 right-0.5 w-4 h-4 rounded-md bg-black/60 text-white flex items-center justify-center text-[10px] hover:bg-rose-600 transition"
                       title="Hapus foto ini"
                     >
                       ✕
@@ -871,12 +896,12 @@ export function TokoProductFormPage({
                 );
               })}
 
-              {/* Add Image Button Sesuai Gambar 2 (+) */}
+              {/* Dashed Add Image Button (Identik Sewa Alat) */}
               <button
                 type="button"
                 disabled={Boolean(uploadingSource)}
                 onClick={() => fileInputRef.current?.click()}
-                className="w-14 h-14 rounded-lg border-2 border-dashed border-emerald-300 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 flex flex-col items-center justify-center gap-0.5 shrink-0 transition cursor-pointer"
+                className="w-14 h-14 rounded-lg border-2 border-dashed border-slate-300 hover:border-slate-800 bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-800 flex flex-col items-center justify-center gap-0.5 shrink-0 transition cursor-pointer"
                 title="Tambah foto komoditas"
               >
                 <Plus className="w-4 h-4" />
@@ -885,26 +910,28 @@ export function TokoProductFormPage({
             </div>
           </div>
 
-          {/* Card 2: Kategori (Category) Sesuai Gambar 2 */}
-          <div className="p-5 bg-white border border-slate-200 rounded-xl space-y-3">
-            <h3 className="text-sm font-bold text-slate-800">Kategori</h3>
+          {/* Card 4: Kategori (Tanpa Tambah Kategori, Dropdown Rapi & Modern) */}
+          <div className="p-5 bg-white border border-slate-200 rounded-xl space-y-3 shadow-2xs">
+            <h3 className="text-sm font-bold text-slate-800">Kategori Produk</h3>
 
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-                Kategori Produk
+                Kategori Komoditas Pertanian
               </label>
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
-                    className="w-full text-xs px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200/70 border border-transparent rounded-lg flex items-center justify-between text-left focus:outline-none focus:ring-1 focus:ring-emerald-600 focus:bg-white transition cursor-pointer"
+                    className="w-full text-xs px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200/70 border border-transparent rounded-lg flex items-center justify-between text-left focus:outline-none focus:ring-1 focus:ring-slate-900 focus:bg-white transition cursor-pointer"
                   >
-                    <span className="font-semibold text-slate-800 truncate flex items-center gap-1.5">
-                      {defaultCategoriesData.find((c) => c.name.toLowerCase() === kategori.toLowerCase())?.emoji && (
-                        <span>
+                    <span className="font-semibold text-slate-800 truncate flex items-center gap-2">
+                      {defaultCategoriesData.find((c) => c.name.toLowerCase() === kategori.toLowerCase())?.emoji ? (
+                        <span className="text-sm leading-none shrink-0">
                           {defaultCategoriesData.find((c) => c.name.toLowerCase() === kategori.toLowerCase())?.emoji}
                         </span>
+                      ) : (
+                        <Tag className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                       )}
                       <span>{kategori || 'Pilih Kategori...'}</span>
                     </span>
@@ -916,10 +943,10 @@ export function TokoProductFormPage({
                   side="bottom"
                   sideOffset={6}
                   collisionPadding={16}
-                  className="w-[var(--radix-dropdown-menu-trigger-width)] min-w-[200px] max-h-60 overflow-y-auto rounded-xl p-1 bg-white border border-slate-200 shadow-xl z-50"
+                  className="w-[var(--radix-dropdown-menu-trigger-width)] min-w-[220px] max-h-60 overflow-y-auto rounded-xl p-1 bg-white border border-slate-200 shadow-xl z-50 text-xs"
                 >
                   {categoriesList.map((cat) => {
-                    const isSelected = cat === kategori;
+                    const isSelected = cat.toLowerCase() === kategori.toLowerCase();
                     const catEmoji = defaultCategoriesData.find(
                       (c) => c.name.toLowerCase() === cat.toLowerCase()
                     )?.emoji;
@@ -930,22 +957,29 @@ export function TokoProductFormPage({
                         onClick={() => setKategori(cat)}
                         className={`w-full text-left px-3 py-2 rounded-lg text-xs flex items-center justify-between transition cursor-pointer ${
                           isSelected
-                            ? 'bg-emerald-50 text-emerald-800 font-bold'
+                            ? 'bg-slate-100 text-slate-900 font-bold'
                             : 'text-slate-700 hover:bg-slate-50 font-medium'
                         }`}
                       >
-                        <span className="truncate flex items-center gap-1.5">
-                          {catEmoji && <span className="text-xs">{catEmoji}</span>}
-                          <span>{cat}</span>
+                        <span className="truncate flex items-center gap-2">
+                          {catEmoji ? (
+                            <span className="text-sm leading-none shrink-0">{catEmoji}</span>
+                          ) : (
+                            <Tag className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          )}
+                          <span className="truncate">{cat}</span>
                         </span>
                         {isSelected && (
-                          <Check className="w-3.5 h-3.5 text-emerald-700 shrink-0 stroke-[2.5]" />
+                          <Check className="w-3.5 h-3.5 text-slate-900 shrink-0 stroke-[2.5]" />
                         )}
                       </DropdownMenuItem>
                     );
                   })}
                 </DropdownMenuContent>
               </DropdownMenu>
+              <p className="text-[10.5px] text-slate-400 mt-1.5">
+                Kategori menentukan pengelompokan filter produk pada etalase toko online koperasi.
+              </p>
             </div>
           </div>
         </div>
