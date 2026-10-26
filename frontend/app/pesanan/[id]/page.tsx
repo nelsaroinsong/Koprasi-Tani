@@ -683,40 +683,61 @@ export default function OrderDetailPage({
 
                 <div className="space-y-3">
                   {!isRental &&
-                    orderData.items?.map((item: any) => (
-                      <div
-                        key={item.id}
-                        className="flex items-start gap-3 p-3 sm:p-3.5 rounded-xl bg-[#f4f5f1]/80 border border-[#dce1d6]"
-                      >
-                        {item.product?.imageUrl ? (
-                          <img
-                            src={getPrimaryImage(item.product.imageUrl)}
-                            alt={item.product.nama}
-                            className="w-14 h-14 rounded-lg object-cover border border-[#dce1d6] shrink-0 shadow-2xs"
-                          />
-                        ) : (
-                          <div className="w-14 h-14 rounded-lg bg-[#e2f2c8]/60 text-[#233414] flex items-center justify-center shrink-0 border border-[#c9e39e] text-xl font-bold shadow-2xs">
-                            🌾
-                          </div>
-                        )}
+                    orderData.items?.map((item: any) => {
+                      const itemSubtotal =
+                        item.subtotal !== undefined && item.subtotal !== null && !isNaN(Number(item.subtotal))
+                          ? Number(item.subtotal)
+                          : item.quantity * Number(item.hargaPerSatuan || 0);
 
-                        <div className="min-w-0 flex-1">
-                          <h4 className="text-sm font-bold text-[#1a2610] leading-snug truncate">
-                            {item.namaProduk || item.product?.nama || 'Komoditas Pertanian'}
-                          </h4>
-                          <div className="text-xs text-[#526046] mt-0.5 tabular-nums">
-                            {item.quantity} {item.satuan || item.product?.satuan || 'unit'} × Rp{' '}
-                            {Number(item.hargaPerSatuan).toLocaleString('id-ID')}
-                          </div>
-                          {item.petani?.name && (
-                            <div className="text-xs text-[#233414] font-semibold mt-0.5 flex items-center gap-1">
-                              <span>🌾 Mitra Petani:</span>
-                              <strong>{item.petani.name}</strong>
+                      return (
+                        <div
+                          key={item.id}
+                          className="p-3 sm:p-4 rounded-2xl bg-[#f4f5f1]/80 border border-[#dce1d6] space-y-2.5"
+                        >
+                          <div className="flex items-start gap-3">
+                            {item.product?.imageUrl ? (
+                              <img
+                                src={getPrimaryImage(item.product.imageUrl)}
+                                alt={item.product.nama}
+                                className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl object-cover border border-[#dce1d6] shrink-0 shadow-2xs"
+                              />
+                            ) : (
+                              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-[#e2f2c8]/60 text-[#233414] flex items-center justify-center shrink-0 border border-[#c9e39e] text-xl sm:text-2xl font-bold shadow-2xs">
+                                🌾
+                              </div>
+                            )}
+
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-start justify-between gap-2">
+                                <h4 className="text-sm font-bold text-[#1a2610] leading-snug line-clamp-1 sm:line-clamp-2">
+                                  {item.namaProduk || item.product?.nama || 'Komoditas Pertanian'}
+                                </h4>
+                                <div className="text-right shrink-0">
+                                  <span className="text-[10px] text-[#5b6950] block font-medium leading-none">Subtotal</span>
+                                  <span className="text-sm sm:text-base font-black text-[#1a2610] mt-0.5 block tabular-nums">
+                                    Rp {itemSubtotal.toLocaleString('id-ID')}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="text-xs text-[#526046] mt-0.5 tabular-nums">
+                                {item.quantity} {item.satuan || item.product?.satuan || 'unit'} × Rp{' '}
+                                {Number(item.hargaPerSatuan).toLocaleString('id-ID')}
+                              </div>
+
+                              {item.petani?.name && (
+                                <div className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-lg bg-white/90 border border-[#dce1d6] text-xs text-[#2b4413] shadow-2xs max-w-full">
+                                  <span className="text-[#5b6950] text-[11px] font-normal shrink-0">Mitra Petani:</span>
+                                  <span className="font-bold text-[#1a2610] truncate">
+                                    {item.petani.name}
+                                  </span>
+                                </div>
+                              )}
                             </div>
-                          )}
+                          </div>
 
                           {orderData.status === 'SELESAI' && (
-                            <div className="mt-2 flex items-center gap-2.5 flex-wrap">
+                            <div className="pt-2 border-t border-[#dce1d6] flex items-center gap-2 flex-wrap">
                               <button
                                 type="button"
                                 onClick={() => setReviewItem(item)}
@@ -734,15 +755,8 @@ export default function OrderDetailPage({
                             </div>
                           )}
                         </div>
-
-                        <div className="text-right shrink-0">
-                          <div className="text-[11px] text-[#5b6950] font-medium">Subtotal</div>
-                          <div className="text-sm font-black text-[#1a2610] mt-0.5 tabular-nums">
-                            Rp {Number(item.subtotal).toLocaleString('id-ID')}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
 
                   {/* Sewa Alat Items */}
                   {isRental &&
@@ -761,34 +775,45 @@ export default function OrderDetailPage({
                       return (
                         <div
                           key={idx}
-                          className="flex items-start gap-3 p-3 sm:p-3.5 rounded-xl bg-[#f4f5f1]/80 border border-[#dce1d6]"
+                          className="p-3 sm:p-4 rounded-2xl bg-[#f4f5f1]/80 border border-[#dce1d6] space-y-2.5"
                         >
-                          {item.imageUrl ? (
-                            <img
-                              src={getPrimaryImage(item.imageUrl)}
-                              alt={itemName}
-                              className="w-14 h-14 rounded-lg object-cover border border-[#dce1d6] shrink-0 shadow-2xs"
-                            />
-                          ) : (
-                            <div className="w-14 h-14 rounded-lg bg-[#e2f2c8]/60 text-[#233414] flex items-center justify-center shrink-0 border border-[#c9e39e] text-xl font-bold shadow-2xs">
-                              🚜
-                            </div>
-                          )}
+                          <div className="flex items-start gap-3">
+                            {item.imageUrl ? (
+                              <img
+                                src={getPrimaryImage(item.imageUrl)}
+                                alt={itemName}
+                                className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl object-cover border border-[#dce1d6] shrink-0 shadow-2xs"
+                              />
+                            ) : (
+                              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-[#e2f2c8]/60 text-[#233414] flex items-center justify-center shrink-0 border border-[#c9e39e] text-xl sm:text-2xl font-bold shadow-2xs">
+                                🚜
+                              </div>
+                            )}
 
-                          <div className="min-w-0 flex-1">
-                            <h4 className="text-sm font-bold text-[#1a2610] leading-snug">{itemName}</h4>
-                            <div className="text-xs text-[#526046] mt-0.5 tabular-nums">
-                              {itemQty} unit × Rp {itemPrice.toLocaleString('id-ID')} / {itemUnit}
-                            </div>
-                            <div className="text-xs text-[#233414] font-semibold mt-0.5">
-                              Durasi: {itemDuration} {itemUnit} (Mulai {orderData.startDate})
-                            </div>
-                          </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-start justify-between gap-2">
+                                <h4 className="text-sm font-bold text-[#1a2610] leading-snug line-clamp-1 sm:line-clamp-2">
+                                  {itemName}
+                                </h4>
+                                <div className="text-right shrink-0">
+                                  <span className="text-[10px] text-[#5b6950] block font-medium leading-none">Subtotal</span>
+                                  <span className="text-sm sm:text-base font-black text-[#1a2610] mt-0.5 block tabular-nums">
+                                    Rp {itemSubtotal.toLocaleString('id-ID')}
+                                  </span>
+                                </div>
+                              </div>
 
-                          <div className="text-right shrink-0">
-                            <div className="text-[11px] text-[#5b6950] font-medium">Subtotal</div>
-                            <div className="text-sm font-black text-[#1a2610] mt-0.5 tabular-nums">
-                              Rp {itemSubtotal.toLocaleString('id-ID')}
+                              <div className="text-xs text-[#526046] mt-0.5 tabular-nums">
+                                {itemQty} unit × Rp {itemPrice.toLocaleString('id-ID')} / {itemUnit}
+                              </div>
+
+                              <div className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-lg bg-white/90 border border-[#dce1d6] text-xs text-[#2b4413] shadow-2xs max-w-full">
+                                <Clock className="w-3.5 h-3.5 text-[#5b6950] shrink-0" />
+                                <span className="text-[#5b6950] text-[11px] font-normal shrink-0">Durasi:</span>
+                                <span className="font-bold text-[#1a2610] truncate">
+                                  {itemDuration} {itemUnit} (Mulai {orderData.startDate})
+                                </span>
+                              </div>
                             </div>
                           </div>
                         </div>
