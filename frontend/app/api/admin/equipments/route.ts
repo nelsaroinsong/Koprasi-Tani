@@ -111,13 +111,29 @@ export async function POST(request: Request) {
       );
     }
 
-    let cleanKontakPj = '081944078924';
-    if (kontakPj) {
-      const phoneValidation = validateIndonesianPhone(kontakPj, false);
-      if (!phoneValidation.isValid) {
-        return NextResponse.json({ error: phoneValidation.error }, { status: 400 });
+    const adminEmail = session?.user?.email;
+    let cleanKontakPj = '';
+    if (adminEmail) {
+      const adminUser = await prisma.user.findUnique({
+        where: { email: adminEmail },
+        select: { phone: true },
+      });
+      if (adminUser?.phone) {
+        cleanKontakPj = adminUser.phone;
       }
-      cleanKontakPj = phoneValidation.cleanPhone;
+    }
+
+    if (!cleanKontakPj) {
+      if (kontakPj && String(kontakPj).trim()) {
+        const phoneValidation = validateIndonesianPhone(String(kontakPj).trim(), false);
+        if (phoneValidation.isValid) {
+          cleanKontakPj = phoneValidation.cleanPhone;
+        }
+      }
+    }
+
+    if (!cleanKontakPj) {
+      cleanKontakPj = '081944078924';
     }
 
     const newId = crypto.randomUUID();
@@ -217,16 +233,28 @@ export async function PUT(request: Request) {
     }
 
     let cleanUpdatedKontakPj: string | undefined = undefined;
-    if (kontakPj !== undefined) {
-      if (typeof kontakPj === 'string' && kontakPj.trim()) {
-        const phoneValidation = validateIndonesianPhone(kontakPj, false);
-        if (!phoneValidation.isValid) {
-          return NextResponse.json({ error: phoneValidation.error }, { status: 400 });
-        }
-        cleanUpdatedKontakPj = phoneValidation.cleanPhone;
-      } else {
-        cleanUpdatedKontakPj = '081944078924';
+    const adminEmail = session?.user?.email;
+    if (adminEmail) {
+      const adminUser = await prisma.user.findUnique({
+        where: { email: adminEmail },
+        select: { phone: true },
+      });
+      if (adminUser?.phone) {
+        cleanUpdatedKontakPj = adminUser.phone;
       }
+    }
+
+    if (!cleanUpdatedKontakPj && kontakPj !== undefined) {
+      if (typeof kontakPj === 'string' && kontakPj.trim()) {
+        const phoneValidation = validateIndonesianPhone(kontakPj.trim(), false);
+        if (phoneValidation.isValid) {
+          cleanUpdatedKontakPj = phoneValidation.cleanPhone;
+        }
+      }
+    }
+
+    if (!cleanUpdatedKontakPj && kontakPj !== undefined) {
+      cleanUpdatedKontakPj = '081944078924';
     }
 
     // Update di PostgreSQL

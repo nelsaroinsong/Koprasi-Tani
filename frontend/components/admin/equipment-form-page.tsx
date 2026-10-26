@@ -12,13 +12,20 @@ import {
   Check,
   Plus,
   Bookmark,
-  DollarSign,
   Phone,
   Image as ImageIcon,
   ChevronsUpDown,
+  Wrench,
+  Lock,
 } from 'lucide-react';
 import { useToast } from '@/context/toast-context';
 import { validateIndonesianPhone } from '@/lib/phone-validation';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu';
 
 export interface EquipmentFormData {
   id?: string;
@@ -57,10 +64,12 @@ export function EquipmentFormPage({
   const isEdit = Boolean(initialData && initialData.id);
 
   // Categories list
-  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [categories, setCategories] = useState<{ id: string; name: string; emoji?: string }[]>([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
-  const [isAddingNewCat, setIsAddingNewCat] = useState(false);
-  const [newCatInput, setNewCatInput] = useState('');
+
+  // Admin Profile Phone State
+  const [adminPhone, setAdminPhone] = useState('');
+  const [adminName, setAdminName] = useState('');
 
   // Form states
   const [nama, setNama] = useState(initialData?.nama || '');
@@ -83,13 +92,32 @@ export function EquipmentFormPage({
   const [isTersedia, setIsTersedia] = useState(
     initialData?.isTersedia !== undefined ? initialData.isTersedia : true
   );
-  const [kontakPj, setKontakPj] = useState(initialData?.kontakPj || '081944078924');
+  const [kontakPj, setKontakPj] = useState(initialData?.kontakPj || '');
+
+  // Fetch admin profile to auto-populate admin phone
+  useEffect(() => {
+    async function loadAdminProfile() {
+      try {
+        const res = await fetch('/api/admin/profile');
+        const data = await res.json();
+        if (data.success && data.user?.phone) {
+          setAdminPhone(data.user.phone);
+          setAdminName(data.user.name || 'Admin');
+          // Nomor PJ terkunci otomatis mengikuti nomor akun admin
+          setKontakPj(data.user.phone);
+        }
+      } catch (err) {
+        console.error('Gagal memuat profil admin:', err);
+      }
+    }
+    loadAdminProfile();
+  }, []);
 
   // Multiple Images state
   const [images, setImages] = useState<string[]>(() => {
     if (initialData?.imageUrl) {
       return initialData.imageUrl.includes(',')
-        ? initialData.imageUrl.split(',').map((s) => s.trim())
+        ? initialData.imageUrl.split(',').map((s) => s.trim()).filter(Boolean)
         : [initialData.imageUrl];
     }
     return [];
@@ -99,7 +127,7 @@ export function EquipmentFormPage({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadingSource, setUploadingSource] = useState<'CAMERA' | 'GALLERY' | null>(null);
 
-  // Fetch categories
+  // Fetch categories from API
   useEffect(() => {
     async function loadCategories() {
       try {
@@ -107,41 +135,20 @@ export function EquipmentFormPage({
         const res = await fetch('/api/admin/equipment-categories');
         const data = await res.json();
         if (data.success && Array.isArray(data.categories)) {
-          setCategories(data.categories);
-          if (!kategori && data.categories.length > 0) {
-            setKategori(data.categories[0].name);
+          const activeOnly = data.categories.filter((c: any) => c.isActive !== false);
+          setCategories(activeOnly);
+          if (!kategori && activeOnly.length > 0) {
+            setKategori(activeOnly[0].name);
           }
         }
       } catch (err) {
-        console.error(err);
+        console.error('Gagal memuat kategori alat:', err);
       } finally {
         setIsLoadingCategories(false);
       }
     }
     loadCategories();
   }, [kategori]);
-
-  // Custom Category Dropdown states
-  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
-  const categoryDropdownRef = useRef<HTMLDivElement>(null);
-
-  // Click outside to close category dropdown
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (
-        categoryDropdownRef.current &&
-        !categoryDropdownRef.current.contains(e.target as Node)
-      ) {
-        setIsCategoryOpen(false);
-      }
-    };
-    if (isCategoryOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isCategoryOpen]);
 
   // Load draft if adding new
   useEffect(() => {
@@ -187,26 +194,10 @@ export function EquipmentFormPage({
       localStorage.setItem('admin_equipment_draft', JSON.stringify(draftData));
       showToast({
         title: 'Draf Disimpan',
-        message: 'Draf data alat berhasil disimpan secara lokal di peramban.',
+        message: 'Draf data alat berhasil disimpan di peramban.',
         type: 'success',
       });
     }
-  };
-
-  const handleAddNewCategory = () => {
-    if (!newCatInput.trim()) return;
-    const trimmed = newCatInput.trim();
-    if (!categories.some((c) => c.name.toLowerCase() === trimmed.toLowerCase())) {
-      setCategories((prev) => [...prev, { id: `cat-${Date.now()}`, name: trimmed }]);
-    }
-    setKategori(trimmed);
-    setNewCatInput('');
-    setIsAddingNewCat(false);
-    showToast({
-      title: 'Kategori Ditambahkan',
-      message: `Kategori "${trimmed}" siap digunakan.`,
-      type: 'success',
-    });
   };
 
   const handleAddImage = (url: string) => {
@@ -232,20 +223,38 @@ export function EquipmentFormPage({
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (!file.type.startsWith('image/')) {
+      showToast({
+        title: 'Format Tidak Didukung',
+        message: 'Berkas harus berupa gambar (JPG, PNG, atau WebP).',
+        type: 'warning',
+      });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      showToast({
+        title: 'Ukuran Terlalu Besar',
+        message: 'Ukuran file foto alat maksimal 5 MB.',
+        type: 'warning',
+      });
+      return;
+    }
+
     try {
       setUploadingSource(source);
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('type', 'equipments');
 
-      const res = await fetch('/api/admin/upload', {
+      // Endpoint upload khusus alat pertanian ke Cloudflare R2
+      const res = await fetch('/api/upload/equipment', {
         method: 'POST',
         body: formData,
       });
 
       const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || 'Gagal mengunggah gambar');
+      if (!res.ok || data.error) {
+        throw new Error(data.error || 'Gagal mengunggah foto alat.');
       }
 
       handleAddImage(data.url);
@@ -255,8 +264,9 @@ export function EquipmentFormPage({
         type: 'success',
       });
     } catch (err: any) {
+      console.error(err);
       showToast({
-        title: 'Gagal Unggah',
+        title: 'Gagal Mengunggah',
         message: err.message || 'Terjadi kesalahan saat memproses gambar.',
         type: 'error',
       });
@@ -266,72 +276,83 @@ export function EquipmentFormPage({
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
 
-    if (!nama.trim()) {
+    const cleanNama = nama.trim();
+    const cleanKategori = kategori.trim();
+    const hargaNum = parseFloat(hargaSewa);
+    const stokNum = parseInt(stokUnit, 10);
+
+    if (!cleanNama) {
       showToast({
-        title: 'Form Belum Lengkap',
-        message: 'Nama alat wajib diisi.',
-        type: 'error',
+        title: 'Nama Alat Kosong',
+        message: 'Silakan isi nama alat pertanian terlebih dahulu.',
+        type: 'warning',
       });
       return;
     }
 
-    if (!hargaSewa || Number(hargaSewa) <= 0) {
+    if (!cleanKategori) {
       showToast({
-        title: 'Form Belum Lengkap',
-        message: 'Tarif sewa pokok harus lebih dari Rp 0.',
-        type: 'error',
+        title: 'Kategori Belum Dipilih',
+        message: 'Silakan pilih kategori alat pertanian.',
+        type: 'warning',
       });
       return;
     }
 
-    if (kontakPj.trim()) {
-      const phoneVal = validateIndonesianPhone(kontakPj.trim(), false);
-      if (!phoneVal.isValid) {
-        showToast({
-          title: 'Nomor WhatsApp Tidak Valid',
-          message: phoneVal.error || 'Nomor WhatsApp PJ Sewa wajib diawali 08 dan minimal 10 digit.',
-          type: 'error',
-        });
-        return;
-      }
+    if (isNaN(hargaNum) || hargaNum <= 0) {
+      showToast({
+        title: 'Tarif Sewa Tidak Valid',
+        message: 'Tarif sewa pokok harus berupa angka lebih dari Rp 0.',
+        type: 'warning',
+      });
+      return;
+    }
+
+    if (isNaN(stokNum) || stokNum < 1) {
+      showToast({
+        title: 'Stok Unit Tidak Valid',
+        message: 'Jumlah unit alat pertanian minimal 1 unit.',
+        type: 'warning',
+      });
+      return;
     }
 
     const primaryImageUrl = images.join(',');
+    const finalKontakPj = adminPhone || kontakPj || '081944078924';
 
     try {
       setIsSubmitting(true);
-      const payload = {
-        nama: nama.trim(),
-        kategori,
-        deskripsi: deskripsi.trim(),
-        spesifikasi: spesifikasi.trim(),
-        hargaSewa: Number(hargaSewa),
+      const payload: any = {
+        nama: cleanNama,
+        kategori: cleanKategori,
+        deskripsi: deskripsi.trim() || null,
+        spesifikasi: spesifikasi.trim() || null,
+        hargaSewa: hargaNum,
         satuanSewa,
-        biayaOperator: biayaOperator ? Number(biayaOperator) : 0,
-        stokUnit: Number(stokUnit) || 1,
+        biayaOperator: biayaOperator ? parseFloat(biayaOperator) : 0,
+        stokUnit: stokNum,
         kondisi,
-        imageUrl: primaryImageUrl,
+        imageUrl: primaryImageUrl || null,
         isTersedia,
-        kontakPj: kontakPj.trim(),
+        kontakPj: finalKontakPj,
       };
 
-      const url = isEdit
-        ? `/api/admin/equipments/${initialData?.id}`
-        : '/api/admin/equipments';
-      const method = isEdit ? 'PUT' : 'POST';
+      if (isEdit && initialData?.id) {
+        payload.id = initialData.id;
+      }
 
-      const res = await fetch(url, {
-        method,
+      const res = await fetch('/api/admin/equipments', {
+        method: isEdit ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
       const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || 'Gagal menyimpan alat');
+      if (!res.ok || data.error) {
+        throw new Error(data.error || 'Gagal menyimpan alat');
       }
 
       if (!isEdit && typeof window !== 'undefined') {
@@ -339,16 +360,17 @@ export function EquipmentFormPage({
       }
 
       showToast({
-        title: 'Berhasil',
-        message: isEdit ? 'Data alat berhasil diperbarui.' : 'Alat baru berhasil ditambahkan.',
+        title: isEdit ? 'Alat Diperbarui' : 'Alat Berhasil Ditambahkan',
+        message: data.message || `Data unit "${cleanNama}" berhasil disimpan ke inventaris.`,
         type: 'success',
       });
 
       onSuccess();
     } catch (err: any) {
+      console.error(err);
       showToast({
         title: 'Gagal Menyimpan',
-        message: err.message || 'Terjadi kesalahan pada server.',
+        message: err.message || 'Terjadi kesalahan sistem saat menyimpan alat.',
         type: 'error',
       });
     } finally {
@@ -359,7 +381,7 @@ export function EquipmentFormPage({
   const currentActiveImage = images[activeImageIndex] || images[0] || '';
 
   return (
-    <div className="w-full max-w-6xl mx-auto pb-16 pt-2 px-3 sm:px-6">
+    <div className="w-full max-w-5xl mx-auto space-y-6 pb-24">
       {/* Hidden File Inputs */}
       <input
         type="file"
@@ -377,65 +399,72 @@ export function EquipmentFormPage({
         className="hidden"
       />
 
-      {/* Top Bar matching Gambar 2 style */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+      {/* Top Header Bar Selaras Toko Produk */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={onCancel}
-            className="p-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition cursor-pointer"
-            title="Kembali"
+            className="p-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition cursor-pointer shadow-2xs"
+            title="Kembali ke Inventaris Sewa Alat"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-4 h-4" />
           </button>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
               <Tractor className="w-4 h-4" />
             </div>
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-              {isEdit ? 'Ubah Data Alat' : 'Tambah Alat Baru'}
-            </h1>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                {isEdit ? 'Ubah Data Alat Pertanian' : 'Tambah Alat Pertanian Baru'}
+              </h1>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Kelola informasi mesin traktor, tarif sewa, spesifikasi, dan ketersediaan unit
+              </p>
+            </div>
           </div>
         </div>
 
-        {/* Action Buttons top right */}
-        <div className="flex items-center gap-2.5 w-full sm:w-auto">
+        {/* Action Buttons Top Right */}
+        <div className="flex items-center gap-2 self-end sm:self-center">
           <button
             type="button"
             onClick={handleSaveDraft}
-            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-sm transition cursor-pointer shadow-xs"
+            className="px-3.5 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
           >
-            <Bookmark className="w-4 h-4 text-slate-500" />
+            <Bookmark className="w-3.5 h-3.5 text-slate-400" />
             <span>Simpan Draf</span>
           </button>
 
           <button
             type="button"
-            onClick={handleSubmit}
+            onClick={() => handleSubmit()}
             disabled={isSubmitting}
-            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-sm transition cursor-pointer shadow-xs disabled:opacity-60"
+            className="px-4 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-xs disabled:opacity-60"
           >
             {isSubmitting ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
             ) : (
-              <Check className="w-4 h-4 stroke-[3]" />
+              <Check className="w-3.5 h-3.5" />
             )}
             <span>{isEdit ? 'Simpan Perubahan' : 'Tambah Alat'}</span>
           </button>
         </div>
       </div>
 
-      {/* Main 2-Column Layout matching Gambar 2 */}
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* KOLOM KIRI: Informasi Umum & Harga & Stok (Col-span 7) */}
-        <div className="lg:col-span-7 space-y-6">
+      {/* 2-Column Form Layout */}
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6">
+        {/* Kolom Kiri: Informasi Umum & Harga dan Stok (7 Kolom) */}
+        <div className="lg:col-span-7 space-y-5">
           {/* Card 1: Informasi Umum */}
-          <div className="bg-white border border-slate-200/90 rounded-xl p-5 sm:p-6 shadow-xs space-y-4">
-            <h2 className="text-base font-bold text-slate-900">Informasi Umum</h2>
+          <div className="p-5 bg-white border border-slate-200 rounded-xl space-y-4 shadow-2xs">
+            <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+              <span>Informasi Umum</span>
+            </h3>
 
             {/* Nama Alat */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">
                 Nama Alat Pertanian <span className="text-red-500">*</span>
               </label>
               <input
@@ -444,13 +473,13 @@ export function EquipmentFormPage({
                 value={nama}
                 onChange={(e) => setNama(e.target.value)}
                 placeholder="Contoh: Traktor Roda 4 Quick Kubota 24HP"
-                className="w-full px-3.5 py-2.5 rounded-lg bg-slate-100 border border-transparent focus:border-emerald-500 focus:bg-white focus:outline-none text-slate-800 text-sm transition"
+                className="w-full text-xs px-3.5 py-2.5 bg-slate-100 border border-transparent rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 focus:bg-white transition text-slate-800 font-semibold"
               />
             </div>
 
-            {/* Deskripsi Alat */}
+            {/* Deskripsi Lengkap */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">
                 Deskripsi Lengkap
               </label>
               <textarea
@@ -458,31 +487,35 @@ export function EquipmentFormPage({
                 value={deskripsi}
                 onChange={(e) => setDeskripsi(e.target.value)}
                 placeholder="Jelaskan kegunaan alat, kelengkapan bajak/rotari, kapasitas olah lahan, atau petunjuk operasional..."
-                className="w-full px-3.5 py-2.5 rounded-lg bg-slate-100 border border-transparent focus:border-emerald-500 focus:bg-white focus:outline-none text-slate-800 text-sm transition resize-none"
+                className="w-full text-xs px-3.5 py-2.5 bg-slate-100 border border-transparent rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 focus:bg-white transition text-slate-800 resize-none leading-relaxed"
               />
             </div>
 
             {/* Spesifikasi Teknis */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                Spesifikasi Teknis Alat
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                Spesifikasi Teknis & Kapasitas
               </label>
-              <input
-                type="text"
-                value={spesifikasi}
-                onChange={(e) => setSpesifikasi(e.target.value)}
-                placeholder="Contoh: Diesel 24 HP, Solar 15L, Kedalaman 30cm, 4WD"
-                className="w-full px-3.5 py-2.5 rounded-lg bg-slate-100 border border-transparent focus:border-emerald-500 focus:bg-white focus:outline-none text-slate-800 text-sm transition"
-              />
+              <div className="relative">
+                <Wrench className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  value={spesifikasi}
+                  onChange={(e) => setSpesifikasi(e.target.value)}
+                  placeholder="Contoh: Diesel 24 HP, Solar 15L, Kedalaman 30cm, 4WD"
+                  className="w-full text-xs pl-8 pr-3.5 py-2.5 bg-slate-100 border border-transparent rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 focus:bg-white transition text-slate-800"
+                />
+              </div>
             </div>
 
-            {/* Satuan Sewa & Kondisi */}
+            {/* Satuan Waktu Sewa & Kondisi Unit */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+              {/* Satuan Sewa */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">
                   Satuan Waktu Sewa
                 </label>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1.5">
                   {SATUAN_SEWA_OPTIONS.map((sat) => {
                     const isSelected = satuanSewa === sat;
                     return (
@@ -490,10 +523,10 @@ export function EquipmentFormPage({
                         key={sat}
                         type="button"
                         onClick={() => setSatuanSewa(sat)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer border ${
                           isSelected
-                            ? 'bg-emerald-200 text-emerald-900 border border-emerald-400'
-                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-transparent'
+                            ? 'bg-slate-900 border-slate-900 text-white font-bold'
+                            : 'bg-slate-100 border-transparent text-slate-600 hover:bg-slate-200'
                         }`}
                       >
                         /{sat}
@@ -503,14 +536,15 @@ export function EquipmentFormPage({
                 </div>
               </div>
 
+              {/* Kondisi Unit */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">
                   Kondisi Unit Fisik
                 </label>
                 <select
                   value={kondisi}
                   onChange={(e) => setKondisi(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-lg bg-slate-100 border border-transparent focus:border-emerald-500 focus:bg-white focus:outline-none text-slate-800 text-sm transition font-medium cursor-pointer"
+                  className="w-full text-xs px-3.5 py-2.5 bg-slate-100 border border-transparent rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 focus:bg-white transition text-slate-800 font-medium cursor-pointer"
                 >
                   {KONDISI_OPTIONS.map((kon) => (
                     <option key={kon} value={kon}>
@@ -521,36 +555,52 @@ export function EquipmentFormPage({
               </div>
             </div>
 
-            {/* WhatsApp PJ */}
+            {/* Nomor WhatsApp PJ Sewa (Terkunci Sesuai Akun Admin, Tidak Bisa Diubah) */}
             <div className="pt-1">
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                Nomor WhatsApp Penanggung Jawab (PJ)
-              </label>
+              <div className="flex items-center justify-between mb-1.5 flex-wrap gap-1">
+                <label className="block text-xs font-semibold text-slate-700">
+                  Nomor WhatsApp Penanggung Jawab (PJ)
+                </label>
+
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200/80">
+                  <Lock className="w-3 h-3 text-slate-500" />
+                  <span>Sesuai Akun Admin (Terkunci)</span>
+                </span>
+              </div>
+
               <div className="relative">
-                <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Phone className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
                   type="text"
-                  value={kontakPj}
-                  onChange={(e) => setKontakPj(e.target.value)}
-                  placeholder="Contoh: 081944078924"
-                  className="w-full pl-10 pr-3.5 py-2.5 rounded-lg bg-slate-100 border border-transparent focus:border-emerald-500 focus:bg-white focus:outline-none text-slate-800 text-sm transition font-medium"
+                  readOnly
+                  tabIndex={-1}
+                  value={adminPhone || kontakPj || '081944078924'}
+                  title="Nomor PJ terkunci sesuai nomor WhatsApp akun admin dan tidak dapat diubah"
+                  className="w-full text-xs pl-8 pr-9 py-2.5 bg-slate-100/90 border border-slate-200/80 rounded-lg text-slate-700 font-medium cursor-not-allowed select-all focus:outline-none"
                 />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                  <Lock className="w-3.5 h-3.5 text-slate-400" />
+                </div>
               </div>
+
+              <p className="text-[10.5px] text-slate-500 mt-1.5 leading-relaxed">
+                Nomor ini tidak bisa diubah karena otomatis terhubung dengan nomor WhatsApp akun Admin koperasi Anda ({adminPhone || kontakPj || '081944078924'}). Petani atau penyewa akan langsung menghubungi nomor ini saat pengajuan sewa disetujui.
+              </p>
             </div>
           </div>
 
           {/* Card 2: Harga dan Stok */}
-          <div className="bg-white border border-slate-200/90 rounded-xl p-5 sm:p-6 shadow-xs space-y-4">
-            <h2 className="text-base font-bold text-slate-900">Harga dan Stok</h2>
+          <div className="p-5 bg-white border border-slate-200 rounded-xl space-y-4 shadow-2xs">
+            <h3 className="text-sm font-bold text-slate-800">Harga dan Stok</h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Tarif Pokok */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">
                   Tarif Sewa Pokok (Rp) <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs pointer-events-none">
                     Rp
                   </span>
                   <input
@@ -560,18 +610,18 @@ export function EquipmentFormPage({
                     value={hargaSewa}
                     onChange={(e) => setHargaSewa(e.target.value)}
                     placeholder="150000"
-                    className="w-full pl-10 pr-3.5 py-2.5 rounded-lg bg-slate-100 border border-transparent focus:border-emerald-500 focus:bg-white focus:outline-none text-slate-800 text-sm font-semibold transition"
+                    className="w-full text-xs pl-9 pr-3.5 py-2.5 bg-slate-100 border border-transparent rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 focus:bg-white transition text-slate-800 font-semibold"
                   />
                 </div>
               </div>
 
               {/* Biaya Operator */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">
                   Biaya Operator Opsional (Rp)
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs pointer-events-none">
                     Rp
                   </span>
                   <input
@@ -580,265 +630,260 @@ export function EquipmentFormPage({
                     value={biayaOperator}
                     onChange={(e) => setBiayaOperator(e.target.value)}
                     placeholder="Kosongkan jika mandiri"
-                    className="w-full pl-10 pr-3.5 py-2.5 rounded-lg bg-slate-100 border border-transparent focus:border-emerald-500 focus:bg-white focus:outline-none text-slate-800 text-sm transition"
+                    className="w-full text-xs pl-9 pr-3.5 py-2.5 bg-slate-100 border border-transparent rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 focus:bg-white transition text-slate-800"
                   />
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-              {/* Stok Unit */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Jumlah Stok Unit Siap Pakai <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  required
-                  value={stokUnit}
-                  onChange={(e) => setStokUnit(e.target.value)}
-                  placeholder="1"
-                  className="w-full px-3.5 py-2.5 rounded-lg bg-slate-100 border border-transparent focus:border-emerald-500 focus:bg-white focus:outline-none text-slate-800 text-sm font-semibold transition"
-                />
-              </div>
+            {/* Jumlah Stok Unit */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                Jumlah Stok Unit Siap Pakai <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                min="1"
+                required
+                value={stokUnit}
+                onChange={(e) => setStokUnit(e.target.value)}
+                placeholder="1"
+                className="w-full text-xs px-3.5 py-2.5 bg-slate-100 border border-transparent rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 focus:bg-white transition text-slate-800 font-semibold"
+              />
+            </div>
 
-              {/* Status Siap Disewakan */}
+            {/* Status Ketersediaan (Taste-Skills Switch Toggle) */}
+            <div className="pt-2 flex items-center justify-between border-t border-slate-100 text-xs">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Status Ketersediaan
-                </label>
-                <label className="flex items-center gap-3 p-2.5 rounded-lg bg-slate-100 border border-transparent cursor-pointer hover:bg-slate-200/70 transition">
-                  <input
-                    type="checkbox"
-                    checked={isTersedia}
-                    onChange={(e) => setIsTersedia(e.target.checked)}
-                    className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer"
-                  />
-                  <span className="text-xs font-bold text-slate-800">
-                    {isTersedia ? 'Tersedia & Siap Disewa' : 'Sedang Tidak Tersedia'}
-                  </span>
-                </label>
+                <span className="font-semibold text-slate-700 block">Status Ketersediaan Sewa</span>
+                <span className="text-[11px] text-slate-400">
+                  {isTersedia
+                    ? 'Unit siap pakai dan dapat diajukan sewa oleh petani'
+                    : 'Unit sedang dalam perawatan / dinonaktifkan sementara'}
+                </span>
               </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={isTersedia}
+                onClick={() => setIsTersedia(!isTersedia)}
+                title={`Klik untuk ${isTersedia ? 'menonaktifkan' : 'mengaktifkan'} unit ini`}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 ${
+                  isTersedia ? 'bg-slate-900' : 'bg-slate-200 hover:bg-slate-300'
+                }`}
+              >
+                <span className="sr-only">Toggle status ketersediaan unit</span>
+                <span
+                  aria-hidden="true"
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                    isTersedia ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
             </div>
           </div>
         </div>
 
-        {/* KOLOM KANAN: Upload Foto & Kategori (Col-span 5) */}
-        <div className="lg:col-span-5 space-y-6">
-          {/* Card 3: Unggah Foto (Upload Img) */}
-          <div className="bg-white border border-slate-200/90 rounded-xl p-5 sm:p-6 shadow-xs space-y-4">
+        {/* Kolom Kanan: Foto Alat & Kategori (5 Kolom) */}
+        <div className="lg:col-span-5 space-y-5">
+          {/* Card 3: Unggah Foto Alat */}
+          <div className="p-5 bg-white border border-slate-200 rounded-xl space-y-3 shadow-2xs">
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-slate-900">Foto Alat</h2>
-              <span className="text-xs text-slate-400 font-medium">
-                {images.length} Foto Ditambahkan
+              <h3 className="text-sm font-bold text-slate-800">Foto Alat Pertanian</h3>
+              <span className="text-[11px] font-semibold text-slate-400">
+                {images.length} Foto
               </span>
             </div>
 
-            {/* Main Big Image Preview */}
-            <div className="w-full aspect-square bg-slate-100 rounded-xl border border-slate-200/80 overflow-hidden relative flex items-center justify-center p-3">
+            {/* Main Large Image Container */}
+            <div className="w-full aspect-square rounded-xl bg-slate-100 border border-slate-200 overflow-hidden relative flex items-center justify-center group">
               {currentActiveImage ? (
                 <>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={currentActiveImage}
                     alt="Preview Alat"
-                    className="w-full h-full object-contain"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src =
-                        'https://picsum.photos/seed/sewa-alat-koperasi/600/600';
-                    }}
+                    className="w-full h-full object-cover"
                   />
+                  {/* Delete Button on active preview */}
                   <button
                     type="button"
                     onClick={() => handleRemoveImage(activeImageIndex)}
-                    className="absolute top-3 right-3 p-1.5 rounded-lg bg-red-600/90 hover:bg-red-700 text-white shadow-md transition cursor-pointer"
-                    title="Hapus foto ini"
+                    className="absolute top-2.5 right-2.5 p-1.5 rounded-lg bg-black/60 hover:bg-rose-600 text-white shadow-sm transition cursor-pointer"
+                    title="Hapus foto aktif ini"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </>
               ) : (
-                <div className="text-center p-6 space-y-2">
-                  <div className="w-16 h-16 rounded-xl bg-slate-200/70 text-slate-400 flex items-center justify-center mx-auto">
-                    <ImageIcon className="w-8 h-8" />
-                  </div>
-                  <p className="text-xs font-medium text-slate-500">Belum ada foto alat</p>
-                  <p className="text-[11px] text-slate-400">
-                    Klik tombol + di bawah atau upload dari kamera & galeri
-                  </p>
+                <div className="flex flex-col items-center justify-center p-6 text-center text-slate-400">
+                  <ImageIcon className="w-12 h-12 stroke-1 mb-2 text-slate-300" />
+                  <span className="text-xs font-medium text-slate-500">
+                    Belum ada foto alat pertanian
+                  </span>
+                  <span className="text-[10px] text-slate-400 mt-0.5">
+                    Gunakan kamera atau pilih file foto dari galeri
+                  </span>
                 </div>
               )}
-            </div>
 
-            {/* Thumbnail Row + Add Button */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2.5 overflow-x-auto pb-1 pt-1">
-                {images.map((img, idx) => {
-                  const isActive = idx === activeImageIndex;
-                  return (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => setActiveImageIndex(idx)}
-                      className={`relative w-16 h-16 rounded-lg overflow-hidden shrink-0 border-2 transition cursor-pointer ${
-                        isActive
-                          ? 'border-emerald-500 ring-2 ring-emerald-200'
-                          : 'border-slate-200 hover:border-slate-300'
-                      }`}
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={img}
-                        alt={`Thumb ${idx + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                    </button>
-                  );
-                })}
-
-                {/* Dashed Add Image Button */}
+              {/* Hover Overlay Buttons */}
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
                 <button
                   type="button"
-                  onClick={() => fileInputRef.current?.click()}
                   disabled={Boolean(uploadingSource)}
-                  className="w-16 h-16 rounded-lg border-2 border-dashed border-slate-300 hover:border-emerald-500 bg-slate-50 hover:bg-emerald-50/40 text-slate-400 hover:text-emerald-600 flex flex-col items-center justify-center transition cursor-pointer shrink-0"
-                  title="Tambah foto dari galeri"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="px-3 py-1.5 rounded-lg bg-white/95 text-slate-800 text-xs font-bold hover:bg-white shadow-xs transition flex items-center gap-1.5 cursor-pointer"
                 >
-                  {uploadingSource === 'GALLERY' ? (
-                    <Loader2 className="w-5 h-5 animate-spin text-emerald-600" />
-                  ) : (
-                    <Plus className="w-5 h-5 text-emerald-500" />
-                  )}
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Galeri</span>
                 </button>
-              </div>
-
-              {/* Quick Camera & Gallery Upload Bar */}
-              <div className="grid grid-cols-2 gap-2 pt-1">
                 <button
                   type="button"
                   disabled={Boolean(uploadingSource)}
                   onClick={() => cameraInputRef.current?.click()}
-                  className="py-2 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer disabled:opacity-60"
+                  className="px-3 py-1.5 rounded-lg bg-white/95 text-slate-800 text-xs font-bold hover:bg-white shadow-xs transition flex items-center gap-1.5 cursor-pointer"
                 >
-                  {uploadingSource === 'CAMERA' ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
-                  ) : (
-                    <Camera className="w-3.5 h-3.5 text-slate-500" />
-                  )}
-                  <span>Jepret Kamera</span>
-                </button>
-
-                <button
-                  type="button"
-                  disabled={Boolean(uploadingSource)}
-                  onClick={() => fileInputRef.current?.click()}
-                  className="py-2 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer disabled:opacity-60"
-                >
-                  {uploadingSource === 'GALLERY' ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
-                  ) : (
-                    <Upload className="w-3.5 h-3.5 text-slate-500" />
-                  )}
-                  <span>Pilih Galeri</span>
+                  <Camera className="w-3.5 h-3.5" />
+                  <span>Kamera</span>
                 </button>
               </div>
-            </div>
-          </div>
 
-          {/* Card 4: Kategori */}
-          <div className="bg-white border border-slate-200/90 rounded-xl p-5 sm:p-6 shadow-xs space-y-4">
-            <h2 className="text-base font-bold text-slate-900">Kategori Alat</h2>
-
-            <div ref={categoryDropdownRef} className="relative">
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                Kategori Alat Pertanian
-              </label>
-              <button
-                type="button"
-                onClick={() => setIsCategoryOpen(!isCategoryOpen)}
-                className="w-full text-xs sm:text-sm px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200/70 border border-transparent rounded-lg flex items-center justify-between text-left focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:bg-white transition cursor-pointer"
-              >
-                <span className="font-semibold text-slate-800 truncate">
-                  {kategori || 'Pilih Kategori Alat...'}
-                </span>
-                <ChevronsUpDown className="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1" />
-              </button>
-
-              {/* Custom Popover Kategori Alat (Tanpa Search, Sesuai Gambar 2) */}
-              {isCategoryOpen && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-30 max-h-56 overflow-y-auto p-1 space-y-0.5 animate-in fade-in zoom-in-95">
-                  {isLoadingCategories ? (
-                    <div className="p-2 text-center text-xs text-slate-400">Memuat kategori...</div>
-                  ) : (
-                    categories.map((c) => {
-                      const isSelected = c.name === kategori;
-                      return (
-                        <button
-                          key={c.id}
-                          type="button"
-                          onClick={() => {
-                            setKategori(c.name);
-                            setIsCategoryOpen(false);
-                          }}
-                          className={`w-full text-left px-3 py-2 rounded-lg text-xs flex items-center justify-between transition cursor-pointer ${
-                            isSelected
-                              ? 'bg-emerald-50 text-emerald-800 font-bold'
-                              : 'text-slate-700 hover:bg-slate-50 font-medium'
-                          }`}
-                        >
-                          <span className="truncate">{c.name}</span>
-                          {isSelected && (
-                            <Check className="w-3.5 h-3.5 text-emerald-700 shrink-0 stroke-[2.5]" />
-                          )}
-                        </button>
-                      );
-                    })
-                  )}
+              {uploadingSource && (
+                <div className="absolute inset-0 bg-white/80 backdrop-blur-2xs flex flex-col items-center justify-center gap-2">
+                  <Loader2 className="w-6 h-6 text-slate-900 animate-spin" />
+                  <span className="text-xs font-bold text-slate-700">Mengunggah foto...</span>
                 </div>
               )}
             </div>
 
-            {/* Tambah Kategori Baru */}
-            {isAddingNewCat ? (
-              <div className="space-y-2 pt-1">
-                <input
-                  type="text"
-                  value={newCatInput}
-                  onChange={(e) => setNewCatInput(e.target.value)}
-                  placeholder="Ketik nama kategori baru..."
-                  className="w-full px-3.5 py-2 rounded-lg bg-slate-100 border border-emerald-500 focus:bg-white focus:outline-none text-slate-800 text-xs"
-                />
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={handleAddNewCategory}
-                    className="flex-1 py-1.5 rounded-lg bg-emerald-500 text-white text-xs font-semibold hover:bg-emerald-600 transition"
+            {/* Thumbnails Row + Dashed Add Button */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar pt-1">
+              {images.map((imgUrl, idx) => {
+                const isActive = idx === activeImageIndex;
+                return (
+                  <div
+                    key={idx}
+                    className={`relative w-14 h-14 rounded-lg overflow-hidden border-2 cursor-pointer shrink-0 transition ${
+                      isActive
+                        ? 'border-slate-900 ring-2 ring-slate-200'
+                        : 'border-slate-200 hover:border-slate-300'
+                    }`}
+                    onClick={() => setActiveImageIndex(idx)}
                   >
-                    Simpan
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsAddingNewCat(false);
-                      setNewCatInput('');
-                    }}
-                    className="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 text-xs font-medium hover:bg-slate-50 transition"
-                  >
-                    Batal
-                  </button>
-                </div>
-              </div>
-            ) : (
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={imgUrl}
+                      alt={`Thumbnail ${idx + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveImage(idx);
+                      }}
+                      className="absolute top-0.5 right-0.5 w-4 h-4 rounded-md bg-black/60 text-white flex items-center justify-center text-[10px] hover:bg-rose-600 transition"
+                      title="Hapus foto ini"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                );
+              })}
+
+              {/* Dashed Add Image Button */}
               <button
                 type="button"
-                onClick={() => setIsAddingNewCat(true)}
-                className="w-full py-2.5 px-4 rounded-lg bg-emerald-200/70 hover:bg-emerald-200 text-emerald-900 font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
+                disabled={Boolean(uploadingSource)}
+                onClick={() => fileInputRef.current?.click()}
+                className="w-14 h-14 rounded-lg border-2 border-dashed border-slate-300 hover:border-slate-800 bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-800 flex flex-col items-center justify-center gap-0.5 shrink-0 transition cursor-pointer"
+                title="Tambah foto dari galeri"
               >
                 <Plus className="w-4 h-4" />
-                <span>Tambah Kategori</span>
+                <span className="text-[9px] font-bold">Tambah</span>
               </button>
-            )}
+            </div>
+          </div>
+
+          {/* Card 4: Kategori Alat (Tanpa Tombol Tambah Kategori, Dropdown Rapi & Modern) */}
+          <div className="p-5 bg-white border border-slate-200 rounded-xl space-y-3 shadow-2xs">
+            <h3 className="text-sm font-bold text-slate-800">Kategori Alat</h3>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                Kategori Alat Pertanian
+              </label>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="w-full text-xs px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200/70 border border-transparent rounded-lg flex items-center justify-between text-left focus:outline-none focus:ring-1 focus:ring-slate-900 focus:bg-white transition cursor-pointer"
+                  >
+                    <span className="font-semibold text-slate-800 truncate flex items-center gap-2">
+                      {categories.find((c) => c.name.toLowerCase() === kategori.toLowerCase())?.emoji ? (
+                        <span className="text-sm leading-none shrink-0">
+                          {categories.find((c) => c.name.toLowerCase() === kategori.toLowerCase())?.emoji}
+                        </span>
+                      ) : (
+                        <Tag className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      )}
+                      <span>{kategori || 'Pilih Kategori Alat...'}</span>
+                    </span>
+                    <ChevronsUpDown className="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="start"
+                  side="bottom"
+                  sideOffset={6}
+                  collisionPadding={16}
+                  className="w-[var(--radix-dropdown-menu-trigger-width)] min-w-[220px] max-h-60 overflow-y-auto rounded-xl p-1 bg-white border border-slate-200 shadow-xl z-50 text-xs"
+                >
+                  {isLoadingCategories ? (
+                    <div className="p-3 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-500" />
+                      <span>Memuat kategori...</span>
+                    </div>
+                  ) : categories.length === 0 ? (
+                    <div className="p-3 text-center text-xs text-slate-400">
+                      Belum ada data kategori alat
+                    </div>
+                  ) : (
+                    categories.map((cat) => {
+                      const isSelected = cat.name.toLowerCase() === kategori.toLowerCase();
+                      return (
+                        <DropdownMenuItem
+                          key={cat.id || cat.name}
+                          onClick={() => setKategori(cat.name)}
+                          className={`w-full text-left px-3 py-2 rounded-lg text-xs flex items-center justify-between transition cursor-pointer ${
+                            isSelected
+                              ? 'bg-slate-100 text-slate-900 font-bold'
+                              : 'text-slate-700 hover:bg-slate-50 font-medium'
+                          }`}
+                        >
+                          <span className="truncate flex items-center gap-2">
+                            {cat.emoji ? (
+                              <span className="text-sm leading-none shrink-0">{cat.emoji}</span>
+                            ) : (
+                              <Tag className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                            )}
+                            <span className="truncate">{cat.name}</span>
+                          </span>
+                          {isSelected && (
+                            <Check className="w-3.5 h-3.5 text-slate-900 shrink-0 stroke-[2.5]" />
+                          )}
+                        </DropdownMenuItem>
+                      );
+                    })
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <p className="text-[10.5px] text-slate-400 mt-1.5">
+                Kategori menentukan pengelompokan filter alat pada halaman etalase publik sewa alat.
+              </p>
+            </div>
           </div>
         </div>
       </form>
