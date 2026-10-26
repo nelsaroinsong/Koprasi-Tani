@@ -770,7 +770,7 @@ function SewaAlatContent() {
                   {/* Top Header Text Section (Title & Subtitle on top, tight 1px-1.5px interlinear gap, balanced breathing space to image) */}
                   <div className="px-2.5 pt-2 pb-2 sm:px-3 sm:pt-2.5 sm:pb-2.5">
                     <h3
-                      className="text-xs sm:text-base lg:text-[17px] font-bold text-[#1a2610] tracking-tight leading-none line-clamp-1 group-hover:text-[#344d15] transition-colors"
+                      className="text-xs sm:text-base lg:text-[17px] font-bold text-[#1a2610] tracking-tight leading-snug pb-0.5 mb-1 sm:mb-1.5 line-clamp-1 group-hover:text-[#344d15] transition-colors"
                       title={item.nama}
                     >
                       {item.nama}

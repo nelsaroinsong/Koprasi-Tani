@@ -829,14 +829,14 @@ function TokoOnlineContent() {
                       </div>
 
                       <h3
-                        className="text-xs sm:text-base lg:text-[17px] font-bold text-[#1a2610] tracking-tight leading-none line-clamp-1 group-hover:text-[#344d15] transition-colors"
+                        className="text-xs sm:text-base lg:text-[17px] font-bold text-[#1a2610] tracking-tight leading-snug pb-0.5 mb-1 sm:mb-1.5 line-clamp-1 group-hover:text-[#344d15] transition-colors"
                         title={prod.nama}
                       >
                         {prod.nama}
                       </h3>
 
                       {/* Akun Petani Penyedia Komoditas Panen */}
-                      <div className="flex items-center gap-1.5 mt-1 sm:mt-1.5">
+                      <div className="flex items-center gap-1.5">
                         <button
                           type="button"
                           onClick={(e) => {

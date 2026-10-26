@@ -817,7 +817,7 @@ export function TokoOnlineDataTable() {
               className="h-8 px-3 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>Input Komoditas</span>
+              <span>Tambah Produk</span>
             </button>
           </div>
         </div>
@@ -867,7 +867,7 @@ export function TokoOnlineDataTable() {
               <p className="text-xs text-slate-500 mt-1 max-w-sm">
                 {searchQuery || filterKategori !== 'SEMUA' || filterStatus !== 'ALL'
                   ? 'Tidak ditemukan komoditas yang cocok dengan filter atau kata kunci pencarian.'
-                  : 'Belum ada komoditas yang didaftarkan. Klik tombol Input Komoditas untuk mulai menambahkan hasil panen.'}
+                  : 'Belum ada komoditas yang didaftarkan. Klik tombol Tambah Produk untuk mulai menambahkan hasil panen.'}
               </p>
             </div>
           ) : (
