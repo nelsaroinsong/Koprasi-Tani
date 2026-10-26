@@ -4,23 +4,29 @@
     "name": "Kelapa",
     "slug": "Kelapa",
     "emoji": "🥥",
+    "imageUrl": "/api/images/categories/kelapa.jpg",
     "description": "Komoditas kelapa butir, kelapa muda, dan kopra",
-    "mobileBg": "bg-gradient-to-br from-amber-100 to-amber-200 text-amber-900 border border-amber-300/60"
+    "mobileBg": "bg-gradient-to-br from-amber-100 to-amber-200 text-amber-900 border border-amber-300/60",
+    "isActive": true
   },
   {
     "id": "cat-jagung",
     "name": "Jagung",
     "slug": "Jagung",
     "emoji": "🌽",
+    "imageUrl": "/api/images/categories/jagung.jpg",
     "description": "Jagung pipil kering, jagung pakan, dan bibit unggul",
-    "mobileBg": "bg-gradient-to-br from-yellow-100 to-amber-200 text-amber-900 border border-yellow-300/60"
+    "mobileBg": "bg-gradient-to-br from-yellow-100 to-amber-200 text-amber-900 border border-yellow-300/60",
+    "isActive": true
   },
   {
     "id": "cat-turunan",
     "name": "Turunan",
     "slug": "Turunan",
     "emoji": "📦",
+    "imageUrl": "/api/images/categories/turunan.jpg",
     "description": "Produk turunan primer seperti sabut, arang tempurung, dan ampas",
-    "mobileBg": "bg-gradient-to-br from-sky-100 to-blue-200 text-blue-900 border border-sky-300/60"
+    "mobileBg": "bg-gradient-to-br from-sky-100 to-blue-200 text-blue-900 border border-sky-300/60",
+    "isActive": true
   }
 ]

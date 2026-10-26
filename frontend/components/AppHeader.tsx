@@ -20,11 +20,15 @@ import NotificationDropdown from '@/components/NotificationDropdown';
 import { useAuth } from '@/context/auth-context';
 import BottomNav from '@/components/BottomNav';
 
-interface SubCategoryItem {
+export interface SubCategoryItem {
   id?: string;
   name: string;
   slug?: string;
   emoji?: string;
+  imageUrl?: string;
+  description?: string;
+  mobileBg?: string;
+  isActive?: boolean;
 }
 
 interface AppHeaderProps {
@@ -174,8 +178,8 @@ export default function AppHeader({
   const basePath = isSewaAlat ? '/sewa-alat' : '/toko';
 
   const currentCategoryList = useMemo(() => {
-    if (categories && categories.length > 0) return categories;
-    return isSewaAlat ? DEFAULT_SEWA_ALAT_CATEGORIES : DEFAULT_TOKO_CATEGORIES;
+    const list = categories && categories.length > 0 ? categories : isSewaAlat ? DEFAULT_SEWA_ALAT_CATEGORIES : DEFAULT_TOKO_CATEGORIES;
+    return list.filter((c) => c.isActive !== false);
   }, [categories, isSewaAlat]);
 
   const handleSemua = () => {

@@ -112,7 +112,7 @@ function TokoFilterContent() {
 
   // Data produk & kategori untuk live count
   const [products, setProducts] = useState<any[]>([]);
-  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [categories, setCategories] = useState<{ id: string; name: string; isActive?: boolean }[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
 
   useEffect(() => {
@@ -138,9 +138,11 @@ function TokoFilterContent() {
   const categoryOptions = useMemo(() => {
     const list = [{ key: 'SEMUA', label: 'Semua Komoditas' }];
     if (categories.length > 0) {
-      categories.forEach((cat) => {
-        list.push({ key: cat.name, label: cat.name });
-      });
+      categories
+        .filter((cat) => cat.isActive !== false)
+        .forEach((cat) => {
+          list.push({ key: cat.name, label: cat.name });
+        });
     } else if (products.length > 0) {
       const unique = Array.from(new Set(products.map((p) => p.kategori).filter(Boolean)));
       unique.forEach((cat) => {

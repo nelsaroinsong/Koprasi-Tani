@@ -15,8 +15,10 @@ export interface CategoryItem {
   name: string;
   slug: string;
   emoji: string;
+  imageUrl?: string;
   description?: string;
   mobileBg?: string;
+  isActive?: boolean;
   productCount?: number;
 }
 
@@ -26,32 +28,40 @@ const DEFAULT_CATEGORIES: CategoryItem[] = [
     name: 'Kelapa',
     slug: 'Kelapa',
     emoji: '🥥',
+    imageUrl: '/api/images/categories/kelapa.jpg',
     description: 'Komoditas kelapa butir, kelapa muda, dan kopra',
     mobileBg: 'bg-gradient-to-br from-amber-100 to-amber-200 text-amber-900 border border-amber-300/60',
+    isActive: true,
   },
   {
     id: 'cat-jagung',
     name: 'Jagung',
     slug: 'Jagung',
     emoji: '🌽',
+    imageUrl: '/api/images/categories/jagung.jpg',
     description: 'Jagung pipil kering, jagung pakan, dan bibit unggul',
     mobileBg: 'bg-gradient-to-br from-yellow-100 to-amber-200 text-amber-900 border border-yellow-300/60',
+    isActive: true,
   },
   {
     id: 'cat-turunan',
     name: 'Turunan',
     slug: 'Turunan',
     emoji: '📦',
+    imageUrl: '/api/images/categories/turunan.jpg',
     description: 'Produk turunan primer seperti sabut, arang tempurung, dan ampas',
     mobileBg: 'bg-gradient-to-br from-sky-100 to-blue-200 text-blue-900 border border-sky-300/60',
+    isActive: true,
   },
   {
     id: 'cat-olahan',
     name: 'Olahan',
     slug: 'Olahan',
     emoji: '🥫',
+    imageUrl: '/api/images/categories/olahan.jpg',
     description: 'Hasil olahan komoditas seperti VCO, minyak kelapa, dan tepung',
     mobileBg: 'bg-gradient-to-br from-purple-100 to-fuchsia-200 text-purple-900 border border-purple-300/60',
+    isActive: true,
   },
 ];
 
@@ -111,6 +121,7 @@ export async function GET() {
 
     const categoriesWithCount = categories.map((cat) => ({
       ...cat,
+      isActive: cat.isActive !== false,
       productCount: countMap[cat.name.toLowerCase()] || countMap[cat.slug.toLowerCase()] || 0,
     }));
 
@@ -145,7 +156,9 @@ export async function POST(request: Request) {
     const body = await request.json();
     const name = body.name?.trim();
     const emoji = body.emoji?.trim() || '🌾';
+    const imageUrl = body.imageUrl?.trim() || '';
     const description = body.description?.trim() || '';
+    const isActive = body.isActive !== undefined ? Boolean(body.isActive) : true;
     const mobileBg =
       body.mobileBg?.trim() ||
       'bg-gradient-to-br from-emerald-100 to-teal-200 text-emerald-900 border border-emerald-300/60';
@@ -171,13 +184,16 @@ export async function POST(request: Request) {
       name,
       slug: name,
       emoji,
+      imageUrl: imageUrl || undefined,
       description,
       mobileBg,
+      isActive,
     };
 
     const updated = [...currentCategories, newCategory];
     writeCategoriesToFile(updated);
     await delCachePattern('categories:*').catch(() => {});
+    await delCachePattern('products:*').catch(() => {});
 
     return NextResponse.json({
       success: true,
@@ -205,6 +221,7 @@ export async function PATCH(request: Request) {
     if (Array.isArray(body.categories)) {
       writeCategoriesToFile(body.categories);
       await delCachePattern('categories:*').catch(() => {});
+    await delCachePattern('products:*').catch(() => {});
       return NextResponse.json({
         success: true,
         message: 'Urutan kategori berhasil diperbarui.',
@@ -213,7 +230,7 @@ export async function PATCH(request: Request) {
     }
 
     // Skenario B: Update per item kategori
-    const { id, name, emoji, description, mobileBg } = body;
+    const { id, name, emoji, imageUrl, description, mobileBg, isActive } = body;
     if (!id) {
       return NextResponse.json({ error: 'ID kategori wajib disertakan.' }, { status: 400 });
     }
@@ -255,11 +272,14 @@ export async function PATCH(request: Request) {
     }
 
     if (emoji) currentCategories[index].emoji = emoji.trim();
+    if (imageUrl !== undefined) currentCategories[index].imageUrl = imageUrl.trim() || undefined;
     if (description !== undefined) currentCategories[index].description = description.trim();
     if (mobileBg) currentCategories[index].mobileBg = mobileBg.trim();
+    if (isActive !== undefined) currentCategories[index].isActive = Boolean(isActive);
 
     writeCategoriesToFile(currentCategories);
     await delCachePattern('categories:*').catch(() => {});
+    await delCachePattern('products:*').catch(() => {});
 
     return NextResponse.json({
       success: true,
@@ -342,6 +362,7 @@ export async function DELETE(request: Request) {
     const updated = currentCategories.filter((c) => !idsToDelete.includes(c.id));
     writeCategoriesToFile(updated);
     await delCachePattern('categories:*').catch(() => {});
+    await delCachePattern('products:*').catch(() => {});
 
     return NextResponse.json({
       success: true,

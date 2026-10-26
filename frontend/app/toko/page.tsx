@@ -27,8 +27,10 @@ interface CategoryItem {
   name: string;
   slug: string;
   emoji: string;
+  imageUrl?: string;
   description?: string;
   mobileBg?: string;
+  isActive?: boolean;
 }
 
 export interface TabCategoryConfig {
@@ -37,6 +39,7 @@ export interface TabCategoryConfig {
   pillLabel: string;
   emoji: string;
   mobileBg: string;
+  imageUrl?: string;
 }
 
 const getCategoryIcon = (categoryName: string) => {
@@ -51,7 +54,7 @@ const getCategoryIcon = (categoryName: string) => {
   return '/api/images/categories/all.jpg';
 };
 
-function getInitialCategories(): CategoryItem[] {
+function loadCategoriesFromCache(): CategoryItem[] {
   if (typeof window !== 'undefined') {
     try {
       const stored = localStorage.getItem(CATEGORIES_STORAGE_KEY);
@@ -81,10 +84,17 @@ function TokoOnlineContent() {
   const searchParams = useSearchParams();
   const isPetani = user?.role === 'PETANI';
 
-  // Dynamic Categories State from Admin
-  const [categories, setCategories] = useState<CategoryItem[]>(() => getInitialCategories());
+  // Dynamic Categories State from Admin (Gunakan defaultCategoriesData sebagai initial state agar SSR & Hydration 100% sinkron)
+  const [categories, setCategories] = useState<CategoryItem[]>(defaultCategoriesData as CategoryItem[]);
 
   useEffect(() => {
+    // 1. Sync dari cache localStorage setelah komponen mount di browser (bebas hydration mismatch)
+    const cached = loadCategoriesFromCache();
+    if (cached && cached.length > 0) {
+      setCategories(cached);
+    }
+
+    // 2. Ambil data terbaru dari server API
     const fetchCategories = async () => {
       try {
         const res = await fetch('/api/categories');
@@ -103,7 +113,7 @@ function TokoOnlineContent() {
     fetchCategories();
 
     const handleCategoriesUpdate = () => {
-      const updated = getInitialCategories();
+      const updated = loadCategoriesFromCache();
       if (updated && updated.length > 0) {
         setCategories(updated);
       }
@@ -126,12 +136,14 @@ function TokoOnlineContent() {
       emoji: '',
       mobileBg: '',
     };
-    const mapped: TabCategoryConfig[] = categories.map((cat) => ({
+    const activeCategories = categories.filter((c) => c.isActive !== false);
+    const mapped: TabCategoryConfig[] = activeCategories.map((cat) => ({
       key: cat.name,
       label: cat.name,
       pillLabel: cat.name,
       emoji: cat.emoji || '',
       mobileBg: cat.mobileBg || '',
+      imageUrl: cat.imageUrl,
     }));
     return [allTab, ...mapped];
   }, [categories]);
@@ -145,10 +157,28 @@ function TokoOnlineContent() {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
-  // Sync filter states from URL search params
+  // Sync filter states from URL search params & validasi kategori aktif
   useEffect(() => {
     const kat = searchParams.get('kategori') || 'SEMUA';
-    setSelectedKategori(kat);
+
+    // Periksa apakah kategori yang diminta di URL terdaftar sebagai nonaktif
+    const isInactive =
+      kat !== 'SEMUA' &&
+      categories.some(
+        (c) => c.name.toLowerCase() === kat.toLowerCase().trim() && c.isActive === false
+      );
+
+    if (isInactive) {
+      // Jika kategori nonaktif, bersihkan dari state dan URL
+      setSelectedKategori('SEMUA');
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete('kategori');
+      const query = params.toString();
+      router.replace(query ? `/toko?${query}` : '/toko', { scroll: false });
+    } else {
+      setSelectedKategori(kat);
+    }
+
     setOnlyAvailable(searchParams.get('onlyAvailable') === 'true');
 
     const minP = Number(searchParams.get('minPrice'));
@@ -158,7 +188,7 @@ function TokoOnlineContent() {
     setMaxPrice(!isNaN(maxP) && maxP <= 250000 && maxP >= 5000 ? maxP : 250000);
 
     setSortBy(searchParams.get('sortBy') || 'default');
-  }, [searchParams]);
+  }, [searchParams, categories, router]);
 
   const hasActiveFilters =
     selectedKategori !== 'SEMUA' ||
@@ -248,6 +278,17 @@ function TokoOnlineContent() {
         });
 
         if (selectedKategori !== 'SEMUA') {
+          // Jika kategori yang dipilih saat ini dinonaktifkan, batalkan query dan kosongkan list
+          const isCategoryInactive = categories.some(
+            (c) => c.name.toLowerCase() === selectedKategori.toLowerCase().trim() && c.isActive === false
+          );
+          if (isCategoryInactive) {
+            setProducts([]);
+            setHasMore(false);
+            setTotalProductsCount(0);
+            setIsLoadingProducts(false);
+            return;
+          }
           params.set('kategori', selectedKategori);
         }
 
@@ -391,7 +432,14 @@ function TokoOnlineContent() {
 
   // Filter & Urutan Komprehensif Produk
   const displayedProducts = useMemo(() => {
-    let list = [...products];
+    // Saring keluar produk dari kategori yang dinonaktifkan
+    const inactiveCatNames = categories
+      .filter((c) => c.isActive === false)
+      .map((c) => c.name.toLowerCase().trim());
+
+    let list = products.filter(
+      (p) => !p.kategori || !inactiveCatNames.includes(p.kategori.toLowerCase().trim())
+    );
 
     if (onlyAvailable) {
       list = list.filter((p) => p.isTersedia && Number(p.stok || 0) > 0);
@@ -548,7 +596,7 @@ function TokoOnlineContent() {
             {/* 2. Kartu Kategori Komoditas: Image Generate 3D */}
             {dynamicKategoriConfig.map((cat) => {
               const isSelected = selectedKategori.toLowerCase().trim() === cat.key.toLowerCase().trim();
-              const iconSrc = getCategoryIcon(cat.key);
+              const iconSrc = cat.imageUrl || getCategoryIcon(cat.key);
 
               return (
                 <button
@@ -611,7 +659,13 @@ function TokoOnlineContent() {
                 <span>{selectedKategori}</span>
                 <button
                   type="button"
-                  onClick={() => setSelectedKategori('SEMUA')}
+                  onClick={() => {
+                    setSelectedKategori('SEMUA');
+                    const params = new URLSearchParams(searchParams.toString());
+                    params.delete('kategori');
+                    const query = params.toString();
+                    router.replace(query ? `/toko?${query}` : '/toko', { scroll: false });
+                  }}
                   className="hover:text-red-600 cursor-pointer"
                   title="Hapus filter kategori"
                 >

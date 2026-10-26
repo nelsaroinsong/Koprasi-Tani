@@ -1,7 +1,22 @@
 import { NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { getCache, setCache, delCachePattern } from '@/lib/redis';
+
+function getInactiveCategoryNames(): string[] {
+  try {
+    const file = path.join(process.cwd(), 'data', 'categories.json');
+    if (fs.existsSync(file)) {
+      const data = JSON.parse(fs.readFileSync(file, 'utf-8'));
+      if (Array.isArray(data)) {
+        return data.filter((c: any) => c.isActive === false).map((c: any) => c.name);
+      }
+    }
+  } catch {}
+  return [];
+}
 
 export async function GET(request: Request) {
   try {
@@ -9,6 +24,7 @@ export async function GET(request: Request) {
     const mineOnly = searchParams.get('mine') === 'true';
     const kategori = searchParams.get('kategori');
     const search = searchParams.get('search');
+    const onlyAvailable = searchParams.get('onlyAvailable') === 'true';
     const pageParam = searchParams.get('page');
     const limitParam = searchParams.get('limit');
 
@@ -105,16 +121,43 @@ export async function GET(request: Request) {
     }
 
     // 2. Katalog Publik Koperasi (Dengan Redis Cache-Aside)
-    const publicCacheKey = `products:v3:public:p=${page}:l=${limit}:cat=${kategori || 'ALL'}:q=${search || ''}`;
+    const publicCacheKey = `products:v3:public:p=${page}:l=${limit}:cat=${kategori || 'ALL'}:q=${search || ''}:avail=${onlyAvailable}`;
     const cachedCatalog = await getCache<any>(publicCacheKey);
     if (cachedCatalog) {
       return NextResponse.json(cachedCatalog);
     }
 
     // Mengambil seluruh produk yang aktif di Koperasi dari DB jika cache miss
-    const whereCondition = {
-      isTersedia: true,
-      ...(kategori && kategori !== 'SEMUA' && { kategori }),
+    const inactiveCats = getInactiveCategoryNames();
+
+    // Jika kategori yang dicari melalui URL termasuk kategori nonaktif, segera return kosong
+    if (
+      kategori &&
+      kategori !== 'SEMUA' &&
+      inactiveCats.some((c) => c.toLowerCase() === kategori.toLowerCase().trim())
+    ) {
+      const emptyResponse = {
+        success: true,
+        products: [],
+        pagination: {
+          totalCount: 0,
+          page,
+          limit,
+          hasMore: false,
+          totalPages: 0,
+        },
+      };
+      await setCache(publicCacheKey, emptyResponse, 180);
+      return NextResponse.json(emptyResponse);
+    }
+
+    const whereCondition: any = {
+      ...(onlyAvailable && { isTersedia: true }),
+      ...(kategori && kategori !== 'SEMUA'
+        ? { kategori: { equals: kategori, mode: 'insensitive' as const } }
+        : inactiveCats.length > 0
+        ? { kategori: { notIn: inactiveCats } }
+        : {}),
       ...(search && {
         OR: [
           { nama: { contains: search, mode: 'insensitive' as const } },

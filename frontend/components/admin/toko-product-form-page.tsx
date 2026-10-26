@@ -83,13 +83,32 @@ export function TokoProductFormPage({
         if (stored) {
           const parsed = JSON.parse(stored);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            return parsed.map((c: any) => c.name);
+            return parsed.filter((c: any) => c.isActive !== false).map((c: any) => c.name);
           }
         }
       } catch {}
     }
-    return defaultCategoriesData.map((c) => c.name);
+    return defaultCategoriesData.filter((c: any) => c.isActive !== false).map((c) => c.name);
   });
+
+  // Ambil data kategori aktif terbaru dari API
+  useEffect(() => {
+    async function loadFreshCategories() {
+      try {
+        const res = await fetch('/api/categories');
+        const data = await res.json();
+        if (data.success && Array.isArray(data.categories)) {
+          const activeNames = data.categories
+            .filter((c: any) => c.isActive !== false)
+            .map((c: any) => c.name);
+          if (activeNames.length > 0) {
+            setCategoriesList(activeNames);
+          }
+        }
+      } catch {}
+    }
+    loadFreshCategories();
+  }, []);
 
   const [petaniOptions, setPetaniOptions] = useState<PetaniOption[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);

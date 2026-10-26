@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Tag,
   Plus,
@@ -12,6 +12,10 @@ import {
   Layers,
   Search,
   RefreshCw,
+  Upload,
+  Image as ImageIcon,
+  X,
+  Check,
 } from 'lucide-react';
 import {
   Table,
@@ -35,8 +39,10 @@ export interface CategoryItem {
   name: string;
   slug: string;
   emoji?: string;
+  imageUrl?: string;
   description?: string;
   mobileBg?: string;
+  isActive?: boolean;
   productCount?: number;
 }
 
@@ -57,15 +63,19 @@ export function CategoriesDataTable() {
   const [targetCategory, setTargetCategory] = useState<CategoryItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Form State (Tambah / Edit Kategori Tanpa Ikon/Emoji)
+  // Form State
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<'CREATE' | 'EDIT'>('CREATE');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    imageUrl: '',
+    isActive: true,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 1. Fetch Categories
   const fetchCategories = async (isManual = false) => {
@@ -150,11 +160,22 @@ export function CategoriesDataTable() {
     paginatedCategories.length > 0 &&
     paginatedCategories.every((c) => selectedIds.includes(c.id));
 
-  // 4. Open Form Handlers (Tanpa Icon/Emoji)
+  // Helper thumbnail
+  const getCategoryThumbnail = (cat: CategoryItem) => {
+    if (cat.imageUrl) return cat.imageUrl;
+    const norm = cat.name.toLowerCase().trim();
+    if (norm.includes('kelapa')) return '/api/images/categories/kelapa.jpg';
+    if (norm.includes('jagung')) return '/api/images/categories/jagung.jpg';
+    if (norm.includes('turunan')) return '/api/images/categories/turunan.jpg';
+    if (norm.includes('olahan') || norm.includes('vco') || norm.includes('minyak')) return '/api/images/categories/olahan.jpg';
+    return '/api/images/categories/all.jpg';
+  };
+
+  // 4. Open Form Handlers
   const handleOpenCreate = () => {
     setFormMode('CREATE');
     setEditingId(null);
-    setFormData({ name: '', description: '' });
+    setFormData({ name: '', description: '', imageUrl: '', isActive: true });
     setIsFormOpen(true);
   };
 
@@ -164,8 +185,87 @@ export function CategoriesDataTable() {
     setFormData({
       name: cat.name,
       description: cat.description || '',
+      imageUrl: cat.imageUrl || '',
+      isActive: cat.isActive !== false,
     });
     setIsFormOpen(true);
+  };
+
+  // Toggle status kategori Aktif / Nonaktif
+  const handleToggleStatus = async (category: CategoryItem) => {
+    const nextStatus = category.isActive === false ? true : false;
+    // Optimistic update
+    setCategories((prev) =>
+      prev.map((c) => (c.id === category.id ? { ...c, isActive: nextStatus } : c))
+    );
+    try {
+      const res = await fetch('/api/categories', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: category.id, isActive: nextStatus }),
+      });
+      if (!res.ok) throw new Error('Gagal memperbarui status');
+      showToast({
+        title: nextStatus ? 'Kategori Diaktifkan' : 'Kategori Dinonaktifkan',
+        message: `Kategori "${category.name}" ${
+          nextStatus ? 'kini tampil di Toko' : 'kini disembunyikan dari Toko'
+        }.`,
+        type: nextStatus ? 'success' : 'info',
+      });
+      const updatedCats = categories.map((c) =>
+        c.id === category.id ? { ...c, isActive: nextStatus } : c
+      );
+      try {
+        localStorage.setItem('koperasi_categories_cache', JSON.stringify(updatedCats));
+        window.dispatchEvent(new Event('categories_updated'));
+      } catch {}
+    } catch (err: any) {
+      // Revert on error
+      setCategories((prev) =>
+        prev.map((c) => (c.id === category.id ? { ...c, isActive: !nextStatus } : c))
+      );
+      showToast({
+        title: 'Gagal Mengubah Status',
+        message: err.message || 'Terjadi gangguan saat menyimpan status.',
+        type: 'error',
+      });
+    }
+  };
+
+  // Upload image handler
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploadingImage(true);
+      const body = new FormData();
+      body.append('file', file);
+      const res = await fetch('/api/upload/product', {
+        method: 'POST',
+        body,
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        throw new Error(data.error || 'Gagal mengunggah gambar kategori');
+      }
+      const uploadedUrl = data.url || data.imageUrl;
+      setFormData((prev) => ({ ...prev, imageUrl: uploadedUrl }));
+      showToast({
+        title: 'Gambar Berhasil Diunggah',
+        message: 'Foto kategori siap disimpan.',
+        type: 'success',
+      });
+    } catch (err: any) {
+      showToast({
+        title: 'Gagal Upload Gambar',
+        message: err.message || 'Terjadi kesalahan saat upload.',
+        type: 'error',
+      });
+    } finally {
+      setIsUploadingImage(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
   // 5. Submit Form
@@ -185,14 +285,19 @@ export function CategoriesDataTable() {
     try {
       setIsSubmitting(true);
       const isEdit = formMode === 'EDIT';
-      const url = isEdit ? `/api/categories/${editingId}` : '/api/categories';
-      const method = isEdit ? 'PUT' : 'POST';
+      const url = '/api/categories';
+      const method = isEdit ? 'PATCH' : 'POST';
 
-      const payload = {
+      const payload: any = {
         name: cleanName,
         description: formData.description.trim(),
-        emoji: '🌾',
+        imageUrl: formData.imageUrl.trim() || undefined,
+        isActive: formData.isActive,
       };
+
+      if (isEdit) {
+        payload.id = editingId;
+      }
 
       const res = await fetch(url, {
         method,
@@ -229,7 +334,7 @@ export function CategoriesDataTable() {
     if (!targetCategory) return;
     try {
       setIsDeleting(true);
-      const res = await fetch(`/api/categories/${targetCategory.id}`, {
+      const res = await fetch(`/api/categories?id=${targetCategory.id}`, {
         method: 'DELETE',
       });
       const data = await res.json();
@@ -261,11 +366,13 @@ export function CategoriesDataTable() {
     if (selectedIds.length === 0) return;
     try {
       setIsBulkDeleting(true);
-      await Promise.all(
-        selectedIds.map((id) =>
-          fetch(`/api/categories/${id}`, { method: 'DELETE' })
-        )
-      );
+      const res = await fetch(`/api/categories?ids=${selectedIds.join(',')}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Gagal menghapus sebagian kategori.');
+      }
 
       showToast({
         title: 'Penghapusan Massal Selesai',
@@ -311,9 +418,9 @@ export function CategoriesDataTable() {
           </div>
           <div>
             <div className="text-xl font-black text-slate-800 tracking-tight leading-none">
-              {categories.filter((c) => (c.productCount || 0) > 0).length}
+              {categories.filter((c) => c.isActive !== false).length}
             </div>
-            <div className="text-[11px] text-slate-500 font-medium mt-1">Kategori Aktif Terpakai</div>
+            <div className="text-[11px] text-slate-500 font-medium mt-1">Kategori Aktif di Toko</div>
           </div>
         </div>
 
@@ -408,9 +515,11 @@ export function CategoriesDataTable() {
                     className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
                   />
                 </TableHead>
-                <TableHead className="w-14 text-center text-slate-700 font-bold text-xs py-3">No</TableHead>
+                <TableHead className="w-12 text-center text-slate-700 font-bold text-xs py-3">No</TableHead>
+                <TableHead className="w-16 text-center text-slate-700 font-bold text-xs py-3">Gambar</TableHead>
                 <TableHead className="text-slate-700 font-bold text-xs py-3">Nama Kategori</TableHead>
                 <TableHead className="text-slate-700 font-bold text-xs py-3">Deskripsi</TableHead>
+                <TableHead className="text-slate-700 font-bold text-xs py-3 text-center">Status Toko</TableHead>
                 <TableHead className="text-slate-700 font-bold text-xs py-3 text-center">Produk Terkait</TableHead>
                 <TableHead className="text-slate-700 font-bold text-xs py-3 text-right pr-4">Aksi</TableHead>
               </TableRow>
@@ -418,7 +527,7 @@ export function CategoriesDataTable() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="py-12 text-center">
+                  <TableCell colSpan={8} className="py-12 text-center">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <Loader2 className="w-6 h-6 text-emerald-700 animate-spin" />
                       <span className="text-xs text-slate-500 font-medium">Memuat kategori komoditas...</span>
@@ -427,14 +536,14 @@ export function CategoriesDataTable() {
                 </TableRow>
               ) : paginatedCategories.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="py-12 text-center">
+                  <TableCell colSpan={8} className="py-12 text-center">
                     <div className="flex flex-col items-center justify-center gap-2 max-w-sm mx-auto">
                       <Tag className="w-10 h-10 text-slate-300" />
                       <h4 className="text-sm font-bold text-slate-700">Tidak ada kategori ditemukan</h4>
                       <p className="text-xs text-slate-400">
                         {searchQuery
-                          ? 'Coba gunakan kata kunci pencarian yang lain.'
-                          : 'Klik tombol "Tambah Kategori Baru" di atas untuk menambahkan kategori.'}
+                           ? 'Coba gunakan kata kunci pencarian yang lain.'
+                           : 'Klik tombol "Tambah Kategori Baru" di atas untuk menambahkan kategori.'}
                       </p>
                     </div>
                   </TableCell>
@@ -462,6 +571,19 @@ export function CategoriesDataTable() {
                       <TableCell className="text-center text-xs font-semibold text-slate-500 py-3">
                         {rowNumber}
                       </TableCell>
+                      <TableCell className="text-center py-2.5">
+                        <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden mx-auto flex items-center justify-center shrink-0">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={getCategoryThumbnail(item)}
+                            alt={item.name}
+                            className="w-full h-full object-contain p-1"
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = 'none';
+                            }}
+                          />
+                        </div>
+                      </TableCell>
                       <TableCell className="py-3">
                         <div className="font-bold text-xs text-slate-900">{item.name}</div>
                       </TableCell>
@@ -469,6 +591,25 @@ export function CategoriesDataTable() {
                         <span className="text-xs text-slate-500 line-clamp-1">
                           {item.description || '-'}
                         </span>
+                      </TableCell>
+                      <TableCell className="py-3 text-center">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleStatus(item)}
+                          title={`Klik untuk ${item.isActive !== false ? 'menonaktifkan' : 'mengaktifkan'} kategori ini dari Toko`}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border transition cursor-pointer shadow-2xs ${
+                            item.isActive !== false
+                              ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
+                              : 'bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200'
+                          }`}
+                        >
+                          <span
+                            className={`w-2 h-2 rounded-full ${
+                              item.isActive !== false ? 'bg-emerald-600 animate-pulse' : 'bg-slate-400'
+                            }`}
+                          />
+                          <span>{item.isActive !== false ? 'Aktif' : 'Nonaktif'}</span>
+                        </button>
                       </TableCell>
                       <TableCell className="py-3 text-center">
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">
@@ -590,6 +731,79 @@ export function CategoriesDataTable() {
               />
             </div>
 
+            {/* Foto / Gambar Kategori */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Gambar / Ikon Kategori (Mode Mobile & Toko)
+              </label>
+              <div className="flex items-center gap-3">
+                <div className="w-14 h-14 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden flex items-center justify-center shrink-0 relative group">
+                  {formData.imageUrl ? (
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={formData.imageUrl}
+                        alt="Preview Kategori"
+                        className="w-full h-full object-contain p-1"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, imageUrl: '' })}
+                        className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition cursor-pointer"
+                        title="Hapus Foto"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </>
+                  ) : (
+                    <ImageIcon className="w-6 h-6 text-slate-400" />
+                  )}
+                </div>
+
+                <div className="flex-1 space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      disabled={isUploadingImage}
+                      onClick={() => fileInputRef.current?.click()}
+                      className="py-1.5 px-3 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition shadow-2xs disabled:opacity-60"
+                    >
+                      {isUploadingImage ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-700" />
+                          <span>Mengunggah...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-3.5 h-3.5 text-emerald-700" />
+                          <span>{formData.imageUrl ? 'Ganti Foto' : 'Upload Foto'}</span>
+                        </>
+                      )}
+                    </button>
+                    {formData.imageUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, imageUrl: '' })}
+                        className="py-1.5 px-2.5 rounded-lg border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 text-xs font-medium cursor-pointer transition"
+                      >
+                        Hapus
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    Disarankan rasio 1:1 persegi (PNG/JPG/WebP) untuk kartu mobile toko.
+                  </p>
+                </div>
+              </div>
+            </div>
+
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
                 Deskripsi Ringkas (Opsional)
@@ -601,6 +815,31 @@ export function CategoriesDataTable() {
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 className="w-full text-xs px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600 focus:bg-white transition resize-none"
               />
+            </div>
+
+            {/* Toggle Status Aktif / Nonaktif */}
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+              <div>
+                <div className="text-xs font-bold text-slate-800">Status Kategori di Toko</div>
+                <div className="text-[11px] text-slate-500">
+                  {formData.isActive
+                    ? 'Kategori ini aktif & tampil di katalog pembeli.'
+                    : 'Kategori ini disembunyikan dari etalase toko.'}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, isActive: !formData.isActive })}
+                className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer focus:outline-none shrink-0 ${
+                  formData.isActive ? 'bg-emerald-600' : 'bg-slate-300'
+                }`}
+              >
+                <span
+                  className={`w-5 h-5 rounded-full bg-white shadow-xs absolute top-0.5 transition-transform ${
+                    formData.isActive ? 'left-5.5' : 'left-0.5'
+                  }`}
+                />
+              </button>
             </div>
 
             <DialogFooter className="gap-2 pt-2">
