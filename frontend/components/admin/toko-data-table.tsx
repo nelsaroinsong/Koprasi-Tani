@@ -30,7 +30,15 @@ import {
   ExternalLink,
   Store,
   ArrowUpDown,
+  ChevronDown,
+  Check,
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useToast } from '@/context/toast-context';
@@ -154,6 +162,17 @@ export function TokoOnlineDataTable() {
     fetchCoopInfo();
     fetchCategories();
   }, [fetchCoopInfo, fetchCategories]);
+
+  // Helper emoji kategori komoditas
+  const getCategoryEmoji = useCallback(
+    (kategoriName: string) => {
+      const found = categoriesList.find(
+        (c) => c.name?.toLowerCase() === kategoriName?.toLowerCase()
+      );
+      return found?.emoji || null;
+    },
+    [categoriesList]
+  );
 
   // Reset page when search or filter changes
   useEffect(() => {
@@ -594,8 +613,8 @@ export function TokoOnlineDataTable() {
 
   return (
     <div className="space-y-4">
-      {/* 1. Stat Cards: Presisi & Serasi dengan Halaman Payouts, Petani & Overview */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      {/* 1. Stat Cards: 3 Kartu Ringkasan di Atas */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {/* Card 1: Total Komoditas */}
         <div className="bg-white rounded-2xl border border-[#ECEEF2] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col justify-between">
           <div className="flex items-center justify-between">
@@ -643,35 +662,45 @@ export function TokoOnlineDataTable() {
             Perlu restok panen atau penyesuaian
           </p>
         </div>
+      </div>
 
-        {/* Card 4: Alamat Gudang Pengambilan & Serah Terima */}
-        <div className="bg-white rounded-2xl border border-[#ECEEF2] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[12px] font-medium text-slate-500">Alamat Gudang Serah Terima</span>
-            <button
-              type="button"
-              onClick={() => {
-                setTempAddress(warehouseAddress);
-                setIsEditAddressOpen(true);
-              }}
-              className="text-[11px] font-medium text-slate-600 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md transition flex items-center gap-1 cursor-pointer"
-              title="Ubah alamat fisik gudang atau gunakan GPS"
-            >
-              <MapPin className="w-3 h-3 text-slate-500" />
-              <span>Ubah / GPS</span>
-            </button>
+      {/* 2. Kartu Alamat Gudang (1 Bawah Lebar Memanjang) */}
+      <div className="bg-white rounded-2xl border border-[#ECEEF2] p-4 sm:px-5 sm:py-4 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+        <div className="flex items-start sm:items-center gap-3.5 min-w-0">
+          <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
+            <MapPin className="w-4 h-4" />
           </div>
-          <div className="mt-2 text-[12.5px] font-semibold text-slate-800 line-clamp-1" title={warehouseAddress}>
-            {warehouseAddress}
-          </div>
-          <div className="mt-0.5 flex items-center justify-between text-[11.5px] text-slate-400">
-            <span>Titik pickup pesanan pembeli</span>
-            <span className="inline-flex items-center gap-1 text-[10.5px] text-emerald-700 font-semibold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200/60">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              Gudang Aktif
-            </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-semibold text-slate-800">
+                Alamat Gudang Serah Terima & Pickup Point
+              </span>
+              <span className="inline-flex items-center gap-1 text-[10.5px] text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Gudang Aktif
+              </span>
+            </div>
+            <div className="mt-1 text-xs sm:text-[13px] font-medium text-slate-700 leading-snug break-words">
+              {warehouseAddress}
+            </div>
+            <p className="mt-0.5 text-[11px] text-slate-400">
+              Titik pengambilan barang bagi pembeli & serah terima hasil panen dari petani
+            </p>
           </div>
         </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            setTempAddress(warehouseAddress);
+            setIsEditAddressOpen(true);
+          }}
+          className="h-8 px-3 text-xs font-medium text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs shrink-0 self-start sm:self-auto"
+          title="Ubah alamat fisik gudang atau deteksi via GPS"
+        >
+          <LocateFixed className="w-3.5 h-3.5 text-slate-500" />
+          <span>Ubah / GPS</span>
+        </button>
       </div>
 
       {/* 2. Kravio Outer Double-Container Shell */}
@@ -747,19 +776,82 @@ export function TokoOnlineDataTable() {
               />
             </div>
 
-            {/* Kategori Filter Dropdown */}
-            <select
-              value={filterKategori}
-              onChange={(e) => setFilterKategori(e.target.value)}
-              className="h-8 px-2.5 text-xs rounded-lg border border-[#E5E7EB] bg-white text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-slate-900 cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
-            >
-              <option value="SEMUA">Semua Kategori</option>
-              {categoriesList.map((cat: any) => (
-                <option key={cat.id || cat.slug || cat.name} value={cat.name}>
-                  {cat.emoji ? cat.emoji + ' ' : ''}{cat.name}
-                </option>
-              ))}
-            </select>
+            {/* Kategori Filter Dropdown (Custom UI Radix Dropdown) */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className={`h-8 px-2.5 rounded-lg border text-xs font-medium flex items-center gap-1.5 transition cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,0.02)] shrink-0 outline-none ${
+                    filterKategori !== 'SEMUA'
+                      ? 'border-emerald-300 bg-emerald-50/70 text-emerald-900 font-semibold'
+                      : 'border-[#E5E7EB] bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300'
+                  }`}
+                >
+                  <Tag className={`w-3.5 h-3.5 ${filterKategori !== 'SEMUA' ? 'text-emerald-700' : 'text-slate-400'}`} />
+                  <span>
+                    {filterKategori === 'SEMUA'
+                      ? 'Semua Kategori'
+                      : categoriesList.find((c) => c.name === filterKategori)?.emoji
+                      ? `${categoriesList.find((c) => c.name === filterKategori)?.emoji} ${filterKategori}`
+                      : filterKategori}
+                  </span>
+                  <ChevronDown className="w-3 h-3 text-slate-400 opacity-70 ml-0.5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="start"
+                className="w-56 rounded-xl p-1.5 bg-white border border-slate-200 shadow-xl text-xs z-50 max-h-72 overflow-y-auto"
+              >
+                <div className="px-2.5 py-1 text-[10.5px] font-semibold text-slate-400 uppercase tracking-wider">
+                  Filter Kategori Komoditas
+                </div>
+                <DropdownMenuItem
+                  onClick={() => setFilterKategori('SEMUA')}
+                  className={`cursor-pointer rounded-lg px-2.5 py-2 flex items-center justify-between text-xs transition ${
+                    filterKategori === 'SEMUA'
+                      ? 'bg-slate-100 font-semibold text-slate-900'
+                      : 'text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <Package className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Semua Kategori</span>
+                  </span>
+                  {filterKategori === 'SEMUA' && (
+                    <Check className="w-3.5 h-3.5 text-slate-900" />
+                  )}
+                </DropdownMenuItem>
+
+                <div className="h-px bg-slate-100 my-1" />
+
+                {categoriesList.map((cat: any) => {
+                  const isSelected = filterKategori === cat.name;
+                  return (
+                    <DropdownMenuItem
+                      key={cat.id || cat.slug || cat.name}
+                      onClick={() => setFilterKategori(cat.name)}
+                      className={`cursor-pointer rounded-lg px-2.5 py-2 flex items-center justify-between text-xs transition ${
+                        isSelected
+                          ? 'bg-emerald-50 font-semibold text-emerald-900'
+                          : 'text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2 truncate">
+                        {cat.emoji ? (
+                          <span className="text-sm leading-none shrink-0">{cat.emoji}</span>
+                        ) : (
+                          <Tag className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        )}
+                        <span className="truncate">{cat.name}</span>
+                      </span>
+                      {isSelected && (
+                        <Check className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                      )}
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {/* Reset Button */}
             {(searchQuery || filterKategori !== 'SEMUA' || filterStatus !== 'ALL') && (
@@ -863,7 +955,7 @@ export function TokoOnlineDataTable() {
             <Table>
               <TableHeader className="bg-[#FAFBFD] border-b border-[#F1F3F5]">
                 <TableRow className="border-[#F1F3F5] hover:bg-transparent">
-                  <TableHead className="w-10 text-center py-3">
+                  <TableHead className="w-10 text-center py-3.5">
                     <input
                       type="checkbox"
                       checked={isAllCurrentPageSelected}
@@ -872,25 +964,28 @@ export function TokoOnlineDataTable() {
                       className="w-3.5 h-3.5 rounded border-slate-300 text-slate-900 focus:ring-slate-900 cursor-pointer accent-slate-900"
                     />
                   </TableHead>
-                  <TableHead className="w-12 text-center py-3 text-[11.5px] font-medium text-slate-500 whitespace-nowrap">
+                  <TableHead className="w-12 text-center py-3.5 text-[11.5px] font-semibold text-slate-500 whitespace-nowrap">
                     No
                   </TableHead>
-                  <TableHead className="py-3 text-[11.5px] font-medium text-slate-500 whitespace-nowrap min-w-[240px]">
+                  <TableHead className="py-3.5 text-[11.5px] font-semibold text-slate-600 whitespace-nowrap min-w-[220px]">
                     Komoditas
                   </TableHead>
-                  <TableHead className="py-3 text-[11.5px] font-medium text-slate-500 whitespace-nowrap">
+                  <TableHead className="py-3.5 text-[11.5px] font-semibold text-slate-600 whitespace-nowrap min-w-[130px]">
+                    Kategori
+                  </TableHead>
+                  <TableHead className="py-3.5 text-[11.5px] font-semibold text-slate-600 whitespace-nowrap min-w-[160px]">
                     Petani / Pemilik
                   </TableHead>
-                  <TableHead className="py-3 text-[11.5px] font-medium text-slate-500 whitespace-nowrap">
+                  <TableHead className="py-3.5 text-[11.5px] font-semibold text-slate-600 whitespace-nowrap min-w-[130px]">
                     Harga per Satuan
                   </TableHead>
-                  <TableHead className="py-3 text-[11.5px] font-medium text-slate-500 whitespace-nowrap">
+                  <TableHead className="py-3.5 text-[11.5px] font-semibold text-slate-600 whitespace-nowrap min-w-[120px]">
                     Stok Tersedia
                   </TableHead>
-                  <TableHead className="py-3 text-[11.5px] font-medium text-slate-500 whitespace-nowrap">
+                  <TableHead className="py-3.5 text-[11.5px] font-semibold text-slate-600 whitespace-nowrap min-w-[130px]">
                     Status Ketersediaan
                   </TableHead>
-                  <TableHead className="w-28 py-3 text-right pr-4 text-[11.5px] font-medium text-slate-500 whitespace-nowrap">
+                  <TableHead className="w-28 py-3.5 text-right pr-4 text-[11.5px] font-semibold text-slate-600 whitespace-nowrap">
                     Aksi
                   </TableHead>
                 </TableRow>
@@ -899,7 +994,7 @@ export function TokoOnlineDataTable() {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="py-14 text-center">
+                    <TableCell colSpan={9} className="py-14 text-center">
                       <div className="flex flex-col items-center justify-center gap-2">
                         <RefreshCw className="w-5 h-5 animate-spin text-slate-400" />
                         <span className="text-xs text-slate-400">
@@ -910,7 +1005,7 @@ export function TokoOnlineDataTable() {
                   </TableRow>
                 ) : productList.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="py-14 text-center">
+                    <TableCell colSpan={9} className="py-14 text-center">
                       <div className="flex flex-col items-center justify-center gap-1.5">
                         <Package className="w-6 h-6 text-slate-300" />
                         <span className="text-xs font-semibold text-slate-600">
@@ -930,6 +1025,7 @@ export function TokoOnlineDataTable() {
                   productList.map((prod, index) => {
                     const rowNumber = (pagination.currentPage - 1) * pagination.limit + (index + 1);
                     const isSelected = prod.id ? selectedIds.includes(prod.id) : false;
+                    const catEmoji = getCategoryEmoji(prod.kategori);
 
                     return (
                       <TableRow
@@ -939,7 +1035,7 @@ export function TokoOnlineDataTable() {
                         }`}
                       >
                         {/* Checkbox Select Row */}
-                        <TableCell className="text-center py-3">
+                        <TableCell className="text-center py-3.5">
                           <input
                             type="checkbox"
                             checked={isSelected}
@@ -950,14 +1046,14 @@ export function TokoOnlineDataTable() {
                         </TableCell>
 
                         {/* No */}
-                        <TableCell className="text-center font-medium text-xs text-slate-400 py-3">
+                        <TableCell className="text-center font-medium text-xs text-slate-400 py-3.5 tabular-nums">
                           {rowNumber}
                         </TableCell>
 
-                        {/* Komoditas: Thumbnail Image + Nama + Tag Kategori */}
-                        <TableCell className="py-3">
+                        {/* Komoditas: Thumbnail Image + Nama + Deskripsi */}
+                        <TableCell className="py-3.5">
                           <div className="flex items-center gap-3">
-                            <div className="w-11 h-11 rounded-lg bg-slate-100 border border-slate-200/90 overflow-hidden shrink-0">
+                            <div className="w-11 h-11 rounded-xl bg-slate-100 border border-slate-200/90 overflow-hidden shrink-0 shadow-2xs">
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img
                                 src={
@@ -974,38 +1070,42 @@ export function TokoOnlineDataTable() {
                             </div>
 
                             <div className="min-w-0 flex-1">
-                              <div className="text-xs font-semibold text-slate-900 truncate max-w-[200px] sm:max-w-xs">
+                              <div className="text-xs sm:text-[13px] font-semibold text-slate-900 truncate max-w-[200px] sm:max-w-xs leading-tight">
                                 {prod.nama}
                               </div>
-                              <div className="flex items-center gap-1.5 mt-0.5">
-                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200/60">
-                                  <Tag className="w-2.5 h-2.5 text-emerald-700" />
-                                  <span>{prod.kategori}</span>
-                                </span>
-                                {prod.deskripsi && (
-                                  <span className="text-[11px] text-slate-400 truncate max-w-[140px]">
-                                    {prod.deskripsi}
-                                  </span>
-                                )}
-                              </div>
+                              <p className="text-[11px] text-slate-400 truncate max-w-[200px] sm:max-w-xs mt-0.5">
+                                {prod.deskripsi || 'Kualitas hasil panen prima'}
+                              </p>
                             </div>
                           </div>
                         </TableCell>
 
+                        {/* Kategori (Kolom Khusus Mandiri) */}
+                        <TableCell className="py-3.5">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-50 text-slate-700 border border-slate-200/80 shadow-2xs">
+                            {catEmoji ? (
+                              <span className="text-xs leading-none">{catEmoji}</span>
+                            ) : (
+                              <Tag className="w-3 h-3 text-slate-400" />
+                            )}
+                            <span className="font-medium">{prod.kategori}</span>
+                          </span>
+                        </TableCell>
+
                         {/* Petani / Pemilik */}
-                        <TableCell className="py-3">
-                          <div className="flex items-center gap-2">
-                            <Avatar className="h-7 w-7 rounded-full border border-slate-200 shrink-0">
+                        <TableCell className="py-3.5">
+                          <div className="flex items-center gap-2.5">
+                            <Avatar className="h-7 w-7 rounded-full border border-slate-200 shrink-0 shadow-2xs">
                               <AvatarImage src={prod.petani?.avatarUrl || ''} alt={prod.petani?.name || ''} />
                               <AvatarFallback className="rounded-full bg-slate-100 text-slate-700 font-semibold text-[10px]">
                                 {prod.petani?.name ? prod.petani.name.charAt(0).toUpperCase() : 'P'}
                               </AvatarFallback>
                             </Avatar>
                             <div className="min-w-0">
-                              <div className="text-xs font-semibold text-slate-800 truncate">
-                                {prod.petani?.name || 'Petani Binaan'}
+                              <div className="text-xs font-semibold text-slate-800 truncate max-w-[150px]">
+                                {prod.petani?.name || 'Petani Koperasi'}
                               </div>
-                              <div className="text-[10px] text-slate-400 truncate">
+                              <div className="text-[10.5px] text-slate-400 truncate max-w-[150px]">
                                 {prod.petani?.email || prod.petani?.phone || '-'}
                               </div>
                             </div>
@@ -1013,7 +1113,7 @@ export function TokoOnlineDataTable() {
                         </TableCell>
 
                         {/* Harga per Satuan */}
-                        <TableCell className="py-3">
+                        <TableCell className="py-3.5">
                           <div className="text-xs font-semibold text-slate-900 tabular-nums">
                             Rp {Number(prod.hargaPerSatuan || 0).toLocaleString('id-ID')}
                             <span className="font-normal text-slate-400 text-[11px]">
@@ -1023,26 +1123,33 @@ export function TokoOnlineDataTable() {
                         </TableCell>
 
                         {/* Stok Tersedia */}
-                        <TableCell className="py-3">
-                          <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium tabular-nums ${
-                              Number(prod.stok) > 0
-                                ? 'bg-slate-100 text-slate-700 border border-slate-200'
-                                : 'bg-rose-50 text-rose-700 border border-rose-200'
-                            }`}
-                          >
-                            {Number(prod.stok || 0).toLocaleString('id-ID')} {prod.satuan}
-                          </span>
+                        <TableCell className="py-3.5">
+                          {Number(prod.stok) <= 0 ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200/70 shadow-2xs">
+                              <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                              Habis (0 {prod.satuan})
+                            </span>
+                          ) : Number(prod.stok) <= 10 ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200/70 shadow-2xs">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                              {Number(prod.stok).toLocaleString('id-ID')} {prod.satuan}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-50 text-slate-700 border border-slate-200 shadow-2xs">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                              {Number(prod.stok).toLocaleString('id-ID')} {prod.satuan}
+                            </span>
+                          )}
                         </TableCell>
 
                         {/* Status Ketersediaan (Pill Toggle) */}
-                        <TableCell className="py-3">
+                        <TableCell className="py-3.5">
                           <button
                             type="button"
                             onClick={() => handleToggleStatus(prod)}
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold transition cursor-pointer ${
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold transition cursor-pointer shadow-2xs ${
                               prod.isTersedia
-                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60 hover:bg-emerald-100'
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80 hover:bg-emerald-100'
                                 : 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200'
                             }`}
                             title="Klik untuk mengubah status ketersediaan di katalog"
@@ -1057,7 +1164,7 @@ export function TokoOnlineDataTable() {
                         </TableCell>
 
                         {/* Aksi */}
-                        <TableCell className="py-3 text-right pr-4">
+                        <TableCell className="py-3.5 text-right pr-4">
                           <div className="flex items-center justify-end gap-1.5">
                             {/* Quick Photo Upload Button */}
                             <button
