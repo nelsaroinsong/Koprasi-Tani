@@ -50,7 +50,37 @@ export async function PUT(
     if (stok !== undefined) updateData.stok = parseInt(stok, 10);
     if (imageUrl !== undefined) updateData.imageUrl = imageUrl?.trim() || null;
     if (isTersedia !== undefined) updateData.isTersedia = Boolean(isTersedia);
-    if (petaniId !== undefined && petaniId) updateData.petaniId = petaniId;
+    if (petaniId !== undefined) {
+      if (!petaniId || !String(petaniId).trim()) {
+        return NextResponse.json(
+          { error: 'Mitra petani wajib dipilih dan tidak boleh kosong.' },
+          { status: 400 }
+        );
+      }
+
+      const farmer = await prisma.user.findUnique({
+        where: { id: String(petaniId).trim() },
+        select: { id: true, name: true, email: true, role: true },
+      });
+
+      if (!farmer) {
+        return NextResponse.json(
+          { error: 'Akun mitra petani tidak ditemukan di database koperasi.' },
+          { status: 404 }
+        );
+      }
+
+      if (farmer.role !== 'PETANI') {
+        return NextResponse.json(
+          {
+            error: `Akun "${farmer.email}" terdaftar sebagai "${farmer.role}". Komoditas wajib dimiliki oleh akun dengan role PETANI (bukan akun Admin atau Pembeli).`,
+          },
+          { status: 400 }
+        );
+      }
+
+      updateData.petaniId = farmer.id;
+    }
 
     const updated = await prisma.product.update({
       where: { id },

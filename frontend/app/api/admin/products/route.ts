@@ -81,7 +81,7 @@ export async function GET(request: Request) {
       }),
       prisma.user.findMany({
         where: {
-          OR: [{ role: 'PETANI' }, { role: 'ADMIN' }],
+          role: 'PETANI',
         },
         select: {
           id: true,
@@ -172,17 +172,36 @@ export async function POST(request: Request) {
       );
     }
 
-    // Tentukan petaniId: jika tidak ditentukan, gunakan user admin yang sedang login
-    let targetPetaniId = petaniId;
-    if (!targetPetaniId) {
-      const currentAdmin = await prisma.user.findUnique({
-        where: { email: session.user.email },
-      });
-      if (!currentAdmin) {
-        return NextResponse.json({ error: 'Akun admin tidak ditemukan' }, { status: 404 });
-      }
-      targetPetaniId = currentAdmin.id;
+    // Validasi Wajib Mitra Petani (Hanya akun role PETANI, admin & pembeli tidak diizinkan)
+    if (!petaniId || !String(petaniId).trim()) {
+      return NextResponse.json(
+        { error: 'Mitra petani wajib dipilih. Komoditas harus terhubung ke akun Petani Mitra terdaftar.' },
+        { status: 400 }
+      );
     }
+
+    const farmer = await prisma.user.findUnique({
+      where: { id: String(petaniId).trim() },
+      select: { id: true, name: true, email: true, role: true },
+    });
+
+    if (!farmer) {
+      return NextResponse.json(
+        { error: 'Akun mitra petani tidak ditemukan di database koperasi.' },
+        { status: 404 }
+      );
+    }
+
+    if (farmer.role !== 'PETANI') {
+      return NextResponse.json(
+        {
+          error: `Akun "${farmer.email}" terdaftar sebagai "${farmer.role}". Komoditas wajib dimiliki oleh akun dengan role PETANI (bukan akun Admin atau Pembeli).`,
+        },
+        { status: 400 }
+      );
+    }
+
+    const targetPetaniId = farmer.id;
 
     const newProduct = await prisma.product.create({
       data: {

@@ -47,6 +47,7 @@ export interface AdminProductData {
     email: string;
     phone?: string | null;
     avatarUrl?: string | null;
+    role?: string;
   };
 }
 
@@ -55,6 +56,8 @@ export interface PetaniOption {
   name: string;
   email: string;
   role: string;
+  phone?: string | null;
+  avatarUrl?: string | null;
 }
 
 interface TokoProductFormPageProps {
@@ -147,9 +150,9 @@ export function TokoProductFormPage({
   const debouncedPetaniSearch = useDebounce(petaniSearch, 300);
   const petaniComboboxRef = useRef<HTMLDivElement>(null);
 
-  // Selected Petani state (in case loaded from initialData or draft)
+  // Selected Petani state (Hanya menerima user dengan role === 'PETANI')
   const [selectedPetani, setSelectedPetani] = useState<PetaniOption | null>(() => {
-    if (initialData?.petani) {
+    if (initialData?.petani && (!initialData.petani.role || (initialData.petani as any).role === 'PETANI')) {
       return {
         id: initialData.petani.id,
         name: initialData.petani.name,
@@ -178,7 +181,8 @@ export function TokoProductFormPage({
         const res = await fetch(`/api/admin/users?role=PETANI&limit=20&q=${encodeURIComponent(q)}`);
         const data = await res.json();
         if (!isCancelled && Array.isArray(data.users)) {
-          setSearchedPetaniResults(data.users);
+          const onlyPetani = data.users.filter((u: any) => u.role === 'PETANI');
+          setSearchedPetaniResults(onlyPetani);
         }
       } catch (err) {
         console.error('Failed to search petani', err);
@@ -193,16 +197,26 @@ export function TokoProductFormPage({
     };
   }, [debouncedPetaniSearch]);
 
-  // Load petani options and check draft if in CREATE mode
+  // Load petani options (khusus role PETANI) and check draft if in CREATE mode
   useEffect(() => {
     async function loadPetani() {
       try {
-        const res = await fetch('/api/admin/users?role=PETANI');
+        const res = await fetch('/api/admin/users?role=PETANI&limit=100');
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data.users)) {
-            const verified = data.users.filter((u: any) => u.isVerified);
-            setPetaniOptions(verified.length > 0 ? verified : data.users);
+            const onlyPetani = data.users.filter((u: any) => u.role === 'PETANI');
+            setPetaniOptions(onlyPetani);
+
+            // Jika ada petaniId pada initialData, cocokkan dan set petani mitra
+            const currentPetaniId = initialData?.petaniId || initialData?.petani?.id;
+            if (currentPetaniId) {
+              const matched = onlyPetani.find((u: any) => u.id === currentPetaniId);
+              if (matched) {
+                setSelectedPetani(matched);
+                setPetaniId(matched.id);
+              }
+            }
           }
         }
       } catch (err) {
@@ -263,6 +277,26 @@ export function TokoProductFormPage({
         .catch(() => {});
     }
   }, [petaniId, selectedPetani]);
+
+  // Daftar Petani Mitra yang ditampilkan pada popover (Khusus akun dengan role PETANI)
+  const displayedPetaniList = useMemo(() => {
+    const q = petaniSearch.trim().toLowerCase();
+    if (!q) {
+      return petaniOptions;
+    }
+    const combined = [...searchedPetaniResults];
+    for (const p of petaniOptions) {
+      if (!combined.some((item) => item.id === p.id)) {
+        if (
+          p.email.toLowerCase().includes(q) ||
+          p.name.toLowerCase().includes(q)
+        ) {
+          combined.push(p);
+        }
+      }
+    }
+    return combined;
+  }, [petaniSearch, petaniOptions, searchedPetaniResults]);
 
   // Handler Upload Foto Tambahan (Bisa upload beberapa image)
   const handlePhotoUpload = async (
@@ -355,6 +389,15 @@ export function TokoProductFormPage({
       showToast({
         title: 'Form Belum Lengkap',
         message: 'Mohon isi nama produk/komoditas.',
+        type: 'warning',
+      });
+      return;
+    }
+
+    if (!selectedPetani || !petaniId) {
+      showToast({
+        title: 'Mitra Petani Wajib Dipilih',
+        message: 'Silakan pilih email mitra petani terdaftar. Akun admin atau pembeli tidak dapat dijadikan pemilik komoditas.',
         type: 'warning',
       });
       return;
@@ -578,21 +621,24 @@ export function TokoProductFormPage({
                 </div>
               </div>
 
-              {/* Mitra Petani (Cari Berdasarkan Email) */}
+              {/* Mitra Petani (Cari & Pilih Email - Wajib Akun Role PETANI) */}
               <div ref={petaniComboboxRef} className="relative">
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5 flex items-center justify-between">
-                  <span>Mitra Petani</span>
-                  <span className="text-[10.5px] font-normal text-slate-400">
-                    Ketik &amp; cari email
+                <div className="flex items-center justify-between mb-1.5 flex-wrap gap-1">
+                  <label className="block text-xs font-semibold text-slate-700">
+                    Mitra Petani <span className="text-red-500">*</span>
+                  </label>
+                  <span className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/80">
+                    <User className="w-3 h-3 text-emerald-600" />
+                    <span>Wajib Akun Petani Mitra</span>
                   </span>
-                </label>
+                </div>
 
                 {selectedPetani ? (
                   /* Kartu Petani Terpilih */
                   <div className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between animate-in fade-in">
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-7 h-7 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center shrink-0">
-                        <Mail className="w-3.5 h-3.5" />
+                      <div className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-200">
+                        <User className="w-3.5 h-3.5" />
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
@@ -600,11 +646,10 @@ export function TokoProductFormPage({
                             {selectedPetani.email}
                           </span>
                           <span className="inline-flex items-center gap-0.5 text-[10px] text-emerald-700 font-bold bg-white px-1.5 py-0.5 rounded border border-emerald-200/80 shrink-0">
-                            <Check className="w-2.5 h-2.5" /> Terpilih
+                            <Check className="w-2.5 h-2.5" /> Petani Mitra
                           </span>
                         </div>
                         <div className="text-[11px] text-slate-500 truncate flex items-center gap-1 mt-0.5">
-                          <User className="w-3 h-3 text-slate-400" />
                           <span>{selectedPetani.name}</span>
                         </div>
                       </div>
@@ -615,10 +660,10 @@ export function TokoProductFormPage({
                         setPetaniId('');
                         setSelectedPetani(null);
                         setPetaniSearch('');
-                        setIsPetaniOpen(false);
+                        setIsPetaniOpen(true);
                       }}
                       className="text-[11px] font-semibold text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-md transition shadow-2xs cursor-pointer shrink-0 ml-2"
-                      title="Ganti atau ketik email petani lain"
+                      title="Ganti atau pilih akun petani mitra lain"
                     >
                       Ganti
                     </button>
@@ -630,26 +675,29 @@ export function TokoProductFormPage({
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
                       <input
                         type="text"
+                        autoComplete="off"
+                        spellCheck={false}
+                        name="petani_mitra_email_field"
                         value={petaniSearch}
                         onChange={(e) => {
                           const val = e.target.value;
                           setPetaniSearch(val);
-                          setIsPetaniOpen(val.trim().length > 0);
+                          setIsPetaniOpen(true);
                         }}
                         onFocus={() => {
-                          if (petaniSearch.trim().length > 0) {
-                            setIsPetaniOpen(true);
-                          }
+                          setIsPetaniOpen(true);
                         }}
-                        placeholder="Ketik email mitra petani..."
-                        className="w-full text-xs pl-8 pr-8 py-2.5 bg-slate-100 border border-transparent rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 focus:bg-white transition text-slate-800"
+                        onClick={() => {
+                          setIsPetaniOpen(true);
+                        }}
+                        placeholder="Ketik & cari email mitra petani..."
+                        className="w-full text-xs pl-8 pr-8 py-2.5 bg-slate-100 border border-transparent rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 focus:bg-white transition text-slate-800 font-medium"
                       />
                       {petaniSearch && (
                         <button
                           type="button"
                           onClick={() => {
                             setPetaniSearch('');
-                            setIsPetaniOpen(false);
                           }}
                           className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs p-0.5 cursor-pointer"
                           title="Hapus pencarian"
@@ -660,26 +708,29 @@ export function TokoProductFormPage({
                     </div>
 
                     {/* Popover Hasil Pencarian Email Petani */}
-                    {isPetaniOpen && petaniSearch.trim().length > 0 && (
+                    {isPetaniOpen && (
                       <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-30 max-h-56 overflow-hidden flex flex-col animate-in fade-in zoom-in-95">
-                        <div className="px-3 py-1.5 text-[10.5px] font-semibold text-slate-400 uppercase tracking-wider bg-slate-50 border-b border-slate-100 flex items-center justify-between">
-                          <span>Hasil Pencarian ({searchedPetaniResults.length})</span>
-                          <span className="text-[10px] text-slate-600 font-normal">
-                            Email: &quot;{petaniSearch}&quot;
+                        <div className="px-3 py-1.5 text-[10.5px] font-semibold text-slate-500 uppercase tracking-wider bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                          <span>Daftar Petani Mitra ({displayedPetaniList.length})</span>
+                          <span className="text-[10px] text-emerald-700 font-semibold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200/60 normal-case">
+                            Hanya Role Petani
                           </span>
                         </div>
                         <div className="overflow-y-auto p-1 divide-y divide-slate-50 max-h-48">
                           {isSearchingPetani ? (
                             <div className="p-4 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
                               <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-600" />
-                              <span>Mencari di database...</span>
+                              <span>Mencari data petani...</span>
                             </div>
-                          ) : searchedPetaniResults.length === 0 ? (
-                            <div className="p-4 text-center text-xs text-slate-400">
-                              Tidak ada petani dengan email cocok &quot;{petaniSearch}&quot;
+                          ) : displayedPetaniList.length === 0 ? (
+                            <div className="p-4 text-center text-xs text-slate-500 space-y-1">
+                              <div>Tidak ditemukan petani mitra dengan kata kunci &quot;{petaniSearch}&quot;</div>
+                              <div className="text-[10.5px] text-slate-400">
+                                Akun Admin dan Pembeli tidak ditampilkan karena tidak dapat didaftarkan sebagai pemilik komoditas.
+                              </div>
                             </div>
                           ) : (
-                            searchedPetaniResults.map((petani) => (
+                            displayedPetaniList.map((petani) => (
                               <button
                                 key={petani.id}
                                 type="button"
@@ -695,6 +746,9 @@ export function TokoProductFormPage({
                                   <div className="font-semibold text-slate-800 group-hover:text-slate-900 truncate flex items-center gap-1.5">
                                     <Mail className="w-3 h-3 text-slate-400 shrink-0" />
                                     <span>{petani.email}</span>
+                                    <span className="text-[9.5px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
+                                      Petani Mitra
+                                    </span>
                                   </div>
                                   <div className="text-[11px] text-slate-400 truncate flex items-center gap-1 mt-0.5">
                                     <User className="w-2.5 h-2.5 text-slate-400" />
@@ -712,6 +766,10 @@ export function TokoProductFormPage({
                     )}
                   </div>
                 )}
+
+                <p className="text-[10.5px] text-slate-400 mt-1.5 leading-relaxed">
+                  <span className="text-red-500 font-semibold">* Wajib diisi.</span> Komoditas harus terhubung ke akun Petani Mitra terdaftar. Akun Admin atau Pembeli tidak dapat dijadikan pemilik komoditas.
+                </p>
               </div>
             </div>
           </div>
