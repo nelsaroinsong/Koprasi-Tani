@@ -38,7 +38,11 @@ export function AdminBreadcrumb() {
 
         <BreadcrumbItem>
           <BreadcrumbPage className="text-slate-900 font-semibold">
-            {isDashboard ? 'Dashboard' : (activeTab.item || activeTab.group)}
+            {isDashboard
+              ? 'Dashboard'
+              : activeTab.item === 'Toko Online'
+              ? 'Katalog Komoditas'
+              : activeTab.item || activeTab.group}
           </BreadcrumbPage>
         </BreadcrumbItem>
       </BreadcrumbList>
