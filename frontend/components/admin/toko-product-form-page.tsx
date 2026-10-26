@@ -747,7 +747,7 @@ export function TokoProductFormPage({
             <h3 className="text-sm font-bold text-slate-800">Harga dan Stok</h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Harga Satuan dengan Rp Prefix */}
+              {/* Harga Satuan dengan Rp Prefix & Satuan Suffix */}
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1.5">
                   Harga Satuan Pokok (Rp) <span className="text-red-500">*</span>
@@ -764,25 +764,33 @@ export function TokoProductFormPage({
                     value={hargaPerSatuan}
                     onChange={(e) => setHargaPerSatuan(e.target.value)}
                     placeholder="8000"
-                    className="w-full text-xs pl-9 pr-3.5 py-2.5 bg-slate-100 border border-transparent rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 focus:bg-white transition text-slate-800 font-semibold"
+                    className="w-full text-xs pl-9 pr-20 py-2.5 bg-slate-100 border border-transparent rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 focus:bg-white transition text-slate-800 font-semibold"
                   />
+                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] font-bold text-slate-500 bg-white border border-slate-200/90 px-2 py-0.5 rounded-md shadow-2xs pointer-events-none select-none">
+                    /{satuan || 'kg'}
+                  </span>
                 </div>
               </div>
 
-              {/* Stok */}
+              {/* Stok dengan Satuan Suffix */}
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1.5">
                   Jumlah Stok Tersedia <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="number"
-                  required
-                  min={0}
-                  value={stok}
-                  onChange={(e) => setStok(e.target.value)}
-                  placeholder="100"
-                  className="w-full text-xs px-3.5 py-2.5 bg-slate-100 border border-transparent rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 focus:bg-white transition text-slate-800 font-semibold"
-                />
+                <div className="relative">
+                  <input
+                    type="number"
+                    required
+                    min={0}
+                    value={stok}
+                    onChange={(e) => setStok(e.target.value)}
+                    placeholder="100"
+                    className="w-full text-xs pl-3.5 pr-20 py-2.5 bg-slate-100 border border-transparent rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 focus:bg-white transition text-slate-800 font-semibold"
+                  />
+                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] font-bold text-slate-600 bg-white border border-slate-200/90 px-2 py-0.5 rounded-md shadow-2xs pointer-events-none select-none">
+                    {satuan || 'kg'}
+                  </span>
+                </div>
               </div>
             </div>
 
