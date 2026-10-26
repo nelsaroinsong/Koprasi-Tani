@@ -22,6 +22,8 @@ import {
   Layers,
   ChevronLeft,
   ChevronRight,
+  Store,
+  ExternalLink,
 } from 'lucide-react';
 import { useToast } from '@/context/toast-context';
 import {
@@ -35,7 +37,14 @@ import { useAdmin } from '@/components/admin/admin-context';
 import type { EquipmentItem } from '@/lib/equipments';
 import { validateIndonesianPhone } from '@/lib/phone-validation';
 
+const HATCHED_BG_STYLE: React.CSSProperties = {
+  backgroundImage:
+    'repeating-linear-gradient(-45deg, #F3F4F6, #F3F4F6 4px, #F9FAFB 4px, #F9FAFB 8px)',
+};
+
 const KONDISI_PRESETS = ['Sangat Baik', 'Siap Pakai', 'Dalam Perawatan'];
+
+type StatusFilterKey = 'ALL' | 'AVAILABLE' | 'UNAVAILABLE';
 
 interface EquipmentCategoryItem {
   id: string;
@@ -55,6 +64,7 @@ export default function EquipmentsDataTable() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedKategori, setSelectedKategori] = useState('SEMUA');
+  const [statusFilter, setStatusFilter] = useState<StatusFilterKey>('ALL');
   const [limit, setLimit] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -154,20 +164,44 @@ export default function EquipmentsDataTable() {
   const filteredEquipments = useMemo(() => {
     return equipments.filter((item) => {
       const matchKategori = selectedKategori === 'SEMUA' || item.kategori === selectedKategori;
+      const matchStatus =
+        statusFilter === 'ALL' ||
+        (statusFilter === 'AVAILABLE' && item.isTersedia) ||
+        (statusFilter === 'UNAVAILABLE' && !item.isTersedia);
       const matchSearch =
         !searchQuery.trim() ||
         item.nama.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (item.spesifikasi && item.spesifikasi.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (item.deskripsi && item.deskripsi.toLowerCase().includes(searchQuery.toLowerCase()));
-      return matchKategori && matchSearch;
+      return matchKategori && matchStatus && matchSearch;
     });
-  }, [equipments, selectedKategori, searchQuery]);
+  }, [equipments, selectedKategori, statusFilter, searchQuery]);
 
   // Reset page when filter/search changes
   useEffect(() => {
     setCurrentPage(1);
     setSelectedIds([]);
-  }, [selectedKategori, searchQuery]);
+  }, [selectedKategori, statusFilter, searchQuery]);
+
+  // Status Filter Tabs
+  const STATUS_TABS: { key: StatusFilterKey; label: string; dot?: string; count: number }[] = useMemo(
+    () => [
+      { key: 'ALL', label: 'Semua', count: equipments.length },
+      {
+        key: 'AVAILABLE',
+        label: 'Siap Disewa',
+        dot: 'bg-emerald-500',
+        count: equipments.filter((i) => i.isTersedia).length,
+      },
+      {
+        key: 'UNAVAILABLE',
+        label: 'Perawatan / Nonaktif',
+        dot: 'bg-amber-500',
+        count: equipments.filter((i) => !i.isTersedia).length,
+      },
+    ],
+    [equipments]
+  );
 
   // Pagination Calculation
   const totalPages = Math.max(1, Math.ceil(filteredEquipments.length / limit));
@@ -624,157 +658,211 @@ export default function EquipmentsDataTable() {
 
   return (
     <div className="space-y-4">
-      {/* 1. Header Info Statistik (Format Seragam Seperti di Dashboard) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <div className="p-4 bg-white border border-slate-200/90 rounded-2xl shadow-2xs flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
-            <Tractor className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              {stats.totalUnit}
-            </div>
-            <div className="text-[11px] text-slate-500 font-semibold mt-0.5">
-              Total Unit ({stats.totalJenis} Model)
-            </div>
-          </div>
-        </div>
-
-        <div className="p-4 bg-white border border-slate-200/90 rounded-2xl shadow-2xs flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center shrink-0">
-            <CheckCircle2 className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              {stats.unitTersedia}
-            </div>
-            <div className="text-[11px] text-slate-500 font-semibold mt-0.5">
-              Unit Siap Dipinjam / Sewa
-            </div>
-          </div>
-        </div>
-
-        <div className="p-4 bg-white border border-slate-200/90 rounded-2xl shadow-2xs flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0">
-            <Wrench className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              {stats.unitPerawatan}
-            </div>
-            <div className="text-[11px] text-slate-500 font-semibold mt-0.5">
-              Perawatan / Disewa
-            </div>
-          </div>
-        </div>
-
-        <div className="p-4 bg-emerald-800 text-white rounded-2xl shadow-2xs flex flex-col justify-between">
-          <div className="text-[11px] text-emerald-200 font-medium">Layanan Sewa Koperasi</div>
-          <div className="text-sm font-bold flex items-center justify-between mt-1">
-            <span>Subsidi Anggota</span>
-            <span className="text-xs bg-emerald-700/80 px-2 py-0.5 rounded-full border border-emerald-500/40">
-              Aktif
+      {/* 1. Stat Cards: 3 Kartu Ringkasan di Atas (Standar Industri & Selaras Halaman Lain) */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {/* Card 1: Total Alat Pertanian */}
+        <div className="bg-white rounded-2xl border border-[#ECEEF2] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[12px] font-medium text-slate-500">Total Alat Pertanian</span>
+            <span className="w-7 h-7 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center">
+              <Tractor className="w-3.5 h-3.5 text-slate-600" />
             </span>
           </div>
+          <div className="mt-2 text-[22px] font-semibold text-slate-900 tabular-nums tracking-tight">
+            {stats.totalUnit} <span className="text-xs font-normal text-slate-500">Unit ({stats.totalJenis} Model)</span>
+          </div>
+          <p className="text-[11.5px] text-slate-400 mt-0.5">
+            Inventaris mesin & alat pertanian siap pakai
+          </p>
+        </div>
+
+        {/* Card 2: Unit Siap Disewa */}
+        <div className="bg-white rounded-2xl border border-[#ECEEF2] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[12px] font-medium text-slate-500">Unit Siap Disewa</span>
+            <span className="w-7 h-7 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+            </span>
+          </div>
+          <div className="mt-2 text-[22px] font-semibold text-slate-900 tabular-nums tracking-tight">
+            {stats.unitTersedia} <span className="text-xs font-normal text-slate-500">Unit Siap Pakai</span>
+          </div>
+          <p className="text-[11.5px] text-slate-400 mt-0.5">
+            Tersedia untuk dipinjam & digunakan petani
+          </p>
+        </div>
+
+        {/* Card 3: Dalam Perawatan / Disewa */}
+        <div className="bg-white rounded-2xl border border-[#ECEEF2] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[12px] font-medium text-slate-500">Perawatan / Sedang Disewa</span>
+            <span className="w-7 h-7 rounded-lg bg-amber-50 border border-amber-100 flex items-center justify-center">
+              <Wrench className="w-3.5 h-3.5 text-amber-600" />
+            </span>
+          </div>
+          <div className="mt-2 text-[22px] font-semibold text-slate-900 tabular-nums tracking-tight">
+            {stats.unitPerawatan} <span className="text-xs font-normal text-slate-500">Unit</span>
+          </div>
+          <p className="text-[11.5px] text-slate-400 mt-0.5">
+            Sedang disewa petani atau servis berkala
+          </p>
         </div>
       </div>
 
-      {/* 2. Action Bar: Search, Category Filter, Refresh, Kelola Kategori, Tambah Alat */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl p-3 sm:p-4 shadow-2xs flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-3">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1">
-          {/* Search Box */}
-          <div className="relative flex-1 max-w-md">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Cari traktor, kultivator, spesifikasi..."
-              className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:bg-white"
-            />
-          </div>
-
-          {/* Dynamic Category Filter Dropdown */}
-          <select
-            value={selectedKategori}
-            onChange={(e) => setSelectedKategori(e.target.value)}
-            className="py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:bg-white cursor-pointer"
-          >
-            <option value="SEMUA">Semua Kategori ({categoriesList.length})</option>
-            {categoriesList.map((cat) => (
-              <option key={cat.id} value={cat.name}>
-                {cat.emoji || '⚙️'} {cat.name}
-              </option>
-            ))}
-          </select>
-
-          <button
-            onClick={() => {
-              fetchEquipments();
-              fetchCategories();
-            }}
-            title="Segarkan Data"
-            className="p-2 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl transition cursor-pointer shrink-0 self-center sm:self-auto shadow-2xs"
-          >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-emerald-700' : ''}`} />
-          </button>
-        </div>
-
-        {/* Action Buttons: Kelola Kategori Alat & Tambah Alat */}
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={() => setActiveTab('Produk dan Layanan', 'Kategori Sewa Alat')}
-            className="flex-1 sm:flex-none py-2 px-3.5 rounded-xl border border-emerald-200 bg-emerald-50/70 hover:bg-emerald-100 text-emerald-800 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-2xs"
-            title="Kelola Kategori Alat Pertanian"
-          >
-            <Tag className="w-3.5 h-3.5 text-emerald-700" />
-            <span>Kelola Kategori</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('Produk dan Layanan', 'Tambah Alat')}
-            className="flex-1 sm:flex-none py-2 px-4 bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Tambah Alat Pertanian</span>
-          </button>
-        </div>
-      </div>
-
-      {/* 3. Floating Bulk Action Bar (Saat Ada Item Dipilih) */}
-      {selectedIds.length > 0 && (
-        <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between gap-3 text-xs shadow-2xs animate-in fade-in">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
-            <span className="font-bold text-emerald-900">
-              {selectedIds.length} unit alat dipilih
+      {/* 2. Kravio Outer Double-Container Shell */}
+      <div className="rounded-2xl border border-[#E5E7EB] p-1.5" style={HATCHED_BG_STYLE}>
+        {/* Header: Judul + Counter + Link Publik Sewa Alat */}
+        <div className="px-3 pt-2 pb-1 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 shrink-0">
+            <Tractor className="w-4 h-4 text-slate-600 stroke-[1.8]" />
+            <h2 className="text-[13.5px] font-semibold text-slate-800 tracking-tight">
+              Inventaris Sewa Alat
+            </h2>
+            <span className="h-5 px-1.5 rounded-md bg-white border border-slate-200 text-[11px] font-semibold text-slate-600 tabular-nums flex items-center">
+              {filteredEquipments.length}
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setSelectedIds([])}
-              className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 text-[11px] font-semibold transition cursor-pointer"
+          <a
+            href="/sewa-alat"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="h-6 px-2 text-[11px] font-medium text-slate-600 hover:text-slate-900 bg-white border border-slate-200 rounded-md flex items-center gap-1 shadow-2xs hover:bg-slate-50 transition"
+            title="Buka etalase sewa alat publik di tab baru"
+          >
+            <Store className="w-3 h-3 text-slate-500" />
+            <span className="hidden sm:inline">Lihat Etalase Sewa</span>
+            <ExternalLink className="w-2.5 h-2.5 text-slate-400" />
+          </a>
+        </div>
+
+        {/* Status Filter Tabs (Pill Style) */}
+        <div className="px-3 py-2 overflow-x-auto no-scrollbar">
+          <div className="inline-flex items-center gap-0.5 p-0.5 rounded-lg bg-white border border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+            {STATUS_TABS.map((tab) => {
+              const isActive = statusFilter === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setStatusFilter(tab.key)}
+                  className={`h-7 px-2.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+                    isActive
+                      ? 'bg-slate-900 text-white'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                  }`}
+                >
+                  {tab.dot && <span className={`w-1.5 h-1.5 rounded-full ${tab.dot}`} />}
+                  <span>{tab.label}</span>
+                  <span
+                    className={`text-[10.5px] tabular-nums ${
+                      isActive ? 'text-white/70' : 'text-slate-400'
+                    }`}
+                  >
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Toolbar: Search, Category Filter, Refresh, Kelola Kategori, Tambah Alat */}
+        <div className="px-3 pb-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2 flex-1">
+            {/* Search Box */}
+            <div className="relative flex-1 sm:flex-none sm:w-64">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Cari traktor, kultivator, spesifikasi..."
+                className="w-full h-8 pl-8 pr-3 text-xs rounded-lg border border-[#E5E7EB] bg-white text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-900 focus:border-slate-900 transition shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
+              />
+            </div>
+
+            {/* Dynamic Category Filter Dropdown */}
+            <select
+              value={selectedKategori}
+              onChange={(e) => setSelectedKategori(e.target.value)}
+              className="h-8 px-2.5 text-xs bg-white border border-[#E5E7EB] rounded-lg font-medium text-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-900 cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
             >
-              Batal Pilihan
+              <option value="SEMUA">Semua Kategori ({categoriesList.length})</option>
+              {categoriesList.map((cat) => (
+                <option key={cat.id} value={cat.name}>
+                  {cat.emoji || '⚙️'} {cat.name}
+                </option>
+              ))}
+            </select>
+
+            <button
+              onClick={() => {
+                fetchEquipments();
+                fetchCategories();
+              }}
+              title="Segarkan Data"
+              className="w-8 h-8 rounded-lg border border-[#E5E7EB] bg-white hover:bg-slate-50 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,0.02)] shrink-0"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-slate-800' : ''}`} />
             </button>
+          </div>
+
+          {/* Action Buttons: Kelola Kategori Alat & Tambah Alat */}
+          <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
-              onClick={() => setIsBulkDeleteDialogOpen(true)}
-              className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[11px] font-bold flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+              onClick={() => setActiveTab('Produk dan Layanan', 'Kategori Sewa Alat')}
+              className="h-8 px-3 rounded-lg border border-[#E5E7EB] bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
+              title="Kelola Kategori Alat Pertanian"
             >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span>Hapus ({selectedIds.length}) Terpilih</span>
+              <Tag className="w-3.5 h-3.5 text-slate-500" />
+              <span>Kelola Kategori</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('Produk dan Layanan', 'Tambah Alat')}
+              className="h-8 px-3.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Tambah Alat Pertanian</span>
             </button>
           </div>
         </div>
-      )}
 
-      {/* 4. Main Data Table dengan Checkbox & Pagination Max 10 */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl shadow-2xs overflow-hidden">
+        {/* 3. Floating Bulk Action Bar (Saat Ada Item Dipilih) */}
+        {selectedIds.length > 0 && (
+          <div className="mx-3 mb-2 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between gap-3 text-xs shadow-2xs animate-in fade-in">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
+              <span className="font-bold text-emerald-900">
+                {selectedIds.length} unit alat dipilih
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setSelectedIds([])}
+                className="px-2.5 py-1 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 text-[11px] font-semibold transition cursor-pointer"
+              >
+                Batal Pilihan
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsBulkDeleteDialogOpen(true)}
+                className="px-3 py-1 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[11px] font-bold flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Hapus ({selectedIds.length}) Terpilih</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* 4. Main Data Table dengan Checkbox & Pagination Max 10 (Di Dalam Inner Card Putih Bersih) */}
+        <div className="bg-white rounded-xl border border-[#E5E7EB] overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
         {isLoading ? (
           <div className="py-20 flex flex-col items-center justify-center gap-3">
             <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
@@ -797,49 +885,49 @@ export default function EquipmentsDataTable() {
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider text-[10px]">
+                  <tr className="bg-slate-50/80 border-b border-[#E5E7EB] text-slate-500 font-semibold text-[11px] uppercase tracking-wider">
                     {/* Checkbox Select All */}
-                    <th className="py-3 px-3 w-10 text-center">
+                    <th className="py-2.5 px-3 w-10 text-center">
                       <input
                         type="checkbox"
                         checked={isAllCurrentPageSelected}
                         onChange={handleToggleSelectAll}
                         title="Pilih semua di halaman ini"
-                        className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 cursor-pointer"
+                        className="w-3.5 h-3.5 rounded border-slate-300 text-slate-900 focus:ring-slate-900 cursor-pointer"
                       />
                     </th>
-                    <th className="py-3 px-4">Nama Alat & Spesifikasi</th>
-                    <th className="py-3 px-4">Kategori</th>
-                    <th className="py-3 px-4">Tarif Sewa Koperasi</th>
-                    <th className="py-3 px-4">Stok & Kondisi</th>
-                    <th className="py-3 px-4 text-center">Ketersediaan</th>
-                    <th className="py-3 px-4 text-right">Aksi</th>
+                    <th className="py-2.5 px-3">Nama Alat & Spesifikasi</th>
+                    <th className="py-2.5 px-3">Kategori</th>
+                    <th className="py-2.5 px-3">Tarif Sewa Koperasi</th>
+                    <th className="py-2.5 px-3">Stok & Kondisi</th>
+                    <th className="py-2.5 px-3 text-center">Ketersediaan</th>
+                    <th className="py-2.5 px-3 text-right">Aksi</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-[#F1F3F5]">
                   {paginatedEquipments.map((item) => {
                     const isSelected = selectedIds.includes(item.id);
                     return (
                       <tr
                         key={item.id}
                         className={`transition-colors ${
-                          isSelected ? 'bg-emerald-50/50' : 'hover:bg-slate-50/70'
+                          isSelected ? 'bg-slate-50/90' : 'hover:bg-slate-50/60'
                         }`}
                       >
                         {/* Checkbox Single Select */}
-                        <td className="py-3.5 px-3 text-center">
+                        <td className="py-3 px-3 text-center">
                           <input
                             type="checkbox"
                             checked={isSelected}
                             onChange={() => handleToggleSelectOne(item.id)}
-                            className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 cursor-pointer"
+                            className="w-3.5 h-3.5 rounded border-slate-300 text-slate-900 focus:ring-slate-900 cursor-pointer"
                           />
                         </td>
 
                         {/* Nama Alat & Spesifikasi */}
-                        <td className="py-3.5 px-4">
+                        <td className="py-3 px-3">
                           <div className="flex items-start gap-3">
-                            <div className="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden shrink-0 relative">
+                            <div className="w-11 h-11 rounded-lg bg-slate-100 border border-slate-200 overflow-hidden shrink-0 relative">
                               {item.imageUrl ? (
                                 <img
                                   src={item.imageUrl}
@@ -848,12 +936,12 @@ export default function EquipmentsDataTable() {
                                 />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center text-slate-400">
-                                  <Tractor className="w-5 h-5" />
+                                  <Tractor className="w-5 h-5 text-slate-400" />
                                 </div>
                               )}
                             </div>
                             <div className="min-w-0">
-                              <div className="font-bold text-slate-900 text-xs sm:text-sm">
+                              <div className="font-semibold text-slate-900 text-xs sm:text-[13px] tracking-tight">
                                 {item.nama}
                               </div>
                               {item.spesifikasi && (
@@ -863,7 +951,7 @@ export default function EquipmentsDataTable() {
                                 </div>
                               )}
                               {item.deskripsi && (
-                                <div className="text-[10px] text-slate-400 line-clamp-1 mt-0.5">
+                                <div className="text-[10.5px] text-slate-400 line-clamp-1 mt-0.5">
                                   {item.deskripsi}
                                 </div>
                               )}
@@ -872,21 +960,21 @@ export default function EquipmentsDataTable() {
                         </td>
 
                         {/* Kategori */}
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                        <td className="py-3 px-3 whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-700 border border-slate-200/70">
                             {item.kategori}
                           </span>
                         </td>
 
                         {/* Tarif Sewa */}
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <div className="font-bold text-emerald-800 text-xs sm:text-sm">
+                        <td className="py-3 px-3 whitespace-nowrap">
+                          <div className="font-semibold text-slate-900 text-xs sm:text-[13px]">
                             Rp {item.hargaSewa.toLocaleString('id-ID')}
-                            <span className="text-[10px] text-slate-500 font-normal">
+                            <span className="text-[11px] text-slate-400 font-normal">
                               {' '}/ {item.satuanSewa}
                             </span>
                           </div>
-                          <div className="text-[10px] text-slate-500">
+                          <div className="text-[10px] text-slate-500 mt-0.5">
                             {item.biayaOperator
                               ? `+ Rp ${item.biayaOperator.toLocaleString('id-ID')} (Operator)`
                               : 'Mandiri / Bebas Operator'}
@@ -894,11 +982,11 @@ export default function EquipmentsDataTable() {
                         </td>
 
                         {/* Stok & Kondisi */}
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <div className="font-bold text-slate-800 text-xs">
+                        <td className="py-3 px-3 whitespace-nowrap">
+                          <div className="font-medium text-slate-800 text-xs">
                             {item.stokUnit || 1} Unit Tersedia
                           </div>
-                          <div className="text-[10px] text-slate-500 mt-0.5">
+                          <div className="text-[10.5px] mt-0.5">
                             <span
                               className={`font-semibold ${
                                 item.kondisi === 'Sangat Baik'
@@ -912,7 +1000,7 @@ export default function EquipmentsDataTable() {
                         </td>
 
                         {/* Ketersediaan (Taste-Skills Switch Toggle) */}
-                        <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                        <td className="py-3 px-3 text-center whitespace-nowrap">
                           <div className="inline-flex items-center justify-center gap-2">
                             <button
                               type="button"
@@ -922,10 +1010,10 @@ export default function EquipmentsDataTable() {
                               title={`Klik untuk ${
                                 item.isTersedia ? 'menonaktifkan' : 'mengaktifkan'
                               } ketersediaan alat ini`}
-                              className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 ${
+                              className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 ${
                                 item.isTersedia
-                                  ? 'bg-emerald-600'
-                                  : 'bg-slate-300 hover:bg-slate-400'
+                                  ? 'bg-slate-900'
+                                  : 'bg-slate-200 hover:bg-slate-300'
                               }`}
                             >
                               <span className="sr-only">Toggle status ketersediaan alat</span>
@@ -937,9 +1025,9 @@ export default function EquipmentsDataTable() {
                               />
                             </button>
                             <span
-                              className={`text-[11.5px] font-medium select-none w-20 text-left ${
+                              className={`text-[11.5px] font-medium select-none w-16 text-left ${
                                 item.isTersedia
-                                  ? 'text-emerald-700 font-semibold'
+                                  ? 'text-slate-900 font-semibold'
                                   : 'text-slate-400'
                               }`}
                             >
@@ -949,23 +1037,23 @@ export default function EquipmentsDataTable() {
                         </td>
 
                         {/* Aksi */}
-                        <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                          <div className="flex items-center justify-end gap-1.5">
+                        <td className="py-3 px-3 text-right whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-1">
                             <button
                               type="button"
                               onClick={() => setActiveTab('Produk dan Layanan', 'Tambah Alat', item)}
                               title="Edit Alat"
-                              className="p-1.5 text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition cursor-pointer"
+                              className="w-7 h-7 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-lg flex items-center justify-center transition cursor-pointer"
                             >
-                              <Pencil className="w-4 h-4" />
+                              <Pencil className="w-3.5 h-3.5" />
                             </button>
                             <button
                               type="button"
                               onClick={() => setDeleteTarget(item)}
                               title="Hapus Alat"
-                              className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer"
+                              className="w-7 h-7 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg flex items-center justify-center transition cursor-pointer"
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         </td>
@@ -1039,6 +1127,7 @@ export default function EquipmentsDataTable() {
           </>
         )}
       </div>
+    </div>
 
       {/* 5. Modal Tambah / Edit Alat Pertanian (UI Kotak Tumpul) */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
