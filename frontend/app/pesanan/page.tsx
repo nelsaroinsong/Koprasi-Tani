@@ -34,6 +34,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
+import { getPrimaryImage } from '@/lib/utils';
 
 type OrderStatus = 'ALL' | 'MENUNGGU_PEMBAYARAN' | 'DIPROSES' | 'SIAP_DIAMBIL' | 'SELESAI' | 'DIBATALKAN';
 
@@ -820,7 +821,7 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
                           {/* Items List */}
                           <div className="space-y-2 sm:space-y-2.5">
                             {order.items?.map((item: any, idx: number) => {
-                              const itemImg = item.product?.imageUrl || 'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=400&q=80';
+                              const itemImg = getPrimaryImage(item.product?.imageUrl, 'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=400&q=80');
                               const unitPrice = Number(item.hargaPerSatuan || 0);
 
                               return (
@@ -1059,7 +1060,7 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
                           {/* Rental Items List */}
                           <div className="space-y-2 sm:space-y-2.5">
                             {rental.items?.map((item: any, idx: number) => {
-                              const itemImg = item.imageUrl || 'https://picsum.photos/seed/sewa-alat-koperasi/300/300';
+                              const itemImg = getPrimaryImage(item.imageUrl, 'https://picsum.photos/seed/sewa-alat-koperasi/300/300');
                               const name = item.nama || item.equipmentName || 'Alat Pertanian';
                               const qty = item.jumlahUnit || item.quantity || 1;
                               const durasi = item.durasi || item.rentalDays || rental.durationDays || rental.durasi || 1;
@@ -1174,7 +1175,7 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
             <div className="flex items-center gap-3 p-3 bg-[#f4f5f1] rounded-2xl border border-[#dce1d6]">
               {reviewItem.product?.imageUrl ? (
                 <img
-                  src={reviewItem.product.imageUrl}
+                  src={getPrimaryImage(reviewItem.product.imageUrl)}
                   alt={reviewItem.namaProduk}
                   className="w-12 h-12 rounded-xl object-cover border border-[#dce1d6]"
                 />

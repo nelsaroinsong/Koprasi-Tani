@@ -17,6 +17,7 @@ import {
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
 import { getCart, saveCart } from '@/lib/cart';
+import { getPrimaryImage } from '@/lib/utils';
 
 import defaultCategoriesData from '@/data/categories.json';
 
@@ -407,7 +408,7 @@ function TokoOnlineContent() {
           kategori: product.kategori,
           hargaPerSatuan: Number(product.hargaPerSatuan),
           satuan: product.satuan,
-          imageUrl: product.imageUrl,
+          imageUrl: getPrimaryImage(product.imageUrl),
           quantity,
           petaniName: product.petani?.name || 'Petani Binaan',
         });
@@ -852,13 +853,18 @@ function TokoOnlineContent() {
                             <img
                               src={prod.petani.avatarUrl}
                               alt={farmerName}
+                              referrerPolicy="no-referrer"
                               className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full object-cover shrink-0 border border-[#dce1d6]"
+                              onError={(e) => {
+                                (e.target as HTMLElement).style.display = 'none';
+                                const fallback = (e.target as HTMLElement).parentElement?.querySelector('.farmer-fallback');
+                                if (fallback) (fallback as HTMLElement).classList.remove('hidden');
+                              }}
                             />
-                          ) : (
-                            <span className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-[#EAEDE7] text-[#233414] text-[9px] font-bold flex items-center justify-center shrink-0">
-                              {farmerName.charAt(0).toUpperCase()}
-                            </span>
-                          )}
+                          ) : null}
+                          <span className={`w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-[#EAEDE7] text-[#233414] text-[9px] font-bold flex items-center justify-center shrink-0 farmer-fallback ${prod.petani?.avatarUrl ? 'hidden' : ''}`}>
+                            {farmerName.charAt(0).toUpperCase()}
+                          </span>
                           <span className="truncate group-hover/farmer:underline">{farmerName}</span>
                         </button>
                       </div>
@@ -870,8 +876,10 @@ function TokoOnlineContent() {
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={
-                          prod.imageUrl ||
-                          'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=600&q=80'
+                          getPrimaryImage(
+                            prod.imageUrl,
+                            'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=600&q=80'
+                          )
                         }
                         alt={prod.nama}
                         loading="lazy"

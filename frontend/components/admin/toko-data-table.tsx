@@ -922,7 +922,7 @@ export function TokoOnlineDataTable() {
                             <div className="w-11 h-11 rounded-lg bg-slate-100 border border-slate-200 overflow-hidden shrink-0 relative">
                               {prod.imageUrl ? (
                                 <img
-                                  src={prod.imageUrl}
+                                  src={prod.imageUrl.includes(',') ? prod.imageUrl.split(',')[0].trim() : prod.imageUrl}
                                   alt={prod.nama}
                                   className="w-full h-full object-cover"
                                 />

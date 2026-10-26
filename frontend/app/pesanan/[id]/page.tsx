@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
+import { getPrimaryImage } from '@/lib/utils';
 
 export default function OrderDetailPage({
   params,
@@ -689,7 +690,7 @@ export default function OrderDetailPage({
                       >
                         {item.product?.imageUrl ? (
                           <img
-                            src={item.product.imageUrl}
+                            src={getPrimaryImage(item.product.imageUrl)}
                             alt={item.product.nama}
                             className="w-14 h-14 rounded-lg object-cover border border-[#dce1d6] shrink-0 shadow-2xs"
                           />
@@ -764,7 +765,7 @@ export default function OrderDetailPage({
                         >
                           {item.imageUrl ? (
                             <img
-                              src={item.imageUrl}
+                              src={getPrimaryImage(item.imageUrl)}
                               alt={itemName}
                               className="w-14 h-14 rounded-lg object-cover border border-[#dce1d6] shrink-0 shadow-2xs"
                             />

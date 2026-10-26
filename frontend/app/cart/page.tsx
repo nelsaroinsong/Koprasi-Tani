@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
+import { getPrimaryImage } from '@/lib/utils';
 
 import { getCart, saveCart, clearCart, type CartItem } from '@/lib/cart';
 import {
@@ -411,8 +412,10 @@ function CartContent() {
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img
                                 src={
-                                  item.imageUrl ||
-                                  'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=400&q=80'
+                                  getPrimaryImage(
+                                    item.imageUrl,
+                                    'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=400&q=80'
+                                  )
                                 }
                                 alt={item.nama}
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
@@ -492,8 +495,10 @@ function CartContent() {
                           >
                             <img
                               src={
-                                item.imageUrl ||
-                                'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=400&q=80'
+                                getPrimaryImage(
+                                  item.imageUrl,
+                                  'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=400&q=80'
+                                )
                               }
                               alt={item.nama}
                               className="w-full h-full object-cover"
@@ -663,8 +668,10 @@ function CartContent() {
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img
                                 src={
-                                  item.imageUrl ||
-                                  'https://picsum.photos/seed/sewa-alat-koperasi/300/300'
+                                  getPrimaryImage(
+                                    item.imageUrl,
+                                    'https://picsum.photos/seed/sewa-alat-koperasi/300/300'
+                                  )
                                 }
                                 alt={item.nama}
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
@@ -777,8 +784,10 @@ function CartContent() {
                           >
                             <img
                               src={
-                                item.imageUrl ||
-                                'https://picsum.photos/seed/sewa-alat-koperasi/300/300'
+                                getPrimaryImage(
+                                  item.imageUrl,
+                                  'https://picsum.photos/seed/sewa-alat-koperasi/300/300'
+                                )
                               }
                               alt={item.nama}
                               className="w-full h-full object-cover"

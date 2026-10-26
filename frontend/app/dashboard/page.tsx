@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
+import { getPrimaryImage } from '@/lib/utils';
 
 interface PetaniStats {
   totalKomoditasDidaftarkan: number;
@@ -419,8 +420,10 @@ export default function DashboardPetaniPage() {
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={
-                            prod.imageUrl ||
-                            'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=600&q=80'
+                            getPrimaryImage(
+                              prod.imageUrl,
+                              'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=600&q=80'
+                            )
                           }
                           alt={prod.nama}
                           loading="lazy"

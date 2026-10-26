@@ -24,6 +24,7 @@ import {
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
 import { getCart, clearCart, type CartItem } from '@/lib/cart';
+import { getPrimaryImage } from '@/lib/utils';
 
 export default function CheckoutTokoPage() {
   const { user, isLoading: authLoading } = useAuth();
@@ -533,8 +534,10 @@ Mohon info kesiapan fisik komoditas di gudang koperasi. Terima kasih!`;
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={
-                            item.imageUrl ||
-                            'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=400&q=80'
+                            getPrimaryImage(
+                              item.imageUrl,
+                              'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=400&q=80'
+                            )
                           }
                           alt={item.nama}
                           className="w-full h-full object-cover"

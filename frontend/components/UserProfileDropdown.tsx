@@ -37,6 +37,7 @@ import {
 import { useAuth } from '@/context/auth-context';
 import { getCart, saveCart, clearCart } from '@/lib/cart';
 import { getRentalCart } from '@/lib/rental-cart';
+import { getPrimaryImage } from '@/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import SlideCommit from '@/components/ui/SlideCommit';
 import NotificationDropdown from '@/components/NotificationDropdown';
@@ -569,8 +570,10 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
                               <div className="w-11 h-11 rounded-xl bg-slate-200 overflow-hidden shrink-0">
                                 <img
                                   src={
-                                    item.imageUrl ||
-                                    'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=200&q=80'
+                                    getPrimaryImage(
+                                      item.imageUrl,
+                                      'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=200&q=80'
+                                    )
                                   }
                                   alt={item.nama}
                                   className="w-full h-full object-cover"

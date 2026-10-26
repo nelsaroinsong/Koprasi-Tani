@@ -409,7 +409,7 @@ function SearchPageContent() {
                           <div className="relative aspect-square sm:aspect-[4/3] w-full shrink-0 bg-[#EAEDE7] overflow-hidden border-b border-[#EAEDE7]">
                             <img
                               src={
-                                prod.imageUrl ||
+                                (prod.imageUrl?.includes(',') ? prod.imageUrl.split(',')[0].trim() : prod.imageUrl) ||
                                 'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=400&q=80'
                               }
                               alt={prod.nama}
