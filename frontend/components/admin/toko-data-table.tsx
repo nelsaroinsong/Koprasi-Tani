@@ -692,11 +692,12 @@ export function TokoOnlineDataTable() {
         <button
           type="button"
           onClick={() => {
-            setTempAddress(warehouseAddress);
-            setIsEditAddressOpen(true);
+            setActiveTab('Produk dan Layanan', 'Lokasi Gudang', {
+              address: warehouseAddress,
+            });
           }}
           className="h-8 px-3 text-xs font-medium text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs shrink-0 self-start sm:self-auto"
-          title="Ubah alamat fisik gudang atau deteksi via GPS"
+          title="Buka halaman peta untuk mengarahkan titik lokasi gudang atau deteksi via GPS"
         >
           <LocateFixed className="w-3.5 h-3.5 text-slate-500" />
           <span>Ubah / GPS</span>
@@ -1142,25 +1143,41 @@ export function TokoOnlineDataTable() {
                           )}
                         </TableCell>
 
-                        {/* Status Ketersediaan (Pill Toggle) */}
+                        {/* Status Ketersediaan (Taste-Skills Switch Toggle) */}
                         <TableCell className="py-3.5">
-                          <button
-                            type="button"
-                            onClick={() => handleToggleStatus(prod)}
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold transition cursor-pointer shadow-2xs ${
-                              prod.isTersedia
-                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80 hover:bg-emerald-100'
-                                : 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200'
-                            }`}
-                            title="Klik untuk mengubah status ketersediaan di katalog"
-                          >
-                            <span
-                              className={`w-1.5 h-1.5 rounded-full ${
-                                prod.isTersedia ? 'bg-emerald-500' : 'bg-slate-400'
+                          <div className="inline-flex items-center gap-2">
+                            <button
+                              type="button"
+                              role="switch"
+                              aria-checked={Boolean(prod.isTersedia)}
+                              onClick={() => handleToggleStatus(prod)}
+                              title={`Klik untuk ${
+                                prod.isTersedia ? 'menonaktifkan' : 'mengaktifkan'
+                              } komoditas ini di etalase toko`}
+                              className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 ${
+                                prod.isTersedia
+                                  ? 'bg-emerald-600'
+                                  : 'bg-slate-300 hover:bg-slate-400'
                               }`}
-                            />
-                            <span>{prod.isTersedia ? 'Aktif Dijual' : 'Nonaktif'}</span>
-                          </button>
+                            >
+                              <span className="sr-only">Toggle status ketersediaan</span>
+                              <span
+                                aria-hidden="true"
+                                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                                  prod.isTersedia ? 'translate-x-4' : 'translate-x-0'
+                                }`}
+                              />
+                            </button>
+                            <span
+                              className={`text-[11.5px] font-medium select-none w-20 text-left ${
+                                prod.isTersedia
+                                  ? 'text-emerald-700 font-semibold'
+                                  : 'text-slate-400'
+                              }`}
+                            >
+                              {prod.isTersedia ? 'Aktif Dijual' : 'Nonaktif'}
+                            </span>
+                          </div>
                         </TableCell>
 
                         {/* Aksi */}

@@ -16,6 +16,7 @@ import EquipmentsDataTable from '@/components/admin/equipments-data-table';
 import { EquipmentRentalsTable } from '@/components/admin/equipment-rentals-table';
 import { DashboardKpiCards } from '@/components/admin/dashboard-kpi-cards';
 import { RecentUsersTable } from '@/components/admin/recent-users-table';
+import { WarehouseLocationPage } from '@/components/admin/warehouse-location-page';
 
 export default function AdminPage() {
   const { activeTab, setActiveTab } = useAdmin();
@@ -35,8 +36,17 @@ export default function AdminPage() {
     return <PembeliDataTable />;
   }
 
-  // 3. Tampilan Halaman Produk dan Layanan: Toko Online / Kategori / Sewa Alat
+  // 3. Tampilan Halaman Produk dan Layanan: Toko Online / Kategori / Sewa Alat / Lokasi Gudang
   if (activeTab.group === 'Produk dan Layanan') {
+    if (activeTab.item === 'Lokasi Gudang' || activeTab.item === 'Ubah Lokasi Gudang') {
+      return (
+        <WarehouseLocationPage
+          initialAddress={activeTab.payload?.address}
+          onBack={() => setActiveTab('Produk dan Layanan', 'Toko Online')}
+        />
+      );
+    }
+
     if (activeTab.item === 'Kategori Komoditas' || activeTab.item === 'Kategori') {
       return <CategoriesDataTable />;
     }

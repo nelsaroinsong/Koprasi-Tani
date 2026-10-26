@@ -2,7 +2,10 @@
   {
     "id": "eqcat-1791025522347-uzb5",
     "name": "Roda 4",
-    "emoji": "⚙️",
-    "description": ""
+    "slug": "Roda-4",
+    "emoji": "🚜",
+    "imageUrl": "/api/images/categories/alat.jpg",
+    "description": "Traktor roda empat dan pengolah lahan berkapasitas besar",
+    "isActive": true
   }
 ]

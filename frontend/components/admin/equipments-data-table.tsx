@@ -40,8 +40,11 @@ const KONDISI_PRESETS = ['Sangat Baik', 'Siap Pakai', 'Dalam Perawatan'];
 interface EquipmentCategoryItem {
   id: string;
   name: string;
+  slug?: string;
   emoji?: string;
+  imageUrl?: string;
   description?: string;
+  isActive?: boolean;
 }
 
 export default function EquipmentsDataTable() {
@@ -908,25 +911,41 @@ export default function EquipmentsDataTable() {
                           </div>
                         </td>
 
-                        {/* Ketersediaan */}
+                        {/* Ketersediaan (Taste-Skills Switch Toggle) */}
                         <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                          <button
-                            type="button"
-                            onClick={() => handleToggleStatus(item)}
-                            title="Klik untuk ubah ketersediaan"
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold transition cursor-pointer shadow-2xs ${
-                              item.isTersedia
-                                ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
-                                : 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200'
-                            }`}
-                          >
-                            <span
-                              className={`w-1.5 h-1.5 rounded-full ${
-                                item.isTersedia ? 'bg-emerald-600 animate-pulse' : 'bg-amber-600'
+                          <div className="inline-flex items-center justify-center gap-2">
+                            <button
+                              type="button"
+                              role="switch"
+                              aria-checked={Boolean(item.isTersedia)}
+                              onClick={() => handleToggleStatus(item)}
+                              title={`Klik untuk ${
+                                item.isTersedia ? 'menonaktifkan' : 'mengaktifkan'
+                              } ketersediaan alat ini`}
+                              className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 ${
+                                item.isTersedia
+                                  ? 'bg-emerald-600'
+                                  : 'bg-slate-300 hover:bg-slate-400'
                               }`}
-                            />
-                            <span>{item.isTersedia ? 'Tersedia' : 'Disewa / Perawatan'}</span>
-                          </button>
+                            >
+                              <span className="sr-only">Toggle status ketersediaan alat</span>
+                              <span
+                                aria-hidden="true"
+                                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                                  item.isTersedia ? 'translate-x-4' : 'translate-x-0'
+                                }`}
+                              />
+                            </button>
+                            <span
+                              className={`text-[11.5px] font-medium select-none w-20 text-left ${
+                                item.isTersedia
+                                  ? 'text-emerald-700 font-semibold'
+                                  : 'text-slate-400'
+                              }`}
+                            >
+                              {item.isTersedia ? 'Tersedia' : 'Nonaktif'}
+                            </span>
+                          </div>
                         </td>
 
                         {/* Aksi */}

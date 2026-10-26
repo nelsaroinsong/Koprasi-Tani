@@ -42,6 +42,8 @@ export function AdminBreadcrumb() {
               ? 'Dashboard'
               : activeTab.item === 'Toko Online'
               ? 'Katalog Komoditas'
+              : activeTab.item === 'Lokasi Gudang'
+              ? 'Titik Lokasi Gudang'
               : activeTab.item || activeTab.group}
           </BreadcrumbPage>
         </BreadcrumbItem>

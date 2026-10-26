@@ -126,7 +126,7 @@ function FilterContent() {
 
   // Data alat & kategori untuk penghitungan live result count
   const [equipments, setEquipments] = useState<any[]>([]);
-  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [categories, setCategories] = useState<{ id: string; name: string; isActive?: boolean }[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
 
   useEffect(() => {
@@ -134,7 +134,7 @@ function FilterContent() {
       fetch('/api/equipments')
         .then((res) => (res.ok ? res.json() : null))
         .catch(() => null),
-      fetch('/api/admin/equipment-categories')
+      fetch('/api/equipment-categories')
         .then((res) => (res.ok ? res.json() : null))
         .catch(() => null),
     ]).then(([eqData, catData]) => {
@@ -148,11 +148,15 @@ function FilterContent() {
     });
   }, []);
 
-  // Daftar kategori gabungan (Admin categories + Semua Alat)
+  const activeCategories = useMemo(() => {
+    return categories.filter((c) => c.isActive !== false);
+  }, [categories]);
+
+  // Daftar kategori gabungan (Admin active categories + Semua Alat)
   const categoryOptions = useMemo(() => {
     const list = [{ key: 'SEMUA', label: 'Semua Alat' }];
-    if (categories.length > 0) {
-      categories.forEach((cat) => {
+    if (activeCategories.length > 0) {
+      activeCategories.forEach((cat) => {
         list.push({ key: cat.name, label: cat.name });
       });
     } else if (equipments.length > 0) {
@@ -163,12 +167,12 @@ function FilterContent() {
     } else {
       list.push(
         { key: 'Roda 4', label: 'Roda 4' },
-        { key: 'Roda 2', label: 'Roda 2' },
+        { key: 'Traktor', label: 'Traktor' },
         { key: 'Kultivator', label: 'Kultivator' }
       );
     }
     return list;
-  }, [categories, equipments]);
+  }, [activeCategories, equipments]);
 
   // Hitung live jumlah hasil yang cocok secara real-time
   const matchedEquipments = useMemo(() => {

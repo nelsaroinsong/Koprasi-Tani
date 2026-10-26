@@ -106,7 +106,7 @@ function SewaAlatContent() {
     () => searchParams.get('sortBy') || 'default'
   );
 
-  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [categories, setCategories] = useState<{ id: string; name: string; imageUrl?: string; isActive?: boolean }[]>([]);
 
   // Sinkronisasi filter saat query params berubah (misal kembali dari /sewa-alat/filter)
   useEffect(() => {
@@ -126,7 +126,7 @@ function SewaAlatContent() {
 
   // Fetch Kategori Sewa Alat dari Data Kelola Kategori Admin
   useEffect(() => {
-    fetch('/api/admin/equipment-categories')
+    fetch('/api/equipment-categories')
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data && Array.isArray(data.categories)) {
@@ -136,14 +136,44 @@ function SewaAlatContent() {
       .catch((err) => console.error('Error fetching equipment categories:', err));
   }, []);
 
-  // Daftar Tabs Kategori Dinamis sesuai Admin
+  // Filter Kategori Aktif
+  const activeCategories = useMemo(() => {
+    return categories.filter((c) => c.isActive !== false);
+  }, [categories]);
+
+  const inactiveCatNames = useMemo(() => {
+    return new Set(
+      categories
+        .filter((c) => c.isActive === false)
+        .map((c) => c.name.toLowerCase().trim())
+    );
+  }, [categories]);
+
+  // Jika URL memfilter kategori yang sedang dinonaktifkan admin, reset ke SEMUA
+  useEffect(() => {
+    if (categories.length > 0 && selectedKategori !== 'SEMUA') {
+      const isInactive = inactiveCatNames.has(selectedKategori.toLowerCase().trim());
+      if (isInactive) {
+        setSelectedKategori('SEMUA');
+        const params = new URLSearchParams(searchParams.toString());
+        params.delete('kategori');
+        const query = params.toString();
+        router.replace(query ? `/sewa-alat?${query}` : '/sewa-alat', { scroll: false });
+      }
+    }
+  }, [categories, selectedKategori, inactiveCatNames, searchParams, router]);
+
+  // Daftar Tabs Kategori Dinamis sesuai Admin (Hanya kategori aktif)
   const dynamicKategoriTabs = useMemo(() => {
-    const tabs = [{ key: 'SEMUA', label: 'Semua Alat' }];
-    if (categories.length > 0) {
-      categories.forEach((cat) => {
+    const tabs: { key: string; label: string; imageUrl?: string }[] = [
+      { key: 'SEMUA', label: 'Semua Alat', imageUrl: '/api/images/categories/semua-alat.jpg' },
+    ];
+    if (activeCategories.length > 0) {
+      activeCategories.forEach((cat) => {
         tabs.push({
           key: cat.name,
           label: cat.name,
+          imageUrl: cat.imageUrl,
         });
       });
     } else {
@@ -153,7 +183,7 @@ function SewaAlatContent() {
       });
     }
     return tabs;
-  }, [categories, equipments]);
+  }, [activeCategories, equipments]);
 
   // Quick Booking Modal State (Shortcut dari card)
   const [selectedEquipment, setSelectedEquipment] = useState<EquipmentItem | null>(null);
@@ -203,6 +233,10 @@ function SewaAlatContent() {
   // Filter Data Komprehensif (Kategori, Ketersediaan, Operator, Rentang Biaya, Pencarian, & Urutan)
   const filteredEquipments = useMemo(() => {
     let list = equipments.filter((item) => {
+      // Saring kategori yang dinonaktifkan admin
+      if (item.kategori && inactiveCatNames.has(item.kategori.toLowerCase().trim())) {
+        return false;
+      }
       const matchKategori =
         selectedKategori === 'SEMUA' ||
         (item.kategori && item.kategori.toLowerCase().trim() === selectedKategori.toLowerCase().trim());
@@ -236,7 +270,7 @@ function SewaAlatContent() {
     }
 
     return list;
-  }, [equipments, selectedKategori, onlyAvailable, operatorOnly, minPrice, maxPrice, searchQuery, sortBy]);
+  }, [equipments, selectedKategori, onlyAvailable, operatorOnly, minPrice, maxPrice, searchQuery, sortBy, inactiveCatNames]);
 
   const hasActiveFilters =
     selectedKategori !== 'SEMUA' ||
@@ -444,9 +478,9 @@ function SewaAlatContent() {
           router.replace(query ? `/sewa-alat?${query}` : '/sewa-alat', { scroll: false });
         }}
         categories={
-          categories.length > 0
-            ? categories
-            : dynamicKategoriTabs.filter((t) => t.key !== 'SEMUA').map((t) => ({ name: t.label }))
+          activeCategories.length > 0
+            ? activeCategories
+            : dynamicKategoriTabs.filter((t) => t.key !== 'SEMUA').map((t) => ({ id: t.key, name: t.label }))
         }
       />
 
@@ -527,7 +561,7 @@ function SewaAlatContent() {
             {/* 2. Kartu Kategori Sewa Alat: UI Seperti Toko dengan Image Generate 3D */}
             {dynamicKategoriTabs.map((tab) => {
               const isSelected = selectedKategori.toLowerCase().trim() === tab.key.toLowerCase().trim();
-              const iconSrc = getCategoryIcon(tab.key);
+              const iconSrc = tab.imageUrl || getCategoryIcon(tab.key);
 
               return (
                 <button
@@ -551,6 +585,9 @@ function SewaAlatContent() {
                         isSelected ? 'scale-105' : 'group-hover:scale-105'
                       }`}
                       loading="lazy"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = getCategoryIcon(tab.key);
+                      }}
                     />
                   </div>
                   <span

@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
 import { prisma } from '@/lib/prisma';
 import { getCache, setCache } from '@/lib/redis';
 import { readEquipmentsFromFile, type EquipmentItem } from '@/lib/equipments';
@@ -14,11 +16,41 @@ export async function GET(request: Request) {
     const kategori = searchParams.get('kategori');
     const search = searchParams.get('search')?.toLowerCase().trim();
 
+    // Cek daftar kategori yang dinonaktifkan
+    const inactiveCats = new Set<string>();
+    try {
+      const catFile = path.join(process.cwd(), 'data', 'equipment-categories.json');
+      if (fs.existsSync(catFile)) {
+        const raw = fs.readFileSync(catFile, 'utf-8');
+        const cats = JSON.parse(raw);
+        if (Array.isArray(cats)) {
+          cats.forEach((c: any) => {
+            if (c.isActive === false && c.name) {
+              inactiveCats.add(c.name.toLowerCase().trim());
+              if (c.slug) inactiveCats.add(c.slug.toLowerCase().trim());
+            }
+          });
+        }
+      }
+    } catch {}
+
+    // Jika filter kategori yang diminta sedang dinonaktifkan admin, langsung kembalikan kosong
+    if (kategori && kategori !== 'SEMUA' && inactiveCats.has(kategori.toLowerCase().trim())) {
+      return NextResponse.json({
+        success: true,
+        equipments: [],
+      });
+    }
+
     // Cek cache Redis jika tanpa filter query
     if (!kategori && !search) {
       const cached = await getCache<EquipmentItem[]>(CACHE_KEY);
       if (cached && Array.isArray(cached) && cached.length > 0) {
-        return NextResponse.json({ success: true, equipments: cached });
+        // Tetap saring kategori nonaktif jika ada
+        const filteredCached = inactiveCats.size > 0
+          ? cached.filter((eq) => !eq.kategori || !inactiveCats.has(eq.kategori.toLowerCase().trim()))
+          : cached;
+        return NextResponse.json({ success: true, equipments: filteredCached });
       }
     }
 
@@ -96,9 +128,14 @@ export async function GET(request: Request) {
       };
     });
 
+    // Saring alat dengan kategori yang dinonaktifkan admin
+    if (inactiveCats.size > 0) {
+      list = list.filter((eq) => !eq.kategori || !inactiveCats.has(eq.kategori.toLowerCase().trim()));
+    }
+
     // Terapkan filter kategori jika ada
     if (kategori && kategori !== 'SEMUA') {
-      list = list.filter((eq) => eq.kategori === kategori);
+      list = list.filter((eq) => eq.kategori?.toLowerCase().trim() === kategori.toLowerCase().trim());
     }
 
     // Terapkan filter pencarian nama / spesifikasi jika ada

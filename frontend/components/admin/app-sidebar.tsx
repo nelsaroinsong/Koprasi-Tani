@@ -505,7 +505,7 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
                   {(() => {
                     const isActive =
                       activeTab.group === "Produk dan Layanan" &&
-                      activeTab.item === "Toko Online"
+                      (activeTab.item === "Toko Online" || activeTab.item === "Lokasi Gudang")
 
                     return isCollapsed ? (
                       <Tooltip>
