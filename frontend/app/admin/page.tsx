@@ -83,15 +83,19 @@ export default function AdminPage() {
     return <TokoOnlineDataTable />;
   }
 
-  // 4. Tampilan Halaman Transaksi Koperasi: Pesanan Masuk, Sewa Alat, & Bagi Hasil Petani
+  // 4. Tampilan Halaman Transaksi Koperasi: Pesanan Toko, Pesanan Sewa Alat, & Bagi Hasil Petani
   if (activeTab.group === 'Transaksi Koperasi') {
     if (activeTab.item === 'Bagi Hasil Petani') {
       return <PayoutsDataTable />;
     }
-    if (activeTab.item === 'Pengajuan Sewa Alat' || activeTab.item === 'Sewa Alat') {
+    if (
+      activeTab.item === 'Pesanan Sewa Alat' ||
+      activeTab.item === 'Pengajuan Sewa Alat' ||
+      activeTab.item === 'Sewa Alat'
+    ) {
       return <EquipmentRentalsTable />;
     }
-    // Default untuk 'Pesanan Masuk' (Halaman penuh manajemen pesanan yang bisa di-action)
+    // Default untuk 'Pesanan Toko' / 'Pesanan Masuk' (Halaman penuh manajemen pesanan yang bisa di-action)
     return <OrdersDataTable hideCards={true} isDashboard={false} />;
   }
 

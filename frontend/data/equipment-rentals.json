@@ -1,39 +1,5 @@
 [
   {
-    "id": "rent-1791955210484-yhld",
-    "rentalCode": "SEWA-MV7NV5KJ",
-    "userId": "8d11ac72-d1a6-4103-9260-9f81203ffe82",
-    "userName": "nelsaroinsong",
-    "userEmail": "nelsaroinsong@gmail.com",
-    "userPhone": "0123456789",
-    "userRole": "PEMBELI",
-    "status": "DITOLAK",
-    "startDate": "2026-10-14",
-    "lokasiLahan": "Ranotana Weru, Wanea, Manado, Sulawesi Utara, 95161, Indonesia",
-    "catatan": "",
-    "totalEstimasi": 150000,
-    "paymentMethod": "CASH_KOPERASI",
-    "isPaid": false,
-    "items": [
-      {
-        "equipmentId": "9a9096e8-1384-4eb3-872c-115b3064d32e",
-        "nama": "Traktor Roda 4",
-        "kategori": "Roda 4",
-        "hargaSewa": 150000,
-        "satuanSewa": "hari",
-        "jumlahUnit": 1,
-        "durasi": 1,
-        "includeOperator": false,
-        "biayaOperator": 0,
-        "subtotal": 150000,
-        "imageUrl": "/api/images/sewa-alat/alat-1791026033854-6h8bmr.jpg"
-      }
-    ],
-    "createdAt": "2026-10-14T05:20:10.484Z",
-    "updatedAt": "2026-10-26T17:58:52.160Z",
-    "approvedAt": "2026-10-24T06:16:38.427Z"
-  },
-  {
     "id": "rent-1791952273376-dmnw",
     "rentalCode": "SEWA-MV7M47A8",
     "userId": "8d11ac72-d1a6-4103-9260-9f81203ffe82",

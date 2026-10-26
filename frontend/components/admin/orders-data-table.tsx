@@ -732,7 +732,7 @@ export function OrdersDataTable({
           <div className="flex items-center gap-2 shrink-0">
             <ShoppingBag className="w-4 h-4 text-slate-600 stroke-[1.8]" />
             <h2 className="text-[13.5px] font-semibold text-slate-800 tracking-tight">
-              Pesanan Masuk
+              Pesanan Toko
             </h2>
             <span className="h-5 px-1.5 rounded-md bg-white border border-slate-200 text-[11px] font-semibold text-slate-600 tabular-nums flex items-center">
               {stats.totalOrders}

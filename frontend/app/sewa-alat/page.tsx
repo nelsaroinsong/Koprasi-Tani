@@ -57,6 +57,7 @@ import {
   calculateRentalItemTotal,
   type RentalCartItem,
 } from '@/lib/rental-cart';
+import { getPrimaryImage } from '@/lib/utils';
 
 const getCategoryIcon = (categoryName: string) => {
   const norm = categoryName.toLowerCase().trim();
@@ -166,7 +167,7 @@ function SewaAlatContent() {
   // Daftar Tabs Kategori Dinamis sesuai Admin (Hanya kategori aktif)
   const dynamicKategoriTabs = useMemo(() => {
     const tabs: { key: string; label: string; imageUrl?: string }[] = [
-      { key: 'SEMUA', label: 'Semua Alat', imageUrl: '/api/images/categories/semua-alat.jpg' },
+      { key: 'SEMUA', label: 'Semua', imageUrl: '/api/images/categories/semua-alat.jpg' },
     ];
     if (activeCategories.length > 0) {
       activeCategories.forEach((cat) => {
@@ -786,8 +787,10 @@ function SewaAlatContent() {
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={
-                        item.imageUrl ||
-                        'https://picsum.photos/seed/sewa-alat-koperasi/600/600'
+                        getPrimaryImage(
+                          item.imageUrl,
+                          'https://picsum.photos/seed/sewa-alat-koperasi/600/600'
+                        )
                       }
                       alt={item.nama}
                       loading="lazy"
@@ -870,7 +873,7 @@ function SewaAlatContent() {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   {selectedEquipment.imageUrl ? (
                     <img
-                      src={selectedEquipment.imageUrl}
+                      src={getPrimaryImage(selectedEquipment.imageUrl)}
                       alt={selectedEquipment.nama}
                       loading="lazy"
                       decoding="async"

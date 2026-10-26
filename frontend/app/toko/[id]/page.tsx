@@ -917,12 +917,12 @@ export default function ProductDetailPage({
           onClick={() => setIsImageModalOpen(false)}
         >
           <div
-            className="relative max-w-4xl max-h-[90vh] bg-white border border-[#dce1d6] rounded-3xl overflow-hidden shadow-2xl p-2 cursor-default flex flex-col items-center"
+            className="relative w-full max-w-sm sm:max-w-xl md:max-w-2xl aspect-square sm:aspect-auto sm:max-h-[85vh] bg-white border border-[#dce1d6] rounded-3xl overflow-hidden shadow-2xl p-3 sm:p-4 cursor-default flex flex-col items-center justify-center"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               onClick={() => setIsImageModalOpen(false)}
-              className="absolute top-4 right-4 z-10 p-2 rounded-full bg-[#233414] hover:bg-[#344d15] text-white transition-colors cursor-pointer"
+              className="absolute top-3.5 right-3.5 z-20 w-9 h-9 rounded-full bg-[#233414] hover:bg-[#344d15] text-white flex items-center justify-center transition-colors shadow-sm cursor-pointer"
               title="Tutup (Esc)"
             >
               <X className="w-5 h-5" />
@@ -934,7 +934,7 @@ export default function ProductDetailPage({
                   type="button"
                   onClick={() => setCurrentImageIndex((prev) => Math.max(0, prev - 1))}
                   disabled={currentImageIndex === 0}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white/90 hover:bg-white text-slate-800 shadow-md border border-slate-200 disabled:opacity-0 disabled:pointer-events-none transition cursor-pointer"
+                  className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white/90 hover:bg-white text-slate-800 shadow-md border border-slate-200 disabled:opacity-0 disabled:pointer-events-none transition cursor-pointer flex items-center justify-center"
                   title="Foto sebelumnya"
                 >
                   <ChevronLeft className="w-5 h-5" />
@@ -943,7 +943,7 @@ export default function ProductDetailPage({
                   type="button"
                   onClick={() => setCurrentImageIndex((prev) => Math.min(productImages.length - 1, prev + 1))}
                   disabled={currentImageIndex === productImages.length - 1}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white/90 hover:bg-white text-slate-800 shadow-md border border-slate-200 disabled:opacity-0 disabled:pointer-events-none transition cursor-pointer"
+                  className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white/90 hover:bg-white text-slate-800 shadow-md border border-slate-200 disabled:opacity-0 disabled:pointer-events-none transition cursor-pointer flex items-center justify-center"
                   title="Foto berikutnya"
                 >
                   <ChevronRight className="w-5 h-5" />
@@ -961,11 +961,11 @@ export default function ProductDetailPage({
               alt={`${product.nama} - Foto ${currentImageIndex + 1}`}
               loading="lazy"
               decoding="async"
-              className="max-h-[80vh] w-auto object-contain mx-auto rounded-2xl"
+              className="w-full h-full max-h-[75vh] object-contain mx-auto rounded-2xl select-none"
             />
 
             {productImages.length > 1 && (
-              <div className="mt-2 text-xs font-semibold text-slate-600 bg-slate-100 px-3 py-1 rounded-full tabular-nums">
+              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 text-[11px] font-semibold text-slate-700 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full shadow-xs border border-slate-200/60 tabular-nums">
                 {currentImageIndex + 1} / {productImages.length}
               </div>
             )}

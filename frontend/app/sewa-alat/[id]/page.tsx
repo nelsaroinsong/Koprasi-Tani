@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, use, useCallback } from 'react';
+import React, { useState, useEffect, use, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import AppHeader from '@/components/AppHeader';
@@ -30,6 +30,7 @@ import {
   ThumbsUp,
   MessageSquare,
   Trash2,
+  ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -94,7 +95,9 @@ export default function EquipmentDetailPage({
   const [catatan, setCatatan] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Modal Lightbox Foto Ukuran Penuh
+  // Media Carousel & Lightbox State
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const carouselRef = useRef<HTMLDivElement>(null);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
 
   // Modal Langsung Sewa Sekarang
@@ -483,42 +486,40 @@ export default function EquipmentDetailPage({
 
   const durationPresets = [1, 2, 3, 5, 7];
 
+  // Multiple Images Parser (Daftar seluruh foto unit terdaftar)
+  const rawImageUrl = equipment?.imageUrl;
+  const equipmentImages: string[] = rawImageUrl
+    ? (rawImageUrl.includes(',')
+        ? rawImageUrl.split(',').map((s: string) => s.trim()).filter(Boolean)
+        : [rawImageUrl])
+    : ['https://picsum.photos/seed/sewa-alat-koperasi/800/800'];
+
+  const handleScroll = () => {
+    if (!carouselRef.current) return;
+    const { scrollLeft, clientWidth } = carouselRef.current;
+    if (clientWidth > 0) {
+      const newIndex = Math.round(scrollLeft / clientWidth);
+      if (newIndex !== currentImageIndex && newIndex >= 0 && newIndex < equipmentImages.length) {
+        setCurrentImageIndex(newIndex);
+      }
+    }
+  };
+
+  const scrollToImage = (index: number) => {
+    if (!carouselRef.current) return;
+    const clientWidth = carouselRef.current.clientWidth;
+    carouselRef.current.scrollTo({
+      left: index * clientWidth,
+      behavior: 'smooth',
+    });
+    setCurrentImageIndex(index);
+  };
+
   return (
-    <div className="min-h-screen bg-white sm:bg-[#f4f5f1] pb-28 sm:pb-16 font-sans selection:bg-[#D4F63D] selection:text-slate-950">
+    <div className="min-h-screen bg-white sm:bg-[#f4f5f1] flex flex-col font-sans selection:bg-[#D4F63D] selection:text-slate-950">
       <div className="hidden sm:block">
         <AppHeader activePage="sewa-alat" />
       </div>
-
-      {/* Mobile Top Bar (Fixed di top, solid white, anti-tembus) */}
-      <div className="sm:hidden fixed top-0 left-0 right-0 z-40 bg-white px-4 h-14 flex items-center justify-between border-b border-[#EAEDE7] shadow-2xs">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="w-10 h-10 -ml-1 rounded-full flex items-center justify-center text-[#1a2610] hover:bg-[#f4f5f1] transition cursor-pointer"
-          aria-label="Kembali"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-
-        <span className="text-xs font-bold text-[#526046] truncate max-w-[180px]">
-          {equipment.kategori}
-        </span>
-
-        <Link
-          href="/cart?tab=sewa-alat"
-          className="w-10 h-10 -mr-1 rounded-full flex items-center justify-center text-[#1a2610] hover:bg-[#f4f5f1] transition relative"
-          aria-label="Keranjang Sewa"
-        >
-          <ShoppingCart className="w-5 h-5" />
-          {rentalCartCount > 0 && (
-            <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-[#233414] text-[#D4F63D] font-black text-[9px] flex items-center justify-center tabular-nums">
-              {rentalCartCount}
-            </span>
-          )}
-        </Link>
-      </div>
-      {/* Spacer placeholder mode mobile agar konten tidak tertutup fixed navbar */}
-      <div className="sm:hidden h-14 shrink-0 pointer-events-none" aria-hidden="true" />
 
       {/* Desktop Compact Subbar */}
       <div className="hidden sm:block bg-white border-b border-[#dce1d6]">
@@ -551,55 +552,125 @@ export default function EquipmentDetailPage({
         </div>
       </div>
 
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-2 pb-36 sm:pb-12 sm:py-6 lg:py-8 space-y-6">
-        <div className="bg-white sm:rounded-3xl sm:border sm:border-[#dce1d6] sm:p-6 lg:p-8">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-5 sm:gap-8 lg:gap-10 items-start">
-            {/* Left Column: Clean Image Card + Pagination Dots (Gambar 5 Style) */}
-            <div className="md:col-span-5 flex flex-col items-center">
-              <div
-                onClick={() => setIsImageModalOpen(true)}
-                className="relative aspect-square w-full rounded-3xl overflow-hidden bg-[#f4f5f1] border border-[#EAEDE7] group cursor-zoom-in"
-                title="Klik untuk memperbesar foto alat"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={
-                    equipment.imageUrl ||
-                    'https://picsum.photos/seed/sewa-alat-koperasi/800/800'
-                  }
-                  alt={equipment.nama}
-                  loading="lazy"
-                  decoding="async"
-                  className="w-full h-full object-contain p-3 group-hover:scale-[1.03] transition-transform duration-300"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src =
-                      'https://picsum.photos/seed/sewa-alat-koperasi/800/800';
-                  }}
-                />
-
+      <main className="flex-1 max-w-6xl w-full mx-auto px-0 sm:px-6 lg:px-8 pt-0 sm:pt-2 pb-24 sm:pb-12 sm:py-6 lg:py-8 space-y-6">
+        <div className="bg-white sm:rounded-3xl sm:border sm:border-[#dce1d6] p-0 sm:p-6 lg:p-8 overflow-hidden">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-0 sm:gap-8 lg:gap-10 items-start">
+            {/* Left Column: Clean Edge-to-Edge Equipment Image Card with Floating Back Button & Dynamic Photo Pill */}
+            <div className="md:col-span-5 flex flex-col items-center w-full">
+              <div className="relative aspect-square w-full sm:rounded-3xl rounded-none overflow-hidden bg-[#f4f5f1] border-b border-[#EAEDE7] sm:border group">
+                {/* Floating Back Button directly on top of the equipment photo (Mobile only) */}
                 <button
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setIsImageModalOpen(true);
+                    router.back();
                   }}
-                  className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-white/90 backdrop-blur-xs text-[#1a2610] border border-[#dce1d6] flex items-center justify-center shadow-xs hover:bg-white transition cursor-pointer"
-                  title="Lihat Foto Ukuran Asli"
+                  className="sm:hidden absolute top-4 left-4 z-20 w-10 h-10 rounded-full bg-white/80 hover:bg-white backdrop-blur-md shadow-xs border border-black/5 flex items-center justify-center text-neutral-800 active:scale-95 transition-all cursor-pointer"
+                  aria-label="Kembali"
                 >
-                  <Maximize2 className="w-3.5 h-3.5" />
+                  <ChevronLeft className="w-5 h-5 text-neutral-800" />
                 </button>
+
+                {/* Horizontal Swipe / Scroll Image Carousel */}
+                <div
+                  ref={carouselRef}
+                  onScroll={handleScroll}
+                  onClick={() => setIsImageModalOpen(true)}
+                  className="w-full h-full flex overflow-x-auto snap-x snap-mandatory scroll-smooth no-scrollbar cursor-zoom-in"
+                  title="Klik untuk memperbesar foto atau geser ke samping"
+                >
+                  {equipmentImages.map((imgSrc, idx) => (
+                    <div
+                      key={idx}
+                      className="w-full h-full shrink-0 snap-center relative aspect-square overflow-hidden"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={imgSrc}
+                        alt={`${equipment.nama} - Foto ${idx + 1}`}
+                        loading={idx === 0 ? 'eager' : 'lazy'}
+                        decoding="async"
+                        className="w-full h-full object-cover pointer-events-none select-none"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src =
+                            'https://picsum.photos/seed/sewa-alat-koperasi/800/800';
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop Prev / Next Navigation Arrows (Only when > 1 image) */}
+                {equipmentImages.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        scrollToImage(Math.max(0, currentImageIndex - 1));
+                      }}
+                      disabled={currentImageIndex === 0}
+                      className="hidden sm:flex absolute left-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white/85 hover:bg-white text-slate-800 backdrop-blur-md shadow-md border border-slate-200/80 items-center justify-center transition cursor-pointer disabled:opacity-0 disabled:pointer-events-none"
+                      title="Foto sebelumnya"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        scrollToImage(Math.min(equipmentImages.length - 1, currentImageIndex + 1));
+                      }}
+                      disabled={currentImageIndex === equipmentImages.length - 1}
+                      className="hidden sm:flex absolute right-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white/85 hover:bg-white text-slate-800 backdrop-blur-md shadow-md border border-slate-200/80 items-center justify-center transition cursor-pointer disabled:opacity-0 disabled:pointer-events-none"
+                      title="Foto berikutnya"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </>
+                )}
+
+                {/* Total Photo Pill Badge on Bottom-Right (Dynamic "{currentImageIndex + 1}/{equipmentImages.length}") */}
+                <div className="absolute bottom-4 right-4 z-20 px-2.5 py-1 rounded-full bg-white/85 backdrop-blur-md border border-black/5 shadow-xs flex items-center justify-center pointer-events-none">
+                  <span className="text-[11px] sm:text-xs font-semibold text-neutral-700 tabular-nums">
+                    {currentImageIndex + 1}/{equipmentImages.length}
+                  </span>
+                </div>
               </div>
 
-              {/* Minimal Pagination Indicator Dots under Image (Matches Gambar 5) */}
-              <div className="flex items-center justify-center gap-1.5 mt-3">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#cfd6c9]" />
-                <span className="w-5 h-1.5 rounded-full bg-[#233414]" />
-                <span className="w-1.5 h-1.5 rounded-full bg-[#cfd6c9]" />
-              </div>
+              {/* Thumbnails list below main image (Only when > 1 image) */}
+              {equipmentImages.length > 1 && (
+                <div className="w-full flex items-center justify-center gap-2 mt-3 px-2 overflow-x-auto no-scrollbar">
+                  {equipmentImages.map((thumbSrc, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => scrollToImage(idx)}
+                      className={`relative w-12 h-12 rounded-xl overflow-hidden border-2 transition cursor-pointer shrink-0 ${
+                        currentImageIndex === idx
+                          ? 'border-[#233414] shadow-xs ring-1 ring-[#233414]'
+                          : 'border-slate-200 opacity-60 hover:opacity-100'
+                      }`}
+                      title={`Lihat foto ${idx + 1}`}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={thumbSrc}
+                        alt={`Thumbnail ${idx + 1}`}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src =
+                            'https://picsum.photos/seed/sewa-alat-koperasi/800/800';
+                        }}
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Right Column: Clean Equipment Details matching Gambar 5 */}
-            <div className="md:col-span-7 flex flex-col space-y-4">
+            <div className="md:col-span-7 flex flex-col space-y-4 px-4 sm:px-0 pt-4 sm:pt-0 pb-4 sm:pb-0">
               <div>
                 <div className="text-xs font-medium text-[#5b6950]">
                   {equipment.kategori} • Kondisi {equipment.kondisi || 'Sangat Baik'}
@@ -631,36 +702,50 @@ export default function EquipmentDetailPage({
                 </div>
               </div>
 
-              {/* Duration Pill Selector + Unit Stepper (Gambar 5 Pill Selector Style) */}
-              <div className="space-y-2.5 pt-1">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-semibold text-[#526046]">
-                    Pilih Durasi Sewa ({equipment.satuanSewa || 'hari'})
-                  </span>
-                  <span className="text-[#5b6950] tabular-nums">
-                    Estimasi: <strong className="text-[#233414]">Rp {calculatedTotal.toLocaleString('id-ID')}</strong>
-                  </span>
+              {/* Duration Pill Selector & Unit Stepper (Neat Separated Rows) */}
+              <div className="space-y-3 pt-1">
+                {/* Baris 1: Durasi Sewa */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-semibold text-[#526046]">
+                      Pilih Durasi Sewa ({equipment.satuanSewa || 'hari'})
+                    </span>
+                    <span className="text-[#5b6950] tabular-nums">
+                      Estimasi: <strong className="text-[#233414]">Rp {calculatedTotal.toLocaleString('id-ID')}</strong>
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    {durationPresets.map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setDurasi(preset)}
+                        disabled={isOutOfStock}
+                        className={`h-9 px-3.5 rounded-xl text-xs transition-all cursor-pointer tabular-nums ${
+                          durasi === preset
+                            ? 'bg-white text-[#1a2610] border-2 border-[#1a2610] font-extrabold shadow-2xs'
+                            : 'bg-white text-[#526046] border border-[#dce1d6] hover:border-[#344d15] font-semibold'
+                        }`}
+                      >
+                        {preset} {equipment.satuanSewa || 'hari'}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2">
-                  {durationPresets.map((preset) => (
-                    <button
-                      key={preset}
-                      type="button"
-                      onClick={() => setDurasi(preset)}
-                      disabled={isOutOfStock}
-                      className={`h-9 px-3.5 rounded-xl text-xs transition-all cursor-pointer tabular-nums ${
-                        durasi === preset
-                          ? 'bg-white text-[#1a2610] border-2 border-[#1a2610] font-extrabold shadow-2xs'
-                          : 'bg-white text-[#526046] border border-[#dce1d6] hover:border-[#344d15] font-semibold'
-                      }`}
-                    >
-                      {preset} {equipment.satuanSewa || 'hari'}
-                    </button>
-                  ))}
+                {/* Baris 2: Jumlah Unit Armada (Label di kiri, Stepper di kanan) */}
+                <div className="flex items-center justify-between pt-1">
+                  <div className="text-xs">
+                    <span className="font-semibold text-[#526046] block">
+                      Jumlah Unit Armada
+                    </span>
+                    <span className="text-[11px] text-[#5b6950]">
+                      Maksimal {maxUnits} unit tersedia
+                    </span>
+                  </div>
 
-                  {/* Unit Count Stepper */}
-                  <div className="inline-flex items-center h-9 rounded-xl border border-[#dce1d6] bg-[#f4f5f1] px-1 ml-auto sm:ml-0">
+                  <div className="inline-flex items-center h-9 rounded-xl border border-[#dce1d6] bg-[#f4f5f1] px-1">
                     <button
                       type="button"
                       onClick={() => setJumlahUnit((prev) => Math.max(1, prev - 1))}
@@ -670,7 +755,7 @@ export default function EquipmentDetailPage({
                     >
                       <Minus className="w-3.5 h-3.5" />
                     </button>
-                    <span className="px-2 text-xs font-extrabold text-[#1a2610] tabular-nums">
+                    <span className="px-3 text-xs font-extrabold text-[#1a2610] tabular-nums">
                       {jumlahUnit} unit
                     </span>
                     <button
@@ -786,7 +871,7 @@ export default function EquipmentDetailPage({
         </div>
 
         {/* BOTTOM SECTION: ULASAN PENYEWA (Taste Skills: Rating & Reviews Showcase) */}
-        <div className="space-y-4">
+        <div className="space-y-4 px-4 sm:px-0">
           {/* Form Tulis Ulasan (Collapsible) */}
           {isReviewFormOpen && hasRented && (
             <div className="p-4 sm:p-6 rounded-[24px] bg-white border border-[#dce1d6] space-y-4 shadow-xs">
@@ -904,30 +989,66 @@ export default function EquipmentDetailPage({
       {/* MODAL 1: Lightbox Foto Ukuran Asli */}
       {isImageModalOpen && (
         <div
-          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 cursor-zoom-out"
           onClick={() => setIsImageModalOpen(false)}
         >
           <div
-            className="relative max-w-4xl max-h-[90vh] bg-white border border-[#dce1d6] rounded-3xl overflow-hidden shadow-2xl p-2"
+            className="relative w-full max-w-sm sm:max-w-xl md:max-w-2xl aspect-square sm:aspect-auto sm:max-h-[85vh] bg-white border border-[#dce1d6] rounded-3xl overflow-hidden shadow-2xl p-3 sm:p-4 cursor-default flex flex-col items-center justify-center"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               onClick={() => setIsImageModalOpen(false)}
-              className="absolute top-4 right-4 z-10 p-2 rounded-full bg-[#233414] hover:bg-[#344d15] text-white transition-colors cursor-pointer"
+              className="absolute top-3.5 right-3.5 z-20 w-9 h-9 rounded-full bg-[#233414] hover:bg-[#344d15] text-white flex items-center justify-center transition-colors shadow-sm cursor-pointer"
+              title="Tutup (Esc)"
             >
               <X className="w-5 h-5" />
             </button>
+
+            {equipmentImages.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setCurrentImageIndex((prev) => Math.max(0, prev - 1))}
+                  disabled={currentImageIndex === 0}
+                  className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white/90 hover:bg-white text-slate-800 shadow-md border border-slate-200 disabled:opacity-0 disabled:pointer-events-none transition cursor-pointer flex items-center justify-center"
+                  title="Foto sebelumnya"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrentImageIndex((prev) => Math.min(equipmentImages.length - 1, prev + 1))}
+                  disabled={currentImageIndex === equipmentImages.length - 1}
+                  className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white/90 hover:bg-white text-slate-800 shadow-md border border-slate-200 disabled:opacity-0 disabled:pointer-events-none transition cursor-pointer flex items-center justify-center"
+                  title="Foto berikutnya"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </>
+            )}
+
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={
-                equipment.imageUrl ||
+                equipmentImages[currentImageIndex] ||
+                equipmentImages[0] ||
                 'https://picsum.photos/seed/sewa-alat-koperasi/1200/1200'
               }
-              alt={equipment.nama}
+              alt={`${equipment.nama} - Foto ${currentImageIndex + 1}`}
               loading="lazy"
               decoding="async"
-              className="max-h-[82vh] w-auto object-contain mx-auto rounded-2xl"
+              className="w-full h-full max-h-[75vh] object-contain mx-auto rounded-2xl select-none"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src =
+                  'https://picsum.photos/seed/sewa-alat-koperasi/1200/1200';
+              }}
             />
+
+            {equipmentImages.length > 1 && (
+              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 text-[11px] font-semibold text-slate-700 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full shadow-xs border border-slate-200/60 tabular-nums">
+                {currentImageIndex + 1} / {equipmentImages.length}
+              </div>
+            )}
           </div>
         </div>
       )}

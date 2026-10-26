@@ -48,14 +48,6 @@ const DEFAULT_TOKO_CATEGORIES: SubCategoryItem[] = [
   { id: 'cat-olahan', name: 'Olahan' },
 ];
 
-const DEFAULT_SEWA_ALAT_CATEGORIES: SubCategoryItem[] = [
-  { id: 'cat-roda-4', name: 'Roda 4' },
-  { id: 'cat-traktor', name: 'Traktor' },
-  { id: 'cat-kultivator', name: 'Kultivator' },
-  { id: 'cat-drone', name: 'Drone Pertanian' },
-  { id: 'cat-panen', name: 'Mesin Panen' },
-];
-
 export default function AppHeader({
   activePage,
   showCatalogSubNav,
@@ -177,10 +169,44 @@ export default function AppHeader({
   const shouldShowSubNav = showCatalogSubNav ?? (isToko || isSewaAlat);
   const basePath = isSewaAlat ? '/sewa-alat' : '/toko';
 
+  // Dynamic categories fetching if not supplied via props
+  const [fetchedCategories, setFetchedCategories] = useState<SubCategoryItem[]>([]);
+
+  useEffect(() => {
+    if (categories && categories.length > 0) return;
+    let isMounted = true;
+    const endpoint = isSewaAlat
+      ? '/api/equipment-categories?activeOnly=true'
+      : isToko
+      ? '/api/categories'
+      : null;
+
+    if (endpoint) {
+      fetch(endpoint)
+        .then((res) => res.json())
+        .then((data) => {
+          if (isMounted && data?.categories && Array.isArray(data.categories)) {
+            setFetchedCategories(data.categories);
+          }
+        })
+        .catch(() => {});
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [isSewaAlat, isToko, categories]);
+
   const currentCategoryList = useMemo(() => {
-    const list = categories && categories.length > 0 ? categories : isSewaAlat ? DEFAULT_SEWA_ALAT_CATEGORIES : DEFAULT_TOKO_CATEGORIES;
+    const list =
+      categories && categories.length > 0
+        ? categories
+        : fetchedCategories && fetchedCategories.length > 0
+        ? fetchedCategories
+        : isToko
+        ? DEFAULT_TOKO_CATEGORIES
+        : [];
     return list.filter((c) => c.isActive !== false);
-  }, [categories, isSewaAlat]);
+  }, [categories, fetchedCategories, isToko]);
 
   const handleSemua = () => {
     if (onSelectKategori) onSelectKategori('SEMUA');
@@ -354,7 +380,7 @@ export default function AppHeader({
                     : 'text-[#526046] hover:text-[#1a2610] font-medium'
                 }`}
               >
-                <span>{isSewaAlat ? 'Semua Alat' : 'Semua'}</span>
+                <span>Semua</span>
                 {isSemuaActive && (
                   <span className="absolute -bottom-[1px] left-0 right-0 h-[2px] bg-[#1a2610] rounded-full" />
                 )}
@@ -405,7 +431,7 @@ export default function AppHeader({
                             : 'text-[#415036] hover:bg-[#f6f8f4] hover:text-[#1a2610] font-medium'
                         }`}
                       >
-                        <span className="truncate">{isSewaAlat ? 'Semua Alat' : 'Semua Komoditas'}</span>
+                        <span className="truncate">Semua</span>
                         {(!selectedKategori || selectedKategori === 'SEMUA') && (
                           <Check className="w-3.5 h-3.5 text-[#233414] stroke-[2.2] shrink-0" />
                         )}

@@ -72,7 +72,7 @@ export function DashboardKpiCards() {
       description: 'Total transaksi pesanan komoditas masuk.',
       icon: ShoppingCart,
       actionLabel: 'Kelola',
-      onClick: () => setActiveTab('Transaksi Koperasi', 'Pesanan Masuk'),
+      onClick: () => setActiveTab('Transaksi Koperasi', 'Pesanan Toko'),
     },
     {
       title: 'Total Kategori',

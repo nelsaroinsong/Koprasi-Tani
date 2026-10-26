@@ -154,7 +154,7 @@ function FilterContent() {
 
   // Daftar kategori gabungan (Admin active categories + Semua Alat)
   const categoryOptions = useMemo(() => {
-    const list = [{ key: 'SEMUA', label: 'Semua Alat' }];
+    const list = [{ key: 'SEMUA', label: 'Semua' }];
     if (activeCategories.length > 0) {
       activeCategories.forEach((cat) => {
         list.push({ key: cat.name, label: cat.name });

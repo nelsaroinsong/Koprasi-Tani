@@ -10,10 +10,10 @@
     "biayaOperator": 0,
     "stokUnit": 1,
     "kondisi": "Sangat Baik",
-    "imageUrl": "/api/images/sewa-alat/alat-1791026033854-6h8bmr.jpg",
+    "imageUrl": "/api/images/sewa-alat/alat-1791026033854-6h8bmr.jpg,/api/images/sewa-alat/alat-1793039049264-7wstlg.jpg",
     "isTersedia": true,
     "kontakPj": "081944078924",
     "createdAt": "2026-10-03T11:13:57.920Z",
-    "updatedAt": "2026-10-03T11:13:57.920Z"
+    "updatedAt": "2026-10-26T18:24:14.180Z"
   }
 ]

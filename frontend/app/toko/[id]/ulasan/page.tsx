@@ -19,6 +19,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
 import { toast } from 'sonner';
+import { getPrimaryImage } from '@/lib/utils';
 
 export default function ProductAllReviewsPage({
   params,
@@ -285,7 +286,7 @@ export default function ProductAllReviewsPage({
 
       {/* Desktop Subbar */}
       <div className="hidden sm:block bg-white border-b border-[#dce1d6]">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-2.5 flex items-center justify-between text-xs text-[#5b6950]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex items-center justify-between text-xs text-[#5b6950]">
           <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap">
             <Link
               href={`/toko/${productId}`}
@@ -300,14 +301,14 @@ export default function ProductAllReviewsPage({
         </div>
       </div>
 
-      <main className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 py-4 sm:py-8 space-y-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 space-y-6">
         {/* Compact Product Banner Card */}
         <div className="bg-white rounded-2xl border border-[#dce1d6] p-4 flex items-center justify-between gap-4 shadow-2xs">
           <div className="flex items-center gap-3.5 min-w-0">
             <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden bg-[#f4f5f1] border border-[#EAEDE7] shrink-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={product.imageUrl || 'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=300&q=80'}
+                src={getPrimaryImage(product.imageUrl, 'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=300&q=80')}
                 alt={product.nama}
                 className="w-full h-full object-cover"
               />
@@ -429,9 +430,9 @@ export default function ProductAllReviewsPage({
 
           {/* Score & Breakdown */}
           {stats?.totalReviews > 0 ? (
-            <div className="rounded-2xl border border-[#dce1d6] bg-[#f4f5f1] p-4 sm:p-6">
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-5 sm:gap-6 items-center">
-                <div className="md:col-span-5 flex flex-col justify-center space-y-2 border-b md:border-b-0 md:border-r border-[#dce1d6] pb-4 md:pb-0 md:pr-6">
+            <div className="rounded-2xl border border-[#dce1d6] bg-[#f4f5f1] p-5 sm:p-7">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-6 lg:gap-10 items-center">
+                <div className="md:col-span-5 lg:col-span-4 flex flex-col justify-center space-y-2 border-b md:border-b-0 md:border-r border-[#dce1d6] pb-4 md:pb-0 md:pr-6 lg:pr-10">
                   <div className="flex items-center gap-2">
                     <Star className="w-8 h-8 sm:w-9 sm:h-9 fill-amber-400 text-amber-400 shrink-0" />
                     <div className="flex items-baseline gap-1 tabular-nums">
@@ -451,7 +452,7 @@ export default function ProductAllReviewsPage({
                   </div>
                 </div>
 
-                <div className="md:col-span-7 space-y-1.5">
+                <div className="md:col-span-7 lg:col-span-8 space-y-2">
                   {[5, 4, 3, 2, 1].map((starNum) => {
                     const count = stats.breakdown?.[starNum] || 0;
                     const percent = stats.totalReviews > 0 ? (count / stats.totalReviews) * 100 : 0;

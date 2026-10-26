@@ -152,8 +152,8 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
 
   const searchableMenus = [
     { group: "Dashboard", item: "", label: "Overview / Dashboard" },
-    { group: "Transaksi Koperasi", item: "Pesanan Masuk", label: "Pesanan Masuk" },
-    { group: "Transaksi Koperasi", item: "Pengajuan Sewa Alat", label: "Sewa Alat (Transaksi)" },
+    { group: "Transaksi Koperasi", item: "Pesanan Toko", label: "Pesanan Toko" },
+    { group: "Transaksi Koperasi", item: "Pesanan Sewa Alat", label: "Pesanan Sewa Alat" },
     { group: "Transaksi Koperasi", item: "Bagi Hasil Petani", label: "Bagi Hasil Petani" },
     { group: "Pengguna", item: "Petani", label: "Petani Mitra" },
     { group: "Pengguna", item: "Pembeli", label: "Pembeli" },
@@ -369,7 +369,7 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
                         <button
                           type="button"
                           onClick={() =>
-                            setActiveTab("Transaksi Koperasi", "Pesanan Masuk")
+                            setActiveTab("Transaksi Koperasi", "Pesanan Toko")
                           }
                           className={`w-8 h-8 mx-auto rounded-lg flex items-center justify-center transition cursor-pointer ${
                             activeTab.group === "Transaksi Koperasi"
@@ -405,25 +405,27 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
                       {isTransaksiOpen && (
                         <div className="mt-0.5 space-y-0.5">
                           <TreeBranchItem
-                            label="Pesanan Masuk"
+                            label="Pesanan Toko"
                             isActive={
                               activeTab.group === "Transaksi Koperasi" &&
-                              activeTab.item === "Pesanan Masuk"
+                              (activeTab.item === "Pesanan Toko" || activeTab.item === "Pesanan Masuk")
                             }
                             onClick={() =>
-                              setActiveTab("Transaksi Koperasi", "Pesanan Masuk")
+                              setActiveTab("Transaksi Koperasi", "Pesanan Toko")
                             }
                           />
                           <TreeBranchItem
-                            label="Sewa Alat"
+                            label="Pesanan Sewa Alat"
                             isActive={
                               activeTab.group === "Transaksi Koperasi" &&
-                              activeTab.item === "Pengajuan Sewa Alat"
+                              (activeTab.item === "Pesanan Sewa Alat" ||
+                                activeTab.item === "Pengajuan Sewa Alat" ||
+                                activeTab.item === "Sewa Alat")
                             }
                             onClick={() =>
                               setActiveTab(
                                 "Transaksi Koperasi",
-                                "Pengajuan Sewa Alat"
+                                "Pesanan Sewa Alat"
                               )
                             }
                           />
