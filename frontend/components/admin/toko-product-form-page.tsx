@@ -17,9 +17,11 @@ import {
   Loader2,
   Tag,
   User,
+  Mail,
   Image as ImageIcon,
 } from 'lucide-react';
 import { useToast } from '@/context/toast-context';
+import { useDebounce } from '@/hooks/use-debounce';
 import defaultCategoriesData from '@/data/categories.json';
 import {
   DropdownMenu,
@@ -120,10 +122,59 @@ export function TokoProductFormPage({
   });
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
-  // Combobox Petani states
+  // Combobox Petani states (Server-side Debounced Search for High Performance)
   const [isPetaniOpen, setIsPetaniOpen] = useState(false);
   const [petaniSearch, setPetaniSearch] = useState('');
+  const [isSearchingPetani, setIsSearchingPetani] = useState(false);
+  const [searchedPetaniResults, setSearchedPetaniResults] = useState<PetaniOption[]>([]);
+  const debouncedPetaniSearch = useDebounce(petaniSearch, 300);
   const petaniComboboxRef = useRef<HTMLDivElement>(null);
+
+  // Selected Petani state (in case loaded from initialData or draft)
+  const [selectedPetani, setSelectedPetani] = useState<PetaniOption | null>(() => {
+    if (initialData?.petani) {
+      return {
+        id: initialData.petani.id,
+        name: initialData.petani.name,
+        email: initialData.petani.email,
+        role: 'PETANI',
+        avatarUrl: initialData.petani.avatarUrl,
+        phone: initialData.petani.phone,
+      };
+    }
+    return null;
+  });
+
+  // Server-side debounced search: hanya query database saat admin mengetik (skalabel untuk ratusan/ribuan petani)
+  useEffect(() => {
+    const q = debouncedPetaniSearch.trim();
+    if (!q) {
+      setSearchedPetaniResults([]);
+      setIsSearchingPetani(false);
+      return;
+    }
+
+    let isCancelled = false;
+    async function searchPetani() {
+      try {
+        setIsSearchingPetani(true);
+        const res = await fetch(`/api/admin/users?role=PETANI&limit=20&q=${encodeURIComponent(q)}`);
+        const data = await res.json();
+        if (!isCancelled && Array.isArray(data.users)) {
+          setSearchedPetaniResults(data.users);
+        }
+      } catch (err) {
+        console.error('Failed to search petani', err);
+      } finally {
+        if (!isCancelled) setIsSearchingPetani(false);
+      }
+    }
+
+    searchPetani();
+    return () => {
+      isCancelled = true;
+    };
+  }, [debouncedPetaniSearch]);
 
   // Load petani options and check draft if in CREATE mode
   useEffect(() => {
@@ -135,9 +186,6 @@ export function TokoProductFormPage({
           if (Array.isArray(data.users)) {
             const verified = data.users.filter((u: any) => u.isVerified);
             setPetaniOptions(verified.length > 0 ? verified : data.users);
-            if (!petaniId && (verified.length > 0 || data.users.length > 0)) {
-              setPetaniId((verified[0] || data.users[0]).id);
-            }
           }
         }
       } catch (err) {
@@ -184,21 +232,20 @@ export function TokoProductFormPage({
     };
   }, [isPetaniOpen]);
 
-  const selectedPetani = useMemo(() => {
-    return petaniOptions.find((p) => p.id === petaniId);
-  }, [petaniOptions, petaniId]);
-
-  const filteredPetani = useMemo(() => {
-    const q = petaniSearch.toLowerCase().trim();
-    if (!q) {
-      return selectedPetani ? [selectedPetani] : petaniOptions.slice(0, 5);
+  // Sinkronisasi data petani jika petaniId ada tapi selectedPetani belum terisi
+  useEffect(() => {
+    if (petaniId && !selectedPetani) {
+      fetch(`/api/admin/users?role=PETANI&limit=20&q=${encodeURIComponent(petaniId)}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (Array.isArray(data.users)) {
+            const found = data.users.find((u: any) => u.id === petaniId);
+            if (found) setSelectedPetani(found);
+          }
+        })
+        .catch(() => {});
     }
-    return petaniOptions.filter(
-      (p) =>
-        p.name.toLowerCase().includes(q) ||
-        p.email.toLowerCase().includes(q)
-    );
-  }, [petaniOptions, petaniSearch, selectedPetani]);
+  }, [petaniId, selectedPetani]);
 
   // Handler Upload Foto Tambahan (Bisa upload beberapa image)
   const handlePhotoUpload = async (
@@ -528,67 +575,138 @@ export function TokoProductFormPage({
                 </div>
               </div>
 
-              {/* Mitra Petani Binaan */}
+              {/* Mitra Petani (Cari Berdasarkan Email) */}
               <div ref={petaniComboboxRef} className="relative">
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-                  Mitra Petani
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5 flex items-center justify-between">
+                  <span>Mitra Petani</span>
+                  <span className="text-[10.5px] font-normal text-slate-400">
+                    Ketik &amp; cari email
+                  </span>
                 </label>
-                <button
-                  type="button"
-                  onClick={() => setIsPetaniOpen(!isPetaniOpen)}
-                  className="w-full text-xs px-3.5 py-2 bg-slate-100 border border-transparent rounded-lg flex items-center justify-between text-left focus:outline-none focus:ring-1 focus:ring-emerald-600 transition"
-                >
-                  <div className="flex items-center gap-1.5 truncate">
-                    <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span className="truncate font-medium text-slate-800">
-                      {selectedPetani ? selectedPetani.name : 'Pilih Mitra Petani...'}
-                    </span>
-                  </div>
-                  <ChevronsUpDown className="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1" />
-                </button>
 
-                {/* Popover Petani */}
-                {isPetaniOpen && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-30 max-h-48 overflow-hidden flex flex-col animate-in fade-in zoom-in-95">
-                    <div className="p-2 border-b border-slate-100 flex items-center gap-1.5 bg-slate-50">
-                      <Search className="w-3 h-3 text-slate-400" />
+                {selectedPetani ? (
+                  /* Kartu Petani Terpilih */
+                  <div className="w-full text-xs p-2.5 bg-emerald-50/70 border border-emerald-200/90 rounded-lg flex items-center justify-between animate-in fade-in">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                        <Mail className="w-3.5 h-3.5" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-semibold text-slate-900 truncate">
+                            {selectedPetani.email}
+                          </span>
+                          <span className="inline-flex items-center gap-0.5 text-[10px] text-emerald-700 font-bold bg-white px-1.5 py-0.5 rounded border border-emerald-200/80 shrink-0">
+                            <Check className="w-2.5 h-2.5" /> Terpilih
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-slate-500 truncate flex items-center gap-1 mt-0.5">
+                          <User className="w-3 h-3 text-slate-400" />
+                          <span>{selectedPetani.name}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPetaniId('');
+                        setSelectedPetani(null);
+                        setPetaniSearch('');
+                        setIsPetaniOpen(false);
+                      }}
+                      className="text-[11px] font-semibold text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-md transition shadow-2xs cursor-pointer shrink-0 ml-2"
+                      title="Ganti atau ketik email petani lain"
+                    >
+                      Ganti
+                    </button>
+                  </div>
+                ) : (
+                  /* Field Input Ketik Email Petani */
+                  <div className="relative">
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
                       <input
                         type="text"
-                        placeholder="Cari nama petani..."
                         value={petaniSearch}
-                        onChange={(e) => setPetaniSearch(e.target.value)}
-                        className="w-full text-xs bg-transparent focus:outline-none text-slate-800"
-                        autoFocus
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setPetaniSearch(val);
+                          setIsPetaniOpen(val.trim().length > 0);
+                        }}
+                        onFocus={() => {
+                          if (petaniSearch.trim().length > 0) {
+                            setIsPetaniOpen(true);
+                          }
+                        }}
+                        placeholder="Ketik email mitra petani..."
+                        className="w-full text-xs pl-8 pr-8 py-2.5 bg-slate-100 border border-transparent rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-600 focus:bg-white transition text-slate-800"
                       />
-                    </div>
-                    <div className="overflow-y-auto p-1 space-y-0.5">
-                      {filteredPetani.length === 0 ? (
-                        <div className="p-2 text-center text-xs text-slate-400">
-                          Tidak ada petani ditemukan
-                        </div>
-                      ) : (
-                        filteredPetani.map((petani) => (
-                          <button
-                            key={petani.id}
-                            type="button"
-                            onClick={() => {
-                              setPetaniId(petani.id);
-                              setIsPetaniOpen(false);
-                            }}
-                            className={`w-full text-left p-1.5 rounded-lg text-xs flex items-center justify-between transition cursor-pointer ${
-                              petani.id === petaniId
-                                ? 'bg-emerald-50 text-emerald-800 font-bold'
-                                : 'text-slate-700 hover:bg-slate-50'
-                            }`}
-                          >
-                            <span className="truncate">{petani.name}</span>
-                            {petani.id === petaniId && (
-                              <Check className="w-3 h-3 text-emerald-700" />
-                            )}
-                          </button>
-                        ))
+                      {petaniSearch && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPetaniSearch('');
+                            setIsPetaniOpen(false);
+                          }}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs p-0.5 cursor-pointer"
+                          title="Hapus pencarian"
+                        >
+                          ✕
+                        </button>
                       )}
                     </div>
+
+                    {/* Popover Hasil Pencarian Email Petani - Hanya muncul setelah diketik */}
+                    {isPetaniOpen && petaniSearch.trim().length > 0 && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-30 max-h-56 overflow-hidden flex flex-col animate-in fade-in zoom-in-95">
+                        <div className="px-3 py-1.5 text-[10.5px] font-semibold text-slate-400 uppercase tracking-wider bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                          <span>Hasil Pencarian ({searchedPetaniResults.length})</span>
+                          <span className="text-[10px] text-emerald-600 font-normal">
+                            Email: &quot;{petaniSearch}&quot;
+                          </span>
+                        </div>
+                        <div className="overflow-y-auto p-1 divide-y divide-slate-50 max-h-48">
+                          {isSearchingPetani ? (
+                            <div className="p-4 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
+                              <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
+                              <span>Mencari di database...</span>
+                            </div>
+                          ) : searchedPetaniResults.length === 0 ? (
+                            <div className="p-4 text-center text-xs text-slate-400">
+                              Tidak ada petani dengan email cocok &quot;{petaniSearch}&quot;
+                            </div>
+                          ) : (
+                            searchedPetaniResults.map((petani) => (
+                              <button
+                                key={petani.id}
+                                type="button"
+                                onClick={() => {
+                                  setPetaniId(petani.id);
+                                  setSelectedPetani(petani);
+                                  setIsPetaniOpen(false);
+                                  setPetaniSearch('');
+                                }}
+                                className="w-full text-left p-2 rounded-lg text-xs hover:bg-emerald-50/70 transition cursor-pointer flex items-center justify-between group"
+                              >
+                                <div className="min-w-0 flex-1 pr-2">
+                                  <div className="font-semibold text-slate-800 group-hover:text-emerald-900 truncate flex items-center gap-1.5">
+                                    <Mail className="w-3 h-3 text-emerald-600 shrink-0" />
+                                    <span>{petani.email}</span>
+                                  </div>
+                                  <div className="text-[11px] text-slate-400 truncate flex items-center gap-1 mt-0.5">
+                                    <User className="w-2.5 h-2.5 text-slate-400" />
+                                    <span>{petani.name}</span>
+                                  </div>
+                                </div>
+                                <span className="text-[11px] font-semibold text-emerald-700 bg-white group-hover:bg-emerald-100 border border-slate-200 group-hover:border-emerald-300 px-2 py-0.5 rounded-md transition shrink-0">
+                                  Pilih
+                                </span>
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
