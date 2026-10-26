@@ -216,6 +216,9 @@ export function WarehouseLocationPage({ initialAddress, onBack }: WarehouseLocat
       if (mapInstanceRef.current) return;
 
       const maplibregl = await import('maplibre-gl');
+      if (typeof maplibregl.setWorkerUrl === 'function') {
+        maplibregl.setWorkerUrl('/maplibre-gl-worker.mjs');
+      }
 
       if (!isMounted || !mapContainerRef.current) return;
 
