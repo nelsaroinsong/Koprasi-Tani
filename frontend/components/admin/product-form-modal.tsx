@@ -106,8 +106,6 @@ export function ProductFormModal({
   const [nama, setNama] = useState('');
   const [deskripsi, setDeskripsi] = useState('');
   const [kategori, setKategori] = useState('Kelapa');
-  const [isAddingNewCat, setIsAddingNewCat] = useState(false);
-  const [newCatInput, setNewCatInput] = useState('');
   const [petaniId, setPetaniId] = useState('');
   const [hargaPerSatuan, setHargaPerSatuan] = useState('');
   const [satuan, setSatuan] = useState('kg');
@@ -187,8 +185,6 @@ export function ProductFormModal({
         }
         setActiveImageIndex(0);
       }
-      setIsAddingNewCat(false);
-      setNewCatInput('');
     }
   }, [isOpen, mode, initialData, petaniOptions]);
 
@@ -317,23 +313,6 @@ export function ProductFormModal({
         type: 'error',
       });
     }
-  };
-
-  // Tambah Kategori Baru ke List
-  const handleAddCategory = () => {
-    const clean = newCatInput.trim();
-    if (!clean) return;
-    if (!categoriesList.includes(clean)) {
-      setCategoriesList((prev) => [...prev, clean]);
-    }
-    setKategori(clean);
-    setIsAddingNewCat(false);
-    setNewCatInput('');
-    showToast({
-      title: 'Kategori Ditambahkan',
-      message: `Kategori "${clean}" siap digunakan.`,
-      type: 'success',
-    });
   };
 
   // Submit Handler
@@ -899,7 +878,7 @@ export function ProductFormModal({
                     </DropdownMenuTrigger>
                     <DropdownMenuContent
                       align="start"
-                      side="top"
+                      side="bottom"
                       sideOffset={6}
                       collisionPadding={16}
                       className="w-[var(--radix-dropdown-menu-trigger-width)] min-w-[200px] max-h-60 overflow-y-auto rounded-xl p-1 bg-white border border-slate-200 shadow-xl z-50"
@@ -933,45 +912,6 @@ export function ProductFormModal({
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
-
-                {/* Form Input Kategori Baru jika tombol Add Category ditekan */}
-                {isAddingNewCat ? (
-                  <div className="space-y-2 pt-1 animate-in fade-in duration-150">
-                    <input
-                      type="text"
-                      placeholder="Nama kategori baru..."
-                      value={newCatInput}
-                      onChange={(e) => setNewCatInput(e.target.value)}
-                      className="w-full text-xs px-3 py-2 bg-slate-50 border border-emerald-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-600"
-                      autoFocus
-                    />
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={handleAddCategory}
-                        className="flex-1 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition cursor-pointer"
-                      >
-                        Simpan Kategori
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setIsAddingNewCat(false)}
-                        className="py-1.5 px-3 rounded-lg border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition cursor-pointer"
-                      >
-                        Batal
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setIsAddingNewCat(true)}
-                    className="w-full py-2.5 px-4 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-900 text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Tambah Kategori</span>
-                  </button>
-                )}
               </div>
             </div>
           </div>
