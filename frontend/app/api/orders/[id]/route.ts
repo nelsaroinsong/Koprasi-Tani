@@ -7,19 +7,17 @@ import { delCachePattern } from '@/lib/redis';
 const AUTO_CANCEL_HOURS = 24;
 const AUTO_CANCEL_MS = AUTO_CANCEL_HOURS * 60 * 60 * 1000;
 
-// Helper: Batalkan pesanan kedaluwarsa secara otomatis dan kembalikan stok fisik (24 jam batas bayar)
+// Helper: Batalkan pesanan kedaluwarsa secara otomatis dan kembalikan stok fisik (24 jam batas bayar di kasir)
 async function checkAndAutoCancelExpiredOrder(order: any) {
-  if (
-    order.status !== 'MENUNGGU_PEMBAYARAN' &&
-    order.status !== 'DIPROSES' &&
-    order.status !== 'SIAP_DIAMBIL'
-  ) {
+  // Hitung mundur batas waktu pembayaran 24 jam HANYA berlaku ketika pesanan sudah di tahap SIAP_DIAMBIL
+  if (order.status !== 'SIAP_DIAMBIL') {
     return order;
   }
 
-  const createdAt = new Date(order.createdAt).getTime();
+  // Dihitung mundur sejak pesanan siap diambil (updatedAt), bukan dari awal checkout (createdAt)
+  const readyAt = new Date(order.updatedAt || order.createdAt).getTime();
   const now = Date.now();
-  const elapsed = now - createdAt;
+  const elapsed = now - readyAt;
 
   if (elapsed >= AUTO_CANCEL_MS) {
     try {
@@ -44,8 +42,8 @@ async function checkAndAutoCancelExpiredOrder(order: any) {
             isPaid: false,
             paidAt: null,
             catatan: order.catatan
-              ? `${order.catatan} (Otomatis dibatalkan sistem: Melewati batas waktu 24 jam)`
-              : '(Otomatis dibatalkan sistem: Melewati batas waktu 24 jam)',
+              ? `${order.catatan} (Otomatis dibatalkan sistem: Melewati batas waktu pembayaran 24 jam sejak siap diambil)`
+              : '(Otomatis dibatalkan sistem: Melewati batas waktu pembayaran 24 jam sejak siap diambil)',
           },
           include: {
             items: {

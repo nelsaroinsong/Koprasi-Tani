@@ -212,13 +212,13 @@ export async function GET() {
       return NextResponse.json(cachedOrders);
     }
 
-    // 1. Periksa dan batalkan pesanan yang belum dibayar lewat dari 24 jam (Tahap 1, 2, atau 3)
+    // 1. Periksa dan batalkan pesanan yang belum dibayar lewat dari 24 jam sejak siap diambil di kasir (SIAP_DIAMBIL)
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const expiredOrders = await prisma.order.findMany({
       where: {
         pembeliId: currentUser.id,
-        status: { in: ['MENUNGGU_PEMBAYARAN', 'DIPROSES', 'SIAP_DIAMBIL'] },
-        createdAt: { lte: twentyFourHoursAgo },
+        status: 'SIAP_DIAMBIL',
+        updatedAt: { lte: twentyFourHoursAgo },
       },
       include: { items: true },
     });
@@ -241,8 +241,8 @@ export async function GET() {
               isPaid: false,
               paidAt: null,
               catatan: exp.catatan
-                ? `${exp.catatan} (Otomatis dibatalkan sistem: Melewati batas pembayaran 24 jam)`
-                : '(Otomatis dibatalkan sistem: Melewati batas pembayaran 24 jam)',
+                ? `${exp.catatan} (Otomatis dibatalkan sistem: Melewati batas pembayaran 24 jam sejak siap diambil)`
+                : '(Otomatis dibatalkan sistem: Melewati batas pembayaran 24 jam sejak siap diambil)',
             },
           });
         }

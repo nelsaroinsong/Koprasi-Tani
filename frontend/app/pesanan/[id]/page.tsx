@@ -259,13 +259,11 @@ export default function OrderDetailPage({
     }
   };
 
-  // Hitung sisa waktu pembayaran (24 jam sejak pesanan dibuat / sampai tahap 3 bayar di kasir)
+  // Hitung sisa waktu pembayaran: Dihitung 24 jam ketika pesanan sudah di tahap SIAP_DIAMBIL (siap di kasir)
   useEffect(() => {
     if (
       !orderData ||
-      (orderData.status !== 'MENUNGGU_PEMBAYARAN' &&
-        orderData.status !== 'DIPROSES' &&
-        orderData.status !== 'SIAP_DIAMBIL') ||
+      orderData.status !== 'SIAP_DIAMBIL' ||
       isRental
     ) {
       setTimeRemaining('');
@@ -273,13 +271,14 @@ export default function OrderDetailPage({
     }
 
     const calculateTime = () => {
-      const createdTime = new Date(orderData.createdAt).getTime();
-      const expireTime = createdTime + 24 * 60 * 60 * 1000;
+      // Dihitung mundur ketika sudah berada di tahap siap diambil (updatedAt), bukan dari awal checkout (createdAt)
+      const readyTime = new Date(orderData.updatedAt || orderData.createdAt).getTime();
+      const expireTime = readyTime + 24 * 60 * 60 * 1000;
       const now = Date.now();
       const diff = expireTime - now;
 
       if (diff <= 0) {
-        setTimeRemaining('Waktu pembayaran telah habis (24 jam)');
+        setTimeRemaining('Waktu pembayaran kasir telah habis (24 jam)');
         setIsExpired(true);
         // Refresh otomatis agar status diupdate ke DIBATALKAN
         fetch(`/api/orders/${targetId}`)
@@ -593,7 +592,7 @@ export default function OrderDetailPage({
                       <span className="font-medium">{getStatusConfig(orderData.status).hint}</span>
                     </div>
 
-                    {/* Akumulasi Batas Waktu Pembayaran 24 Jam (Tahap Bayar di Kasir: Otomatis batal tanpa tombol batalkan) */}
+                    {/* Akumulasi Batas Waktu Pembayaran 24 Jam (Tahap Bayar di Kasir: Dihitung 24 jam sejak siap diambil) */}
                     {orderData.status === 'SIAP_DIAMBIL' && (
                       <div className="mt-2.5 p-3 rounded-xl bg-amber-50/95 border border-amber-300 text-amber-950 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
                         <div className="flex items-center gap-2">
@@ -604,25 +603,23 @@ export default function OrderDetailPage({
                               {timeRemaining || '24:00:00 (Menghitung batas bayar...)'}
                             </span>
                             <p className="text-[10px] text-amber-700 mt-0.5">
-                              Pesanan otomatis dibatalkan sistem dan stok komoditas dikembalikan ke gudang jika belum dibayar di kasir dalam batas waktu 24 jam.
+                              Pesanan otomatis dibatalkan sistem dan stok komoditas dikembalikan ke gudang jika belum dibayar di kasir dalam batas waktu 24 jam sejak siap diambil.
                             </p>
                           </div>
                         </div>
                       </div>
                     )}
 
-                    {/* Batas Waktu Pesanan Masuk (Tahap 1: Pembeli bisa batalkan manual) */}
+                    {/* Informasi Pesanan Masuk (Tahap 1: Pembeli bisa batalkan manual sebelum diproses gudang) */}
                     {orderData.status === 'MENUNGGU_PEMBAYARAN' && (
-                      <div className="mt-2.5 p-3 rounded-xl bg-amber-50/95 border border-amber-300 text-amber-950 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
+                      <div className="mt-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
                         <div className="flex items-center gap-2">
-                          <Clock className="w-4 h-4 text-amber-600 shrink-0 animate-pulse" />
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                           <div>
-                            <span className="font-bold block sm:inline">Batas Waktu Pesanan (24 Jam): </span>
-                            <span className="font-mono font-black text-amber-900 tabular-nums">
-                              {timeRemaining || '24:00:00 (Menghitung batas bayar...)'}
-                            </span>
-                            <p className="text-[10px] text-amber-700 mt-0.5">
-                              Pesanan masih dalam antrean pesanan masuk. Anda dapat membatalkan pesanan sebelum komoditas mulai disiapkan oleh petugas gudang.
+                            <span className="font-bold block sm:inline">Antrean Pesanan Masuk: </span>
+                            <span className="text-slate-600">Menunggu antrean persiapan fisik oleh petugas gudang.</span>
+                            <p className="text-[10px] text-slate-500 mt-0.5">
+                              Anda dapat membatalkan pesanan sebelum mulai disiapkan oleh petugas gudang. Batas waktu pembayaran 24 jam baru akan dihitung mundur setelah komoditas siap diambil di kasir.
                             </p>
                           </div>
                         </div>
