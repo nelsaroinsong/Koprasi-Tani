@@ -9,6 +9,7 @@ import {
   type EquipmentRentalOrder,
   type EquipmentRentalOrderItem,
 } from '@/lib/equipment-rentals';
+import { validateMinahasaUtaraAddress } from '@/lib/address-validation';
 
 export const dynamic = 'force-dynamic';
 
@@ -74,6 +75,7 @@ export async function POST(request: Request) {
       startDate,
       endDate,
       lokasiLahan,
+      farmLocationGps,
       catatan,
       // Multi-items payload
       items,
@@ -87,6 +89,14 @@ export async function POST(request: Request) {
     if (!startDate) {
       return NextResponse.json(
         { error: 'Tentukan tanggal mulai pemakaian sewa alat' },
+        { status: 400 }
+      );
+    }
+
+    const addressValidation = validateMinahasaUtaraAddress(lokasiLahan, true);
+    if (!addressValidation.isValid) {
+      return NextResponse.json(
+        { error: addressValidation.error },
         { status: 400 }
       );
     }
@@ -171,6 +181,12 @@ export async function POST(request: Request) {
       startDate,
       endDate: endDate || undefined,
       lokasiLahan: lokasiLahan || '',
+      farmLocationGps:
+        farmLocationGps &&
+        typeof farmLocationGps.lat === 'number' &&
+        typeof farmLocationGps.lng === 'number'
+          ? { lat: farmLocationGps.lat, lng: farmLocationGps.lng }
+          : null,
       catatan: catatan || '',
       totalEstimasi,
       paymentMethod: 'CASH_KOPERASI',

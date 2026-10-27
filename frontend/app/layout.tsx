@@ -36,6 +36,7 @@ import { AuthProvider } from '@/context/auth-context';
 import { SessionProvider } from '@/components/providers/session-provider';
 import { ToastProvider } from '@/context/toast-context';
 import SessionTimeoutManager from '@/components/SessionTimeoutManager';
+import ChunkLoadRecovery from '@/components/ChunkLoadRecovery';
 import SmoothScrollProvider from '@/components/providers/smooth-scroll-provider';
 import { auth } from '@/auth';
 
@@ -54,6 +55,7 @@ export default async function RootLayout({children}: {children: React.ReactNode}
           <AuthProvider>
             <ToastProvider>
               <SmoothScrollProvider>
+                <ChunkLoadRecovery />
                 <SessionTimeoutManager />
                 {children}
               </SmoothScrollProvider>

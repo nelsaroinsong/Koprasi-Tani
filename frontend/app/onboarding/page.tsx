@@ -26,6 +26,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { motion, AnimatePresence } from 'motion/react';
 import { validateIndonesianPhone } from '@/lib/phone-validation';
+import { validateMinahasaUtaraAddress } from '@/lib/address-validation';
 
 type StepNumber = 1 | 2 | 3 | 4;
 
@@ -256,8 +257,12 @@ export default function OnboardingPage() {
       return;
     }
 
-    if (!cleanAddress || cleanAddress.length < 5) {
-      setErrorMessage('Alamat domisili lengkap wajib diisi minimal 5 karakter.');
+    const addressValidation = validateMinahasaUtaraAddress(cleanAddress, true);
+    if (!addressValidation.isValid) {
+      setErrorMessage(
+        addressValidation.error ||
+          'Alamat domisili wajib berada di wilayah Kabupaten Minahasa Utara (Minut).'
+      );
       return;
     }
 
@@ -291,8 +296,12 @@ export default function OnboardingPage() {
     }
     const cleanPhone = phoneValidation.cleanPhone;
 
-    if (!cleanAddress || cleanAddress.length < 5) {
-      setErrorMessage('Alamat domisili lengkap wajib diisi.');
+    const addressValidation = validateMinahasaUtaraAddress(cleanAddress, true);
+    if (!addressValidation.isValid) {
+      setErrorMessage(
+        addressValidation.error ||
+          'Alamat domisili wajib berada di wilayah Kabupaten Minahasa Utara (Minut).'
+      );
       setCurrentStep(2);
       return;
     }
@@ -741,6 +750,25 @@ export default function OnboardingPage() {
                       placeholder="Contoh: Jl. Raya Kolongan, Kec. Kalawat, Minahasa Utara"
                       className="w-full h-11 pl-10 pr-3.5 text-sm bg-white border border-[#cfd6c9] rounded-xl text-[#1a2610] placeholder:text-[#768468] focus:outline-none focus:border-[#233414] focus:ring-1 focus:ring-[#233414] transition-colors"
                     />
+                  </div>
+                  <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[11px] text-[#526046] font-medium">Kecamatan Minut:</span>
+                    {['Kalawat', 'Airmadidi', 'Kauditan', 'Dimembe', 'Talawaan', 'Kema', 'Likupang', 'Wori'].map((kec) => (
+                      <button
+                        key={kec}
+                        type="button"
+                        onClick={() =>
+                          setAddress((prev) =>
+                            prev
+                              ? `${prev}, Kec. ${kec}, Minahasa Utara`
+                              : `Desa Kolongan, Kec. ${kec}, Minahasa Utara`
+                          )
+                        }
+                        className="text-[10px] px-2 py-0.5 rounded-full bg-[#f4f5f1] hover:bg-[#dfe4da] text-[#233414] border border-[#cfd6c9] transition cursor-pointer font-medium"
+                      >
+                        +{kec}
+                      </button>
+                    ))}
                   </div>
                 </div>
 

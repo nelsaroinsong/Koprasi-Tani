@@ -3,6 +3,7 @@ import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { getCache, setCache, delCache, delCachePattern } from '@/lib/redis';
 import { validateIndonesianPhone } from '@/lib/phone-validation';
+import { validateMinahasaUtaraAddress } from '@/lib/address-validation';
 
 export async function GET() {
   try {
@@ -112,12 +113,25 @@ export async function POST(request: Request) {
       }
     }
 
+    let cleanAddress: string | null | undefined = undefined;
+    if (address !== undefined) {
+      if (typeof address === 'string' && address.trim()) {
+        const addressValidation = validateMinahasaUtaraAddress(address, false);
+        if (!addressValidation.isValid) {
+          return NextResponse.json({ error: addressValidation.error }, { status: 400 });
+        }
+        cleanAddress = addressValidation.cleanAddress;
+      } else {
+        cleanAddress = null;
+      }
+    }
+
     const updated = await prisma.user.update({
       where: { email: targetEmail },
       data: {
         ...(name && { name: name.trim() }),
         ...(cleanPhone !== undefined && { phone: cleanPhone }),
-        ...(address !== undefined && { address }),
+        ...(cleanAddress !== undefined && { address: cleanAddress }),
         ...(avatarUrl !== undefined && { avatarUrl }),
       },
     });

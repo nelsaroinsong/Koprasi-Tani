@@ -36,6 +36,7 @@ export interface EquipmentRentalOrder {
   startDate: string;
   endDate?: string;
   lokasiLahan?: string;
+  farmLocationGps?: { lat: number; lng: number } | null;
   catatan?: string;
   totalEstimasi: number;
   paymentMethod: string;

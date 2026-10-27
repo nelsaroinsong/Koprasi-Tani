@@ -22,6 +22,7 @@ import {
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
 import { validateIndonesianPhone } from '@/lib/phone-validation';
+import { validateMinahasaUtaraAddress } from '@/lib/address-validation';
 
 let cachedFollowStats: { followingCount: number; followersCount: number } | null = null;
 let cachedUserCreatedAt: string | null = null;
@@ -213,6 +214,20 @@ export default function ProfilePage() {
           title: 'Nomor WhatsApp Tidak Valid',
           message: phoneValidation.error || 'Nomor WhatsApp wajib dimulai dari 08 dan minimal 10 digit.',
           type: 'error',
+        });
+        return;
+      }
+    }
+
+    if (address.trim()) {
+      const addressValidation = validateMinahasaUtaraAddress(address.trim(), false);
+      if (!addressValidation.isValid) {
+        showToast({
+          title: 'Wilayah Layanan Terbatas',
+          message:
+            addressValidation.error ||
+            'Alamat domisili harus berada di wilayah Kabupaten Minahasa Utara (Minut).',
+          type: 'warning',
         });
         return;
       }
@@ -565,9 +580,28 @@ export default function ProfilePage() {
                       rows={2}
                       value={address}
                       onChange={(e) => setAddress(e.target.value)}
-                      placeholder="Tuliskan nama jalan, kelurahan/desa, kecamatan..."
+                      placeholder="Contoh: Jl. Raya Kolongan, Kec. Kalawat, Minahasa Utara"
                       className="w-full pl-8 sm:pl-10 pr-3 py-2 sm:px-3.5 sm:py-2.5 text-xs sm:text-sm bg-white border border-[#cfd6c9] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#233414]/15 focus:border-[#233414] transition font-medium text-[#1a2610] placeholder:text-[#5b6950] resize-none"
                     />
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                    <span className="text-[10px] text-[#5b6950] font-medium">Kecamatan Minut:</span>
+                    {['Kalawat', 'Airmadidi', 'Kauditan', 'Dimembe', 'Talawaan', 'Kema', 'Likupang', 'Wori'].map((kec) => (
+                      <button
+                        key={kec}
+                        type="button"
+                        onClick={() =>
+                          setAddress((prev) =>
+                            prev
+                              ? `${prev}, Kec. ${kec}, Minahasa Utara`
+                              : `Desa Kolongan, Kec. ${kec}, Minahasa Utara`
+                          )
+                        }
+                        className="text-[10px] px-2 py-0.5 rounded-full bg-[#f4f5f1] hover:bg-[#dfe4da] text-[#233414] border border-[#cfd6c9] transition cursor-pointer font-medium"
+                      >
+                        +{kec}
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>

@@ -14,6 +14,21 @@ export default function ErrorBoundary({ error, reset }: ErrorProps) {
   useEffect(() => {
     // Catat log error sistem
     console.error('Application Error caught by error boundary:', error);
+
+    // Auto-recovery jika ChunkLoadError terjadi akibat rebuild/hot-reload file dev server
+    const isChunkError =
+      error?.name === 'ChunkLoadError' ||
+      error?.message?.includes('Loading chunk') ||
+      error?.message?.includes('ChunkLoadError');
+
+    if (isChunkError) {
+      const lastReload = sessionStorage.getItem('chunk_reload_ts');
+      const now = Date.now();
+      if (!lastReload || now - parseInt(lastReload, 10) > 8000) {
+        sessionStorage.setItem('chunk_reload_ts', now.toString());
+        window.location.reload();
+      }
+    }
   }, [error]);
 
   return (

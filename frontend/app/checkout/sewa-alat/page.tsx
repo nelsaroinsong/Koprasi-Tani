@@ -17,10 +17,12 @@ import {
   MessageCircle,
   ArrowLeft,
   ArrowRight,
+  ExternalLink,
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
 import { getPrimaryImage } from '@/lib/utils';
+import { validateMinahasaUtaraAddress, isMinahasaUtaraAddress } from '@/lib/address-validation';
 import {
   getRentalCart,
   clearRentalCart,
@@ -41,21 +43,19 @@ export default function CheckoutSewaAlatPage() {
     new Date().toISOString().split('T')[0]
   );
   const [rentalLokasiLahan, setRentalLokasiLahan] = useState(user?.address || '');
+  const [patokanLahan, setPatokanLahan] = useState('');
+  const [rentalGpsCoords, setRentalGpsCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [rentalCatatan, setRentalCatatan] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [rentalOrderError, setRentalOrderError] = useState<string | null>(null);
   const [createdRentalResult, setCreatedRentalResult] = useState<any | null>(null);
 
   const [adminPhone, setAdminPhone] = useState('081944078924');
-  const [warehouseAddress, setWarehouseAddress] = useState(
-    'Koperasi Sinar Pagi Sejahtera — Jl. Raya Kolongan, Kec. Kalawat, Kabupaten Minahasa Utara, Sulawesi Utara'
-  );
 
   useEffect(() => {
     fetch('/api/koperasi/info')
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (data?.alamat) setWarehouseAddress(data.alamat);
         if (data?.telepon) setAdminPhone(data.telepon);
       })
       .catch(() => {});
@@ -93,6 +93,27 @@ export default function CheckoutSewaAlatPage() {
     return rentalCartItems.reduce((acc, curr) => acc + (curr.jumlahUnit || 1), 0);
   }, [rentalCartItems]);
 
+  const isAddressValid = useMemo(() => {
+    if (!rentalLokasiLahan || rentalLokasiLahan.trim().length < 4) return false;
+    return isMinahasaUtaraAddress(rentalLokasiLahan);
+  }, [rentalLokasiLahan]);
+
+  const combinedLocationAddress = useMemo(() => {
+    const base = rentalLokasiLahan.trim();
+    const landmark = patokanLahan.trim();
+    if (!landmark) return base;
+    return `${base} (Patokan: ${landmark})`;
+  }, [rentalLokasiLahan, patokanLahan]);
+
+  const canSubmitRental = useMemo(() => {
+    return (
+      !isSubmitting &&
+      rentalCartItems.length > 0 &&
+      Boolean(rentalStartDate) &&
+      isAddressValid
+    );
+  }, [isSubmitting, rentalCartItems.length, rentalStartDate, isAddressValid]);
+
   // Submit Pengajuan Sewa Multi-Alat
   const handleConfirmRentalOrder = async () => {
     if (!user) {
@@ -110,6 +131,14 @@ export default function CheckoutSewaAlatPage() {
       throw new Error('Tentukan tanggal mulai pemakaian sewa.');
     }
 
+    const addressCheck = validateMinahasaUtaraAddress(rentalLokasiLahan, true);
+    if (!addressCheck.isValid) {
+      throw new Error(
+        addressCheck.error ||
+          'Alamat lahan kebun wajib berada di wilayah Kabupaten Minahasa Utara (Minut).'
+      );
+    }
+
     try {
       setIsSubmitting(true);
       setRentalOrderError(null);
@@ -119,7 +148,8 @@ export default function CheckoutSewaAlatPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           startDate: rentalStartDate,
-          lokasiLahan: rentalLokasiLahan,
+          lokasiLahan: combinedLocationAddress,
+          farmLocationGps: rentalGpsCoords,
           catatan: rentalCatatan,
           items: rentalCartItems.map((it) => ({
             equipmentId: it.equipmentId,
@@ -137,7 +167,11 @@ export default function CheckoutSewaAlatPage() {
 
       clearRentalCart();
       setRentalCartItems([]);
-      setCreatedRentalResult(data);
+      setCreatedRentalResult({
+        ...data,
+        savedLocationAddress: combinedLocationAddress,
+        savedGpsCoords: rentalGpsCoords,
+      });
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('rental-created'));
       }
@@ -171,6 +205,7 @@ export default function CheckoutSewaAlatPage() {
     const totalAmount = rental.totalEstimasi ?? rental.totalAmount ?? 0;
     const location = rental.lokasiLahan || rental.farmLocationAddress || rental.location || '-';
     const notes = rental.catatan || rental.notes;
+    const gps = rental.farmLocationGps || rentalGpsCoords;
 
     const itemsSummary = rental.items
       ?.map(
@@ -190,8 +225,8 @@ Saya ingin konfirmasi *Pengajuan Sewa Alat Pertanian*:
 *Durasi Sewa:* ${durationDays} hari
 *Lokasi Lahan Kebun:* ${location}
 ${
-  rental.farmLocationGps
-    ? `*Titik GPS Lahan:* ${rental.farmLocationGps.lat}, ${rental.farmLocationGps.lng}\nMaps: https://www.google.com/maps?q=${rental.farmLocationGps.lat},${rental.farmLocationGps.lng}\n`
+  gps
+    ? `*Titik GPS Lahan:* ${gps.lat.toFixed(6)}, ${gps.lng.toFixed(6)}\nMaps: https://www.google.com/maps?q=${gps.lat},${gps.lng}\n`
     : ''
 }*Total Biaya Estimasi:* Rp ${Number(totalAmount).toLocaleString('id-ID')}
 *Status:* Menunggu Persetujuan Admin Koperasi
@@ -238,6 +273,12 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
         hour12: false,
       })
       .replace('.', ':');
+
+    const finalLocationText =
+      createdRentalResult.savedLocationAddress ||
+      rentalLokasiLahan ||
+      'Minahasa Utara, Sulawesi Utara';
+    const finalGps = createdRentalResult.savedGpsCoords || rentalGpsCoords;
 
     return (
       <div className="min-h-screen bg-[#f4f5f1] flex flex-col font-sans">
@@ -384,11 +425,24 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
                   <MapPin className="w-4 h-4" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="text-xs font-bold text-[#1a2610] truncate">
-                    Lokasi Lahan Kebun
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-xs font-bold text-[#1a2610] truncate">
+                      Lokasi Lahan Kebun
+                    </span>
+                    {finalGps && (
+                      <a
+                        href={`https://www.google.com/maps?q=${finalGps.lat},${finalGps.lng}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-0.5 text-[10px] font-bold text-[#233414] hover:underline shrink-0"
+                      >
+                        <span>Maps</span>
+                        <ExternalLink className="w-2.5 h-2.5" />
+                      </a>
+                    )}
                   </div>
-                  <div className="text-[10px] text-[#526046] line-clamp-1 mt-0.5">
-                    {rentalLokasiLahan || 'Minahasa Utara, Sulawesi Utara'}
+                  <div className="text-[10px] text-[#526046] line-clamp-2 mt-0.5">
+                    {finalLocationText}
                   </div>
                 </div>
               </div>
@@ -425,9 +479,11 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
                     userPhone: user?.phone,
                     startDate: createdRentalResult.startDate,
                     durationDays: 1,
-                    farmLocationAddress: rentalLokasiLahan,
+                    farmLocationAddress: finalLocationText,
+                    farmLocationGps: finalGps,
                     totalAmount: createdRentalResult.totalEstimasi,
                     notes: rentalCatatan,
+                    items: createdRentalResult.rentalOrder?.items,
                   })
                 }
                 className="flex-1 py-2.5 sm:py-3 px-3 rounded-xl bg-white hover:bg-[#EAEDE7] text-[#1a2610] border border-[#cfd6c9] font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition cursor-pointer"
@@ -493,57 +549,67 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
   }
 
   return (
-    <div className="min-h-screen bg-white sm:bg-[#f4f5f1] flex flex-col font-sans pb-20">
+    <div className="min-h-screen bg-[#f4f5f1] flex flex-col font-sans pb-36 lg:pb-16">
       <div className="hidden sm:block">
         <AppHeader activePage="sewa-alat" />
       </div>
 
-      {/* Mobile Top Bar (Fixed di top, solid white, anti-tembus) */}
-      <div className="sm:hidden fixed top-0 left-0 right-0 z-40 bg-white px-4 h-14 flex items-center justify-between border-b border-[#EAEDE7] shadow-2xs">
+      {/* Mobile Top Bar (Fixed di top, solid white, clean & minimal) */}
+      <div className="sm:hidden fixed top-0 left-0 right-0 z-40 bg-white px-3.5 h-14 flex items-center justify-between border-b border-[#dce1d6]">
         <button
           type="button"
           onClick={() => router.back()}
-          className="w-10 h-10 -ml-1 rounded-full flex items-center justify-center text-[#1a2610] hover:bg-[#f4f5f1] transition cursor-pointer"
+          className="w-9 h-9 rounded-xl flex items-center justify-center text-[#1a2610] hover:bg-[#f4f5f1] transition cursor-pointer"
           aria-label="Kembali"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
 
-        <h1 className="text-sm font-extrabold text-[#1a2610] tracking-tight">
-          Checkout Sewa Alat
-        </h1>
+        <div className="text-center">
+          <h1 className="text-sm font-extrabold text-[#1a2610] tracking-tight">
+            Checkout Sewa Alat
+          </h1>
+          <p className="text-[10px] font-semibold text-[#526046] tabular-nums">
+            {totalRentalUnits} Unit • Area Minahasa Utara
+          </p>
+        </div>
 
-        <div className="w-10" />
+        <Link
+          href="/cart?tab=sewa-alat"
+          className="px-2.5 py-1 rounded-lg bg-[#f4f5f1] text-[11px] font-bold text-[#233414] border border-[#dce1d6]"
+        >
+          Ubah
+        </Link>
       </div>
       {/* Spacer placeholder mode mobile agar konten tidak tertutup fixed navbar */}
       <div className="sm:hidden h-14 shrink-0 pointer-events-none" aria-hidden="true" />
 
-      <main className="flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-8 lg:px-12 xl:px-16 py-4 sm:py-6 lg:py-8 space-y-5 sm:space-y-6">
+      <main className="flex-1 max-w-[1440px] w-full mx-auto px-3.5 sm:px-8 lg:px-12 py-3.5 sm:py-6 lg:py-8 space-y-4 sm:space-y-6">
         {/* Desktop Compact Back Link */}
         <div className="hidden sm:flex items-center justify-between pb-1">
           <Link
             href="/cart?tab=sewa-alat"
             className="inline-flex items-center gap-2.5 text-xs sm:text-sm font-bold text-[#1a2610] hover:text-[#344d15] transition group"
           >
-            <div className="w-8 h-8 rounded-full bg-white border border-[#cfd6c9] flex items-center justify-center text-[#1a2610] group-hover:bg-[#EAEDE7] transition shadow-2xs">
+            <div className="w-8 h-8 rounded-full bg-white border border-[#cfd6c9] flex items-center justify-center text-[#1a2610] group-hover:bg-[#EAEDE7] transition">
               <ArrowLeft className="w-4 h-4" />
             </div>
             <span>Kembali ke Keranjang Sewa</span>
           </Link>
 
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-[#dce1d6] text-xs font-semibold text-[#526046] shadow-2xs tabular-nums">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-[#dce1d6] text-xs font-semibold text-[#526046] tabular-nums">
             <span className="w-1.5 h-1.5 rounded-full bg-[#344d15]" />
             <span>{totalRentalUnits} Unit ({rentalCartItems.length} Jenis Alat)</span>
           </div>
         </div>
 
         {/* 2-Column Responsive Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-start">
           {/* Kolom Kiri: Daftar Alat & Formulir Jadwal/Lahan */}
-          <div className="lg:col-span-7 xl:col-span-8 space-y-5">
+          <div className="lg:col-span-7 xl:col-span-8 space-y-4 sm:space-y-5">
             {/* 1. Daftar Unit Alat Yang Diajukan */}
-            <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#EAEDE7] sm:border-[#dce1d6] p-5 sm:p-7 shadow-2xs">
-              <div className="flex items-center justify-between pb-4 border-b border-[#EAEDE7]">
+            <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#dce1d6] p-4 sm:p-6">
+              <div className="flex items-center justify-between pb-3 border-b border-[#EAEDE7]">
                 <div className="flex items-center gap-2">
                   <Tractor className="w-4 h-4 text-[#233414]" />
                   <h3 className="font-extrabold text-[#1a2610] text-xs sm:text-sm uppercase tracking-wider">
@@ -552,9 +618,9 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
                 </div>
                 <Link
                   href="/cart?tab=sewa-alat"
-                  className="px-3 py-1 rounded-full text-xs font-bold text-[#344d15] bg-[#e2f2c8]/60 hover:bg-[#e2f2c8] border border-[#c9e39e] transition cursor-pointer"
+                  className="hidden sm:inline-flex px-3 py-1 rounded-full text-xs font-bold text-[#233414] bg-[#f4f5f1] hover:bg-[#e8ece2] border border-[#dce1d6] transition cursor-pointer"
                 >
-                  Ubah
+                  Ubah Alat
                 </Link>
               </div>
 
@@ -562,8 +628,8 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
                 {rentalCartItems.map((item) => {
                   const itemTotal = calculateRentalItemTotal(item);
                   return (
-                    <div key={item.id} className="py-4 first:pt-4 last:pb-1 flex items-center gap-4">
-                      <div className="w-18 h-18 sm:w-22 sm:h-22 rounded-2xl overflow-hidden bg-[#f4f5f1] border border-[#EAEDE7] shrink-0">
+                    <div key={item.id} className="py-3.5 first:pt-3.5 last:pb-0.5 flex items-center gap-3.5">
+                      <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl overflow-hidden bg-[#f4f5f1] border border-[#dce1d6] shrink-0">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={getPrimaryImage(
@@ -582,22 +648,22 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
                         />
                       </div>
 
-                      <div className="min-w-0 flex-1 py-0.5 space-y-1">
-                        <h4 className="text-sm sm:text-base font-bold text-[#1a2610] truncate">
+                      <div className="min-w-0 flex-1 space-y-0.5">
+                        <h4 className="text-xs sm:text-base font-bold text-[#1a2610] truncate">
                           {item.nama}
                         </h4>
-                        <div className="text-xs text-[#5b6950] tabular-nums">
+                        <div className="text-[11px] sm:text-xs text-[#526046] tabular-nums">
                           {item.durasi} {item.satuanSewa || 'hari'} × Rp{' '}
                           {Number(item.hargaSewa).toLocaleString('id-ID')}
-                          {item.includeOperator ? ' (+Operator)' : ''}
+                          {item.includeOperator ? ' • +Operator' : ''}
                         </div>
-                        <div className="text-sm sm:text-base font-black text-[#1a2610] tabular-nums pt-1">
+                        <div className="text-xs sm:text-base font-black text-[#1a2610] tabular-nums pt-0.5">
                           Rp {itemTotal.toLocaleString('id-ID')}
                         </div>
                       </div>
 
                       <div className="flex flex-col items-end justify-center shrink-0">
-                        <span className="px-3.5 py-1.5 rounded-full border border-[#dce1d6] bg-[#f4f5f1] text-xs font-bold text-[#1a2610] tabular-nums shadow-2xs">
+                        <span className="px-2.5 py-1 rounded-lg border border-[#dce1d6] bg-[#f4f5f1] text-[11px] sm:text-xs font-bold text-[#1a2610] tabular-nums">
                           ×{item.jumlahUnit} unit
                         </span>
                       </div>
@@ -607,48 +673,71 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
               </div>
             </div>
 
-            {/* 2. Jadwal Penggunaan & Lokasi Lahan */}
-            <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#EAEDE7] sm:border-[#dce1d6] p-5 sm:p-7 space-y-4 shadow-2xs">
-              <div className="flex items-center gap-2 border-b border-[#EAEDE7] pb-3">
-                <Calendar className="w-4 h-4 text-[#233414]" />
-                <h3 className="font-extrabold text-[#1a2610] text-xs sm:text-sm uppercase tracking-wider">
-                  Jadwal & Lokasi Lahan Kebun
-                </h3>
+            {/* 2. Jadwal Penggunaan & Peta Titik Lahan Kebun */}
+            <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#dce1d6] p-4 sm:p-6 space-y-4">
+              <div className="flex items-center justify-between border-b border-[#EAEDE7] pb-3">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-[#233414]" />
+                  <h3 className="font-extrabold text-[#1a2610] text-xs sm:text-sm uppercase tracking-wider">
+                    Jadwal & Titik Lokasi Lahan
+                  </h3>
+                </div>
+                <span className="text-[10px] font-bold text-[#233414] bg-[#f4f5f1] border border-[#dce1d6] px-2 py-0.5 rounded-md">
+                  Wajib Area Minut
+                </span>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-[#1a2610] mb-1.5">
-                  Mulai Tanggal Penggunaan <span className="text-[#c4242a]">*</span>
-                </label>
-                <input
-                  type="date"
-                  required
-                  value={rentalStartDate}
-                  onChange={(e) => setRentalStartDate(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-[#f8f9f6] border border-[#cfd6c9] rounded-2xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#233414]/15 focus:border-[#233414] font-semibold text-xs sm:text-sm text-[#1a2610] transition tabular-nums"
-                />
+              {/* Input Tanggal & Patokan dalam Grid Responsif */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div>
+                  <label className="block text-[11px] font-bold text-[#526046] uppercase tracking-wider mb-1.5">
+                    Mulai Tanggal Pakai <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={rentalStartDate}
+                    onChange={(e) => setRentalStartDate(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[#f4f5f1] border border-[#dce1d6] rounded-xl focus:bg-white focus:outline-none focus:border-[#233414] font-semibold text-xs sm:text-sm text-[#1a2610] transition tabular-nums"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-[#526046] uppercase tracking-wider mb-1.5">
+                    Patokan Jalan Masuk (Opsional)
+                  </label>
+                  <input
+                    type="text"
+                    value={patokanLahan}
+                    onChange={(e) => setPatokanLahan(e.target.value)}
+                    placeholder="Misal: Depan Gereja / Masuk lorong 50m"
+                    className="w-full px-3.5 py-2.5 bg-[#f4f5f1] border border-[#dce1d6] rounded-xl focus:bg-white focus:outline-none focus:border-[#233414] font-semibold text-xs sm:text-sm text-[#1a2610] placeholder:text-[#7c8772] transition"
+                  />
+                </div>
               </div>
 
+              {/* Peta Interaktif Grab-Style */}
               <div>
                 <LocationMapPreview
                   value={rentalLokasiLahan}
                   onChange={setRentalLokasiLahan}
+                  onCoordinatesChange={setRentalGpsCoords}
                   required={true}
-                  label="Alamat Lengkap / Patokan Lahan Kebun"
-                  placeholder="Contoh: Desa Kolongan, Kec. Kalawat, Minahasa Utara"
+                  label="Pilih Titik Lahan di Peta (Geser Pin atau Tap)"
+                  placeholder="Contoh: Desa Kolongan, Kec. Kalawat, Kab. Minahasa Utara"
                 />
               </div>
 
               <div>
-                <label className="block font-bold text-[#1a2610] text-xs sm:text-sm mb-1.5">
-                  Catatan Operasional (Opsional)
+                <label className="block text-[11px] font-bold text-[#526046] uppercase tracking-wider mb-1.5">
+                  Catatan Operasional Lahan (Opsional)
                 </label>
                 <textarea
                   rows={2}
                   value={rentalCatatan}
                   onChange={(e) => setRentalCatatan(e.target.value)}
-                  placeholder="Contoh: Luas lahan sekitar 1 hektar..."
-                  className="w-full p-3.5 text-xs sm:text-sm bg-[#fafafa] border border-[#cfd6c9] rounded-2xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#233414]/15 focus:border-[#233414] text-[#1a2610] placeholder:text-[#5b6950] transition"
+                  placeholder="Contoh: Luas lahan sekitar 1 hektar, kondisi tanah kering..."
+                  className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-[#f4f5f1] border border-[#dce1d6] rounded-xl focus:bg-white focus:outline-none focus:border-[#233414] font-semibold text-[#1a2610] placeholder:text-[#7c8772] transition resize-none"
                 />
               </div>
             </div>
@@ -656,68 +745,137 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
 
           {/* Kolom Kanan: Ringkasan Sticky & SlideCommit */}
           <div className="lg:col-span-5 xl:col-span-4 lg:sticky lg:top-24">
-            <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#EAEDE7] sm:border-[#dce1d6] p-5 sm:p-7 space-y-5 shadow-2xs">
-              <h2 className="text-base sm:text-lg font-bold text-[#1a2610] tracking-tight border-b border-[#EAEDE7] pb-3">
-                Ringkasan Sewa Alat
+            <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#dce1d6] p-4 sm:p-6 space-y-4">
+              <h2 className="text-sm sm:text-base font-extrabold text-[#1a2610] tracking-tight border-b border-[#EAEDE7] pb-3 uppercase">
+                Ringkasan Pengajuan Sewa
               </h2>
 
-              <div className="space-y-3 text-xs sm:text-[13px]">
+              <div className="space-y-2.5 text-xs sm:text-[13px]">
                 <div className="flex justify-between text-[#526046]">
                   <span>Total Unit Mesin</span>
-                  <span className="font-semibold text-[#1a2610] tabular-nums">
+                  <span className="font-bold text-[#1a2610] tabular-nums">
                     {totalRentalUnits} Unit ({rentalCartItems.length} Jenis)
                   </span>
                 </div>
                 <div className="flex justify-between text-[#526046]">
                   <span>Mulai Tanggal</span>
-                  <span className="font-semibold text-[#1a2610] tabular-nums">
+                  <span className="font-bold text-[#1a2610] tabular-nums">
                     {rentalStartDate}
                   </span>
                 </div>
+                {rentalGpsCoords && (
+                  <div className="flex justify-between text-[#526046]">
+                    <span>Koordinat Pin Lahan</span>
+                    <span className="font-mono font-semibold text-[#233414] text-[11px] tabular-nums">
+                      {rentalGpsCoords.lat.toFixed(5)}, {rentalGpsCoords.lng.toFixed(5)}
+                    </span>
+                  </div>
+                )}
                 <div className="flex justify-between text-[#526046]">
-                  <span>Pembayaran</span>
-                  <span className="font-semibold text-[#344d15]">
+                  <span>Metode Pembayaran</span>
+                  <span className="font-bold text-[#233414]">
                     Tunai Kasir Koperasi
                   </span>
                 </div>
               </div>
 
-              <div className="border-t border-[#EAEDE7] pt-4 flex justify-between items-baseline">
-                <span className="text-sm sm:text-base font-bold text-[#1a2610]">Total Estimasi Biaya:</span>
-                <span className="text-2xl sm:text-3xl font-black text-[#1a2610] tracking-tight tabular-nums">
+              <div className="border-t border-[#EAEDE7] pt-3.5 flex justify-between items-baseline">
+                <span className="text-xs sm:text-sm font-bold text-[#526046]">
+                  Total Estimasi Biaya
+                </span>
+                <span className="text-xl sm:text-2xl font-black text-[#1a2610] tracking-tight tabular-nums">
                   Rp {totalRentalAmount.toLocaleString('id-ID')}
                 </span>
               </div>
 
               {rentalOrderError && (
-                <div className="p-3 bg-[#ffedea] border border-red-200 rounded-xl text-xs text-[#831c1e] flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
+                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-800 flex items-center gap-2 font-semibold">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
                   <span>{rentalOrderError}</span>
                 </div>
               )}
 
-              <div className="pt-2">
+              {/* Alert ringkas jika lokasi kebun di luar Minut */}
+              {rentalLokasiLahan && rentalLokasiLahan.trim().length >= 4 && !isAddressValid && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-900 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                  <div className="space-y-0.5">
+                    <div className="font-bold text-red-950">Pengajuan Terkunci</div>
+                    <div className="text-red-800 leading-relaxed text-[11px]">
+                      Titik lahan berada di luar Kabupaten Minahasa Utara. Geser pin peta ke wilayah <strong>Minahasa Utara (Minut)</strong> untuk membuka tombol pengajuan.
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Desktop SlideCommit */}
+              <div className="hidden lg:block pt-1">
                 <SlideCommit
-                  label="Geser untuk Ajukan Sewa Alat"
+                  label={
+                    !isAddressValid
+                      ? 'Terkunci: Lokasi Wajib di Minut'
+                      : 'Geser untuk Ajukan Sewa Alat'
+                  }
                   onConfirm={handleConfirmRentalOrder}
-                  disabled={isSubmitting}
-                  trackColor="#1a2610"
+                  disabled={!canSubmitRental}
+                  trackColor={!isAddressValid ? '#450a0a' : '#1a2610'}
                   handleColor="#ffffff"
                   successColor="#233414"
-                  height={54}
-                  radius={27}
-                  className="w-full shadow-sm"
+                  height={52}
+                  radius={26}
+                  className="w-full"
                 />
               </div>
 
-              <div className="flex items-center gap-1.5 text-xs text-[#526046] justify-center pt-1">
-                <ShieldCheck className="w-4 h-4 text-[#344d15]" />
-                <span>Pengajuan resmi diverifikasi staf koperasi</span>
+              <div className="flex items-center gap-1.5 text-[11px] text-[#526046] justify-center pt-0.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-[#344d15]" />
+                <span>Diverifikasi pengurus sebelum alat siap diambil</span>
               </div>
             </div>
           </div>
         </div>
       </main>
+
+      {/* Mobile Sticky Bottom Bar (Memudahkan jempol di layar HP) */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#dce1d6] px-3.5 pt-2.5 pb-3 shadow-[0_-8px_24px_rgba(0,0,0,0.06)]">
+        <div className="max-w-lg mx-auto space-y-2">
+          <div className="flex items-center justify-between px-1">
+            <div>
+              <span className="text-[10px] font-bold text-[#526046] uppercase tracking-wider block">
+                Total Estimasi ({totalRentalUnits} Unit)
+              </span>
+              <span className="text-base font-black text-[#1a2610] tabular-nums">
+                Rp {totalRentalAmount.toLocaleString('id-ID')}
+              </span>
+            </div>
+            <span
+              className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                isAddressValid
+                  ? 'bg-[#eef4e8] text-[#233414]'
+                  : 'bg-red-50 text-red-700'
+              }`}
+            >
+              {isAddressValid ? 'Lokasi Minut Valid' : 'Pilih Titik di Minut'}
+            </span>
+          </div>
+
+          <SlideCommit
+            label={
+              !isAddressValid
+                ? 'Terkunci: Pilih Titik di Minut'
+                : 'Geser untuk Ajukan Sewa Alat'
+            }
+            onConfirm={handleConfirmRentalOrder}
+            disabled={!canSubmitRental}
+            trackColor={!isAddressValid ? '#450a0a' : '#1a2610'}
+            handleColor="#ffffff"
+            successColor="#233414"
+            height={48}
+            radius={24}
+            className="w-full"
+          />
+        </div>
+      </div>
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { delCache } from '@/lib/redis';
 import { validateIndonesianPhone } from '@/lib/phone-validation';
+import { validateMinahasaUtaraAddress } from '@/lib/address-validation';
 
 export async function POST(request: Request) {
   try {
@@ -25,8 +26,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: phoneValidation.error }, { status: 400 });
     }
 
-    if (!address || typeof address !== 'string' || !address.trim()) {
-      return NextResponse.json({ error: 'Alamat lengkap wajib diisi.' }, { status: 400 });
+    const addressValidation = validateMinahasaUtaraAddress(address, true);
+    if (!addressValidation.isValid) {
+      return NextResponse.json({ error: addressValidation.error }, { status: 400 });
     }
 
     if (role !== 'PEMBELI' && role !== 'PETANI') {

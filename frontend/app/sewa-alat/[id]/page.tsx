@@ -37,6 +37,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
 import { toast } from 'sonner';
+import { validateMinahasaUtaraAddress } from '@/lib/address-validation';
 import {
   addToRentalCart,
   getRentalCart,
@@ -383,6 +384,18 @@ export default function EquipmentDetailPage({
         type: 'info',
       });
       router.push(`/login?callbackUrl=/sewa-alat/${equipment.id}`);
+      return;
+    }
+
+    const addressCheck = validateMinahasaUtaraAddress(lokasiLahan, true);
+    if (!addressCheck.isValid) {
+      showToast({
+        title: 'Wilayah Layanan Terbatas',
+        message:
+          addressCheck.error ||
+          'Lokasi lahan kebun wajib berada di wilayah Kabupaten Minahasa Utara (Minut).',
+        type: 'warning',
+      });
       return;
     }
 
@@ -1141,13 +1154,28 @@ export default function EquipmentDetailPage({
               </button>
               <button
                 type="submit"
-                disabled={isSubmitting}
-                className="py-2 px-4 bg-[#233414] hover:bg-[#344d15] text-white rounded-xl font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-60"
+                disabled={
+                  isSubmitting ||
+                  (Boolean(lokasiLahan) &&
+                    !validateMinahasaUtaraAddress(lokasiLahan, true).isValid)
+                }
+                className={`py-2 px-4 rounded-xl font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-60 ${
+                  Boolean(lokasiLahan) &&
+                  !validateMinahasaUtaraAddress(lokasiLahan, true).isValid
+                    ? 'bg-red-800 text-white cursor-not-allowed'
+                    : 'bg-[#233414] hover:bg-[#344d15] text-white'
+                }`}
               >
                 {isSubmitting ? (
                   <>
                     <Loader2 className="w-3.5 h-3.5 animate-spin text-[#D4F63D]" />
                     <span>Menyiapkan...</span>
+                  </>
+                ) : Boolean(lokasiLahan) &&
+                  !validateMinahasaUtaraAddress(lokasiLahan, true).isValid ? (
+                  <>
+                    <AlertCircle className="w-4 h-4 text-red-200" />
+                    <span>Lokasi Harus di Minut</span>
                   </>
                 ) : (
                   <>
