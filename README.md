@@ -14,6 +14,9 @@ Repositori ini telah dilengkapi dengan dokumentasi arsitektur dan spesifikasi te
 2. ⚡ **[DEPLOYMENT_DAN_SKALABILITAS.md](file:///d:/Koperasi_Tani/DEPLOYMENT_DAN_SKALABILITAS.md)**  
    *Panduan Rencana Deployment Produksi, Arsitektur Load Balancer (Nginx/Cloudflare), serta 5 Lapis Optimasi Database (Query Indexing, Redis Cache-Aside, Connection Pooling PgBouncer, Sharding, dan Read Replicas 1 Primary + 2 Replicas).*
 
+3. 🛡️ **[KEAMANAN_DAN_MANAJEMEN_RISIKO_SEWA_ALAT.md](file:///d:/Koperasi_Tani/KEAMANAN_DAN_MANAJEMEN_RISIKO_SEWA_ALAT.md)**  
+   *Strategi Pencegahan Pencurian/Penggelapan Alat Pertanian, Mitigasi Akun Bodong, Kerangka Pengamanan 4 Lapis (e-KYC, Jaminan/BAST, Operator Resmi, IoT GPS Geofence & Cut-off), serta Alur Realisasi Teknis Aplikasi.*
+
 ---
 
 ## 🛠️ Tech Stack

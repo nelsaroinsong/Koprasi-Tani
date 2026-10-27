@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
+import { getPrimaryImage } from '@/lib/utils';
 import {
   getRentalCart,
   clearRentalCart,
@@ -565,11 +566,18 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
                       <div className="w-18 h-18 sm:w-22 sm:h-22 rounded-2xl overflow-hidden bg-[#f4f5f1] border border-[#EAEDE7] shrink-0">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                          src={
-                            item.imageUrl ||
-                            'https://picsum.photos/seed/sewa-alat-koperasi/300/300'
-                          }
+                          src={getPrimaryImage(
+                            item.imageUrl,
+                            'https://images.unsplash.com/photo-1592982537447-7440770cbfc9?auto=format&fit=crop&w=300&q=80'
+                          )}
                           alt={item.nama}
+                          onError={(e) => {
+                            const target = e.currentTarget;
+                            if (!target.src.includes('unsplash.com')) {
+                              target.src =
+                                'https://images.unsplash.com/photo-1592982537447-7440770cbfc9?auto=format&fit=crop&w=300&q=80';
+                            }
+                          }}
                           className="w-full h-full object-cover"
                         />
                       </div>

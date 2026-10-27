@@ -46,6 +46,7 @@ import {
 import { useAdmin } from '@/components/admin/admin-context';
 import type { EquipmentItem } from '@/lib/equipments';
 import { validateIndonesianPhone } from '@/lib/phone-validation';
+import { getPrimaryImage } from '@/lib/utils';
 
 const HATCHED_BG_STYLE: React.CSSProperties = {
   backgroundImage:
@@ -1112,8 +1113,18 @@ export default function EquipmentsDataTable() {
                             <div className="w-11 h-11 rounded-lg bg-slate-100 border border-slate-200 overflow-hidden shrink-0 relative">
                               {item.imageUrl ? (
                                 <img
-                                  src={item.imageUrl}
+                                  src={getPrimaryImage(
+                                    item.imageUrl,
+                                    'https://images.unsplash.com/photo-1592982537447-7440770cbfc9?auto=format&fit=crop&w=100&q=80'
+                                  )}
                                   alt={item.nama}
+                                  onError={(e) => {
+                                    const target = e.currentTarget;
+                                    if (!target.src.includes('unsplash.com')) {
+                                      target.src =
+                                        'https://images.unsplash.com/photo-1592982537447-7440770cbfc9?auto=format&fit=crop&w=100&q=80';
+                                    }
+                                  }}
                                   className="w-full h-full object-cover"
                                 />
                               ) : (

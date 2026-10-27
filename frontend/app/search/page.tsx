@@ -17,6 +17,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { getPrimaryImage } from '@/lib/utils';
 
 type ActiveTab = 'all' | 'products' | 'equipments' | 'users';
 
@@ -503,8 +504,18 @@ function SearchPageContent() {
                         <div className="relative aspect-square sm:aspect-video w-full bg-[#EAEDE7] overflow-hidden border-b border-[#EAEDE7]">
                           {item.imageUrl ? (
                             <img
-                              src={item.imageUrl}
+                              src={getPrimaryImage(
+                                item.imageUrl,
+                                'https://images.unsplash.com/photo-1592982537447-7440770cbfc9?auto=format&fit=crop&w=400&q=80'
+                              )}
                               alt={item.nama}
+                              onError={(e) => {
+                                const target = e.currentTarget;
+                                if (!target.src.includes('unsplash.com')) {
+                                  target.src =
+                                    'https://images.unsplash.com/photo-1592982537447-7440770cbfc9?auto=format&fit=crop&w=400&q=80';
+                                }
+                              }}
                               className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300"
                             />
                           ) : (
