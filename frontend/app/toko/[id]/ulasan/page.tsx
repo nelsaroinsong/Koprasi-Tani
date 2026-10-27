@@ -14,6 +14,7 @@ import {
   Trash2,
   AlertCircle,
   ExternalLink,
+  ChevronDown,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/auth-context';
@@ -38,6 +39,36 @@ export default function ProductAllReviewsPage({
 
   // Filter state (ALL or 5, 4, 3, 2, 1)
   const [selectedStar, setSelectedStar] = useState<number | 'ALL'>('ALL');
+
+  // Load More state (10 ulasan per batch)
+  const [visibleCount, setVisibleCount] = useState(10);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  // Safe back navigation handler (does not create navigation loop)
+  const handleBack = () => {
+    if (
+      typeof window !== 'undefined' &&
+      window.history.length > 1 &&
+      (window.history.state?.idx === undefined || window.history.state?.idx > 0)
+    ) {
+      router.back();
+    } else {
+      router.replace(`/toko/${productId}`);
+    }
+  };
+
+  const handleSelectStar = (star: number | 'ALL') => {
+    setSelectedStar(star);
+    setVisibleCount(10);
+  };
+
+  const handleLoadMore = () => {
+    setIsLoadingMore(true);
+    setTimeout(() => {
+      setVisibleCount((prev) => prev + 10);
+      setIsLoadingMore(false);
+    }, 200);
+  };
 
   // Deleting state
   const [deletingReviewId, setDeletingReviewId] = useState<string | null>(null);
@@ -259,6 +290,9 @@ export default function ProductAllReviewsPage({
     return Math.round(r.rating || 5) === selectedStar;
   });
 
+  const displayedReviews = filteredReviews.slice(0, visibleCount);
+  const hasMore = filteredReviews.length > visibleCount;
+
   return (
     <div className="min-h-screen bg-white sm:bg-[#f4f5f1] flex flex-col font-sans selection:bg-[#D4F63D] selection:text-slate-950">
       <div className="hidden sm:block">
@@ -269,7 +303,7 @@ export default function ProductAllReviewsPage({
       <div className="sm:hidden fixed top-0 left-0 right-0 z-40 bg-white px-4 h-14 flex items-center justify-between border-b border-[#EAEDE7] shadow-2xs">
         <button
           type="button"
-          onClick={() => router.push(`/toko/${productId}`)}
+          onClick={handleBack}
           className="w-10 h-10 -ml-1 rounded-full flex items-center justify-center text-[#1a2610] hover:bg-[#f4f5f1] transition cursor-pointer"
           aria-label="Kembali ke Detail Komoditas"
         >
@@ -288,13 +322,14 @@ export default function ProductAllReviewsPage({
       <div className="hidden sm:block bg-white border-b border-[#dce1d6]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex items-center justify-between text-xs text-[#5b6950]">
           <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap">
-            <Link
-              href={`/toko/${productId}`}
+            <button
+              type="button"
+              onClick={handleBack}
               className="text-[#1a2610] hover:text-[#344d15] font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Kembali ke Detail {product.nama}</span>
-            </Link>
+            </button>
             <span className="text-[#cfd6c9]">/</span>
             <span className="text-[#526046] font-medium">Semua Ulasan</span>
           </div>
@@ -327,13 +362,14 @@ export default function ProductAllReviewsPage({
             </div>
           </div>
 
-          <Link
-            href={`/toko/${productId}`}
-            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#dce1d6] text-xs font-semibold text-[#1a2610] hover:bg-[#EAEDE7] transition-colors shrink-0"
+          <button
+            type="button"
+            onClick={handleBack}
+            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#dce1d6] text-xs font-semibold text-[#1a2610] hover:bg-[#EAEDE7] transition-colors shrink-0 cursor-pointer"
           >
             <span>Rincian Produk</span>
             <ExternalLink className="w-3.5 h-3.5 text-[#5b6950]" />
-          </Link>
+          </button>
         </div>
 
         {/* Rating Breakdown Overview */}
@@ -461,7 +497,7 @@ export default function ProductAllReviewsPage({
                       <button
                         key={starNum}
                         type="button"
-                        onClick={() => setSelectedStar(selectedStar === starNum ? 'ALL' : starNum)}
+                        onClick={() => handleSelectStar(selectedStar === starNum ? 'ALL' : starNum)}
                         className={`w-full flex items-center gap-2 text-xs tabular-nums p-1 rounded-lg transition-colors cursor-pointer text-left ${
                           selectedStar === starNum ? 'bg-[#EAEDE7]' : 'hover:bg-white/60'
                         }`}
@@ -503,7 +539,7 @@ export default function ProductAllReviewsPage({
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
           <button
             type="button"
-            onClick={() => setSelectedStar('ALL')}
+            onClick={() => handleSelectStar('ALL')}
             className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
               selectedStar === 'ALL'
                 ? 'bg-[#233414] text-white shadow-2xs'
@@ -518,7 +554,7 @@ export default function ProductAllReviewsPage({
               <button
                 key={starNum}
                 type="button"
-                onClick={() => setSelectedStar(starNum)}
+                onClick={() => handleSelectStar(starNum)}
                 className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
                   selectedStar === starNum
                     ? 'bg-[#233414] text-white shadow-2xs'
@@ -538,6 +574,11 @@ export default function ProductAllReviewsPage({
             <h3 className="text-xs font-bold text-[#1a2610] uppercase tracking-wider">
               Daftar Ulasan {selectedStar !== 'ALL' ? `(${selectedStar} Bintang)` : ''} ({filteredReviews.length})
             </h3>
+            {filteredReviews.length > 0 && (
+              <span className="text-[11px] text-[#5b6950] font-medium">
+                Menampilkan {Math.min(visibleCount, filteredReviews.length)} dari {filteredReviews.length}
+              </span>
+            )}
           </div>
 
           {filteredReviews.length === 0 ? (
@@ -553,102 +594,139 @@ export default function ProductAllReviewsPage({
               </p>
             </div>
           ) : (
-            <div className="divide-y divide-[#EAEDE7]">
-              {filteredReviews.map((rev: any) => {
-                const isHelpful = Boolean(helpfulLikes[rev.id]);
-                const isOwnReview =
-                  Boolean(user?.id) &&
-                  (rev.userId === user?.id || rev.user?.id === user?.id);
+            <>
+              <div className="divide-y divide-[#EAEDE7]">
+                {displayedReviews.map((rev: any) => {
+                  const isHelpful = Boolean(helpfulLikes[rev.id]);
+                  const isOwnReview =
+                    Boolean(user?.id) &&
+                    (rev.userId === user?.id || rev.user?.id === user?.id);
 
-                return (
-                  <div key={rev.id} className="py-4 space-y-2">
-                    {/* Rating Stars & Relative Time */}
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-0.5">
-                        {[1, 2, 3, 4, 5].map((s) => (
-                          <Star
-                            key={s}
-                            className={`w-3.5 h-3.5 ${
-                              s <= rev.rating
-                                ? 'fill-amber-400 text-amber-400'
-                                : 'fill-[#EAEDE7] text-[#cfd6c9]'
-                            }`}
-                          />
-                        ))}
+                  return (
+                    <div key={rev.id} className="py-4 space-y-2">
+                      {/* Rating Stars & Relative Time */}
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-0.5">
+                          {[1, 2, 3, 4, 5].map((s) => (
+                            <Star
+                              key={s}
+                              className={`w-3.5 h-3.5 ${
+                                s <= rev.rating
+                                  ? 'fill-amber-400 text-amber-400'
+                                  : 'fill-[#EAEDE7] text-[#cfd6c9]'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-[11px] text-[#5b6950]">
+                          {formatRelativeTime(rev.createdAt)}
+                        </span>
                       </div>
-                      <span className="text-[11px] text-[#5b6950]">
-                        {formatRelativeTime(rev.createdAt)}
-                      </span>
-                    </div>
 
-                    {/* User Info & Delete Action for Own Review */}
-                    <div className="flex items-center gap-2.5">
-                      <Avatar className="w-7 h-7 rounded-full border border-[#cfd6c9]">
-                        <AvatarImage src={rev.user?.avatarUrl || ''} alt={rev.user?.name} />
-                        <AvatarFallback className="bg-[#EAEDE7] text-[#233414] text-[10px] font-bold">
-                          {rev.user?.name ? rev.user.name.slice(0, 2).toUpperCase() : 'U'}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-xs font-bold text-[#1a2610]">
-                        {rev.user?.name || 'Pembeli Koperasi'}
-                      </span>
+                      {/* User Info & Delete Action for Own Review */}
+                      <div className="flex items-center gap-2.5">
+                        <Avatar className="w-7 h-7 rounded-full border border-[#cfd6c9]">
+                          <AvatarImage src={rev.user?.avatarUrl || ''} alt={rev.user?.name} />
+                          <AvatarFallback className="bg-[#EAEDE7] text-[#233414] text-[10px] font-bold">
+                            {rev.user?.name ? rev.user.name.slice(0, 2).toUpperCase() : 'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-xs font-bold text-[#1a2610]">
+                          {rev.user?.name || 'Pembeli Koperasi'}
+                        </span>
 
-                      {isOwnReview && (
+                        {isOwnReview && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteReview(rev.id)}
+                            disabled={deletingReviewId === rev.id}
+                            className="ml-auto inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-red-600 hover:bg-red-50 hover:text-red-700 transition cursor-pointer text-xs font-medium border border-red-200 disabled:opacity-50"
+                            title="Hapus Ulasan Anda"
+                          >
+                            {deletingReviewId === rev.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-3.5 h-3.5" />
+                            )}
+                            <span className="text-[11px]">Hapus Ulasan</span>
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Review Text */}
+                      <p className="text-xs sm:text-[13px] text-[#1a2610] leading-relaxed">
+                        {rev.komentar || 'Pembeli tidak memberikan komentar tertulis.'}
+                      </p>
+
+                      {/* Review Photos */}
+                      {rev.fotoUrl && (
+                        <div className="pt-1">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={rev.fotoUrl}
+                            alt="Foto ulasan"
+                            loading="lazy"
+                            decoding="async"
+                            className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-lg border border-[#dce1d6]"
+                          />
+                        </div>
+                      )}
+
+                      {/* Helpful Button */}
+                      <div className="flex items-center gap-2 pt-1 text-[11px] text-[#5b6950]">
                         <button
                           type="button"
-                          onClick={() => handleDeleteReview(rev.id)}
-                          disabled={deletingReviewId === rev.id}
-                          className="ml-auto inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-red-600 hover:bg-red-50 hover:text-red-700 transition cursor-pointer text-xs font-medium border border-red-200 disabled:opacity-50"
-                          title="Hapus Ulasan Anda"
+                          onClick={() => toggleHelpful(rev.id)}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs transition-colors cursor-pointer ${
+                            isHelpful
+                              ? 'bg-[#e2f2c8] text-[#233414] border-[#c9e39e] font-semibold'
+                              : 'bg-white text-[#526046] border-[#dce1d6] hover:bg-[#EAEDE7]'
+                          }`}
                         >
-                          {deletingReviewId === rev.id ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <Trash2 className="w-3.5 h-3.5" />
-                          )}
-                          <span className="text-[11px]">Hapus Ulasan</span>
+                          <ThumbsUp className={`w-3.5 h-3.5 ${isHelpful ? 'fill-[#233414] text-[#233414]' : ''}`} />
+                          <span>Membantu {isHelpful ? '(1)' : ''}</span>
                         </button>
-                      )}
-                    </div>
-
-                    {/* Review Text */}
-                    <p className="text-xs sm:text-[13px] text-[#1a2610] leading-relaxed">
-                      {rev.komentar || 'Pembeli tidak memberikan komentar tertulis.'}
-                    </p>
-
-                    {/* Review Photos */}
-                    {rev.fotoUrl && (
-                      <div className="pt-1">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={rev.fotoUrl}
-                          alt="Foto ulasan"
-                          loading="lazy"
-                          decoding="async"
-                          className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-lg border border-[#dce1d6]"
-                        />
                       </div>
-                    )}
-
-                    {/* Helpful Button */}
-                    <div className="flex items-center gap-2 pt-1 text-[11px] text-[#5b6950]">
-                      <button
-                        type="button"
-                        onClick={() => toggleHelpful(rev.id)}
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs transition-colors cursor-pointer ${
-                          isHelpful
-                            ? 'bg-[#e2f2c8] text-[#233414] border-[#c9e39e] font-semibold'
-                            : 'bg-white text-[#526046] border-[#dce1d6] hover:bg-[#EAEDE7]'
-                        }`}
-                      >
-                        <ThumbsUp className={`w-3.5 h-3.5 ${isHelpful ? 'fill-[#233414] text-[#233414]' : ''}`} />
-                        <span>Membantu {isHelpful ? '(1)' : ''}</span>
-                      </button>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+
+              {/* Load More Button */}
+              {hasMore && (
+                <div className="pt-4 pb-1 flex flex-col items-center justify-center gap-2 border-t border-[#EAEDE7]">
+                  <button
+                    type="button"
+                    onClick={handleLoadMore}
+                    disabled={isLoadingMore}
+                    className="w-full sm:w-auto min-w-[220px] inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl border border-[#233414] bg-white hover:bg-[#233414] text-[#233414] hover:text-white text-xs font-bold transition-all shadow-2xs active:scale-[0.98] disabled:opacity-60 cursor-pointer group"
+                  >
+                    {isLoadingMore ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-[#233414] group-hover:text-white" />
+                        <span>Memuat Ulasan...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Muat 10 Ulasan Lainnya</span>
+                        <ChevronDown className="w-3.5 h-3.5 group-hover:translate-y-0.5 transition-transform" />
+                      </>
+                    )}
+                  </button>
+                  <p className="text-[11px] text-[#5b6950]">
+                    Tersisa {filteredReviews.length - visibleCount} ulasan lagi
+                  </p>
+                </div>
+              )}
+
+              {!hasMore && filteredReviews.length > 10 && (
+                <div className="pt-4 text-center border-t border-[#EAEDE7]">
+                  <p className="text-[11px] text-[#5b6950] font-medium">
+                    Semua {filteredReviews.length} ulasan telah ditampilkan
+                  </p>
+                </div>
+              )}
+            </>
           )}
         </div>
       </main>

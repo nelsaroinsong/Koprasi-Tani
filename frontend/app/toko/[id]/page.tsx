@@ -467,7 +467,15 @@ export default function ProductDetailPage({
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    router.back();
+                    if (
+                      typeof window !== 'undefined' &&
+                      window.history.length > 1 &&
+                      (window.history.state?.idx === undefined || window.history.state?.idx > 0)
+                    ) {
+                      router.back();
+                    } else {
+                      router.push('/toko');
+                    }
                   }}
                   className="sm:hidden absolute top-4 left-4 z-20 w-10 h-10 rounded-full bg-white/80 hover:bg-white backdrop-blur-md shadow-xs border border-black/5 flex items-center justify-center text-neutral-800 active:scale-95 transition-all cursor-pointer"
                   aria-label="Kembali"

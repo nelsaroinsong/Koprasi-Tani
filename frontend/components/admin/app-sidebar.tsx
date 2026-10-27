@@ -111,11 +111,11 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
   const [searchQuery, setSearchQuery] = React.useState("")
   const [isEditProfileOpen, setIsEditProfileOpen] = React.useState(false)
 
-  // Collapsible Menu States
+  // Collapsible Menu States (Semua dropdown terbuka secara default saat login ke admin dashboard)
   const [isTransaksiOpen, setIsTransaksiOpen] = React.useState(true)
-  const [isKeanggotaanOpen, setIsKeanggotaanOpen] = React.useState(false)
+  const [isKeanggotaanOpen, setIsKeanggotaanOpen] = React.useState(true)
   const [isKatalogOpen, setIsKatalogOpen] = React.useState(true)
-  const [isKategoriOpen, setIsKategoriOpen] = React.useState(false)
+  const [isKategoriOpen, setIsKategoriOpen] = React.useState(true)
 
   // Auto-expand section if activeTab is inside it
   React.useEffect(() => {
