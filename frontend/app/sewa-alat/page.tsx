@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import AppHeader from '@/components/AppHeader';
 import LocationMapPreview from '@/components/LocationMapPreview';
+import CustomDatePicker from '@/components/ui/CustomDatePicker';
 import {
   Tractor,
   ArrowRight,
@@ -842,23 +843,23 @@ function SewaAlatContent() {
 
       {/* DIALOG 2: SHORTCUT QUICK BOOKING MODAL (DARI TOMBOL CARD) */}
       <Dialog open={isBookingOpen} onOpenChange={setIsBookingOpen}>
-        <DialogContent className="max-w-lg max-h-[92vh] overflow-y-auto p-5 sm:p-6 rounded-3xl bg-white border border-[#dce1d6]">
-          <DialogHeader>
-            <DialogTitle className="text-base font-bold text-[#1a2610] flex items-center justify-between">
+        <DialogContent className="max-w-lg w-full max-h-[92dvh] sm:max-h-[88vh] flex flex-col p-0 overflow-hidden rounded-3xl bg-white border border-[#dce1d6] min-w-0">
+          <DialogHeader className="shrink-0 px-4 sm:px-5 py-3 sm:py-3.5 border-b border-[#dce1d6] bg-white z-10">
+            <DialogTitle className="text-sm sm:text-base font-bold text-[#1a2610] flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Tractor className="w-5 h-5 text-[#233414]" />
-                <span>Pengajuan Sewa Alat Pertanian</span>
+                <Tractor className="w-5 h-5 text-[#233414] shrink-0" />
+                <span className="truncate">Pengajuan Sewa Alat</span>
               </div>
-              {selectedEquipment && (
+              {selectedEquipment && !bookingSuccessResult && (
                 <button
                   type="button"
                   onClick={() => {
                     setIsBookingOpen(false);
                     router.push(`/sewa-alat/${selectedEquipment.id}`);
                   }}
-                  className="text-xs font-semibold text-[#233414] hover:text-[#344d15] hover:underline flex items-center gap-1 cursor-pointer"
+                  className="text-xs font-semibold text-[#233414] hover:text-[#344d15] hover:underline flex items-center gap-1 cursor-pointer shrink-0 ml-2"
                 >
-                  <span>Halaman Info</span>
+                  <span>Info Detail</span>
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               )}
@@ -866,8 +867,9 @@ function SewaAlatContent() {
           </DialogHeader>
 
           {selectedEquipment && !bookingSuccessResult && (
-            <form onSubmit={handleSubmitBooking} className="space-y-4 text-xs mt-2">
-              {/* Info Unit Terpilih */}
+            <form onSubmit={handleSubmitBooking} className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden text-xs">
+              <div className="flex-1 overflow-y-auto px-4 sm:px-5 py-3.5 space-y-4 min-w-0 max-w-full">
+                {/* Info Unit Terpilih */}
               <div className="p-3 bg-[#f4f5f1] border border-[#dce1d6] rounded-2xl flex items-center gap-3">
                 <div className="w-12 h-12 rounded-xl bg-white overflow-hidden shrink-0 border border-[#cfd6c9]">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -897,19 +899,13 @@ function SewaAlatContent() {
               </div>
 
               {/* Tanggal, Durasi, dan Jumlah Unit */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                <div>
-                  <label className="block font-bold text-[#1a2610] mb-1">
-                    Mulai Tanggal <span className="text-[#c4242a]">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full px-2.5 py-2 bg-[#f4f5f1] border border-[#cfd6c9] rounded-xl text-[#1a2610] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#233414] focus:border-[#233414] font-semibold"
-                  />
-                </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 items-start">
+                <CustomDatePicker
+                  label="Mulai Tanggal"
+                  required
+                  value={startDate}
+                  onChange={setStartDate}
+                />
 
                 <div>
                   <label className="block font-bold text-[#1a2610] mb-1">
@@ -1035,8 +1031,9 @@ function SewaAlatContent() {
                   </span>
                 </div>
               </div>
+              </div>
 
-              <DialogFooter className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+              <DialogFooter className="shrink-0 px-4 sm:px-5 py-3 border-t border-[#dce1d6] bg-white/95 backdrop-blur-sm z-10 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pb-[max(14px,env(safe-area-inset-bottom))]">
                 <button
                   type="button"
                   onClick={handleAddQuickToCart}
@@ -1078,7 +1075,7 @@ function SewaAlatContent() {
 
           {/* Sukses Booking Dialog */}
           {bookingSuccessResult && (
-            <div className="py-6 text-center space-y-3">
+            <div className="flex-1 overflow-y-auto px-5 py-8 text-center space-y-3 pb-[max(16px,env(safe-area-inset-bottom))]">
               <div className="w-12 h-12 rounded-2xl bg-[#e2f2c8] border border-[#c9e39e] text-[#233414] flex items-center justify-center mx-auto">
                 <CheckCircle2 className="w-6 h-6" />
               </div>

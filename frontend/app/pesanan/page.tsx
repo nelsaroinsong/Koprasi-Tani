@@ -28,6 +28,7 @@ import {
   ExternalLink,
   Star,
   X,
+  Banknote,
   Tractor,
   Truck,
   FileText,
@@ -406,52 +407,59 @@ Mohon info kesiapan fisik komoditas di gudang koperasi. Terima kasih.`;
     switch (status) {
       case 'MENUNGGU_PERSETUJUAN_ADMIN':
         return {
-          label: 'Menunggu Persetujuan',
-          badgeClass: 'bg-amber-50 text-amber-900 border-amber-200/80',
+          label: 'Menunggu Verifikasi Admin',
+          badgeClass: 'bg-amber-50 text-amber-900 border-amber-300 font-bold',
           dotClass: 'bg-amber-500',
-          hint: 'Pengajuan sewa alat Anda sedang ditinjau oleh staf / pengurus Koperasi Sinar Pagi Sejahtera.',
+          hint: 'Pengajuan sewa alat Anda sedang diverifikasi pengurus koperasi. Unit resmi terkunci setelah diverifikasi dan dilunasi tunai di kasir kantor koperasi.',
         };
       case 'DISETUJUI':
         return {
-          label: 'Disetujui Admin',
-          badgeClass: 'bg-emerald-50 text-emerald-900 border-emerald-200/80',
-          dotClass: 'bg-emerald-500',
-          hint: 'Pengajuan sewa telah disetujui! Unit mesin sedang disiapkan dan dicek oleh tim operasional.',
+          label: 'Menunggu Bayar di Kasir',
+          badgeClass: 'bg-blue-50 text-blue-900 border-blue-300 font-bold',
+          dotClass: 'bg-blue-600',
+          hint: 'Pengajuan telah disetujui pengurus! Harap segera datang ke kantor koperasi untuk pelunasan tunai di kasir sebelum batas waktu pembayaran agar reservasi tidak hangus.',
         };
       case 'SIAP_DIAMBIL':
         return {
-          label: 'Siap Diambil di Koperasi',
-          badgeClass: 'bg-[#233414]/10 text-[#233414] border-[#233414]/20',
-          dotClass: 'bg-[#233414]',
-          hint: 'Unit alat pertanian siap diambil di gudang/kantor koperasi. Tunjukkan nomor sewa ke pengurus.',
+          label: 'Lunas Tunai • Siap Diambil',
+          badgeClass: 'bg-emerald-50 text-emerald-900 border-emerald-300 font-bold',
+          dotClass: 'bg-emerald-600',
+          hint: 'Pembayaran tunai telah diterima kasir koperasi. Unit mesin resmi terkunci untuk Anda dan siap diambil di pool alsintan.',
         };
       case 'SEDANG_DISEWA':
         return {
           label: 'Sedang Digunakan di Lahan',
-          badgeClass: 'bg-[#344d15]/10 text-[#344d15] border-[#344d15]/20',
-          dotClass: 'bg-[#344d15]',
-          hint: 'Unit alat sedang aktif dalam masa sewa di lokasi lahan pertanian Anda.',
+          badgeClass: 'bg-purple-50 text-purple-900 border-purple-300 font-bold',
+          dotClass: 'bg-purple-600',
+          hint: 'Unit alat sedang aktif dalam masa pemakaian operasional di lahan perkebunan Anda.',
         };
       case 'SELESAI':
         return {
           label: 'Sewa Selesai & Kembali',
-          badgeClass: 'bg-green-50 text-green-800 border-green-200',
-          dotClass: 'bg-green-600',
+          badgeClass: 'bg-[#EAEDE7] text-[#1a2610] border-[#cfd6c9] font-bold',
+          dotClass: 'bg-[#233414]',
           hint: 'Masa sewa selesai dan fisik alat telah dikembalikan dalam kondisi baik ke koperasi.',
+        };
+      case 'KADALUARSA':
+        return {
+          label: 'Batas Waktu Bayar Habis',
+          badgeClass: 'bg-rose-50 text-rose-800 border-rose-200 font-bold',
+          dotClass: 'bg-rose-500',
+          hint: 'Batas waktu pembayaran tunai di kasir telah terlewati tanpa pelunasan. Slot reservasi unit telah dialihkan otomatis.',
         };
       case 'DIBATALKAN':
         return {
           label: 'Dibatalkan',
-          badgeClass: 'bg-rose-50 text-rose-800 border-rose-200',
-          dotClass: 'bg-rose-500',
+          badgeClass: 'bg-stone-50 text-stone-700 border-stone-200 font-bold',
+          dotClass: 'bg-stone-400',
           hint: 'Pengajuan sewa alat ini telah dibatalkan oleh pemohon.',
         };
       case 'DITOLAK':
         return {
           label: 'Pengajuan Ditolak',
-          badgeClass: 'bg-rose-50 text-rose-800 border-rose-200',
+          badgeClass: 'bg-rose-50 text-rose-800 border-rose-200 font-bold',
           dotClass: 'bg-rose-500',
-          hint: 'Pengajuan belum dapat disetujui karena jadwal tumpang tindih atau kuota unit penuh.',
+          hint: 'Pengajuan belum dapat disetujui karena jadwal pemakaian tumpang tindih atau kondisi alat sedang perbaikan.',
         };
       default:
         return {
@@ -1056,6 +1064,53 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
                               </span>
                             </div>
                           </div>
+
+                          {/* Banner Khusus Status Pembayaran Kasir */}
+                          {rental.status === 'DISETUJUI' && (
+                            <div className="p-3 sm:p-4 bg-blue-50 border border-blue-200/90 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
+                              <div className="flex items-start sm:items-center gap-2.5">
+                                <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                                  <Banknote className="w-4 h-4" />
+                                </div>
+                                <div className="space-y-0.5">
+                                  <span className="font-bold text-blue-950 block">
+                                    Pengajuan Disetujui • Menunggu Pembayaran di Kasir Koperasi
+                                  </span>
+                                  <span className="text-blue-800 text-[11px] block leading-relaxed">
+                                    {rental.paymentDeadline ? (
+                                      <>
+                                        Harap selesaikan pembayaran tunai sebelum:{' '}
+                                        <strong className="text-blue-950">
+                                          {new Date(rental.paymentDeadline).toLocaleString('id-ID', {
+                                            day: 'numeric',
+                                            month: 'short',
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                          })}{' '}
+                                          WITA
+                                        </strong>{' '}
+                                        agar slot unit resmi terkunci.
+                                      </>
+                                    ) : (
+                                      'Harap selesaikan pembayaran tunai di kasir kantor koperasi Kolongan hari ini sebelum 16:30 WITA.'
+                                    )}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="text-[11px] font-bold text-blue-900 bg-white/90 border border-blue-200 px-3 py-1.5 rounded-xl self-start sm:self-auto shrink-0 shadow-2xs">
+                                📍 Kasir Kantor Koperasi (Kolongan)
+                              </div>
+                            </div>
+                          )}
+
+                          {rental.status === 'KADALUARSA' && (
+                            <div className="p-3 bg-rose-50 border border-rose-200 rounded-2xl flex items-center gap-2.5 text-xs text-rose-800">
+                              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                              <span className="text-[11px] leading-relaxed">
+                                Pengajuan sewa ini <strong>kadaluarsa</strong> karena melewati batas waktu pembayaran tunai di kasir tanpa pelunasan. Unit mesin telah dibuka kembali untuk anggota lain.
+                              </span>
+                            </div>
+                          )}
 
                           {/* Rental Items List */}
                           <div className="space-y-2 sm:space-y-2.5">

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import AppHeader from '@/components/AppHeader';
 import SlideCommit from '@/components/ui/SlideCommit';
 import LocationMapPreview from '@/components/LocationMapPreview';
+import CustomDatePicker from '@/components/ui/CustomDatePicker';
 import {
   Tractor,
   Calendar,
@@ -18,6 +19,8 @@ import {
   ArrowLeft,
   ArrowRight,
   ExternalLink,
+  Banknote,
+  Building2,
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
@@ -229,13 +232,14 @@ ${
     ? `*Titik GPS Lahan:* ${gps.lat.toFixed(6)}, ${gps.lng.toFixed(6)}\nMaps: https://www.google.com/maps?q=${gps.lat},${gps.lng}\n`
     : ''
 }*Total Biaya Estimasi:* Rp ${Number(totalAmount).toLocaleString('id-ID')}
-*Status:* Menunggu Persetujuan Admin Koperasi
+*Status:* ⏳ Menunggu Persetujuan Admin Koperasi
+*Metode Pembayaran:* Tunai di Kasir Kantor Koperasi (Kolongan)
 
 Daftar Alat Mesin:
 ${itemsSummary || '-'}
 
 ${notes ? `*Catatan Kebutuhan:* ${notes}\n` : ''}
-Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
+*Komitmen:* Saya siap datang ke kasir kantor koperasi untuk pembayaran tunai setelah disetujui agar unit alat resmi terkunci. Terima kasih!`;
 
     window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank');
   };
@@ -447,11 +451,26 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
                 </div>
               </div>
 
+              {/* Petunjuk Pembayaran Kasir Koperasi */}
+              <div className="p-3 bg-[#f8faf4] border border-[#dce6d2] rounded-2xl space-y-1.5 text-left">
+                <div className="flex items-center gap-1.5 text-[#233414] font-bold text-xs">
+                  <Banknote className="w-3.5 h-3.5 shrink-0 text-[#344d15]" />
+                  <span>Pembayaran Tunai di Kasir Koperasi</span>
+                </div>
+                <p className="text-[11px] text-[#425234] leading-relaxed">
+                  Pengajuan ini berstatus <strong>reservasi sementara</strong>. Setelah disetujui admin, harap kunjungi kasir kantor koperasi di Kolongan sebelum batas waktu pembayaran untuk pelunasan tunai agar unit resmi terkunci.
+                </p>
+                <div className="text-[10px] font-semibold text-[#526046] flex items-center gap-1 pt-0.5">
+                  <Clock className="w-3 h-3 text-[#344d15]" />
+                  <span>Jam Layanan Kasir: 08:00 – 16:30 WITA</span>
+                </div>
+              </div>
+
               {/* Status Badge */}
               <div className="flex items-center justify-center pt-0.5 pb-2">
-                <span className="px-2.5 py-0.5 bg-[#e2f2c8] text-[#233414] border border-[#c9e39e] rounded-full text-[10px] font-black uppercase tracking-wider inline-flex items-center gap-1">
-                  <Clock className="w-3 h-3 text-[#233414]" />
-                  <span>Menunggu Persetujuan Admin Koperasi</span>
+                <span className="px-2.5 py-1 bg-amber-50 text-amber-900 border border-amber-200 rounded-full text-[10px] font-black uppercase tracking-wider inline-flex items-center gap-1.5 shadow-2xs">
+                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                  <span>Reservasi Sementara • Menunggu ACC & Batas Bayar</span>
                 </span>
               </div>
             </div>
@@ -584,7 +603,7 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
       {/* Spacer placeholder mode mobile agar konten tidak tertutup fixed navbar */}
       <div className="sm:hidden h-14 shrink-0 pointer-events-none" aria-hidden="true" />
 
-      <main className="flex-1 max-w-[1440px] w-full mx-auto px-3.5 sm:px-8 lg:px-12 py-3.5 sm:py-6 lg:py-8 space-y-4 sm:space-y-6">
+      <main className="flex-1 max-w-[1440px] w-full mx-auto px-3.5 sm:px-8 lg:px-12 py-3.5 sm:py-6 lg:py-8 space-y-4 sm:space-y-6 pb-32 lg:pb-12 min-w-0">
         {/* Desktop Compact Back Link */}
         <div className="hidden sm:flex items-center justify-between pb-1">
           <Link
@@ -604,9 +623,9 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
         </div>
 
         {/* 2-Column Responsive Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-start min-w-0 max-w-full">
           {/* Kolom Kiri: Daftar Alat & Formulir Jadwal/Lahan */}
-          <div className="lg:col-span-7 xl:col-span-8 space-y-4 sm:space-y-5">
+          <div className="lg:col-span-7 xl:col-span-8 space-y-4 sm:space-y-5 min-w-0 max-w-full">
             {/* 1. Daftar Unit Alat Yang Diajukan */}
             <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#dce1d6] p-4 sm:p-6">
               <div className="flex items-center justify-between pb-3 border-b border-[#EAEDE7]">
@@ -688,19 +707,13 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
               </div>
 
               {/* Input Tanggal & Patokan dalam Grid Responsif */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                <div>
-                  <label className="block text-[11px] font-bold text-[#526046] uppercase tracking-wider mb-1.5">
-                    Mulai Tanggal Pakai <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={rentalStartDate}
-                    onChange={(e) => setRentalStartDate(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-[#f4f5f1] border border-[#dce1d6] rounded-xl focus:bg-white focus:outline-none focus:border-[#233414] font-semibold text-xs sm:text-sm text-[#1a2610] transition tabular-nums"
-                  />
-                </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 items-start">
+                <CustomDatePicker
+                  label="Mulai Tanggal Pakai"
+                  required
+                  value={rentalStartDate}
+                  onChange={setRentalStartDate}
+                />
 
                 <div>
                   <label className="block text-[11px] font-bold text-[#526046] uppercase tracking-wider mb-1.5">
@@ -779,6 +792,21 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
                 </div>
               </div>
 
+              {/* Info Kasir Koperasi & Kunci Stok */}
+              <div className="p-3 bg-[#f8faf4] border border-[#dce6d2] rounded-xl space-y-2 text-xs">
+                <div className="flex items-center gap-1.5 font-bold text-[#233414]">
+                  <Banknote className="w-4 h-4 text-[#344d15]" />
+                  <span>Ketentuan Pembayaran Kasir</span>
+                </div>
+                <p className="text-[11px] text-[#425234] leading-relaxed">
+                  Pembayaran wajib <strong>tunai di kasir kantor koperasi</strong>. Pengajuan ini berstatus <strong>reservasi sementara</strong>. Unit mesin resmi terkunci setelah diverifikasi admin dan Anda melunasi pembayaran di kasir sebelum batas waktu habis.
+                </p>
+                <div className="flex items-center gap-2 text-[10px] text-[#526046] font-semibold pt-1 border-t border-[#e2ebd6]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#344d15]" />
+                  <span>Lokasi: Kantor Koperasi Kolongan (08:00 – 16:30 WITA)</span>
+                </div>
+              </div>
+
               <div className="border-t border-[#EAEDE7] pt-3.5 flex justify-between items-baseline">
                 <span className="text-xs sm:text-sm font-bold text-[#526046]">
                   Total Estimasi Biaya
@@ -836,8 +864,8 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
         </div>
       </main>
 
-      {/* Mobile Sticky Bottom Bar (Memudahkan jempol di layar HP) */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#dce1d6] px-3.5 pt-2.5 pb-3 shadow-[0_-8px_24px_rgba(0,0,0,0.06)]">
+      {/* Mobile Sticky Bottom Bar (Memudahkan jempol di layar HP & aman dari home indicator) */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#dce1d6] px-3.5 pt-2.5 pb-[max(14px,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(0,0,0,0.06)]">
         <div className="max-w-lg mx-auto space-y-2">
           <div className="flex items-center justify-between px-1">
             <div>

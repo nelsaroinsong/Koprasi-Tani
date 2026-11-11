@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import AppHeader from '@/components/AppHeader';
 import LocationMapPreview from '@/components/LocationMapPreview';
+import CustomDatePicker from '@/components/ui/CustomDatePicker';
 import {
   Tractor,
   Calendar,
@@ -1089,66 +1090,64 @@ export default function EquipmentDetailPage({
         open={isDirectCheckoutOpen}
         onOpenChange={setIsDirectCheckoutOpen}
       >
-        <DialogContent className="max-w-md p-5 sm:p-6 rounded-2xl bg-white border border-[#dce1d6]">
-          <DialogHeader>
-            <DialogTitle className="text-base font-bold text-[#1a2610] flex items-center gap-2">
-              <Tractor className="w-5 h-5 text-[#233414]" />
-              <span>Konfirmasi Sewa: {equipment.nama}</span>
+        <DialogContent className="max-w-lg w-full max-h-[92dvh] sm:max-h-[88vh] flex flex-col p-0 overflow-hidden rounded-3xl bg-white border border-[#dce1d6] min-w-0">
+          <DialogHeader className="shrink-0 px-4 sm:px-5 py-3 sm:py-3.5 border-b border-[#dce1d6] bg-white z-10">
+            <DialogTitle className="text-sm sm:text-base font-bold text-[#1a2610] flex items-center gap-2">
+              <Tractor className="w-5 h-5 text-[#233414] shrink-0" />
+              <span className="truncate">Konfirmasi Sewa: {equipment.nama}</span>
             </DialogTitle>
           </DialogHeader>
 
-          <form onSubmit={handleDirectSubmit} className="space-y-3.5 text-xs mt-2">
-            <div>
-              <label className="block font-bold text-[#1a2610] mb-1">
-                Mulai Tanggal Penggunaan <span className="text-[#c4242a]">*</span>
-              </label>
-              <input
-                type="date"
+          <form onSubmit={handleDirectSubmit} className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden text-xs">
+            {/* Scrollable Body Modal */}
+            <div className="flex-1 overflow-y-auto px-4 sm:px-5 py-3.5 space-y-3.5 min-w-0 max-w-full">
+              <CustomDatePicker
+                label="Mulai Tanggal Penggunaan"
                 required
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full px-3 py-2 bg-[#f4f5f1] border border-[#cfd6c9] rounded-xl text-[#1a2610] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#233414] focus:border-[#233414] font-semibold"
+                onChange={setStartDate}
               />
-            </div>
 
-            {/* Lokasi Lahan Kebun dengan Preview Maps & Deteksi GPS */}
-            <LocationMapPreview
-              value={lokasiLahan}
-              onChange={setLokasiLahan}
-              required={false}
-            />
-
-            <div>
-              <label className="block font-bold text-[#1a2610] mb-1">
-                Catatan Tambahan
-              </label>
-              <textarea
-                rows={2}
-                value={catatan}
-                onChange={(e) => setCatatan(e.target.value)}
-                placeholder="Informasi kondisi tanah, jam operasional, atau implemen tambahan..."
-                className="w-full px-3 py-2 bg-[#f4f5f1] border border-[#cfd6c9] rounded-xl text-[#1a2610] placeholder:text-[#68785b] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#233414] focus:border-[#233414]"
+              {/* Lokasi Lahan Kebun dengan Preview Maps & Deteksi GPS */}
+              <LocationMapPreview
+                value={lokasiLahan}
+                onChange={setLokasiLahan}
+                required={false}
               />
+
+              <div>
+                <label className="block font-bold text-[#1a2610] mb-1">
+                  Catatan Tambahan
+                </label>
+                <textarea
+                  rows={2}
+                  value={catatan}
+                  onChange={(e) => setCatatan(e.target.value)}
+                  placeholder="Informasi kondisi tanah, jam operasional, atau implemen tambahan..."
+                  className="w-full px-3 py-2 bg-[#f4f5f1] border border-[#cfd6c9] rounded-xl text-[#1a2610] placeholder:text-[#68785b] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#233414] focus:border-[#233414]"
+                />
+              </div>
+
+              <div className="p-3 bg-[#e2f2c8]/60 border border-[#c9e39e] rounded-xl space-y-1">
+                <div className="flex justify-between font-bold text-[#1a2610]">
+                  <span>Rincian:</span>
+                  <span>
+                    {jumlahUnit} unit • {durasi} {equipment.satuanSewa}
+                  </span>
+                </div>
+                <div className="flex justify-between font-black text-sm text-[#233414] pt-1 border-t border-[#c9e39e] tabular-nums">
+                  <span>Total Estimasi:</span>
+                  <span>Rp {calculatedTotal.toLocaleString('id-ID')}</span>
+                </div>
+              </div>
             </div>
 
-            <div className="p-3 bg-[#e2f2c8]/60 border border-[#c9e39e] rounded-xl space-y-1">
-              <div className="flex justify-between font-bold text-[#1a2610]">
-                <span>Rincian:</span>
-                <span>
-                  {jumlahUnit} unit • {durasi} {equipment.satuanSewa}
-                </span>
-              </div>
-              <div className="flex justify-between font-black text-sm text-[#233414] pt-1 border-t border-[#c9e39e] tabular-nums">
-                <span>Total Estimasi:</span>
-                <span>Rp {calculatedTotal.toLocaleString('id-ID')}</span>
-              </div>
-            </div>
-
-            <DialogFooter className="pt-2 flex items-center justify-end gap-2">
+            {/* Sticky Action Footer (Aman dari Safari bottom bar) */}
+            <DialogFooter className="shrink-0 px-4 sm:px-5 py-3 border-t border-[#dce1d6] bg-white/95 backdrop-blur-sm z-10 flex items-center justify-end gap-2 pb-[max(14px,env(safe-area-inset-bottom))]">
               <button
                 type="button"
                 onClick={() => setIsDirectCheckoutOpen(false)}
-                className="py-2 px-3 border border-[#cfd6c9] bg-white hover:bg-[#EAEDE7] text-[#526046] rounded-xl font-semibold transition-colors cursor-pointer"
+                className="py-2.5 px-3.5 border border-[#cfd6c9] bg-white hover:bg-[#EAEDE7] text-[#526046] rounded-xl font-semibold transition-colors cursor-pointer"
               >
                 Batal
               </button>
@@ -1159,7 +1158,7 @@ export default function EquipmentDetailPage({
                   (Boolean(lokasiLahan) &&
                     !validateMinahasaUtaraAddress(lokasiLahan, true).isValid)
                 }
-                className={`py-2 px-4 rounded-xl font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-60 ${
+                className={`py-2.5 px-4 rounded-xl font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-60 ${
                   Boolean(lokasiLahan) &&
                   !validateMinahasaUtaraAddress(lokasiLahan, true).isValid
                     ? 'bg-red-800 text-white cursor-not-allowed'

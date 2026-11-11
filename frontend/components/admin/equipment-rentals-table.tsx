@@ -64,22 +64,23 @@ const HATCHED_BG_STYLE: React.CSSProperties = {
 const STATUS_TABS: { key: string; label: string; dot: string }[] = [
   { key: 'ALL', label: 'Semua', dot: 'bg-slate-400' },
   { key: 'MENUNGGU_PERSETUJUAN_ADMIN', label: 'Perlu Approval', dot: 'bg-amber-500' },
-  { key: 'DISETUJUI', label: 'Disetujui', dot: 'bg-blue-500' },
-  { key: 'SIAP_DIAMBIL', label: 'Siap Diambil', dot: 'bg-indigo-500' },
+  { key: 'DISETUJUI', label: 'Menunggu Bayar Kasir', dot: 'bg-blue-500' },
+  { key: 'SIAP_DIAMBIL', label: 'Siap Diambil (Lunas)', dot: 'bg-indigo-500' },
   { key: 'SEDANG_DISEWA', label: 'Sedang Dipakai', dot: 'bg-purple-500' },
   { key: 'SELESAI', label: 'Selesai', dot: 'bg-emerald-500' },
+  { key: 'KADALUARSA', label: 'Batas Bayar Lewat', dot: 'bg-rose-400' },
   { key: 'DITOLAK', label: 'Ditolak / Batal', dot: 'bg-rose-500' },
 ];
 
 /**
  * Komponen Timeline 4-Tahap Alur Sewa Alat (Persis Toko / Shipment Event)
  * Tahap 1: Diajukan (FileText)
- * Tahap 2: Disetujui (ShieldCheck) - atau Ditolak (XCircle)
- * Tahap 3: Siap Diambil / Di Pool Koperasi (Tractor)
+ * Tahap 2: Disetujui & Diberikan Batas Bayar (ShieldCheck) - atau Ditolak/Kadaluarsa (XCircle)
+ * Tahap 3: Lunas Tunai Kasir & Siap Diambil (Tractor)
  * Tahap 4: Selesai & Kembali (Check)
  */
 function RentalEventTimeline({ status }: { status: EquipmentRentalStatus }) {
-  const isRejected = status === 'DITOLAK' || status === 'DIBATALKAN';
+  const isRejected = status === 'DITOLAK' || status === 'DIBATALKAN' || status === 'KADALUARSA';
 
   let stepLevel = 1;
   if (status === 'DISETUJUI') stepLevel = 2;
@@ -89,8 +90,8 @@ function RentalEventTimeline({ status }: { status: EquipmentRentalStatus }) {
   const milestones = [
     { num: 1, label: 'Diajukan', icon: FileText },
     { num: 2, label: 'Disetujui', icon: ShieldCheck },
-    { num: 3, label: 'Siap Diambil', icon: Tractor },
-    { num: 4, label: 'Selesai', icon: Check },
+    { num: 3, label: 'Lunas Kasir & Siap', icon: Tractor },
+    { num: 4, label: 'Selesai & Kembali', icon: Check },
   ];
 
   return (
@@ -174,6 +175,18 @@ export function EquipmentRentalsTable() {
   // Selected Rental for Detail Modal
   const [selectedRental, setSelectedRental] = useState<EquipmentRentalOrder | null>(null);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+
+  // Modal Persetujuan Sewa & Penetapan Batas Bayar Kasir
+  const [rentalToApprove, setRentalToApprove] = useState<EquipmentRentalOrder | null>(null);
+  const [deadlineChoice, setDeadlineChoice] = useState<'today_1630' | '2_hours' | 'tomorrow_1630' | 'custom'>('today_1630');
+  const [customDeadlineDate, setCustomDeadlineDate] = useState<string>('');
+
+  // Modal Kasir: Terima Tunai & Kunci Unit
+  const [rentalForCashier, setRentalForCashier] = useState<EquipmentRentalOrder | null>(null);
+  const [cashierNotes, setCashierNotes] = useState<string>('Pelunasan tunai di loket kasir kantor koperasi');
+
+  // Modal Cetak Kuitansi Kasir
+  const [rentalForReceipt, setRentalForReceipt] = useState<EquipmentRentalOrder | null>(null);
 
   const debouncedSearch = useDebounce(searchQuery, 300);
   const headerCheckboxRef = useRef<HTMLInputElement>(null);
@@ -271,6 +284,7 @@ export function EquipmentRentalsTable() {
     let ready = 0;
     let rented = 0;
     let completed = 0;
+    let expired = 0;
     let rejected = 0;
 
     for (const r of rentals) {
@@ -279,10 +293,11 @@ export function EquipmentRentalsTable() {
       else if (r.status === 'SIAP_DIAMBIL') ready++;
       else if (r.status === 'SEDANG_DISEWA') rented++;
       else if (r.status === 'SELESAI') completed++;
+      else if (r.status === 'KADALUARSA') expired++;
       else if (r.status === 'DITOLAK' || r.status === 'DIBATALKAN') rejected++;
     }
 
-    return { total, pendingApproval, approved, ready, rented, completed, rejected };
+    return { total, pendingApproval, approved, ready, rented, completed, expired, rejected };
   }, [rentals]);
 
   // Pagination calculation
@@ -382,7 +397,13 @@ export function EquipmentRentalsTable() {
   // Update Status Pengajuan Sewa
   const handleUpdateStatus = async (
     rentalId: string,
-    newStatus: EquipmentRentalStatus
+    newStatus: EquipmentRentalStatus,
+    extraData?: {
+      isPaid?: boolean;
+      paymentDeadline?: string;
+      cashierNotes?: string;
+      rejectedReason?: string;
+    }
   ) => {
     try {
       setIsUpdatingStatus(true);
@@ -392,6 +413,7 @@ export function EquipmentRentalsTable() {
         body: JSON.stringify({
           id: rentalId,
           status: newStatus,
+          ...extraData,
         }),
       });
 
@@ -413,6 +435,58 @@ export function EquipmentRentalsTable() {
     }
   };
 
+  // Helper menghitung ISO deadline bayar kasir
+  const computeDeadlineIso = (choice: string, customVal?: string) => {
+    const now = new Date();
+    if (choice === '2_hours') {
+      return new Date(now.getTime() + 2 * 60 * 60 * 1000).toISOString();
+    }
+    if (choice === 'today_1630') {
+      const today1630 = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 16, 30, 0);
+      if (today1630.getTime() <= now.getTime()) {
+        return new Date(now.getTime() + 4 * 60 * 60 * 1000).toISOString();
+      }
+      return today1630.toISOString();
+    }
+    if (choice === 'tomorrow_1630') {
+      const tomorrow1630 = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 16, 30, 0);
+      return tomorrow1630.toISOString();
+    }
+    if (choice === 'custom' && customVal) {
+      const parsed = new Date(customVal);
+      if (!isNaN(parsed.getTime())) {
+        return parsed.toISOString();
+      }
+    }
+    return new Date(now.getTime() + 4 * 60 * 60 * 1000).toISOString();
+  };
+
+  const handleConfirmApproval = async () => {
+    if (!rentalToApprove) return;
+    const deadlineIso = computeDeadlineIso(deadlineChoice, customDeadlineDate);
+    await handleUpdateStatus(rentalToApprove.id, 'DISETUJUI', {
+      paymentDeadline: deadlineIso,
+    });
+    setRentalToApprove(null);
+  };
+
+  const handleConfirmCashierPayment = async () => {
+    if (!rentalForCashier) return;
+    const target = rentalForCashier;
+    await handleUpdateStatus(target.id, 'SIAP_DIAMBIL', {
+      isPaid: true,
+      cashierNotes,
+    });
+    setRentalForCashier(null);
+    setRentalForReceipt({
+      ...target,
+      status: 'SIAP_DIAMBIL',
+      isPaid: true,
+      paidAt: new Date().toISOString(),
+      cashierNotes,
+    });
+  };
+
   // Status Badge Helper persis dengan Toko Online
   const renderStatusBadge = (status: EquipmentRentalStatus) => {
     const config: Record<
@@ -425,12 +499,12 @@ export function EquipmentRentalsTable() {
         dot: 'bg-amber-500',
       },
       DISETUJUI: {
-        label: 'Disetujui',
+        label: 'Menunggu Bayar Kasir',
         cls: 'bg-blue-50 text-blue-700 border-blue-200',
         dot: 'bg-blue-500',
       },
       SIAP_DIAMBIL: {
-        label: 'Siap Diambil',
+        label: 'Siap Diambil (Lunas)',
         cls: 'bg-indigo-50 text-indigo-700 border-indigo-200',
         dot: 'bg-indigo-500',
       },
@@ -444,6 +518,11 @@ export function EquipmentRentalsTable() {
         cls: 'bg-emerald-50 text-emerald-700 border-emerald-200',
         dot: 'bg-emerald-500',
       },
+      KADALUARSA: {
+        label: 'Batas Bayar Lewat',
+        cls: 'bg-rose-50 text-rose-700 border-rose-200',
+        dot: 'bg-rose-500',
+      },
       DITOLAK: {
         label: 'Ditolak',
         cls: 'bg-rose-50 text-rose-700 border-rose-200',
@@ -451,8 +530,8 @@ export function EquipmentRentalsTable() {
       },
       DIBATALKAN: {
         label: 'Dibatalkan',
-        cls: 'bg-rose-50 text-rose-700 border-rose-200',
-        dot: 'bg-rose-500',
+        cls: 'bg-stone-50 text-stone-700 border-stone-200',
+        dot: 'bg-stone-400',
       },
     };
 
@@ -737,6 +816,7 @@ export function EquipmentRentalsTable() {
               if (tab.key === 'SIAP_DIAMBIL') count = stats.ready;
               if (tab.key === 'SEDANG_DISEWA') count = stats.rented;
               if (tab.key === 'SELESAI') count = stats.completed;
+              if (tab.key === 'KADALUARSA') count = stats.expired;
               if (tab.key === 'DITOLAK') count = stats.rejected;
 
               return (
@@ -1096,13 +1176,29 @@ export function EquipmentRentalsTable() {
                           ) : (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <button
-                                  type="button"
-                                  className="cursor-pointer hover:opacity-85 transition"
-                                  title="Klik untuk ubah status ke tahap berikutnya"
-                                >
-                                  {renderStatusBadge(rental.status)}
-                                </button>
+                                <div className="space-y-0.5">
+                                  <button
+                                    type="button"
+                                    className="cursor-pointer hover:opacity-85 transition"
+                                    title="Klik untuk ubah status ke tahap berikutnya"
+                                  >
+                                    {renderStatusBadge(rental.status)}
+                                  </button>
+                                  {rental.status === 'DISETUJUI' && rental.paymentDeadline && (
+                                    <div className="flex items-center gap-1 text-[10px]">
+                                      <Clock className="w-2.5 h-2.5 text-slate-400 shrink-0" />
+                                      {new Date(rental.paymentDeadline).getTime() < Date.now() ? (
+                                        <span className="text-rose-600 font-bold bg-rose-50 border border-rose-200 px-1 rounded text-[9.5px]">
+                                          Lewat Batas
+                                        </span>
+                                      ) : (
+                                        <span className="text-blue-700 font-semibold tabular-nums text-[10px]">
+                                          Batas: {new Date(rental.paymentDeadline).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent
                                 align="start"
@@ -1114,21 +1210,21 @@ export function EquipmentRentalsTable() {
 
                                 {rental.status === 'MENUNGGU_PERSETUJUAN_ADMIN' && (
                                   <DropdownMenuItem
-                                    onClick={() => handleUpdateStatus(rental.id, 'DISETUJUI')}
+                                    onClick={() => setRentalToApprove(rental)}
                                     className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-blue-700 hover:bg-blue-50 font-medium"
                                   >
                                     <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
-                                    <span>Setujui (Approve)</span>
+                                    <span>Setujui & Beri Batas Bayar</span>
                                   </DropdownMenuItem>
                                 )}
 
                                 {rental.status === 'DISETUJUI' && (
                                   <DropdownMenuItem
-                                    onClick={() => handleUpdateStatus(rental.id, 'SIAP_DIAMBIL')}
-                                    className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-indigo-700 hover:bg-indigo-50 font-medium"
+                                    onClick={() => setRentalForCashier(rental)}
+                                    className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-emerald-700 hover:bg-emerald-50 font-semibold"
                                   >
-                                    <Tractor className="w-3.5 h-3.5 text-indigo-600" />
-                                    <span>Unit Siap di Koperasi</span>
+                                    <Banknote className="w-3.5 h-3.5 text-emerald-600" />
+                                    <span>Terima Kasir & Kunci Unit</span>
                                   </DropdownMenuItem>
                                 )}
 
@@ -1235,18 +1331,54 @@ export function EquipmentRentalsTable() {
                           </div>
                         </TableCell>
 
-                        {/* 7. Total Tagihan */}
+                        {/* 7. Total Tagihan & Aksi Cepat Kasir */}
                         <TableCell className="py-3 whitespace-nowrap text-right">
                           <div className="text-[12.5px] font-semibold text-slate-900 tabular-nums">
                             Rp {Number(rental.totalEstimasi).toLocaleString('id-ID')}
                           </div>
-                          <div className="text-[11px] font-medium">
+                          <div className="text-[11px] font-medium mt-0.5">
                             {rental.status !== 'DIBATALKAN' && rental.status !== 'DITOLAK' && (rental.isPaid || rental.status === 'SELESAI') ? (
-                              <span className="text-emerald-600">Lunas</span>
+                              <span className="text-emerald-600 font-semibold inline-flex items-center gap-0.5">
+                                <Check className="w-3 h-3" /> Lunas Tunai
+                              </span>
+                            ) : rental.status === 'DISETUJUI' ? (
+                              <span className="text-blue-600 font-semibold">Tunggu Bayar Kasir</span>
+                            ) : rental.status === 'KADALUARSA' ? (
+                              <span className="text-rose-600 font-semibold">Lewat Batas</span>
                             ) : (
                               <span className="text-amber-600">Belum lunas</span>
                             )}
                           </div>
+
+                          {/* Tombol Aksi Cepat Kasir 1-Klik */}
+                          {rental.status === 'DISETUJUI' && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setRentalForCashier(rental);
+                              }}
+                              className="mt-1.5 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] shadow-2xs transition inline-flex items-center gap-1 cursor-pointer"
+                              title="Terima Uang Kasir & Kunci Unit"
+                            >
+                              <Banknote className="w-3.5 h-3.5" />
+                              <span>Terima Kasir</span>
+                            </button>
+                          )}
+                          {rental.status === 'MENUNGGU_PERSETUJUAN_ADMIN' && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setRentalToApprove(rental);
+                              }}
+                              className="mt-1.5 px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] shadow-2xs transition inline-flex items-center gap-1 cursor-pointer"
+                              title="Setujui & Beri Batas Bayar Kasir"
+                            >
+                              <ShieldCheck className="w-3.5 h-3.5" />
+                              <span>Setujui</span>
+                            </button>
+                          )}
                         </TableCell>
 
                         {/* 8. Menu Aksi Tiga Titik */}
@@ -1284,7 +1416,17 @@ export function EquipmentRentalsTable() {
                                 <span>Cetak Surat Jalan / Bukti</span>
                               </DropdownMenuItem>
 
-                              {!['SELESAI', 'DITOLAK', 'DIBATALKAN'].includes(rental.status) && (
+                              {rental.isPaid && (
+                                <DropdownMenuItem
+                                  onClick={() => setRentalForReceipt(rental)}
+                                  className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-emerald-700 hover:bg-emerald-50 font-semibold"
+                                >
+                                  <Banknote className="w-3.5 h-3.5 text-emerald-600" />
+                                  <span>Cetak Kuitansi Kasir</span>
+                                </DropdownMenuItem>
+                              )}
+
+                              {!['SELESAI', 'DITOLAK', 'DIBATALKAN', 'KADALUARSA'].includes(rental.status) && (
                                 <>
                                   <DropdownMenuSeparator className="my-1 border-slate-100" />
                                   <DropdownMenuLabel className="px-2.5 py-1 text-[10px] uppercase font-bold text-slate-400 tracking-wider">
@@ -1293,21 +1435,21 @@ export function EquipmentRentalsTable() {
 
                                   {rental.status === 'MENUNGGU_PERSETUJUAN_ADMIN' && (
                                     <DropdownMenuItem
-                                      onClick={() => handleUpdateStatus(rental.id, 'DISETUJUI')}
+                                      onClick={() => setRentalToApprove(rental)}
                                       className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-blue-700 hover:bg-blue-50 font-medium"
                                     >
                                       <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
-                                      <span>Setujui (Approve)</span>
+                                      <span>Setujui & Batas Bayar</span>
                                     </DropdownMenuItem>
                                   )}
 
                                   {rental.status === 'DISETUJUI' && (
                                     <DropdownMenuItem
-                                      onClick={() => handleUpdateStatus(rental.id, 'SIAP_DIAMBIL')}
-                                      className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-indigo-700 hover:bg-indigo-50 font-medium"
+                                      onClick={() => setRentalForCashier(rental)}
+                                      className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-emerald-700 hover:bg-emerald-50 font-semibold"
                                     >
-                                      <Tractor className="w-3.5 h-3.5 text-indigo-600" />
-                                      <span>Unit Siap di Koperasi</span>
+                                      <Banknote className="w-3.5 h-3.5 text-emerald-600" />
+                                      <span>Terima Kasir & Kunci Unit</span>
                                     </DropdownMenuItem>
                                   )}
 
@@ -1734,6 +1876,17 @@ export function EquipmentRentalsTable() {
                   <span>Cetak Surat Jalan / Bukti</span>
                 </button>
 
+                {selectedRental.isPaid && (
+                  <button
+                    type="button"
+                    onClick={() => setRentalForReceipt(selectedRental)}
+                    className="px-3.5 py-2 text-xs font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                  >
+                    <Banknote className="w-3.5 h-3.5 text-emerald-700" />
+                    <span>Kuitansi Kasir</span>
+                  </button>
+                )}
+
                 <button
                   type="button"
                   onClick={() => setRentalToDelete(selectedRental)}
@@ -1763,24 +1916,24 @@ export function EquipmentRentalsTable() {
                 {selectedRental.status === 'MENUNGGU_PERSETUJUAN_ADMIN' && (
                   <button
                     type="button"
-                    onClick={() => handleUpdateStatus(selectedRental.id, 'DISETUJUI')}
+                    onClick={() => setRentalToApprove(selectedRental)}
                     disabled={isUpdatingStatus}
-                    className="px-3.5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                    className="px-3.5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
                   >
                     <ShieldCheck className="w-3.5 h-3.5" />
-                    <span>Setujui (Approve)</span>
+                    <span>Setujui & Batas Bayar</span>
                   </button>
                 )}
 
                 {selectedRental.status === 'DISETUJUI' && (
                   <button
                     type="button"
-                    onClick={() => handleUpdateStatus(selectedRental.id, 'SIAP_DIAMBIL')}
+                    onClick={() => setRentalForCashier(selectedRental)}
                     disabled={isUpdatingStatus}
-                    className="px-3.5 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                    className="px-3.5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
                   >
-                    <Tractor className="w-3.5 h-3.5" />
-                    <span>Unit Siap di Koperasi</span>
+                    <Banknote className="w-3.5 h-3.5" />
+                    <span>Terima Kasir & Kunci Unit</span>
                   </button>
                 )}
 
@@ -1929,6 +2082,351 @@ export function EquipmentRentalsTable() {
                   <span>Hapus Data</span>
                 </>
               )}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal 1: Persetujuan Sewa & Penetapan Batas Bayar Kasir */}
+      <Dialog
+        open={Boolean(rentalToApprove)}
+        onOpenChange={(open) => {
+          if (!open) setRentalToApprove(null);
+        }}
+      >
+        <DialogContent className="max-w-md w-full p-0 overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-2xl">
+          <div className="p-5 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center">
+                <ShieldCheck className="w-5 h-5" />
+              </div>
+              <div>
+                <DialogTitle className="text-sm font-bold text-slate-900">
+                  Persetujuan Sewa & Batas Bayar Kasir
+                </DialogTitle>
+                <p className="text-[11px] text-slate-500">
+                  No. Pengajuan #{rentalToApprove?.rentalCode}
+                </p>
+              </div>
+            </div>
+            <DialogClose className="w-8 h-8 rounded-lg hover:bg-slate-200/60 flex items-center justify-center text-slate-400 hover:text-slate-700 transition">
+              <X className="w-4 h-4" />
+            </DialogClose>
+          </div>
+
+          <div className="p-5 space-y-4 text-xs">
+            {/* Info Pemohon & Biaya */}
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 space-y-1.5">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Nama Pemohon:</span>
+                <span className="font-semibold text-slate-800">{rentalToApprove?.userName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Mulai Tanggal Pakai:</span>
+                <span className="font-semibold text-slate-800">{rentalToApprove?.startDate}</span>
+              </div>
+              <div className="flex justify-between border-t border-slate-200 pt-1.5 font-medium">
+                <span className="text-slate-700">Total Biaya Sewa:</span>
+                <span className="font-bold text-slate-900 tabular-nums">
+                  Rp {Number(rentalToApprove?.totalEstimasi || 0).toLocaleString('id-ID')}
+                </span>
+              </div>
+            </div>
+
+            {/* Pilihan Batas Waktu Bayar Kasir */}
+            <div className="space-y-2">
+              <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                Pilih Batas Waktu Pembayaran di Kasir Koperasi:
+              </label>
+
+              <div className="space-y-2">
+                <label className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition ${deadlineChoice === 'today_1630' ? 'bg-blue-50/70 border-blue-300 ring-1 ring-blue-500/20' : 'bg-white border-slate-200 hover:bg-slate-50'}`}>
+                  <input
+                    type="radio"
+                    name="deadlineChoice"
+                    value="today_1630"
+                    checked={deadlineChoice === 'today_1630'}
+                    onChange={() => setDeadlineChoice('today_1630')}
+                    className="mt-0.5 accent-blue-600"
+                  />
+                  <div>
+                    <span className="font-bold text-slate-900 block">Hari ini pukul 16:30 WITA (Tutup Kasir)</span>
+                    <span className="text-[11px] text-slate-500">Standar operasional loket kasir kantor koperasi harian.</span>
+                  </div>
+                </label>
+
+                <label className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition ${deadlineChoice === '2_hours' ? 'bg-blue-50/70 border-blue-300 ring-1 ring-blue-500/20' : 'bg-white border-slate-200 hover:bg-slate-50'}`}>
+                  <input
+                    type="radio"
+                    name="deadlineChoice"
+                    value="2_hours"
+                    checked={deadlineChoice === '2_hours'}
+                    onChange={() => setDeadlineChoice('2_hours')}
+                    className="mt-0.5 accent-blue-600"
+                  />
+                  <div>
+                    <span className="font-bold text-slate-900 block">2 Jam dari Sekarang (Cepat)</span>
+                    <span className="text-[11px] text-slate-500">Cocok untuk jadwal sewa mendesak atau hari ini juga.</span>
+                  </div>
+                </label>
+
+                <label className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition ${deadlineChoice === 'tomorrow_1630' ? 'bg-blue-50/70 border-blue-300 ring-1 ring-blue-500/20' : 'bg-white border-slate-200 hover:bg-slate-50'}`}>
+                  <input
+                    type="radio"
+                    name="deadlineChoice"
+                    value="tomorrow_1630"
+                    checked={deadlineChoice === 'tomorrow_1630'}
+                    onChange={() => setDeadlineChoice('tomorrow_1630')}
+                    className="mt-0.5 accent-blue-600"
+                  />
+                  <div>
+                    <span className="font-bold text-slate-900 block">Besok pukul 16:30 WITA</span>
+                    <span className="text-[11px] text-slate-500">Memberi waktu bagi petani yang lokasinya jauh.</span>
+                  </div>
+                </label>
+
+                <label className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition ${deadlineChoice === 'custom' ? 'bg-blue-50/70 border-blue-300 ring-1 ring-blue-500/20' : 'bg-white border-slate-200 hover:bg-slate-50'}`}>
+                  <input
+                    type="radio"
+                    name="deadlineChoice"
+                    value="custom"
+                    checked={deadlineChoice === 'custom'}
+                    onChange={() => setDeadlineChoice('custom')}
+                    className="mt-0.5 accent-blue-600"
+                  />
+                  <div className="flex-1">
+                    <span className="font-bold text-slate-900 block">Tentukan Waktu Sendiri (Kustom)</span>
+                    {deadlineChoice === 'custom' && (
+                      <input
+                        type="datetime-local"
+                        value={customDeadlineDate}
+                        onChange={(e) => setCustomDeadlineDate(e.target.value)}
+                        className="mt-2 w-full p-2 bg-white border border-slate-300 rounded-lg text-xs font-medium text-slate-800"
+                      />
+                    )}
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-800 flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <span>
+                Unit alat akan ditahan sementara untuk pemohon hingga batas waktu ini. Jika belum diselesaikan di kasir hingga batas waktu, sistem otomatis membatalkan reservasi agar stok unit bebas kembali.
+              </span>
+            </div>
+          </div>
+
+          <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setRentalToApprove(null)}
+              className="px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-200/60 transition cursor-pointer"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmApproval}
+              disabled={isUpdatingStatus}
+              className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 transition flex items-center gap-1.5 shadow-2xs cursor-pointer"
+            >
+              <ShieldCheck className="w-4 h-4" />
+              <span>Setujui & Terbitkan Batas Bayar</span>
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal 2: Terima Kasir & Kunci Unit */}
+      <Dialog
+        open={Boolean(rentalForCashier)}
+        onOpenChange={(open) => {
+          if (!open) setRentalForCashier(null);
+        }}
+      >
+        <DialogContent className="max-w-md w-full p-0 overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-2xl">
+          <div className="p-5 border-b border-emerald-100 bg-emerald-50/70 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center">
+                <Banknote className="w-5 h-5" />
+              </div>
+              <div>
+                <DialogTitle className="text-sm font-bold text-slate-900">
+                  Penerimaan Pembayaran Tunai Kasir
+                </DialogTitle>
+                <p className="text-[11px] text-emerald-800">
+                  Konfirmasi setoran tunai & penguncian unit
+                </p>
+              </div>
+            </div>
+            <DialogClose className="w-8 h-8 rounded-lg hover:bg-emerald-200/50 flex items-center justify-center text-slate-400 hover:text-slate-700 transition cursor-pointer">
+              <X className="w-4 h-4" />
+            </DialogClose>
+          </div>
+
+          <div className="p-5 space-y-4 text-xs">
+            <div className="p-4 bg-emerald-50/60 border border-emerald-200 rounded-2xl text-center space-y-1">
+              <span className="text-[11px] font-semibold text-emerald-800 uppercase tracking-wider block">
+                Total Uang Tunai Diterima Kasir:
+              </span>
+              <div className="text-2xl font-black text-emerald-950 tabular-nums">
+                Rp {Number(rentalForCashier?.totalEstimasi || 0).toLocaleString('id-ID')}
+              </div>
+              <span className="text-[11px] text-emerald-700 font-medium block">
+                No. Pengajuan #{rentalForCashier?.rentalCode} • {rentalForCashier?.userName}
+              </span>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                Catatan Kasir / Keterangan Tanda Terima:
+              </label>
+              <input
+                type="text"
+                value={cashierNotes}
+                onChange={(e) => setCashierNotes(e.target.value)}
+                placeholder="Contoh: Diterima tunai di kasir kantor koperasi Kolongan"
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:border-emerald-600 transition"
+              />
+            </div>
+
+            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-[11px] text-slate-600 flex items-start gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+              <span>
+                Dengan konfirmasi ini, status pesanan otomatis berubah ke <strong>SIAP DIAMBIL</strong>, status bayar tercatat <strong>LUNAS</strong>, dan unit mesin resmi <strong>TERKUNCI PERMANEN</strong> untuk penyewa ini.
+              </span>
+            </div>
+          </div>
+
+          <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setRentalForCashier(null)}
+              className="px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-200/60 transition cursor-pointer"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmCashierPayment}
+              disabled={isUpdatingStatus}
+              className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition flex items-center gap-1.5 shadow-2xs cursor-pointer"
+            >
+              <Banknote className="w-4 h-4" />
+              <span>Konfirmasi Terima Uang & Kunci Unit</span>
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal 3: Kuitansi Kasir Koperasi */}
+      <Dialog
+        open={Boolean(rentalForReceipt)}
+        onOpenChange={(open) => {
+          if (!open) setRentalForReceipt(null);
+        }}
+      >
+        <DialogContent className="max-w-md w-full p-0 overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-2xl">
+          <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Printer className="w-4 h-4 text-emerald-700" />
+              <DialogTitle className="text-sm font-bold text-slate-900">
+                Kuitansi Pelunasan Kasir Koperasi
+              </DialogTitle>
+            </div>
+            <DialogClose className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 transition cursor-pointer">
+              <X className="w-4 h-4" />
+            </DialogClose>
+          </div>
+
+          {rentalForReceipt && (
+            <div className="p-6 bg-amber-50/20 text-slate-800 text-xs font-sans space-y-4 border-y border-dashed border-slate-200">
+              <div className="text-center pb-3 border-b border-slate-200">
+                <div className="font-black text-sm text-[#233414]">KOPERASI SINAR PAGI SEJAHTERA</div>
+                <div className="text-[10px] text-slate-500">Unit Usaha Penyewaan Alsintan Pertanian</div>
+                <div className="text-[10px] text-slate-500">Jl. Raya Kolongan, Kec. Kalawat, Kab. Minahasa Utara</div>
+                <div className="mt-2 inline-block px-3 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px] uppercase tracking-wider">
+                  KUITANSI TANDA TERIMA KASIR
+                </div>
+              </div>
+
+              <div className="space-y-2 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">No. Kuitansi:</span>
+                  <span className="font-mono font-bold">KWT/SEWA/{rentalForReceipt.rentalCode}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Tanggal & Jam:</span>
+                  <span className="font-medium">
+                    {new Date(rentalForReceipt.paidAt || Date.now()).toLocaleString('id-ID', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })} WITA
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Telah Terima Dari:</span>
+                  <span className="font-bold text-slate-900">{rentalForReceipt.userName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Metode Pembayaran:</span>
+                  <span className="font-semibold text-emerald-800">Tunai di Kasir Kantor Koperasi</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Untuk Sewa:</span>
+                  <span className="font-medium text-right max-w-[200px] truncate">
+                    {rentalForReceipt.items?.map((it) => it.nama).join(', ')}
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-3 bg-white rounded-xl border border-slate-200 flex items-center justify-between">
+                <span className="font-bold text-slate-700">Jumlah Uang:</span>
+                <span className="text-base font-black text-emerald-950 tabular-nums">
+                  Rp {Number(rentalForReceipt.totalEstimasi).toLocaleString('id-ID')}
+                </span>
+              </div>
+
+              <div className="flex justify-between pt-4 text-center text-[11px] text-slate-600">
+                <div className="w-32">
+                  <span>Penyewa / Pemohon</span>
+                  <div className="h-12" />
+                  <div className="font-bold border-t border-slate-300 pt-1">
+                    {rentalForReceipt.userName}
+                  </div>
+                </div>
+                <div className="w-32">
+                  <span>Kasir Koperasi</span>
+                  <div className="h-12" />
+                  <div className="font-bold border-t border-slate-300 pt-1">
+                    {rentalForReceipt.cashierName || 'Kasir Koperasi'}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={() => setRentalForReceipt(null)}
+              className="px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-200/60 transition cursor-pointer"
+            >
+              Tutup
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (rentalForReceipt) handlePrintReceipt(rentalForReceipt);
+              }}
+              className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 transition flex items-center gap-1.5 shadow-2xs cursor-pointer"
+            >
+              <Printer className="w-4 h-4" />
+              <span>Cetak / Print Kuitansi</span>
             </button>
           </div>
         </DialogContent>

@@ -75,7 +75,7 @@ export async function PATCH(request: Request) {
     }
 
     const body = await request.json();
-    const { id, status, isPaid, rejectedReason } = body;
+    const { id, status, isPaid, rejectedReason, paymentDeadline, cashierNotes } = body;
 
     if (!id || !status) {
       return NextResponse.json({ error: 'ID dan status wajib disertakan' }, { status: 400 });
@@ -90,16 +90,16 @@ export async function PATCH(request: Request) {
 
     const currentRental = rentals[targetIdx];
 
-    // Guard: status final (SELESAI, DITOLAK, DIBATALKAN) tidak boleh diubah lagi
+    // Guard: status final (SELESAI, DITOLAK, DIBATALKAN) tidak boleh diubah lagi kecuali oleh pembatalan sistem
     if (currentRental.status === 'SELESAI') {
       return NextResponse.json(
         { error: 'Sewa alat telah selesai dan unit telah dikembalikan. Status tidak dapat diubah lagi.' },
         { status: 400 }
       );
     }
-    if (currentRental.status === 'DITOLAK' || currentRental.status === 'DIBATALKAN') {
+    if ((currentRental.status === 'DITOLAK' || currentRental.status === 'DIBATALKAN' || currentRental.status === 'KADALUARSA') && status !== 'MENUNGGU_PERSETUJUAN_ADMIN') {
       return NextResponse.json(
-        { error: 'Pengajuan sewa telah ditolak/dibatalkan. Status tidak dapat diubah lagi.' },
+        { error: 'Pengajuan sewa telah ditolak/dibatalkan/kadaluarsa. Status tidak dapat diubah lagi.' },
         { status: 400 }
       );
     }
@@ -110,12 +110,41 @@ export async function PATCH(request: Request) {
 
     if (status === 'DISETUJUI') {
       updated.approvedAt = new Date().toISOString();
+      if (paymentDeadline) {
+        updated.paymentDeadline = paymentDeadline;
+      } else if (!updated.paymentDeadline) {
+        // Default deadline batas bayar kasir: 4 jam dari sekarang atau sebelum jam 17:00 WITA
+        const now = new Date();
+        const defaultDeadline = new Date(now.getTime() + 4 * 60 * 60 * 1000);
+        updated.paymentDeadline = defaultDeadline.toISOString();
+      }
     }
+
+    if (status === 'SIAP_DIAMBIL') {
+      // Saat unit siap diambil atau kasir menerima pembayaran tunai
+      if (isPaid !== false) {
+        updated.isPaid = true;
+        if (!updated.paidAt) {
+          updated.paidAt = new Date().toISOString();
+        }
+        if (!updated.cashierName) {
+          updated.cashierName = session?.user?.name || 'Kasir Koperasi';
+        }
+      }
+    }
+
     if (status === 'SELESAI') {
       updated.isPaid = true;
     }
     if (isPaid !== undefined) {
       updated.isPaid = Boolean(isPaid);
+      if (isPaid && !updated.paidAt) {
+        updated.paidAt = new Date().toISOString();
+        updated.cashierName = session?.user?.name || 'Kasir Koperasi';
+      }
+    }
+    if (cashierNotes) {
+      updated.cashierNotes = cashierNotes;
     }
     if (rejectedReason) {
       updated.rejectedReason = rejectedReason;
@@ -124,16 +153,25 @@ export async function PATCH(request: Request) {
     rentals[targetIdx] = updated;
     writeEquipmentRentals(rentals);
 
-    // Hapus cache katalog sewa alat agar ketersediaan stok langsung sinkron
+    // Hapus cache katalog sewa alat & user rentals agar langsung sinkron
     try {
-      const { delCache } = await import('@/lib/redis');
-      await delCache('equipments:list:public');
+      const { delCache, delCachePattern } = await import('@/lib/redis');
+      await Promise.all([
+        delCache('equipments:list:public'),
+        delCachePattern('user:rentals:*'),
+        delCachePattern('equipments:*'),
+      ]);
     } catch {}
+
+    const statusMsg =
+      status === 'SIAP_DIAMBIL' && updated.isPaid
+        ? `Pembayaran kasir telah diterima! Status #${updated.rentalCode} sekarang Siap Diambil & Unit Terkunci Resmi.`
+        : `Status pengajuan sewa #${updated.rentalCode} berhasil diubah menjadi ${status}.`;
 
     return NextResponse.json({
       success: true,
       rental: updated,
-      message: `Status pengajuan sewa #${updated.rentalCode} berhasil diubah menjadi ${status}.`,
+      message: statusMsg,
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Gagal memperbarui status sewa' }, { status: 500 });

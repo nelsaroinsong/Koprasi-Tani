@@ -237,9 +237,8 @@ Saya telah membuat *Pengajuan Sewa Alat Pertanian* melalui website koperasi:
 ${itemLines}
 
 💰 *TOTAL ESTIMASI TAGIHAN:* Rp ${totalEstimasi.toLocaleString('id-ID')}
-*Metode Pembayaran:* Tunai Kasir Koperasi
-
-Mohon konfirmasi ketersediaan unit dan persetujuan jadwal operasionalnya. Terima kasih.`;
+*Metode Pembayaran:* Tunai di Kasir Kantor Koperasi (Kolongan)
+*Catatan Kasir:* Pengajuan ini bersifat reservasi sementara. Saya siap datang ke kasir koperasi untuk pelunasan tunai setelah disetujui agar unit resmi terkunci. Terima kasih.`;
 
     const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(waMessage)}`;
 

@@ -210,44 +210,50 @@ export default function OrderDetailPage({
     switch (status) {
       case 'MENUNGGU_PERSETUJUAN_ADMIN':
         return {
-          label: 'Menunggu Persetujuan',
+          label: 'Menunggu Verifikasi Admin',
           badgeClass: 'bg-amber-50 text-amber-900 border-amber-300 font-bold',
-          hint: 'Pengajuan sewa alat Anda sedang ditinjau oleh staf koperasi & pemilik alat.',
+          hint: 'Pengajuan sewa alat Anda sedang diverifikasi pengurus koperasi. Unit resmi terkunci setelah diverifikasi dan dilunasi tunai di kasir.',
         };
       case 'DISETUJUI':
         return {
-          label: 'Pengajuan Disetujui',
-          badgeClass: 'bg-[#e2f2c8] text-[#233414] border-[#c9e39e] font-bold',
-          hint: 'Pengajuan telah disetujui! Alat sedang disiapkan untuk pengambilan/pengantaran.',
+          label: 'Menunggu Bayar di Kasir',
+          badgeClass: 'bg-blue-50 text-blue-900 border-blue-300 font-bold',
+          hint: 'Pengajuan telah disetujui! Harap segera datang ke kantor koperasi untuk pelunasan tunai di kasir sebelum batas waktu pembayaran.',
         };
       case 'SIAP_DIAMBIL':
         return {
-          label: 'Siap Diambil',
-          badgeClass: 'bg-[#233414] text-[#D4F63D] border-[#233414] font-bold',
-          hint: 'Unit alat sudah siap diambil di pool/gudang koperasi pertanian.',
+          label: 'Lunas Tunai • Siap Diambil',
+          badgeClass: 'bg-emerald-50 text-emerald-900 border-emerald-300 font-bold',
+          hint: 'Pembayaran tunai telah diterima kasir koperasi. Unit mesin resmi terkunci untuk Anda dan siap diambil di pool koperasi.',
         };
       case 'SEDANG_DISEWA':
         return {
-          label: 'Sedang Disewa',
-          badgeClass: 'bg-[#344d15] text-white border-[#233414] font-bold',
-          hint: 'Alat sedang beroperasi di lahan kebun pertanian Anda.',
+          label: 'Sedang Digunakan di Lahan',
+          badgeClass: 'bg-purple-50 text-purple-900 border-purple-300 font-bold',
+          hint: 'Unit alat sedang beroperasi aktif di lokasi lahan perkebunan Anda.',
         };
       case 'SELESAI':
         return {
-          label: 'Sewa Selesai',
+          label: 'Sewa Selesai & Kembali',
           badgeClass: 'bg-[#EAEDE7] text-[#1a2610] border-[#cfd6c9] font-bold',
-          hint: 'Masa sewa telah selesai dan alat telah dikembalikan dalam kondisi baik.',
+          hint: 'Masa sewa telah selesai dan alat telah dikembalikan dalam kondisi baik ke koperasi.',
+        };
+      case 'KADALUARSA':
+        return {
+          label: 'Batas Waktu Bayar Habis',
+          badgeClass: 'bg-rose-50 text-rose-800 border-rose-200 font-bold',
+          hint: 'Batas waktu pembayaran tunai di kasir koperasi telah berakhir tanpa pelunasan. Slot reservasi telah dibuka kembali.',
         };
       case 'DITOLAK':
         return {
           label: 'Pengajuan Ditolak',
           badgeClass: 'bg-red-50 text-red-700 border-red-200 font-bold',
-          hint: 'Pengajuan sewa tidak dapat diproses. Silakan hubungi admin koperasi.',
+          hint: 'Pengajuan sewa belum dapat disetujui karena jadwal bertabrakan atau unit dalam perbaikan.',
         };
       case 'DIBATALKAN':
         return {
           label: 'Dibatalkan',
-          badgeClass: 'bg-red-50 text-red-700 border-red-200 font-bold',
+          badgeClass: 'bg-stone-50 text-stone-700 border-stone-200 font-bold',
           hint: 'Pengajuan sewa alat ini telah dibatalkan oleh pemohon.',
         };
       default:

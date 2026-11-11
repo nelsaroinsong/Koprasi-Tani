@@ -156,7 +156,9 @@ export default function LocationMapPreview({
   useEffect(() => {
     if (cleanValue && !locationTitle) {
       const parts = cleanValue.split(',').map((s) => s.trim());
-      setLocationTitle(parts[0] || 'Titik Lahan Pertanian');
+      const firstPart = parts[0];
+      const isValidTitle = Boolean(firstPart && /[a-zA-Z]/.test(firstPart));
+      setLocationTitle(isValidTitle ? firstPart : 'Titik Lahan Pertanian');
       setLocationSubtitle(parts.slice(1).join(', ') || cleanValue);
     }
   }, [cleanValue, locationTitle]);
@@ -224,7 +226,12 @@ export default function LocationMapPreview({
               setLocationSubtitle(data.subtitle || enrichedAddress);
               onChangeRef.current(enrichedAddress);
             } else {
-              setLocationTitle(data.title || data.address.split(',')[0] || 'Titik Lahan');
+              const rawTitle = data.title || data.address.split(',')[0];
+              const safeTitle =
+                rawTitle && /[a-zA-Z]/.test(rawTitle)
+                  ? rawTitle
+                  : 'Titik Lahan Pertanian';
+              setLocationTitle(safeTitle);
               setLocationSubtitle(data.subtitle || data.address);
               onChangeRef.current(data.address);
             }
@@ -411,6 +418,20 @@ export default function LocationMapPreview({
     };
     // Sengaja hanya dijalankan sekali saat mount agar peta TIDAK pernah ke-reset saat value berubah!
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ResizeObserver agar MapLibre otomatis menyesuaikan dimensi saat dialog modal dibuka / resize layar
+  useEffect(() => {
+    if (!mapContainerRef.current) return;
+    const resizeObserver = new ResizeObserver(() => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.resize();
+      }
+    });
+    resizeObserver.observe(mapContainerRef.current);
+    return () => {
+      resizeObserver.disconnect();
+    };
   }, []);
 
   // Sinkronisasi layer Peta Jalan vs Satelit Hybrid
@@ -611,7 +632,7 @@ export default function LocationMapPreview({
   const externalGoogleMapsUrl = `https://www.google.com/maps?q=${pinCoords.lat},${pinCoords.lng}`;
 
   return (
-    <div className="space-y-2.5">
+    <div className="w-full max-w-full min-w-0 space-y-2.5">
       {/* Header Label + Tombol GPS & Fullscreen */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <label className="block text-[11px] font-bold text-[#526046] uppercase tracking-wider">
@@ -654,16 +675,16 @@ export default function LocationMapPreview({
       <div
         className={
           isFullscreen
-            ? 'fixed inset-0 z-[100] bg-[#f4f5f1] flex flex-col justify-between'
-            : 'relative rounded-2xl overflow-hidden border border-[#dce1d6] bg-[#eef0ea]'
+            ? 'fixed inset-0 z-[100] bg-[#f4f5f1] flex flex-col justify-between w-full max-w-full min-w-0'
+            : 'relative rounded-2xl overflow-hidden border border-[#dce1d6] bg-[#eef0ea] w-full max-w-full min-w-0'
         }
       >
         {/* Top Floating Search Bar + Kecamatan Chips */}
         <div
           className={
             isFullscreen
-              ? 'relative z-20 bg-white/95 backdrop-blur-md border-b border-[#dce1d6] px-3.5 pt-3 pb-2.5 space-y-2 shadow-sm'
-              : 'relative z-20 bg-white border-b border-[#dce1d6] p-2.5 space-y-2'
+              ? 'relative z-20 bg-white/95 backdrop-blur-md border-b border-[#dce1d6] px-3.5 pt-3 pb-2.5 space-y-2 shadow-sm w-full max-w-full min-w-0'
+              : 'relative z-20 bg-white border-b border-[#dce1d6] p-2.5 space-y-2 w-full max-w-full min-w-0'
           }
         >
           <div className="flex items-center gap-2">
@@ -735,7 +756,7 @@ export default function LocationMapPreview({
 
           {/* Horizontal Scroll Kecamatan Quick Jump */}
           {strictMinahasaUtara && (
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+            <div className="w-full max-w-full min-w-0 flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
               <span className="text-[10px] font-bold text-[#7c8772] uppercase tracking-wider shrink-0 mr-0.5">
                 Kecamatan:
               </span>
@@ -764,22 +785,22 @@ export default function LocationMapPreview({
         <div
           style={
             isFullscreen
-              ? { flex: '1 1 0%', minHeight: '62vh', width: '100%' }
-              : { height: '285px', minHeight: '285px', width: '100%' }
+              ? { flex: '1 1 0%', minHeight: '62vh', width: '100%', maxWidth: '100%' }
+              : { height: '285px', minHeight: '285px', width: '100%', maxWidth: '100%' }
           }
           className={
             isFullscreen
-              ? 'relative flex-1 w-full min-h-[62vh] bg-[#e5e8e0] overflow-hidden'
-              : 'relative w-full min-h-[285px] bg-[#e5e8e0] overflow-hidden'
+              ? 'relative flex-1 w-full max-w-full min-w-0 min-h-[62vh] bg-[#e5e8e0] overflow-hidden'
+              : 'relative w-full max-w-full min-w-0 min-h-[285px] bg-[#e5e8e0] overflow-hidden'
           }
         >
           <div ref={mapContainerRef} className="w-full h-full absolute inset-0" />
 
-          {/* Pin Tengah Peta Ala Grab / Gojek (High Contrast di Atas Satelit & Peta Jalan) */}
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center z-10">
+          {/* Pin Tengah Peta Ala Grab / Gojek (Presisi Terkunci di Titik Tengah 50% 50%) */}
+          <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center">
             <div
               className={`relative flex flex-col items-center transition-transform duration-150 ${
-                isMapDragging ? '-translate-y-7 scale-105' : '-translate-y-4 scale-100'
+                isMapDragging ? '-translate-y-4 scale-105' : '-translate-y-2 scale-100'
               }`}
             >
               {/* Floating Label di Atas Pin */}
@@ -918,11 +939,13 @@ export default function LocationMapPreview({
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <p className="text-xs sm:text-sm font-black text-[#1a2610] truncate">
-                    {locationTitle ||
-                      cleanValue.split(',')[0] ||
-                      (isReverseGeocoding
-                        ? 'Mendeteksi titik lokasi...'
-                        : 'Geser peta ke lokasi lahan')}
+                    {locationTitle && /[a-zA-Z]/.test(locationTitle)
+                      ? locationTitle
+                      : cleanValue && /[a-zA-Z]/.test(cleanValue.split(',')[0])
+                      ? cleanValue.split(',')[0]
+                      : isReverseGeocoding
+                      ? 'Mendeteksi titik lokasi...'
+                      : 'Titik Lahan Pertanian'}
                   </p>
                   {isReverseGeocoding && (
                     <Loader2 className="w-3 h-3 animate-spin text-[#526046] shrink-0" />

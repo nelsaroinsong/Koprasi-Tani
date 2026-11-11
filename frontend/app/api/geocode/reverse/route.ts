@@ -123,7 +123,8 @@ async function fetchExactGoogleMapsAddress(
     if (match && match[1]) {
       const rawAddress = match[1].replace(/\\"/g, '"').trim();
       const cleaned = cleanGooglePlusCodes(rawAddress);
-      if (cleaned && cleaned.length >= 5) {
+      // Valid address harus memiliki karakter huruf (bukan sekadar deretan angka koordinat)
+      if (cleaned && cleaned.length >= 5 && /[a-zA-Z]/.test(cleaned)) {
         const parts = cleaned
           .split(',')
           .map((p) => p.trim())
@@ -252,6 +253,12 @@ export async function GET(request: Request) {
 
     const isMinutByCoord = checkIsMinahasaUtaraCoordinate(latitude, longitude);
 
+    const isCoordinateString = (str: string | null | undefined): boolean => {
+      if (!str) return true;
+      const s = str.trim();
+      return !/[a-zA-Z]/.test(s) || /^[-0-9.,\s]+$/.test(s);
+    };
+
     // Jalankan secara paralel:
     // 1. Exact Google Maps Street/POI Reverse Geocode (presisi jalan & nomor rumah)
     // 2. Nearby Places (chip tempat sekitar pin)
@@ -267,13 +274,14 @@ export async function GET(request: Request) {
     const closestPlace = nearbyPlaces[0] || null;
     const nearbyStreet = nearbyPlaces.find((p) => p.streetName)?.streetName || '';
 
-    if (exactGoogle) {
+    // Hanya gunakan exactGoogle jika bukan deretan angka koordinat mentah
+    if (exactGoogle && !isCoordinateString(exactGoogle.exactAddress)) {
       title = exactGoogle.title;
       subtitle = exactGoogle.subtitle;
       formattedAddress = exactGoogle.exactAddress;
 
       // Jika Google mengembalikan nama PT (misal "PT Boffe Coconut Indonesia") tapi belum ada nama jalan lorongnya,
-      // sedangkan di sekitar ada nama jalan lokal (misal "Jl. kawangkoan"), sisipkan agar makin lengkap!
+      // sedangkan di sekitar ada nama jalan lokal (misal "Jl. Kuwil - Kalawat"), sisipkan agar makin lengkap!
       const hasStreetInExact = /\b(jl\.|jln\.|jalan|lorong|perum)/i.test(formattedAddress);
       if (!hasStreetInExact && nearbyStreet) {
         const parts = formattedAddress.split(',').map((s) => s.trim());
@@ -283,7 +291,7 @@ export async function GET(request: Request) {
       }
 
       // Sebaliknya, jika Google mengembalikan nama jalan (misal "Jl. Karombasan Selatan 4 No.29"),
-      // namun tepat di titik pin (<= 22 meter) ada POI spesifik, tambahkan info POI di subtitle tanpa merusak nama jalan di Title!
+      // namun tepat di titik pin (<= 25 meter) ada POI spesifik, tambahkan info POI di subtitle!
       if (
         closestPlace &&
         closestPlace.distanceMeters <= 25 &&
@@ -291,13 +299,13 @@ export async function GET(request: Request) {
       ) {
         subtitle = `Dekat ${closestPlace.name} • ${subtitle}`;
       }
-    } else if (closestPlace) {
-      // Fallback ke POI terdekat jika Google exact embed timeout
+    } else if (closestPlace && closestPlace.distanceMeters <= 250) {
+      // Fallback ke POI terdekat jika Google exact embed timeout atau titik kebun kosong
       title = closestPlace.name;
       formattedAddress = closestPlace.address;
       subtitle = closestPlace.address.split(',').slice(1).join(', ').trim() || closestPlace.address;
     } else {
-      // Fallback terakhir ke Photon Komoot / Estimasi Kecamatan Minut
+      // Fallback ke Photon Komoot (OpenStreetMap) untuk nama desa/waduk/kecamatan presisi
       try {
         const pRes = await fetch(
           `https://photon.komoot.io/reverse?lat=${latitude}&lon=${longitude}`
@@ -306,30 +314,56 @@ export async function GET(request: Request) {
           const pData = await pRes.json();
           const props = pData?.features?.[0]?.properties;
           if (props) {
-            const pStreet = props.street || props.name || '';
-            const pDistrict = props.district || props.city || '';
+            const pName = props.name || '';
+            const pStreet = props.street && props.street !== pName ? props.street : '';
+            const pDistrict = props.district || '';
+            const pCity = props.city && props.city !== pDistrict ? props.city : '';
             const pCounty =
               props.county || (isMinutByCoord ? 'Kab. Minahasa Utara' : '');
             const pState = props.state || 'Sulawesi Utara';
-            title = pStreet || pDistrict || 'Titik Lokasi';
-            const parts = [pStreet, pDistrict, pCounty, pState].filter(Boolean);
-            formattedAddress = parts.join(', ');
-            subtitle = parts.slice(1).join(', ');
+
+            const titleCandidate = pName || pStreet || pCity || pDistrict;
+            if (titleCandidate && !isCoordinateString(titleCandidate)) {
+              title = titleCandidate;
+            }
+
+            const parts = [pName, pStreet, pCity, pDistrict, pCounty, pState].filter(
+              (p) => Boolean(p) && !isCoordinateString(p)
+            );
+            const uniqueParts = parts.filter((item, idx) => parts.indexOf(item) === idx);
+            if (uniqueParts.length > 0) {
+              formattedAddress = uniqueParts.join(', ');
+              subtitle = uniqueParts.slice(1).join(', ') || formattedAddress;
+            }
           }
         }
       } catch {}
     }
 
-    if (!formattedAddress) {
+    // Jika masih kosong atau hanya koordinat mentah, fallback ke nama Kecamatan terdekat Minahasa Utara
+    if (!formattedAddress || isCoordinateString(formattedAddress)) {
       if (isMinutByCoord) {
         const kec = findClosestMinutKecamatan(latitude, longitude);
-        title = `Lahan Kebun Kec. ${kec}`;
+        title = closestPlace ? closestPlace.name : `Lahan Pertanian Kec. ${kec}`;
         subtitle = `Kec. ${kec}, Kab. Minahasa Utara, Sulawesi Utara`;
-        formattedAddress = `Lahan Pertanian (${latitude.toFixed(5)}, ${longitude.toFixed(5)}), Kec. ${kec}, Kab. Minahasa Utara, Sulawesi Utara`;
+        formattedAddress = closestPlace
+          ? `${closestPlace.name}, Kec. ${kec}, Kab. Minahasa Utara, Sulawesi Utara`
+          : `Lahan Pertanian (${latitude.toFixed(5)}, ${longitude.toFixed(5)}), Kec. ${kec}, Kab. Minahasa Utara, Sulawesi Utara`;
       } else {
         title = `Titik Koordinat GPS`;
         subtitle = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
         formattedAddress = `Titik Lokasi GPS (${latitude.toFixed(6)}, ${longitude.toFixed(6)})`;
+      }
+    }
+
+    // Pastikan title & subtitle tidak berupa koordinat mentah jika di Minut
+    if (isMinutByCoord) {
+      const kec = findClosestMinutKecamatan(latitude, longitude);
+      if (isCoordinateString(title)) {
+        title = closestPlace ? closestPlace.name : `Lahan Kebun Kec. ${kec}`;
+      }
+      if (isCoordinateString(subtitle)) {
+        subtitle = `Kec. ${kec}, Kab. Minahasa Utara, Sulawesi Utara`;
       }
     }
 
