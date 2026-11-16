@@ -45,6 +45,7 @@ export function PayoutsDataTable() {
   const [summary, setSummary] = useState({
     totalSiapDiserahkanCash: 0,
     totalSudahDiserahkanCash: 0,
+    totalMenungguPembeliCash: 0,
     totalPetaniAktif: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
@@ -176,6 +177,11 @@ export function PayoutsDataTable() {
           <p className="text-[11.5px] text-slate-400 mt-0.5">
             {counts.pending} petani menunggu pengambilan di kas
           </p>
+          {summary.totalMenungguPembeliCash > 0 && (
+            <p className="text-[11px] text-slate-500 mt-1">
+              + {rp(summary.totalMenungguPembeliCash)} menunggu pesanan pembeli selesai
+            </p>
+          )}
         </div>
 
         <div className="bg-white rounded-2xl border border-[#ECEEF2] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
@@ -338,7 +344,8 @@ export function PayoutsDataTable() {
                 ) : (
                   paginatedList.map((item) => {
                     const isPending = item.siapDicairkanCash > 0;
-                    const trxCount = item.pendingItems.length + item.completedItems.length;
+                    const trxCount =
+                      item.pendingItems.length + (item.awaitingItems?.length || 0) + item.completedItems.length;
                     return (
                       <TableRow
                         key={item.petani.id}
@@ -677,6 +684,37 @@ export function PayoutsDataTable() {
                     </ul>
                   )}
                 </section>
+
+                {/* Items whose buyer order is not finished yet: cannot be paid out */}
+                {(selectedPetaniPayout.awaitingItems?.length || 0) > 0 && (
+                  <section className="rounded-xl border border-slate-200 overflow-hidden">
+                    <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-slate-500" />
+                        <h3 className="text-[12px] font-semibold text-slate-800">Menunggu Pesanan Pembeli Selesai</h3>
+                      </div>
+                      <span className="text-[11px] text-slate-400">{selectedPetaniPayout.awaitingItems.length} item</span>
+                    </div>
+                    <p className="px-4 pt-2.5 text-[11px] text-slate-500">
+                      Belum bisa dicairkan sampai pembeli melunasi dan pesanan berstatus Selesai.
+                    </p>
+                    <ul className="divide-y divide-slate-100">
+                      {selectedPetaniPayout.awaitingItems.map((it: any) => (
+                        <li key={it.id} className="px-4 py-3 flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="font-medium text-slate-700 text-[12.5px]">{it.namaProduk}</div>
+                            <div className="text-[11px] text-slate-400 mt-0.5">
+                              {it.quantity} {it.satuan} • #{it.orderNumber} • {String(it.orderStatus).replace(/_/g, ' ').toLowerCase()}
+                            </div>
+                          </div>
+                          <div className="font-medium text-slate-500 tabular-nums whitespace-nowrap">
+                            {rp(it.subtotal)}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
 
                 {/* Completed items */}
                 {selectedPetaniPayout.completedItems.length > 0 && (

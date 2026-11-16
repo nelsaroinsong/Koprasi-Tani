@@ -1,6 +1,4 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { getCache, setCache, delCachePattern } from '@/lib/redis';
@@ -158,23 +156,16 @@ export async function GET(request: Request) {
       if (ord.status === 'DIBATALKAN') dibatalkanCount++;
     }
 
-    // Hitung total kategori dari data file json
+    // Hitung total kategori dari database
     let totalCategories = 0;
     try {
-      const catPath = path.join(process.cwd(), 'data', 'categories.json');
-      if (fs.existsSync(catPath)) {
-        const raw = fs.readFileSync(catPath, 'utf-8');
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) totalCategories += parsed.length;
-      }
-      const eqCatPath = path.join(process.cwd(), 'data', 'equipment-categories.json');
-      if (fs.existsSync(eqCatPath)) {
-        const raw = fs.readFileSync(eqCatPath, 'utf-8');
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) totalCategories += parsed.length;
-      }
+      const [productCats, equipmentCats] = await Promise.all([
+        prisma.category.count(),
+        prisma.equipmentCategory.count(),
+      ]);
+      totalCategories = productCats + equipmentCats;
     } catch {
-      totalCategories = 4;
+      totalCategories = 0;
     }
 
     const totalHasilPetani = soldOrderItems.reduce((acc, it) => acc + Number(it.subtotal), 0);

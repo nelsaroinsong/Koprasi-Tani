@@ -1,13 +1,11 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { getCache, setCache, delCache, delCachePattern } from '@/lib/redis';
+import { listCategories, saveCategories } from '@/lib/category-store';
 
 export const dynamic = 'force-dynamic';
 
-const CATEGORIES_FILE = path.join(process.cwd(), 'data', 'equipment-categories.json');
 const CACHE_KEY = 'equipment:categories:list';
 
 export interface EquipmentCategoryItem {
@@ -69,45 +67,19 @@ const DEFAULT_EQUIPMENT_CATEGORIES: EquipmentCategoryItem[] = [
   },
 ];
 
-function readEquipmentCategories(): EquipmentCategoryItem[] {
-  try {
-    if (!fs.existsSync(CATEGORIES_FILE)) {
-      writeEquipmentCategories(DEFAULT_EQUIPMENT_CATEGORIES);
-      return DEFAULT_EQUIPMENT_CATEGORIES;
-    }
-    const data = fs.readFileSync(CATEGORIES_FILE, 'utf-8');
-    const parsed = JSON.parse(data);
-    if (!Array.isArray(parsed) || parsed.length === 0) {
-      writeEquipmentCategories(DEFAULT_EQUIPMENT_CATEGORIES);
-      return DEFAULT_EQUIPMENT_CATEGORIES;
-    }
-    return parsed.map((cat: any) => ({
-      id: cat.id || `eqcat-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-      name: cat.name,
-      slug: cat.slug || cat.name?.toLowerCase().trim().replace(/\s+/g, '-'),
-      emoji: cat.emoji || '⚙️',
-      imageUrl: cat.imageUrl || '',
-      description: cat.description || '',
-      isActive: cat.isActive !== false,
-    }));
-  } catch (error) {
-    console.error('Error reading equipment categories:', error);
+// Kategori alat disimpan di tabel `equipment_categories` (PostgreSQL)
+async function readEquipmentCategories(): Promise<EquipmentCategoryItem[]> {
+  const list = (await listCategories('equipment')) as EquipmentCategoryItem[];
+  if (list.length === 0) {
+    await saveCategories('equipment', DEFAULT_EQUIPMENT_CATEGORIES);
     return DEFAULT_EQUIPMENT_CATEGORIES;
   }
+  return list;
 }
 
-function writeEquipmentCategories(categories: EquipmentCategoryItem[]): boolean {
-  try {
-    const dir = path.dirname(CATEGORIES_FILE);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    fs.writeFileSync(CATEGORIES_FILE, JSON.stringify(categories, null, 2), 'utf-8');
-    return true;
-  } catch (error) {
-    console.error('Error writing equipment categories:', error);
-    return false;
-  }
+async function writeEquipmentCategories(categories: EquipmentCategoryItem[]): Promise<boolean> {
+  await saveCategories('equipment', categories);
+  return true;
 }
 
 async function checkIsAdmin(session: any): Promise<boolean> {
@@ -132,7 +104,7 @@ export async function GET() {
       return NextResponse.json(cached);
     }
 
-    const categories = readEquipmentCategories();
+    const categories = await readEquipmentCategories();
     const payload = { success: true, categories };
     await setCache(CACHE_KEY, payload, 300);
 
@@ -163,7 +135,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Nama kategori wajib diisi' }, { status: 400 });
     }
 
-    const categories = readEquipmentCategories();
+    const categories = await readEquipmentCategories();
     const isDuplicate = categories.some((c) => c.name.toLowerCase() === name.toLowerCase());
     if (isDuplicate) {
       return NextResponse.json({ error: 'Kategori dengan nama tersebut sudah ada' }, { status: 400 });
@@ -180,7 +152,7 @@ export async function POST(request: Request) {
     };
 
     categories.push(newCategory);
-    writeEquipmentCategories(categories);
+    await writeEquipmentCategories(categories);
 
     await delCache(CACHE_KEY).catch(() => {});
     await delCache('equipments:list:public').catch(() => {});
@@ -219,7 +191,7 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'ID dan nama kategori wajib diisi' }, { status: 400 });
     }
 
-    const categories = readEquipmentCategories();
+    const categories = await readEquipmentCategories();
     const index = categories.findIndex((c) => c.id === id);
     if (index === -1) {
       return NextResponse.json({ error: 'Kategori tidak ditemukan' }, { status: 404 });
@@ -242,7 +214,7 @@ export async function PUT(request: Request) {
       isActive,
     };
 
-    writeEquipmentCategories(categories);
+    await writeEquipmentCategories(categories);
 
     await delCache(CACHE_KEY).catch(() => {});
     await delCache('equipments:list:public').catch(() => {});
@@ -275,7 +247,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'ID kategori wajib disertakan' }, { status: 400 });
     }
 
-    const categories = readEquipmentCategories();
+    const categories = await readEquipmentCategories();
     const index = categories.findIndex((c) => c.id === id);
     if (index === -1) {
       return NextResponse.json({ error: 'Kategori tidak ditemukan' }, { status: 404 });
@@ -298,7 +270,7 @@ export async function PATCH(request: Request) {
       categories[index].description = String(body.description).trim();
     }
 
-    writeEquipmentCategories(categories);
+    await writeEquipmentCategories(categories);
 
     await delCache(CACHE_KEY).catch(() => {});
     await delCache('equipments:list:public').catch(() => {});
@@ -332,7 +304,7 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'ID atau IDs kategori wajib disertakan' }, { status: 400 });
     }
 
-    const categories = readEquipmentCategories();
+    const categories = await readEquipmentCategories();
     let filtered = categories;
 
     if (idsParam) {
@@ -346,7 +318,7 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Kategori tidak ditemukan' }, { status: 404 });
     }
 
-    writeEquipmentCategories(filtered);
+    await writeEquipmentCategories(filtered);
 
     await delCache(CACHE_KEY).catch(() => {});
     await delCache('equipments:list:public').catch(() => {});

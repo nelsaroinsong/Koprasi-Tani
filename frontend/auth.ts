@@ -3,6 +3,10 @@ import Google from 'next-auth/providers/google';
 import Credentials from 'next-auth/providers/credentials';
 import { prisma } from '@/lib/prisma';
 import { verifyPassword } from '@/lib/auth-passwords';
+import { cookies } from 'next/headers';
+
+export const ADMIN_LOGIN_INTENT_COOKIE = 'ksps_admin_login';
+const ADMIN_LOGIN_PAGE = '/admin-koperasi-sinar-pagi-sejahtera';
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
@@ -82,6 +86,40 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (!user.email) return false;
 
       const userEmail = user.email.trim().toLowerCase();
+
+      // Login Google dari portal admin: hanya akun ADMIN aktif yang sudah terdaftar.
+      // Tidak pernah membuat akun baru dari jalur ini.
+      let isAdminIntent = false;
+      try {
+        const cookieStore = await cookies();
+        isAdminIntent = cookieStore.get(ADMIN_LOGIN_INTENT_COOKIE)?.value === '1';
+        if (isAdminIntent) cookieStore.delete(ADMIN_LOGIN_INTENT_COOKIE);
+      } catch {
+        isAdminIntent = false;
+      }
+
+      if (isAdminIntent) {
+        try {
+          const adminUser = await prisma.user.findUnique({ where: { email: userEmail } });
+          if (!adminUser || adminUser.role !== 'ADMIN' || !adminUser.isActive) {
+            console.warn(`[Admin Auth] Login Google ditolak untuk ${userEmail} (bukan admin aktif)`);
+            return `${ADMIN_LOGIN_PAGE}?error=unauthorized`;
+          }
+          if (!adminUser.googleId && account?.providerAccountId) {
+            await prisma.user.update({
+              where: { email: userEmail },
+              data: {
+                googleId: account.providerAccountId,
+                avatarUrl: adminUser.avatarUrl || user.image,
+              },
+            });
+          }
+          return true;
+        } catch (error) {
+          console.error('[Admin Auth] Error verifikasi admin Google:', error);
+          return `${ADMIN_LOGIN_PAGE}?error=system`;
+        }
+      }
 
       try {
         // Cek apakah user sudah terdaftar di database koperasi

@@ -301,10 +301,10 @@ export async function PUT(
       return NextResponse.json({ error: 'Produk tidak ditemukan' }, { status: 404 });
     }
 
-    // Hanya pemilik produk atau admin yang berhak mengedit
-    if (existingProduct.petaniId !== dbUser.id && dbUser.role !== 'ADMIN') {
+    // Data komoditas dikelola admin koperasi (petani menyetor langsung ke kantor)
+    if (dbUser.role !== 'ADMIN') {
       return NextResponse.json(
-        { error: 'Anda tidak memiliki hak untuk mengubah produk ini.' },
+        { error: 'Perubahan data komoditas hanya dapat dilakukan oleh admin koperasi.' },
         { status: 403 }
       );
     }
@@ -373,10 +373,10 @@ export async function DELETE(
       return NextResponse.json({ error: 'Produk tidak ditemukan' }, { status: 404 });
     }
 
-    // Hanya pemilik produk atau admin yang berhak menghapus
-    if (existingProduct.petaniId !== dbUser.id && dbUser.role !== 'ADMIN') {
+    // Data komoditas dikelola admin koperasi
+    if (dbUser.role !== 'ADMIN') {
       return NextResponse.json(
-        { error: 'Anda tidak memiliki hak untuk menghapus produk ini.' },
+        { error: 'Penghapusan komoditas hanya dapat dilakukan oleh admin koperasi.' },
         { status: 403 }
       );
     }

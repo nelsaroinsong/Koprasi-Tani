@@ -18,10 +18,13 @@ import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
 import { getCart, saveCart } from '@/lib/cart';
 import { getPrimaryImage } from '@/lib/utils';
+import { CatalogSidebar, CatalogToolbar } from '@/components/catalog/CatalogSidebar';
+import { CatalogPagination } from '@/components/catalog/CatalogPagination';
 
 import defaultCategoriesData from '@/data/categories.json';
 
 const CATEGORIES_STORAGE_KEY = 'koperasi_categories_cache';
+const PAGE_SIZE = 12;
 
 interface CategoryItem {
   id: string;
@@ -32,6 +35,7 @@ interface CategoryItem {
   description?: string;
   mobileBg?: string;
   isActive?: boolean;
+  productCount?: number;
 }
 
 export interface TabCategoryConfig {
@@ -74,7 +78,7 @@ function loadCategoriesFromCache(): CategoryItem[] {
 let cachedTokoCatalog: {
   products: any[];
   totalCount: number;
-  hasMore: boolean;
+  totalPages: number;
   timestamp: number;
 } | null = null;
 
@@ -191,6 +195,50 @@ function TokoOnlineContent() {
     setSortBy(searchParams.get('sortBy') || 'default');
   }, [searchParams, categories, router]);
 
+  // Terapkan filter ke state + URL sekaligus (dipakai sidebar desktop)
+  const applyFilters = (
+    next: Partial<{ kategori: string; onlyAvailable: boolean; minPrice: number; maxPrice: number; sortBy: string }>
+  ) => {
+    const f = {
+      kategori: next.kategori ?? selectedKategori,
+      onlyAvailable: next.onlyAvailable ?? onlyAvailable,
+      minPrice: next.minPrice ?? minPrice,
+      maxPrice: next.maxPrice ?? maxPrice,
+      sortBy: next.sortBy ?? sortBy,
+    };
+    setSelectedKategori(f.kategori);
+    setOnlyAvailable(f.onlyAvailable);
+    setMinPrice(f.minPrice);
+    setMaxPrice(f.maxPrice);
+    setSortBy(f.sortBy);
+    const params = new URLSearchParams(searchParams.toString());
+    const setOrDelete = (k: string, v: string | null) => (v ? params.set(k, v) : params.delete(k));
+    setOrDelete('kategori', f.kategori !== 'SEMUA' ? f.kategori : null);
+    setOrDelete('onlyAvailable', f.onlyAvailable ? 'true' : null);
+    setOrDelete('minPrice', f.minPrice > 5000 ? String(f.minPrice) : null);
+    setOrDelete('maxPrice', f.maxPrice < 250000 ? String(f.maxPrice) : null);
+    setOrDelete('sortBy', f.sortBy !== 'default' ? f.sortBy : null);
+    const query = params.toString();
+    router.replace(query ? `/toko?${query}` : '/toko', { scroll: false });
+  };
+
+  const sidebarCategories = useMemo(() => {
+    const items = dynamicKategoriConfig.map((cat) => {
+      const src = categories.find((c) => c.name === cat.key);
+      return {
+        key: cat.key,
+        label: cat.key === 'SEMUA' ? 'Semua komoditas' : cat.label,
+        imageUrl: cat.imageUrl,
+        count: src?.productCount,
+      };
+    });
+    const hasCounts = items.some((i) => typeof i.count === 'number');
+    if (hasCounts) {
+      items[0].count = items.slice(1).reduce((sum, i) => sum + (i.count || 0), 0);
+    }
+    return items;
+  }, [dynamicKategoriConfig, categories]);
+
   const hasActiveFilters =
     selectedKategori !== 'SEMUA' ||
     onlyAvailable ||
@@ -206,10 +254,9 @@ function TokoOnlineContent() {
     cachedTokoCatalog ? false : true
   );
   const [currentPage, setCurrentPage] = useState(1);
-  const [hasMore, setHasMore] = useState(() =>
-    cachedTokoCatalog ? cachedTokoCatalog.hasMore : false
+  const [totalPages, setTotalPages] = useState(() =>
+    cachedTokoCatalog ? cachedTokoCatalog.totalPages : 1
   );
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [totalProductsCount, setTotalProductsCount] = useState(() =>
     cachedTokoCatalog ? cachedTokoCatalog.totalCount : 0
   );
@@ -265,17 +312,17 @@ function TokoOnlineContent() {
     }
   }, [user?.email, user?.role, user?.isVerified, user?.isOnboarded, Boolean(user), authLoading, router]);
 
-  // Fetch Products (Halaman 1 / Reset - 30 item pertama)
+  // Fetch Products per halaman (PAGE_SIZE item per halaman)
   const fetchProducts = useCallback(
-    async (silent = false) => {
+    async (silent = false, page = 1) => {
       try {
         if (!silent) {
           setIsLoadingProducts(true);
         }
-        setCurrentPage(1);
+        setCurrentPage(page);
         const params = new URLSearchParams({
-          page: '1',
-          limit: '30',
+          page: String(page),
+          limit: String(PAGE_SIZE),
         });
 
         if (selectedKategori !== 'SEMUA') {
@@ -285,7 +332,7 @@ function TokoOnlineContent() {
           );
           if (isCategoryInactive) {
             setProducts([]);
-            setHasMore(false);
+            setTotalPages(1);
             setTotalProductsCount(0);
             setIsLoadingProducts(false);
             return;
@@ -301,28 +348,30 @@ function TokoOnlineContent() {
         const data = await res.json();
 
         if (res.ok && data.products) {
+          const total = data.pagination?.totalCount || data.products.length;
+          const pages = Math.max(1, data.pagination?.totalPages || Math.ceil(total / PAGE_SIZE));
           setProducts(data.products);
-          setHasMore(Boolean(data.pagination?.hasMore));
-          setTotalProductsCount(data.pagination?.totalCount || data.products.length);
+          setTotalPages(pages);
+          setTotalProductsCount(total);
 
-          if (selectedKategori === 'SEMUA' && !debouncedSearch.trim()) {
+          if (page === 1 && selectedKategori === 'SEMUA' && !debouncedSearch.trim()) {
             cachedTokoCatalog = {
               products: data.products,
-              totalCount: data.pagination?.totalCount || data.products.length,
-              hasMore: Boolean(data.pagination?.hasMore),
+              totalCount: total,
+              totalPages: pages,
               timestamp: Date.now(),
             };
           }
         } else {
           setProducts([]);
-          setHasMore(false);
+          setTotalPages(1);
           setTotalProductsCount(0);
         }
       } catch (err) {
         console.error('Error fetch products:', err);
         if (!cachedTokoCatalog) {
           setProducts([]);
-          setHasMore(false);
+          setTotalPages(1);
           setTotalProductsCount(0);
         }
       } finally {
@@ -332,48 +381,11 @@ function TokoOnlineContent() {
     [selectedKategori, debouncedSearch]
   );
 
-  // Handler Muat Lebih Banyak (Load Next 30 Products)
-  const handleLoadMore = async () => {
-    if (isLoadingMore || !hasMore) return;
-    try {
-      setIsLoadingMore(true);
-      const nextPage = currentPage + 1;
-      const params = new URLSearchParams({
-        page: String(nextPage),
-        limit: '30',
-      });
-
-      if (selectedKategori !== 'SEMUA') {
-        params.set('kategori', selectedKategori);
-      }
-
-      if (debouncedSearch.trim()) {
-        params.set('search', debouncedSearch.trim());
-      }
-
-      const res = await fetch(`/api/products?${params.toString()}`);
-      const data = await res.json();
-
-      if (res.ok && Array.isArray(data.products)) {
-        setProducts((prev) => [...prev, ...data.products]);
-        setCurrentPage(nextPage);
-        setHasMore(Boolean(data.pagination?.hasMore));
-        if (data.pagination?.totalCount) {
-          setTotalProductsCount(data.pagination.totalCount);
-        }
-      } else {
-        setHasMore(false);
-      }
-    } catch (err) {
-      console.error('Error load more products:', err);
-      showToast({
-        title: 'Gagal Memuat Komoditas',
-        message: 'Terjadi gangguan jaringan saat memuat lebih banyak komoditas.',
-        type: 'error',
-      });
-    } finally {
-      setIsLoadingMore(false);
-    }
+  // Pindah halaman katalog
+  const goToPage = (page: number) => {
+    if (page < 1 || page > totalPages || page === currentPage) return;
+    fetchProducts(false, page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   useEffect(() => {
@@ -522,6 +534,10 @@ function TokoOnlineContent() {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-3.5 sm:py-5 pb-24 lg:pb-12">
+        <h1 className="text-center mb-4 sm:mb-5 text-3xl sm:text-4xl font-bold tracking-tight text-[#1a2610]">
+          Toko{' '}
+          <span className="font-script font-normal text-4xl sm:text-5xl text-green-600 tracking-normal">Online</span>
+        </h1>
         {/* Search Bar matching Gambar 1 (Clean Rounded Pill with Magnifying Glass & Filter Button) */}
         <div className="relative w-full max-w-2xl mx-auto mb-5 sm:mb-6">
           <div className="relative flex items-center bg-white border border-[#cfd6c9] focus-within:border-[#233414] focus-within:ring-2 focus-within:ring-[#233414]/15 rounded-full shadow-xs transition-all h-11 sm:h-12 px-4">
@@ -651,9 +667,48 @@ function TokoOnlineContent() {
           </div>
         </div>
 
-        {/* Active Filter Chips (Mode Mobile & Desktop) */}
+        <div className="lg:flex lg:items-start lg:gap-6">
+        <CatalogSidebar
+          title="Filter komoditas"
+          categories={sidebarCategories}
+          selectedKategori={selectedKategori}
+          onSelectKategori={(key) => applyFilters({ kategori: key })}
+          fallbackIcon={getCategoryIcon}
+          toggles={[
+            {
+              key: 'onlyAvailable',
+              label: 'Stok tersedia saja',
+              checked: onlyAvailable,
+              onChange: (v) => applyFilters({ onlyAvailable: v }),
+            },
+          ]}
+          price={{
+            title: 'Rentang harga',
+            min: minPrice,
+            max: maxPrice,
+            floor: 5000,
+            ceil: 250000,
+            onApply: (min, max) => applyFilters({ minPrice: min, maxPrice: max }),
+          }}
+          hasActiveFilters={hasActiveFilters}
+          onReset={() =>
+            applyFilters({ kategori: 'SEMUA', onlyAvailable: false, minPrice: 5000, maxPrice: 250000, sortBy: 'default' })
+          }
+        />
+
+        <div className="flex-1 min-w-0">
+        {!isLoadingProducts && (
+          <CatalogToolbar
+            from={displayedProducts.length ? (currentPage - 1) * PAGE_SIZE + 1 : 0}
+            to={displayedProducts.length ? (currentPage - 1) * PAGE_SIZE + displayedProducts.length : 0}
+            total={totalProductsCount}
+            unit="komoditas"
+          />
+        )}
+
+        {/* Active Filter Chips (Mode Mobile & Tablet) */}
         {hasActiveFilters && (
-          <div className="flex items-center gap-2 overflow-x-auto pb-2.5 mb-3 px-1 no-scrollbar text-xs">
+          <div className="flex lg:hidden items-center gap-2 overflow-x-auto pb-2.5 mb-3 px-1 no-scrollbar text-xs">
             <span className="text-[11px] font-bold text-[#526046] uppercase shrink-0">Filter Aktif:</span>
             {selectedKategori !== 'SEMUA' && (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-[#dce1d6] text-xs font-semibold text-[#1a2610] shadow-2xs shrink-0">
@@ -798,7 +853,7 @@ function TokoOnlineContent() {
                 - Mobile (<640px): 2 Kolom Proporsional (gap-3)
                 - Tablet (sm/md): 2 - 3 Kolom Modern (gap-4)
                 - Desktop (lg/xl): 4 Kolom Editorial Taste (gap-5) */}
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
               {displayedProducts.map((prod) => {
                 const isOutOfStock = !prod.isTersedia || Number(prod.stok || 0) <= 0;
                 const farmerName =
@@ -941,30 +996,16 @@ function TokoOnlineContent() {
               })}
             </div>
 
-            {/* "Muat Lebih Banyak" Button */}
-            {hasMore && (
-              <div className="mt-6 sm:mt-8 mb-4 flex flex-col items-center justify-center gap-2">
-                <button
-                  onClick={handleLoadMore}
-                  disabled={isLoadingMore}
-                  className="w-full max-w-xs h-10 sm:h-11 px-5 sm:px-6 rounded-xl border border-[#233414] bg-white hover:bg-[#EAEDE7] text-[#233414] font-semibold text-xs sm:text-[13px] transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
-                >
-                  {isLoadingMore ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin text-[#233414]" />
-                      <span>Memuat Komoditas...</span>
-                    </>
-                  ) : (
-                    <span>Muat Lebih Banyak</span>
-                  )}
-                </button>
-                <span className="text-[11px] sm:text-xs text-[#5b6950] tabular-nums">
-                  Menampilkan {displayedProducts.length} dari {totalProductsCount} komoditas
-                </span>
-              </div>
-            )}
+            <CatalogPagination
+              page={currentPage}
+              totalPages={totalPages}
+              onChange={goToPage}
+              disabled={isLoadingProducts}
+            />
           </>
         )}
+        </div>
+        </div>
       </main>
     </div>
   );

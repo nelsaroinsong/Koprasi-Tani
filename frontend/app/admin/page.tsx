@@ -7,7 +7,6 @@ import { PembeliDataTable } from '@/components/admin/pembeli-data-table';
 import { TokoOnlineDataTable } from '@/components/admin/toko-data-table';
 import { OrdersDataTable } from '@/components/admin/orders-data-table';
 import { PayoutsDataTable } from '@/components/admin/payouts-data-table';
-import { LogoSettingsPanel } from '@/components/admin/logo-settings-panel';
 import { CategoriesDataTable } from '@/components/admin/categories-data-table';
 import { EquipmentCategoriesDataTable } from '@/components/admin/equipment-categories-data-table';
 import { EquipmentFormPage } from '@/components/admin/equipment-form-page';
@@ -17,13 +16,14 @@ import { EquipmentRentalsTable } from '@/components/admin/equipment-rentals-tabl
 import { DashboardKpiCards } from '@/components/admin/dashboard-kpi-cards';
 import { RecentUsersTable } from '@/components/admin/recent-users-table';
 import { WarehouseLocationPage } from '@/components/admin/warehouse-location-page';
+import { AdminSettingsPage } from '@/components/admin/admin-settings-page';
 
 export default function AdminPage() {
   const { activeTab, setActiveTab } = useAdmin();
 
-  // 0. Tampilan Pengaturan Web: Logo Mitra
-  if (activeTab.group === 'Pengaturan Web') {
-    return <LogoSettingsPanel />;
+  // 0. Halaman Pengaturan Akun Administrator
+  if (activeTab.group === 'Pengaturan') {
+    return <AdminSettingsPage />;
   }
 
   // 1. Tampilan Halaman Pengguna: Petani

@@ -1,8 +1,5 @@
-import fs from 'fs';
-import path from 'path';
 import { getRedisClient } from '@/lib/redis';
-
-const FILE_PATH = path.join(process.cwd(), 'data', 'popular-searches.json');
+import { getSetting, setSetting, SETTING_KEYS } from '@/lib/app-settings';
 
 /**
  * Mencatat frekuensi kata kunci pencarian secara riil
@@ -23,22 +20,11 @@ export async function recordSearchTerm(term: string): Promise<void> {
     }
   } catch {}
 
-  // 2. Simpan juga ke file JSON lokal sebagai penyimpanan persisten
+  // 2. Simpan juga ke database sebagai penyimpanan persisten
   try {
-    const dir = path.dirname(FILE_PATH);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-
-    let data: Record<string, number> = {};
-    if (fs.existsSync(FILE_PATH)) {
-      try {
-        data = JSON.parse(fs.readFileSync(FILE_PATH, 'utf-8'));
-      } catch {}
-    }
-
+    const data = (await getSetting<Record<string, number>>(SETTING_KEYS.popularSearches)) || {};
     data[formattedTerm] = (data[formattedTerm] || 0) + 1;
-    fs.writeFileSync(FILE_PATH, JSON.stringify(data, null, 2), 'utf-8');
+    await setSetting(SETTING_KEYS.popularSearches, data);
   } catch (err) {
     console.error('Error mencatat kata kunci pencarian:', err);
   }
@@ -59,16 +45,15 @@ export async function getPopularSearchTerms(limit = 7): Promise<string[]> {
     }
   } catch {}
 
-  // 2. Fallback ambil dari file data riil
+  // 2. Fallback dari database
   try {
-    if (fs.existsSync(FILE_PATH)) {
-      const data: Record<string, number> = JSON.parse(fs.readFileSync(FILE_PATH, 'utf-8'));
-      const sorted = Object.entries(data)
+    const data = await getSetting<Record<string, number>>(SETTING_KEYS.popularSearches);
+    if (data) {
+      return Object.entries(data)
         .filter(([term, count]) => count > 0 && term.length >= 2)
         .sort((a, b) => b[1] - a[1])
         .slice(0, limit)
         .map(([term]) => term);
-      return sorted;
     }
   } catch {}
 

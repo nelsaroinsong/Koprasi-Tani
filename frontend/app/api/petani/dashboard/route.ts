@@ -46,6 +46,7 @@ export async function GET() {
           select: {
             orderNumber: true,
             status: true,
+            isPaid: true,
             createdAt: true,
           },
         },
@@ -61,11 +62,16 @@ export async function GET() {
     let totalKuantitasTerjual = 0;
     let cashSiapDiambil = 0;
     let cashSudahDiterima = 0;
+    let cashMenungguPembeli = 0;
 
     for (const item of soldItems) {
       totalKuantitasTerjual += item.quantity;
       const subtotalNum = Number(item.subtotal);
-      if (item.payoutStatus === 'MENUNGGU_PENCAIRAN') {
+      const isOrderCompleted = item.order.status === 'SELESAI' && item.order.isPaid;
+      if (item.payoutStatus === 'MENUNGGU_PENCAIRAN' && !isOrderCompleted) {
+        // Pembeli belum menyelesaikan pembayaran/pengambilan: belum bisa dicairkan
+        cashMenungguPembeli += subtotalNum;
+      } else if (item.payoutStatus === 'MENUNGGU_PENCAIRAN') {
         cashSiapDiambil += subtotalNum;
       } else {
         cashSudahDiterima += subtotalNum;
@@ -80,6 +86,7 @@ export async function GET() {
         totalKuantitasTerjual,
         cashSiapDiambil,
         cashSudahDiterima,
+        cashMenungguPembeli,
       },
       recentSales: soldItems.slice(0, 10).map((i) => ({
         id: i.id,

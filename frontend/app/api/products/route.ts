@@ -1,21 +1,15 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { getCache, setCache, delCachePattern } from '@/lib/redis';
 
-function getInactiveCategoryNames(): string[] {
+async function getInactiveCategoryNames(): Promise<string[]> {
   try {
-    const file = path.join(process.cwd(), 'data', 'categories.json');
-    if (fs.existsSync(file)) {
-      const data = JSON.parse(fs.readFileSync(file, 'utf-8'));
-      if (Array.isArray(data)) {
-        return data.filter((c: any) => c.isActive === false).map((c: any) => c.name);
-      }
-    }
-  } catch {}
-  return [];
+    const rows = await prisma.category.findMany({ where: { isActive: false }, select: { name: true } });
+    return rows.map((c) => c.name);
+  } catch {
+    return [];
+  }
 }
 
 export async function GET(request: Request) {
@@ -128,7 +122,7 @@ export async function GET(request: Request) {
     }
 
     // Mengambil seluruh produk yang aktif di Koperasi dari DB jika cache miss
-    const inactiveCats = getInactiveCategoryNames();
+    const inactiveCats = await getInactiveCategoryNames();
 
     // Jika kategori yang dicari melalui URL termasuk kategori nonaktif, segera return kosong
     if (
@@ -238,9 +232,14 @@ export async function POST(request: Request) {
       where: { email: session.user.email.trim().toLowerCase() },
     });
 
-    if (!dbUser || dbUser.role !== 'PETANI' || !dbUser.isVerified) {
+    // Pendaftaran komoditas dilakukan petani langsung di kantor koperasi dan diinput oleh admin
+    // (lewat /api/admin/products). Endpoint publik ini tidak lagi menerima input produk.
+    if (!dbUser || dbUser.role !== 'ADMIN') {
       return NextResponse.json(
-        { error: 'Hanya petani terverifikasi yang dapat menambahkan produk komoditas.' },
+        {
+          error:
+            'Pendaftaran komoditas dilakukan di kantor koperasi. Silakan bawa hasil panen Anda ke gudang, admin akan menginputnya.',
+        },
         { status: 403 }
       );
     }

@@ -10,7 +10,8 @@ const AUTO_CANCEL_MS = AUTO_CANCEL_HOURS * 60 * 60 * 1000;
 // Helper: Batalkan pesanan kedaluwarsa secara otomatis dan kembalikan stok fisik (24 jam batas bayar di kasir)
 async function checkAndAutoCancelExpiredOrder(order: any) {
   // Hitung mundur batas waktu pembayaran 24 jam HANYA berlaku ketika pesanan sudah di tahap SIAP_DIAMBIL
-  if (order.status !== 'SIAP_DIAMBIL') {
+  // Pesanan yang sudah lunas (mis. transfer) tidak boleh dibatalkan otomatis
+  if (order.status !== 'SIAP_DIAMBIL' || order.isPaid) {
     return order;
   }
 

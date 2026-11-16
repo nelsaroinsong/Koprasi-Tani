@@ -2,26 +2,47 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { getCache, setCache, delCachePattern } from '@/lib/redis';
-import { readEquipmentsFromFile, type EquipmentItem } from '@/lib/equipments';
 import {
-  readEquipmentRentals,
-  writeEquipmentRentals,
-  type EquipmentRentalOrder,
-  type EquipmentRentalOrderItem,
+  RENTAL_INCLUDE,
+  RentalConflictError,
+  assertAvailability,
+  expireOverdueRentals,
+  toRentalDTO,
 } from '@/lib/equipment-rentals';
+import {
+  addDays,
+  computePaymentDeadline,
+  itemDateRange,
+  parseDateOnly,
+  toDateOnly,
+  todayWita,
+} from '@/lib/rental-schedule';
 import { validateMinahasaUtaraAddress } from '@/lib/address-validation';
+import { BATAS_BATAL_HARI, DENDA_PER_HARI, DP_PERSEN, dpDikembalikanJikaBatal, hitungDp } from '@/lib/rental-policy';
 
 export const dynamic = 'force-dynamic';
 
-// GET: Ambil riwayat pengajuan sewa alat milik pengguna saat ini (Cached in Redis)
+/** Pemesanan paling jauh 90 hari ke depan */
+const MAX_ADVANCE_DAYS = 90;
+
+function formatWita(d: Date): string {
+  return d.toLocaleString('id-ID', {
+    timeZone: 'Asia/Makassar',
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+// GET: Riwayat pengajuan sewa alat milik pengguna saat ini
 export async function GET() {
   try {
     const session = await auth();
     if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: 'Silakan login terlebih dahulu' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Silakan login terlebih dahulu' }, { status: 401 });
     }
 
     const email = session.user.email.toLowerCase().trim();
@@ -31,19 +52,21 @@ export async function GET() {
       return NextResponse.json(cached);
     }
 
-    const allRentals = readEquipmentRentals();
-    // Filter pengajuan yang diajukan oleh email pengguna ini
-    const userRentals = allRentals
-      .filter((r) => r.userEmail === session.user?.email)
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    if ((await expireOverdueRentals()) > 0) {
+      await delCachePattern('equipments:*').catch(() => {});
+    }
 
-    const responsePayload = {
-      success: true,
-      rentals: userRentals,
-    };
+    const dbUser = await prisma.user.findUnique({ where: { email }, select: { id: true } });
+    const rows = dbUser
+      ? await prisma.equipmentRental.findMany({
+          where: { userId: dbUser.id },
+          include: RENTAL_INCLUDE,
+          orderBy: { createdAt: 'desc' },
+        })
+      : [];
 
+    const responsePayload = { success: true, rentals: rows.map(toRentalDTO) };
     await setCache(cacheKey, responsePayload, 60);
-
     return NextResponse.json(responsePayload);
   } catch (error: any) {
     console.error('Error fetching user rentals:', error);
@@ -54,7 +77,7 @@ export async function GET() {
   }
 }
 
-// POST: Buat Pengajuan Sewa Alat Baru (Status: MENUNGGU_PERSETUJUAN_ADMIN)
+// POST: Buat pengajuan sewa alat baru (status MENUNGGU_PERSETUJUAN_ADMIN)
 export async function POST(request: Request) {
   try {
     const session = await auth();
@@ -66,92 +89,88 @@ export async function POST(request: Request) {
     }
 
     const dbUser = await prisma.user.findUnique({
-      where: { email: session.user.email },
+      where: { email: session.user.email.trim().toLowerCase() },
       select: { id: true, name: true, phone: true, role: true, email: true },
     });
+    if (!dbUser) {
+      return NextResponse.json({ error: 'Akun pengguna tidak ditemukan' }, { status: 404 });
+    }
 
     const body = await request.json();
     const {
       startDate,
-      endDate,
       lokasiLahan,
       farmLocationGps,
       catatan,
-      // Multi-items payload
       items,
-      // Single-item fallback payload
+      // Payload lama (satu alat)
       equipmentId,
       durasi = 1,
       jumlahUnit = 1,
       includeOperator = false,
     } = body;
 
-    if (!startDate) {
+    // 1. Validasi tanggal mulai: tidak boleh lampau, maksimal 90 hari ke depan
+    const today = todayWita();
+    if (!startDate || !parseDateOnly(String(startDate))) {
+      return NextResponse.json({ error: 'Tentukan tanggal mulai pemakaian sewa alat' }, { status: 400 });
+    }
+    if (startDate < today) {
       return NextResponse.json(
-        { error: 'Tentukan tanggal mulai pemakaian sewa alat' },
+        { error: 'Tanggal mulai sewa tidak boleh sebelum hari ini.' },
+        { status: 400 }
+      );
+    }
+    if (startDate > addDays(today, MAX_ADVANCE_DAYS)) {
+      return NextResponse.json(
+        { error: `Pemesanan sewa paling jauh ${MAX_ADVANCE_DAYS} hari ke depan.` },
         { status: 400 }
       );
     }
 
     const addressValidation = validateMinahasaUtaraAddress(lokasiLahan, true);
     if (!addressValidation.isValid) {
-      return NextResponse.json(
-        { error: addressValidation.error },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: addressValidation.error }, { status: 400 });
     }
 
-    // Ambil semua data master alat
-    const allEquipments = readEquipmentsFromFile();
+    // 2. Normalisasi daftar alat yang diminta
+    const rawItems: any[] =
+      Array.isArray(items) && items.length > 0
+        ? items
+        : equipmentId
+        ? [{ equipmentId, durasi, jumlahUnit, includeOperator }]
+        : [];
 
-    const processedItems: EquipmentRentalOrderItem[] = [];
+    const ids = [...new Set(rawItems.map((it) => String(it.equipmentId || it.id)))];
+    const equipments = await prisma.equipment.findMany({ where: { id: { in: ids } } });
+    const eqMap = new Map(equipments.map((e) => [e.id, e]));
 
-    if (Array.isArray(items) && items.length > 0) {
-      for (const it of items) {
-        const eq = allEquipments.find((e) => e.id === (it.equipmentId || it.id));
-        if (!eq) continue;
-        const dur = Math.max(1, Number(it.durasi) || 1);
-        const qty = Math.max(1, Number(it.jumlahUnit) || 1);
+    const processedItems = rawItems
+      .map((it) => {
+        const eq = eqMap.get(String(it.equipmentId || it.id));
+        if (!eq) return null;
+        const dur = Math.max(1, Math.floor(Number(it.durasi) || 1));
+        const qty = Math.max(1, Math.floor(Number(it.jumlahUnit) || 1));
         const withOp = Boolean(it.includeOperator);
-        const dasar = eq.hargaSewa * dur * qty;
-        const op = withOp && eq.biayaOperator ? eq.biayaOperator * dur * qty : 0;
-        processedItems.push({
+        const harga = Number(eq.hargaSewa);
+        const biayaOp = eq.biayaOperator !== null ? Number(eq.biayaOperator) : null;
+        const range = itemDateRange(startDate, eq.satuanSewa, dur);
+        return {
           equipmentId: eq.id,
           nama: eq.nama,
           kategori: eq.kategori,
-          hargaSewa: eq.hargaSewa,
+          hargaSewa: harga,
           satuanSewa: eq.satuanSewa,
           jumlahUnit: qty,
           durasi: dur,
           includeOperator: withOp,
-          biayaOperator: eq.biayaOperator,
-          subtotal: dasar + op,
+          biayaOperator: biayaOp,
+          subtotal: harga * dur * qty + (withOp && biayaOp ? biayaOp * dur * qty : 0),
           imageUrl: eq.imageUrl,
-        });
-      }
-    } else if (equipmentId) {
-      const eq = allEquipments.find((e) => e.id === equipmentId);
-      if (eq) {
-        const dur = Math.max(1, Number(durasi) || 1);
-        const qty = Math.max(1, Number(jumlahUnit) || 1);
-        const withOp = Boolean(includeOperator);
-        const dasar = eq.hargaSewa * dur * qty;
-        const op = withOp && eq.biayaOperator ? eq.biayaOperator * dur * qty : 0;
-        processedItems.push({
-          equipmentId: eq.id,
-          nama: eq.nama,
-          kategori: eq.kategori,
-          hargaSewa: eq.hargaSewa,
-          satuanSewa: eq.satuanSewa,
-          jumlahUnit: qty,
-          durasi: dur,
-          includeOperator: withOp,
-          biayaOperator: eq.biayaOperator,
-          subtotal: dasar + op,
-          imageUrl: eq.imageUrl,
-        });
-      }
-    }
+          ...range,
+        };
+      })
+      .filter((x): x is NonNullable<typeof x> => x !== null);
 
     if (processedItems.length === 0) {
       return NextResponse.json(
@@ -161,65 +180,72 @@ export async function POST(request: Request) {
     }
 
     const totalEstimasi = processedItems.reduce((acc, curr) => acc + curr.subtotal, 0);
+    const endDate = processedItems.reduce((m, it) => (it.endDate > m ? it.endDate : m), startDate);
     const rentalCode = `SEWA-${Date.now().toString(36).toUpperCase()}`;
 
-    // Kontak WhatsApp PJ Koperasi (ambil kontak pertama yang ada atau default)
-    const pjContact =
-      allEquipments.find((it) => it.kontakPj)?.kontakPj || '081944078924';
+    // 3. Cek jadwal: unit harus cukup pada SETIAP tanggal pemakaian.
+    //    Pengajuan ini sendiri belum mengunci unit sampai disetujui admin.
+    await expireOverdueRentals();
+    const created = await prisma.$transaction(async (tx) => {
+      await assertAvailability(tx, processedItems);
+      return tx.equipmentRental.create({
+        data: {
+          rentalCode,
+          userId: dbUser.id,
+          userName: dbUser.name || session.user?.name || 'Anggota Koperasi',
+          userEmail: dbUser.email,
+          userPhone: dbUser.phone || '',
+          userRole: dbUser.role,
+          status: 'MENUNGGU_PERSETUJUAN_ADMIN',
+          startDate: parseDateOnly(startDate)!,
+          endDate: parseDateOnly(endDate)!,
+          lokasiLahan: lokasiLahan || '',
+          farmLat: typeof farmLocationGps?.lat === 'number' ? farmLocationGps.lat : null,
+          farmLng: typeof farmLocationGps?.lng === 'number' ? farmLocationGps.lng : null,
+          catatan: catatan || '',
+          totalEstimasi,
+          paymentMethod: 'CASH_KOPERASI',
+          items: {
+            create: processedItems.map((it) => ({
+              equipmentId: it.equipmentId,
+              nama: it.nama,
+              kategori: it.kategori,
+              hargaSewa: it.hargaSewa,
+              satuanSewa: it.satuanSewa,
+              jumlahUnit: it.jumlahUnit,
+              durasi: it.durasi,
+              includeOperator: it.includeOperator,
+              biayaOperator: it.biayaOperator,
+              subtotal: it.subtotal,
+              imageUrl: it.imageUrl,
+              startDate: parseDateOnly(it.startDate)!,
+              endDate: parseDateOnly(it.endDate)!,
+            })),
+          },
+        },
+        include: RENTAL_INCLUDE,
+      });
+    });
+    const newRentalOrder = toRentalDTO(created);
+
+    // 4. Pesan WhatsApp ke PJ koperasi
+    const pjContact = equipments.find((it) => it.kontakPj)?.kontakPj || '081944078924';
     const cleanPhone = pjContact.replace(/\D/g, '').replace(/^0/, '62');
+    const estimatedDeadline = computePaymentDeadline(startDate, 'H_MINUS_1');
 
-    // Buat Objek Pengajuan Sewa Resmi (Status: MENUNGGU_PERSETUJUAN_ADMIN)
-    const newRentalOrder: EquipmentRentalOrder = {
-      id: `rent-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      rentalCode,
-      userId: dbUser?.id || session.user.id || session.user.email,
-      userName: dbUser?.name || session.user.name || 'Anggota Koperasi',
-      userEmail: session.user.email,
-      userPhone: dbUser?.phone || (session.user as any).phone || '',
-      userRole: dbUser?.role || (session.user as any).role || 'PEMBELI',
-      status: 'MENUNGGU_PERSETUJUAN_ADMIN',
-      startDate,
-      endDate: endDate || undefined,
-      lokasiLahan: lokasiLahan || '',
-      farmLocationGps:
-        farmLocationGps &&
-        typeof farmLocationGps.lat === 'number' &&
-        typeof farmLocationGps.lng === 'number'
-          ? { lat: farmLocationGps.lat, lng: farmLocationGps.lng }
-          : null,
-      catatan: catatan || '',
-      totalEstimasi,
-      paymentMethod: 'CASH_KOPERASI',
-      isPaid: false,
-      items: processedItems,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      approvedAt: null,
-    };
-
-    // Simpan ke database / file
-    const existingRentals = readEquipmentRentals();
-    existingRentals.unshift(newRentalOrder);
-    writeEquipmentRentals(existingRentals);
-
-    // Hapus cache katalog sewa alat agar ketersediaan stok langsung terbarui
-    try {
-      const { delCache } = await import('@/lib/redis');
-      await delCache('equipments:list:public');
-    } catch {}
-
-    // Rincian alat dalam pesan WhatsApp
-    const itemLines = processedItems.map((it, idx) => {
-      const opInfo = it.includeOperator
-        ? `+ Operator Koperasi (Rp ${Number(it.biayaOperator || 0).toLocaleString('id-ID')}/${it.satuanSewa})`
-        : 'Operator Mandiri';
-      return `${idx + 1}. *${it.nama}*
+    const itemLines = processedItems
+      .map((it, idx) => {
+        const opInfo = it.includeOperator
+          ? `+ Operator Koperasi (Rp ${Number(it.biayaOperator || 0).toLocaleString('id-ID')}/${it.satuanSewa})`
+          : 'Operator Mandiri';
+        return `${idx + 1}. *${it.nama}*
    • Jumlah: ${it.jumlahUnit} unit
-   • Durasi: ${it.durasi} ${it.satuanSewa}
+   • Durasi: ${it.durasi} ${it.satuanSewa} (${it.startDate} s/d ${it.endDate})
    • Tarif: Rp ${it.hargaSewa.toLocaleString('id-ID')}/${it.satuanSewa}
    • Layanan Operator: ${opInfo}
    • Subtotal: Rp ${it.subtotal.toLocaleString('id-ID')}`;
-    }).join('\n\n');
+      })
+      .join('\n\n');
 
     const waMessage = `Halo Pengurus/PJ Sewa Alat Koperasi Sinar Pagi Sejahtera,
 Saya telah membuat *Pengajuan Sewa Alat Pertanian* melalui website koperasi:
@@ -229,7 +255,7 @@ Saya telah membuat *Pengajuan Sewa Alat Pertanian* melalui website koperasi:
 *Nama Pemohon:* ${newRentalOrder.userName}
 *Email:* ${newRentalOrder.userEmail}
 *No. HP:* ${newRentalOrder.userPhone || '-'}
-*Mulai Tanggal:* ${startDate}
+*Jadwal Pemakaian:* ${startDate} s/d ${endDate}
 *Lokasi Lahan Kebun:* ${lokasiLahan || '-'}
 *Catatan Tambahan:* ${catatan || '-'}
 
@@ -238,15 +264,16 @@ ${itemLines}
 
 💰 *TOTAL ESTIMASI TAGIHAN:* Rp ${totalEstimasi.toLocaleString('id-ID')}
 *Metode Pembayaran:* Tunai di Kasir Kantor Koperasi (Kolongan)
-*Catatan Kasir:* Pengajuan ini bersifat reservasi sementara. Saya siap datang ke kasir koperasi untuk pelunasan tunai setelah disetujui agar unit resmi terkunci. Terima kasih.`;
+*Pembayaran (tunai di kasir):*
+• DP ${DP_PERSEN}%: Rp ${hitungDp(totalEstimasi).toLocaleString('id-ID')} paling lambat ${formatWita(estimatedDeadline)} WITA setelah disetujui, untuk mengunci jadwal
+• Sisa Rp ${(totalEstimasi - hitungDp(totalEstimasi)).toLocaleString('id-ID')} dilunasi saat mengambil alat
+• Batal paling lambat H-${BATAS_BATAL_HARI}: DP kembali penuh
+• Denda keterlambatan Rp ${DENDA_PER_HARI.toLocaleString('id-ID')}/unit/hari
+Terima kasih.`;
 
     const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(waMessage)}`;
 
-    // Invalidate user rentals and equipment availability cache
-    await Promise.all([
-      delCachePattern('user:rentals:*'),
-      delCachePattern('equipments:*'),
-    ]).catch(() => {});
+    await Promise.all([delCachePattern('user:rentals:*'), delCachePattern('equipments:*')]).catch(() => {});
 
     return NextResponse.json({
       success: true,
@@ -258,6 +285,9 @@ ${itemLines}
       message: 'Pengajuan sewa alat berhasil dikirim dan menunggu persetujuan admin koperasi.',
     });
   } catch (error: any) {
+    if (error instanceof RentalConflictError) {
+      return NextResponse.json({ error: error.message }, { status: 409 });
+    }
     console.error('Error saat pengajuan sewa alat:', error);
     return NextResponse.json(
       { error: error?.message || 'Gagal memproses pengajuan sewa alat' },
@@ -266,7 +296,7 @@ ${itemLines}
   }
 }
 
-// 3. PATCH: Batalkan Pengajuan Sewa Alat oleh Pengguna
+// PATCH: Batalkan pengajuan sewa oleh pengguna
 export async function PATCH(request: Request) {
   try {
     const session = await auth();
@@ -274,47 +304,64 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Tidak terotentikasi' }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { rentalId, action, alasanBatal } = body;
-
+    const { rentalId, action, alasanBatal } = await request.json();
     if (action !== 'CANCEL') {
       return NextResponse.json({ error: 'Aksi tidak valid' }, { status: 400 });
     }
 
-    const allRentals = readEquipmentRentals();
-    const targetIdx = allRentals.findIndex(
-      (r) =>
-        (r.id === rentalId || r.rentalCode === rentalId || (r as any).rentalNumber === rentalId) &&
-        r.userEmail === session.user?.email
-    );
+    const dbUser = await prisma.user.findUnique({
+      where: { email: session.user.email.trim().toLowerCase() },
+      select: { id: true },
+    });
+    const rental = dbUser
+      ? await prisma.equipmentRental.findFirst({
+          where: { userId: dbUser.id, OR: [{ id: rentalId }, { rentalCode: rentalId }] },
+        })
+      : null;
 
-    if (targetIdx === -1) {
-      return NextResponse.json(
-        { error: 'Pengajuan sewa tidak ditemukan' },
-        { status: 404 }
-      );
+    if (!rental) {
+      return NextResponse.json({ error: 'Pengajuan sewa tidak ditemukan' }, { status: 404 });
     }
 
-    const rental = allRentals[targetIdx];
-    if (rental.status !== 'MENUNGGU_PERSETUJUAN_ADMIN') {
+    // Boleh batal sebelum alat diserahkan & selama belum lunas penuh
+    const cancellable =
+      rental.status === 'MENUNGGU_PERSETUJUAN_ADMIN' ||
+      rental.status === 'DIKONFIRMASI' ||
+      (rental.status === 'DISETUJUI' && !rental.isPaid);
+    if (!cancellable) {
       return NextResponse.json(
-        { error: 'Pengajuan sewa tidak dapat dibatalkan karena sudah diproses atau disetujui.' },
+        {
+          error:
+            'Pengajuan sewa tidak dapat dibatalkan karena sudah lunas atau sedang berjalan. Hubungi pengurus koperasi.',
+        },
         { status: 400 }
       );
     }
 
-    const reason = alasanBatal ? ` (Dibatalkan pemohon: ${alasanBatal})` : ' (Dibatalkan oleh pemohon)';
-    allRentals[targetIdx].status = 'DIBATALKAN';
-    allRentals[targetIdx].catatan = allRentals[targetIdx].catatan
-      ? `${allRentals[targetIdx].catatan}${reason}`
-      : reason.trim();
+    // Aturan DP: batal paling lambat H-2 -> DP kembali penuh; lebih mepet -> DP hangus
+    const dpPaid = Boolean(rental.dpPaidAt);
+    const refundable = dpPaid && dpDikembalikanJikaBatal(toDateOnly(rental.startDate));
+    const reason = alasanBatal ? `(Dibatalkan pemohon: ${alasanBatal})` : '(Dibatalkan oleh pemohon)';
+    const updated = await prisma.equipmentRental.update({
+      where: { id: rental.id },
+      data: {
+        status: 'DIBATALKAN',
+        catatan: rental.catatan ? `${rental.catatan} ${reason}` : reason,
+        dpForfeited: dpPaid && !refundable,
+      },
+      include: RENTAL_INCLUDE,
+    });
 
-    writeEquipmentRentals(allRentals);
+    await Promise.all([delCachePattern('user:rentals:*'), delCachePattern('equipments:*')]).catch(() => {});
 
     return NextResponse.json({
       success: true,
-      message: 'Pengajuan sewa alat berhasil dibatalkan.',
-      rental: allRentals[targetIdx],
+      message: !dpPaid
+        ? 'Pengajuan sewa alat berhasil dibatalkan.'
+        : refundable
+        ? 'Sewa dibatalkan. DP Anda akan dikembalikan penuh, silakan ambil di kasir koperasi.'
+        : `Sewa dibatalkan. Karena kurang dari H-${BATAS_BATAL_HARI}, DP tidak dapat dikembalikan.`,
+      rental: toRentalDTO(updated),
     });
   } catch (err: any) {
     console.error('Error canceling rental:', err);
@@ -324,4 +371,3 @@ export async function PATCH(request: Request) {
     );
   }
 }
-

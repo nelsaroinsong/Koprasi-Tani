@@ -16,6 +16,9 @@ export interface CustomDatePickerProps {
   value: string; // Format 'YYYY-MM-DD'
   onChange: (dateStr: string) => void;
   minDate?: string; // Format 'YYYY-MM-DD', default to today
+  maxDate?: string; // Format 'YYYY-MM-DD'
+  /** Tanggal tambahan yang tidak bisa dipilih (mis. unit sewa penuh) */
+  isDateDisabled?: (dateStr: string) => boolean;
   label?: string;
   placeholder?: string;
   required?: boolean;
@@ -77,6 +80,8 @@ export default function CustomDatePicker({
   value,
   onChange,
   minDate,
+  maxDate,
+  isDateDisabled,
   label,
   placeholder = 'Pilih tanggal...',
   required = false,
@@ -89,6 +94,10 @@ export default function CustomDatePicker({
   // Ambil tanggal hari ini sebagai referensi
   const todayStr = useMemo(() => getTodayString(), []);
   const effectiveMinDate = minDate !== undefined ? minDate : todayStr;
+  const checkDisabled = (dateStr: string) =>
+    (effectiveMinDate ? dateStr < effectiveMinDate : false) ||
+    (maxDate ? dateStr > maxDate : false) ||
+    Boolean(isDateDisabled?.(dateStr));
 
   // Nilai tanggal aktif yang dipilih
   const parsedValue = useMemo(() => parseDateParts(value), [value]);
@@ -163,7 +172,7 @@ export default function CustomDatePicker({
         isCurrentMonth: false,
         isSelected: dateStr === value,
         isToday: dateStr === todayStr,
-        isDisabled: effectiveMinDate ? dateStr < effectiveMinDate : false,
+        isDisabled: checkDisabled(dateStr),
       });
     }
 
@@ -178,7 +187,7 @@ export default function CustomDatePicker({
         isCurrentMonth: true,
         isSelected: dateStr === value,
         isToday: dateStr === todayStr,
-        isDisabled: effectiveMinDate ? dateStr < effectiveMinDate : false,
+        isDisabled: checkDisabled(dateStr),
       });
     }
 
@@ -196,12 +205,13 @@ export default function CustomDatePicker({
         isCurrentMonth: false,
         isSelected: dateStr === value,
         isToday: dateStr === todayStr,
-        isDisabled: effectiveMinDate ? dateStr < effectiveMinDate : false,
+        isDisabled: checkDisabled(dateStr),
       });
     }
 
     return cells;
-  }, [viewYear, viewMonth, value, todayStr, effectiveMinDate]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewYear, viewMonth, value, todayStr, effectiveMinDate, maxDate, isDateDisabled]);
 
   // Navigasi bulan
   const handlePrevMonth = () => {

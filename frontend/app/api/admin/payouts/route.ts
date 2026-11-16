@@ -67,6 +67,7 @@ export async function GET() {
 
     let totalKeseluruhanSiapCash = 0;
     let totalKeseluruhanSudahCash = 0;
+    let totalKeseluruhanMenungguPembeli = 0;
 
     for (const item of soldItems) {
       const pId = item.petaniId;
@@ -76,7 +77,9 @@ export async function GET() {
           siapDicairkanCash: 0,
           sudahDiserahkanCash: 0,
           totalQtyTerjual: 0,
+          menungguPembeliCash: 0,
           pendingItems: [],
+          awaitingItems: [],
           completedItems: [],
         });
       }
@@ -100,7 +103,14 @@ export async function GET() {
         isPaid: item.order.isPaid,
       };
 
-      if (item.payoutStatus === 'MENUNGGU_PENCAIRAN') {
+      // Hak petani baru boleh dicairkan setelah pesanan SELESAI (lunas & barang diserahkan)
+      const isOrderCompleted = item.order.status === 'SELESAI' && item.order.isPaid;
+
+      if (item.payoutStatus === 'MENUNGGU_PENCAIRAN' && !isOrderCompleted) {
+        pData.menungguPembeliCash += subtotalNum;
+        totalKeseluruhanMenungguPembeli += subtotalNum;
+        pData.awaitingItems.push(formattedItem);
+      } else if (item.payoutStatus === 'MENUNGGU_PENCAIRAN') {
         pData.siapDicairkanCash += subtotalNum;
         totalKeseluruhanSiapCash += subtotalNum;
         pData.pendingItems.push(formattedItem);
@@ -121,6 +131,7 @@ export async function GET() {
       summary: {
         totalSiapDiserahkanCash: totalKeseluruhanSiapCash,
         totalSudahDiserahkanCash: totalKeseluruhanSudahCash,
+        totalMenungguPembeliCash: totalKeseluruhanMenungguPembeli,
         totalPetaniAktif: petaniPayoutList.length,
       },
     };
@@ -157,6 +168,8 @@ export async function POST(request: Request) {
 
     const whereClause: Record<string, any> = {
       payoutStatus: 'MENUNGGU_PENCAIRAN',
+      // Hanya item dari pesanan yang sudah SELESAI & lunas yang boleh dicairkan
+      order: { status: 'SELESAI', isPaid: true },
     };
 
     if (itemIds && Array.isArray(itemIds) && itemIds.length > 0) {
@@ -173,7 +186,7 @@ export async function POST(request: Request) {
 
     if (targetItems.length === 0) {
       return NextResponse.json(
-        { error: 'Tidak ada saldo tunai yang menunggu dicairkan untuk petani ini.' },
+        { error: 'Tidak ada saldo yang siap dicairkan. Hak petani baru bisa dicairkan setelah pesanan pembeli selesai dan lunas.' },
         { status: 400 }
       );
     }

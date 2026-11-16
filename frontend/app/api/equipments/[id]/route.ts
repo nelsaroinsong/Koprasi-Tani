@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { readEquipmentsFromFile, type EquipmentItem } from '@/lib/equipments';
-import { getActiveRentedUnitsMap, readEquipmentRentals } from '@/lib/equipment-rentals';
+import { getEquipmentById, type EquipmentItem } from '@/lib/equipments';
+import { expireOverdueRentals, getActiveRentedUnitsMap } from '@/lib/equipment-rentals';
 import {
-  readEquipmentReviewsFromFile,
+  getEquipmentReviews,
+  hasCompletedRental,
   calculateEquipmentStats,
 } from '@/lib/equipment-reviews';
 import { auth } from '@/auth';
@@ -20,99 +21,41 @@ export async function GET(
       return NextResponse.json({ error: 'ID alat diperlukan' }, { status: 400 });
     }
 
-    let equipment: EquipmentItem | null = null;
-
-    // Coba ambil dari database
-    try {
-      const dbEquipments: any[] = await prisma.$queryRawUnsafe(
-        `SELECT * FROM equipments WHERE id = $1 LIMIT 1`,
-        id
-      );
-
-      if (dbEquipments && dbEquipments.length > 0) {
-        const eq = dbEquipments[0];
-        equipment = {
-          id: eq.id,
-          nama: eq.nama,
-          kategori: eq.kategori,
-          deskripsi: eq.deskripsi,
-          spesifikasi: eq.spesifikasi,
-          hargaSewa: Number(eq.hargaSewa),
-          satuanSewa: eq.satuanSewa || 'hari',
-          biayaOperator: eq.biayaOperator !== null ? Number(eq.biayaOperator) : null,
-          stokUnit: Number(eq.stokUnit) || 1,
-          kondisi: eq.kondisi || 'Sangat Baik',
-          imageUrl: eq.imageUrl,
-          isTersedia: eq.isTersedia ?? true,
-          kontakPj: eq.kontakPj,
-          createdAt: eq.createdAt,
-          updatedAt: eq.updatedAt,
-        };
-      }
-    } catch {}
-
-    // Fallback ke file data lokal
+    const equipment = await getEquipmentById(id);
     if (!equipment) {
-      const list = readEquipmentsFromFile();
-      const found = list.find((item) => item.id === id);
-      if (found) {
-        equipment = found;
-      }
+      return NextResponse.json({ error: 'Unit alat pertanian tidak ditemukan' }, { status: 404 });
     }
 
-    if (!equipment) {
-      return NextResponse.json(
-        { error: 'Unit alat pertanian tidak ditemukan' },
-        { status: 404 }
-      );
-    }
-
-    // Hitung sisa stok tersedia secara dinamis
-    const rentedMap = getActiveRentedUnitsMap();
+    // Sisa stok HARI INI (sewa di tanggal lain tidak mengurangi)
+    await expireOverdueRentals();
+    const rentedMap = await getActiveRentedUnitsMap();
     const rented = rentedMap[equipment.id] || 0;
     const totalStok = Number(equipment.stokUnit) || 0;
     const stokTersedia = Math.max(0, totalStok - rented);
-    const isAvailable = Boolean(equipment.isTersedia) && stokTersedia > 0;
 
     const enrichedEquipment: EquipmentItem = {
       ...equipment,
       stokUnit: totalStok,
       stokTersedia,
       unitDisewa: rented,
-      isTersedia: isAvailable,
+      isTersedia: Boolean(equipment.isTersedia) && stokTersedia > 0,
     };
 
-    // Ambil ulasan & statistik ulasan alat
-    const allReviews = readEquipmentReviewsFromFile();
-    const reviews = allReviews.filter((r) => r.equipmentId === equipment.id);
+    const reviews = await getEquipmentReviews(equipment.id);
     const stats = calculateEquipmentStats(reviews);
 
-    // Cek apakah user sedang login dan sudah menyelesaikan sewa alat ini
+    // Apakah pengguna login pernah menyelesaikan sewa alat ini (boleh menulis ulasan)
     let hasRented = false;
     let isAuthenticated = false;
-
     try {
       const session = await auth();
       if (session?.user?.email) {
         isAuthenticated = true;
-        let currentUserId = '';
-        try {
-          const dbUser = await prisma.user.findUnique({
-            where: { email: session.user.email },
-            select: { id: true },
-          });
-          if (dbUser) currentUserId = dbUser.id;
-        } catch {}
-
-        const allRentals = readEquipmentRentals();
-        const userEmailLower = session.user.email.trim().toLowerCase();
-        hasRented = allRentals.some(
-          (r) =>
-            ((currentUserId && r.userId === currentUserId) ||
-              (r.userEmail && r.userEmail.trim().toLowerCase() === userEmailLower)) &&
-            r.status === 'SELESAI' &&
-            r.items?.some((item) => item.equipmentId === equipment!.id)
-        );
+        const dbUser = await prisma.user.findUnique({
+          where: { email: session.user.email.trim().toLowerCase() },
+          select: { id: true },
+        });
+        if (dbUser) hasRented = await hasCompletedRental(dbUser.id, equipment.id);
       }
     } catch (authErr) {
       console.warn('Error checking equipment rental auth state:', authErr);
@@ -123,10 +66,7 @@ export async function GET(
       equipment: enrichedEquipment,
       reviews,
       stats,
-      userState: {
-        isAuthenticated,
-        hasRented,
-      },
+      userState: { isAuthenticated, hasRented },
     });
   } catch (error: any) {
     console.error('Error fetching equipment detail:', error);

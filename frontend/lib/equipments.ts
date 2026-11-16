@@ -1,5 +1,5 @@
-import fs from 'fs';
-import path from 'path';
+import type { Equipment } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 
 export interface EquipmentItem {
   id: string;
@@ -17,32 +17,40 @@ export interface EquipmentItem {
   imageUrl: string | null;
   isTersedia: boolean;
   kontakPj: string | null;
+  /** Jeda hari setelah setiap sewa sebelum unit bisa disewa lagi */
+  jedaHari?: number;
   createdAt?: string;
   updatedAt?: string;
 }
 
-const EQUIPMENTS_FILE = path.join(process.cwd(), 'data', 'equipments.json');
-
-export function readEquipmentsFromFile(): EquipmentItem[] {
-  try {
-    if (fs.existsSync(EQUIPMENTS_FILE)) {
-      const data = fs.readFileSync(EQUIPMENTS_FILE, 'utf-8');
-      return JSON.parse(data);
-    }
-  } catch (e) {
-    console.error('Error reading equipments from file:', e);
-  }
-  return [];
+export function toEquipmentItem(eq: Equipment): EquipmentItem {
+  return {
+    id: eq.id,
+    nama: eq.nama,
+    kategori: eq.kategori,
+    deskripsi: eq.deskripsi,
+    spesifikasi: eq.spesifikasi,
+    hargaSewa: Number(eq.hargaSewa),
+    satuanSewa: eq.satuanSewa || 'hari',
+    biayaOperator: eq.biayaOperator !== null ? Number(eq.biayaOperator) : null,
+    stokUnit: Number(eq.stokUnit) || 0,
+    kondisi: eq.kondisi || 'Sangat Baik',
+    imageUrl: eq.imageUrl,
+    isTersedia: eq.isTersedia,
+    kontakPj: eq.kontakPj,
+    jedaHari: eq.jedaHari,
+    createdAt: eq.createdAt.toISOString(),
+    updatedAt: eq.updatedAt.toISOString(),
+  };
 }
 
-export function writeEquipmentsToFile(items: EquipmentItem[]): void {
-  try {
-    const dir = path.dirname(EQUIPMENTS_FILE);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    fs.writeFileSync(EQUIPMENTS_FILE, JSON.stringify(items, null, 2), 'utf-8');
-  } catch (e) {
-    console.error('Error writing equipments to file:', e);
-  }
+/** Seluruh alat dari database, terbaru lebih dulu */
+export async function getEquipments(): Promise<EquipmentItem[]> {
+  const rows = await prisma.equipment.findMany({ orderBy: { createdAt: 'desc' } });
+  return rows.map(toEquipmentItem);
+}
+
+export async function getEquipmentById(id: string): Promise<EquipmentItem | null> {
+  const row = await prisma.equipment.findUnique({ where: { id } });
+  return row ? toEquipmentItem(row) : null;
 }

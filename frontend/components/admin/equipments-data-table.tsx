@@ -45,6 +45,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useAdmin } from '@/components/admin/admin-context';
 import type { EquipmentItem } from '@/lib/equipments';
+import { EquipmentMaintenanceDialog } from '@/components/admin/equipment-maintenance-dialog';
 import { validateIndonesianPhone } from '@/lib/phone-validation';
 import { getPrimaryImage } from '@/lib/utils';
 
@@ -112,6 +113,7 @@ export default function EquipmentsDataTable() {
 
   // Delete Dialog State (Hapus Tunggal)
   const [deleteTarget, setDeleteTarget] = useState<EquipmentItem | null>(null);
+  const [maintenanceTarget, setMaintenanceTarget] = useState<EquipmentItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Category Management Modal State (CRUD Kategori Alat)
@@ -1234,6 +1236,14 @@ export default function EquipmentsDataTable() {
                           <div className="flex items-center justify-end gap-1">
                             <button
                               type="button"
+                              onClick={() => setMaintenanceTarget(item)}
+                              title="Jadwal Servis"
+                              className="w-7 h-7 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-lg flex items-center justify-center transition cursor-pointer"
+                            >
+                              <Wrench className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
                               onClick={() => setActiveTab('Produk dan Layanan', 'Tambah Alat', item)}
                               title="Edit Alat"
                               className="w-7 h-7 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-lg flex items-center justify-center transition cursor-pointer"
@@ -1929,6 +1939,8 @@ export default function EquipmentsDataTable() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <EquipmentMaintenanceDialog equipment={maintenanceTarget} onClose={() => setMaintenanceTarget(null)} />
     </div>
   );
 }

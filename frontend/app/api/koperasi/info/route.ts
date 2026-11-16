@@ -2,43 +2,30 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/auth';
 import { getCache, setCache, delCache } from '@/lib/redis';
-import fs from 'fs';
-import path from 'path';
+import { getSetting, setSetting, SETTING_KEYS } from '@/lib/app-settings';
 
 const DEFAULT_ADDRESS =
   'Koperasi Sinar Pagi Sejahtera — Jl. Raya Kolongan, Kec. Kalawat, Kabupaten Minahasa Utara, Sulawesi Utara';
 const DEFAULT_LAT = 1.4334;
 const DEFAULT_LNG = 124.9312;
 const KOPERASI_CACHE_KEY = 'koperasi:info';
-const COORDS_FILE_PATH = path.join(process.cwd(), 'data', 'warehouse-location.json');
 
-function readSavedCoords(): { latitude: number; longitude: number } {
+async function readSavedCoords(): Promise<{ latitude: number; longitude: number }> {
   try {
-    if (fs.existsSync(COORDS_FILE_PATH)) {
-      const raw = fs.readFileSync(COORDS_FILE_PATH, 'utf-8');
-      const parsed = JSON.parse(raw);
-      if (typeof parsed.latitude === 'number' && typeof parsed.longitude === 'number') {
-        return { latitude: parsed.latitude, longitude: parsed.longitude };
-      }
+    const saved = await getSetting<{ latitude: number; longitude: number }>(SETTING_KEYS.warehouseLocation);
+    if (saved && typeof saved.latitude === 'number' && typeof saved.longitude === 'number') {
+      return { latitude: saved.latitude, longitude: saved.longitude };
     }
   } catch {}
   return { latitude: DEFAULT_LAT, longitude: DEFAULT_LNG };
 }
 
-function writeSavedCoords(latitude: number, longitude: number) {
-  try {
-    const dir = path.dirname(COORDS_FILE_PATH);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    fs.writeFileSync(
-      COORDS_FILE_PATH,
-      JSON.stringify({ latitude, longitude, updatedAt: new Date().toISOString() }, null, 2),
-      'utf-8'
-    );
-  } catch (err) {
-    console.warn('Failed to write warehouse coords file:', err);
-  }
+async function writeSavedCoords(latitude: number, longitude: number) {
+  await setSetting(SETTING_KEYS.warehouseLocation, {
+    latitude,
+    longitude,
+    updatedAt: new Date().toISOString(),
+  });
 }
 
 // 1. GET: Ambil info resmi Koperasi (Alamat Gudang, No. WhatsApp, Koordinat GPS) untuk checkout & katalog
@@ -61,7 +48,7 @@ export async function GET() {
 
     const alamatGudang = admin?.address?.trim() || DEFAULT_ADDRESS;
     const phone = admin?.phone?.trim() || '081944078924';
-    const coords = readSavedCoords();
+    const coords = await readSavedCoords();
 
     const responseData = {
       success: true,
@@ -78,7 +65,7 @@ export async function GET() {
     return NextResponse.json(responseData);
   } catch (error) {
     console.error('Error fetching koperasi info:', error);
-    const coords = readSavedCoords();
+    const coords = await readSavedCoords();
     return NextResponse.json({
       success: true,
       namaKoperasi: 'Koperasi Sinar Pagi Sejahtera',
@@ -144,10 +131,10 @@ export async function PATCH(request: Request) {
     });
 
     if (typeof latitude === 'number' && !isNaN(latitude) && typeof longitude === 'number' && !isNaN(longitude)) {
-      writeSavedCoords(latitude, longitude);
+      await writeSavedCoords(latitude, longitude);
     }
 
-    const savedCoords = readSavedCoords();
+    const savedCoords = await readSavedCoords();
 
     // Invalidate Redis cache
     await delCache(KOPERASI_CACHE_KEY);

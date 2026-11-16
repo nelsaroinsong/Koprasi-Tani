@@ -47,7 +47,6 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import type { EquipmentItem } from '@/lib/equipments';
-import initialEquipmentsData from '@/data/equipments.json';
 import {
   getRentalCart,
   addToRentalCart,
@@ -59,6 +58,10 @@ import {
   type RentalCartItem,
 } from '@/lib/rental-cart';
 import { getPrimaryImage } from '@/lib/utils';
+import { CatalogSidebar, CatalogToolbar } from '@/components/catalog/CatalogSidebar';
+import { CatalogPagination } from '@/components/catalog/CatalogPagination';
+
+const PAGE_SIZE = 12;
 
 const getCategoryIcon = (categoryName: string) => {
   const norm = categoryName.toLowerCase().trim();
@@ -81,10 +84,8 @@ function SewaAlatContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // State Data (Instant rendering dari cache in-memory atau seed lokal)
-  const [equipments, setEquipments] = useState<EquipmentItem[]>(
-    () => cachedEquipmentsCatalog || (initialEquipmentsData as EquipmentItem[]) || []
-  );
+  // State Data (instant rendering dari cache in-memory; data asli dari database via API)
+  const [equipments, setEquipments] = useState<EquipmentItem[]>(() => cachedEquipmentsCatalog || []);
   const [isLoading, setIsLoading] = useState(() => !cachedEquipmentsCatalog);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedKategori, setSelectedKategori] = useState<string>(
@@ -273,6 +274,76 @@ function SewaAlatContent() {
 
     return list;
   }, [equipments, selectedKategori, onlyAvailable, operatorOnly, minPrice, maxPrice, searchQuery, sortBy, inactiveCatNames]);
+
+  // Pagination sisi klien (katalog alat dimuat lengkap sekaligus)
+  const [currentPage, setCurrentPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(filteredEquipments.length / PAGE_SIZE));
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedKategori, onlyAvailable, operatorOnly, minPrice, maxPrice, searchQuery, sortBy]);
+  const safePage = Math.min(currentPage, totalPages);
+  const pagedEquipments = useMemo(
+    () => filteredEquipments.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE),
+    [filteredEquipments, safePage]
+  );
+  const goToPage = (page: number) => {
+    if (page < 1 || page > totalPages || page === safePage) return;
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Terapkan filter ke state + URL sekaligus (dipakai sidebar desktop)
+  const applyFilters = (
+    next: Partial<{
+      kategori: string;
+      onlyAvailable: boolean;
+      operatorOnly: boolean;
+      minPrice: number;
+      maxPrice: number;
+      sortBy: string;
+    }>
+  ) => {
+    const f = {
+      kategori: next.kategori ?? selectedKategori,
+      onlyAvailable: next.onlyAvailable ?? onlyAvailable,
+      operatorOnly: next.operatorOnly ?? operatorOnly,
+      minPrice: next.minPrice ?? minPrice,
+      maxPrice: next.maxPrice ?? maxPrice,
+      sortBy: next.sortBy ?? sortBy,
+    };
+    setSelectedKategori(f.kategori);
+    setOnlyAvailable(f.onlyAvailable);
+    setOperatorOnly(f.operatorOnly);
+    setMinPrice(f.minPrice);
+    setMaxPrice(f.maxPrice);
+    setSortBy(f.sortBy);
+    const params = new URLSearchParams(searchParams.toString());
+    const setOrDelete = (k: string, v: string | null) => (v ? params.set(k, v) : params.delete(k));
+    setOrDelete('kategori', f.kategori !== 'SEMUA' ? f.kategori : null);
+    setOrDelete('onlyAvailable', f.onlyAvailable ? 'true' : null);
+    setOrDelete('operatorOnly', f.operatorOnly ? 'true' : null);
+    setOrDelete('minPrice', f.minPrice > 50000 ? String(f.minPrice) : null);
+    setOrDelete('maxPrice', f.maxPrice < 2500000 ? String(f.maxPrice) : null);
+    setOrDelete('sortBy', f.sortBy !== 'default' ? f.sortBy : null);
+    const query = params.toString();
+    router.replace(query ? `/sewa-alat?${query}` : '/sewa-alat', { scroll: false });
+  };
+
+  // Jumlah alat per kategori (dari katalog lengkap, kategori nonaktif dikecualikan)
+  const sidebarCategories = useMemo(() => {
+    const visible = equipments.filter(
+      (e) => !e.kategori || !inactiveCatNames.has(e.kategori.toLowerCase().trim())
+    );
+    return dynamicKategoriTabs.map((tab) => ({
+      key: tab.key,
+      label: tab.key === 'SEMUA' ? 'Semua alat' : tab.label,
+      imageUrl: tab.key === 'SEMUA' ? undefined : tab.imageUrl,
+      count:
+        tab.key === 'SEMUA'
+          ? visible.length
+          : visible.filter((e) => e.kategori?.toLowerCase().trim() === tab.key.toLowerCase().trim()).length,
+    }));
+  }, [dynamicKategoriTabs, equipments, inactiveCatNames]);
 
   const hasActiveFilters =
     selectedKategori !== 'SEMUA' ||
@@ -487,6 +558,10 @@ function SewaAlatContent() {
       />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-3.5 sm:py-5 pb-24 lg:pb-12">
+        <h1 className="text-center mb-4 sm:mb-5 text-3xl sm:text-4xl font-bold tracking-tight text-[#1a2610]">
+          Sewa{' '}
+          <span className="font-script font-normal text-4xl sm:text-5xl text-green-600 tracking-normal">Alat</span>
+        </h1>
         {/* Search Bar matching Gambar 1 (Clean Rounded Pill with Magnifying Glass & Filter Button) */}
         <div className="relative w-full max-w-2xl mx-auto mb-5 sm:mb-6">
           <div className="relative flex items-center bg-white border border-[#cfd6c9] focus-within:border-[#233414] focus-within:ring-2 focus-within:ring-[#233414]/15 rounded-full shadow-xs transition-all h-11 sm:h-12 px-4">
@@ -608,9 +683,60 @@ function SewaAlatContent() {
           </div>
         </div>
 
-        {/* Active Filter Chips (Mode Mobile & Desktop) */}
+        <div className="lg:flex lg:items-start lg:gap-6">
+        <CatalogSidebar
+          title="Filter alat"
+          categories={sidebarCategories}
+          selectedKategori={selectedKategori}
+          onSelectKategori={(key) => applyFilters({ kategori: key })}
+          fallbackIcon={getCategoryIcon}
+          toggleTitle="Ketersediaan & layanan"
+          toggles={[
+            {
+              key: 'onlyAvailable',
+              label: 'Siap pakai saja',
+              checked: onlyAvailable,
+              onChange: (v) => applyFilters({ onlyAvailable: v }),
+            },
+            {
+              key: 'operatorOnly',
+              label: 'Tersedia operator',
+              checked: operatorOnly,
+              onChange: (v) => applyFilters({ operatorOnly: v }),
+            },
+          ]}
+          price={{
+            title: 'Rentang tarif sewa',
+            min: minPrice,
+            max: maxPrice,
+            floor: 50000,
+            ceil: 2500000,
+            onApply: (min, max) => applyFilters({ minPrice: min, maxPrice: max }),
+          }}
+          hasActiveFilters={hasActiveFilters}
+          onReset={() =>
+            applyFilters({
+              kategori: 'SEMUA',
+              onlyAvailable: false,
+              operatorOnly: false,
+              minPrice: 50000,
+              maxPrice: 2500000,
+              sortBy: 'default',
+            })
+          }
+        />
+
+        <div className="flex-1 min-w-0">
+        <CatalogToolbar
+          from={pagedEquipments.length ? (safePage - 1) * PAGE_SIZE + 1 : 0}
+          to={(safePage - 1) * PAGE_SIZE + pagedEquipments.length}
+          total={filteredEquipments.length}
+          unit="alat"
+        />
+
+        {/* Active Filter Chips (Mode Mobile & Tablet) */}
         {hasActiveFilters && (
-          <div className="flex items-center gap-2 overflow-x-auto pb-2.5 mb-3 px-1 no-scrollbar text-xs">
+          <div className="flex lg:hidden items-center gap-2 overflow-x-auto pb-2.5 mb-3 px-1 no-scrollbar text-xs">
             <span className="text-[11px] font-bold text-[#526046] uppercase shrink-0">Filter Aktif:</span>
             {selectedKategori !== 'SEMUA' && (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-[#dce1d6] text-xs font-semibold text-[#1a2610] shadow-2xs shrink-0">
@@ -749,8 +875,9 @@ function SewaAlatContent() {
           </div>
         ) : (
           /* Grid Sewa Alat - Taste Skill Cards Matching Gambar 3 */
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
-            {filteredEquipments.map((item) => {
+          <>
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
+            {pagedEquipments.map((item) => {
               const isOutOfStock = !item.isTersedia || (item.stokTersedia !== undefined && item.stokTersedia <= 0);
               const remainingStock = item.stokTersedia !== undefined ? item.stokTersedia : (item.isTersedia ? (item.stokUnit || 1) : 0);
 
@@ -838,7 +965,11 @@ function SewaAlatContent() {
               );
             })}
           </div>
+          <CatalogPagination page={safePage} totalPages={totalPages} onChange={goToPage} />
+          </>
         )}
+        </div>
+        </div>
       </main>
 
       {/* DIALOG 2: SHORTCUT QUICK BOOKING MODAL (DARI TOMBOL CARD) */}

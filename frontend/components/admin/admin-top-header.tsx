@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Bell, Settings } from 'lucide-react';
 import { SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
 import { AdminBreadcrumb } from '@/components/admin/admin-breadcrumb';
-import { AdminProfileModal } from '@/components/admin/admin-profile-modal';
+import { useAdmin } from '@/components/admin/admin-context';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,10 +23,8 @@ interface AdminTopHeaderProps {
 
 export function AdminTopHeader({ user }: AdminTopHeaderProps) {
   const { state, isMobile } = useSidebar();
-  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+  const { setActiveTab } = useAdmin();
 
-  const adminName = user?.name || 'Achmad Hakim';
-  const adminEmail = user?.email || 'admin@sinarpagisejahtera.co.id';
 
   return (
     <>
@@ -81,7 +79,7 @@ export function AdminTopHeader({ user }: AdminTopHeaderProps) {
 
           <button
             type="button"
-            onClick={() => setIsEditProfileOpen(true)}
+            onClick={() => setActiveTab('Pengaturan', 'Pengaturan Akun')}
             className="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer"
             title="Pengaturan Akun"
           >
@@ -90,17 +88,6 @@ export function AdminTopHeader({ user }: AdminTopHeaderProps) {
         </div>
       </header>
 
-      <AdminProfileModal
-        isOpen={isEditProfileOpen}
-        onClose={() => setIsEditProfileOpen(false)}
-        currentUser={{
-          name: adminName,
-          email: adminEmail,
-          avatar: user?.avatarUrl || user?.image || '',
-          phone: user?.phone || '',
-        }}
-        onUserUpdated={() => {}}
-      />
     </>
   );
 }

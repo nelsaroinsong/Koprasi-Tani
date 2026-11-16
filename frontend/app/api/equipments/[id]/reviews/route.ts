@@ -1,13 +1,10 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
-import { readEquipmentRentals } from '@/lib/equipment-rentals';
 import {
-  readEquipmentReviewsFromFile,
-  saveEquipmentReviewToFile,
-  deleteEquipmentReviewFromFile,
+  getEquipmentReviews,
+  hasCompletedRental,
   calculateEquipmentStats,
-  type EquipmentReviewItem,
 } from '@/lib/equipment-reviews';
 
 export const dynamic = 'force-dynamic';
@@ -23,15 +20,8 @@ export async function GET(
       return NextResponse.json({ error: 'ID alat diperlukan' }, { status: 400 });
     }
 
-    const allReviews = readEquipmentReviewsFromFile();
-    const reviews = allReviews.filter((r) => r.equipmentId === id);
-    const stats = calculateEquipmentStats(reviews);
-
-    return NextResponse.json({
-      success: true,
-      reviews,
-      stats,
-    });
+    const reviews = await getEquipmentReviews(id);
+    return NextResponse.json({ success: true, reviews, stats: calculateEquipmentStats(reviews) });
   } catch (error: any) {
     console.error('Error fetching equipment reviews:', error);
     return NextResponse.json(
@@ -53,41 +43,23 @@ export async function POST(
     }
 
     const session = await auth();
-    let userId = 'user-tamu';
-    let userName = 'Penyewa Terverifikasi';
-    let userAvatar: string | null = null;
-
-    if (session?.user?.email) {
-      try {
-        const dbUser = await prisma.user.findUnique({
-          where: { email: session.user.email },
-          select: { id: true, name: true, avatarUrl: true },
-        });
-        if (dbUser) {
-          userId = dbUser.id;
-          userName = dbUser.name || 'Penyewa Koperasi';
-          userAvatar = dbUser.avatarUrl || null;
-        }
-      } catch {}
-    } else {
+    if (!session?.user?.email) {
       return NextResponse.json(
         { error: 'Silakan login terlebih dahulu untuk memberikan ulasan.' },
         { status: 401 }
       );
     }
 
-    // Validasi ketat: Hanya penyewa yang transaksinya sudah SELESAI yang boleh memberikan ulasan
-    const allRentals = readEquipmentRentals();
-    const userEmailLower = session.user.email.trim().toLowerCase();
-    const hasCompletedRental = allRentals.some(
-      (r) =>
-        ((userId && r.userId === userId) ||
-          (r.userEmail && r.userEmail.trim().toLowerCase() === userEmailLower)) &&
-        r.status === 'SELESAI' &&
-        r.items?.some((item) => item.equipmentId === id)
-    );
+    const dbUser = await prisma.user.findUnique({
+      where: { email: session.user.email.trim().toLowerCase() },
+      select: { id: true },
+    });
+    if (!dbUser) {
+      return NextResponse.json({ error: 'Pengguna tidak ditemukan.' }, { status: 404 });
+    }
 
-    if (!hasCompletedRental) {
+    // Hanya penyewa yang transaksinya sudah SELESAI yang boleh memberikan ulasan
+    if (!(await hasCompletedRental(dbUser.id, id))) {
       return NextResponse.json(
         {
           error:
@@ -102,34 +74,19 @@ export async function POST(
     const komentar = typeof body.komentar === 'string' ? body.komentar.trim() : '';
 
     if (!komentar) {
-      return NextResponse.json(
-        { error: 'Komentar ulasan tidak boleh kosong.' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Komentar ulasan tidak boleh kosong.' }, { status: 400 });
     }
 
-    const newReview: EquipmentReviewItem = {
-      id: `rev-eq-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-      equipmentId: id,
-      userId,
-      userName,
-      userAvatar,
-      rating,
-      komentar,
-      createdAt: new Date().toISOString(),
-    };
+    const created = await prisma.equipmentReview.create({
+      data: { equipmentId: id, userId: dbUser.id, rating, komentar },
+    });
 
-    saveEquipmentReviewToFile(newReview);
-
-    const allReviews = readEquipmentReviewsFromFile();
-    const reviews = allReviews.filter((r) => r.equipmentId === id);
-    const stats = calculateEquipmentStats(reviews);
-
+    const reviews = await getEquipmentReviews(id);
     return NextResponse.json({
       success: true,
-      review: newReview,
+      review: reviews.find((r) => r.id === created.id),
       reviews,
-      stats,
+      stats: calculateEquipmentStats(reviews),
     });
   } catch (error: any) {
     console.error('Error submitting equipment review:', error);
@@ -140,7 +97,7 @@ export async function POST(
   }
 }
 
-// DELETE: Hapus ulasan alat milik penyewa sendiri
+// DELETE: Hapus ulasan alat milik penyewa sendiri (atau oleh admin)
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -160,24 +117,19 @@ export async function DELETE(
     }
 
     const currentUser = await prisma.user.findUnique({
-      where: { email: session.user.email },
+      where: { email: session.user.email.trim().toLowerCase() },
       select: { id: true, role: true },
     });
-
     if (!currentUser) {
       return NextResponse.json({ error: 'Pengguna tidak ditemukan.' }, { status: 404 });
     }
 
-    const { searchParams } = new URL(request.url);
-    const reviewId = searchParams.get('reviewId');
-
+    const reviewId = new URL(request.url).searchParams.get('reviewId');
     if (!reviewId) {
       return NextResponse.json({ error: 'ID ulasan diperlukan.' }, { status: 400 });
     }
 
-    const allReviews = readEquipmentReviewsFromFile();
-    const review = allReviews.find((r) => r.id === reviewId && r.equipmentId === id);
-
+    const review = await prisma.equipmentReview.findFirst({ where: { id: reviewId, equipmentId: id } });
     if (!review) {
       return NextResponse.json({ error: 'Ulasan tidak ditemukan.' }, { status: 404 });
     }
@@ -189,16 +141,14 @@ export async function DELETE(
       );
     }
 
-    deleteEquipmentReviewFromFile(reviewId);
+    await prisma.equipmentReview.delete({ where: { id: reviewId } });
 
-    const updatedReviews = readEquipmentReviewsFromFile().filter((r) => r.equipmentId === id);
-    const stats = calculateEquipmentStats(updatedReviews);
-
+    const reviews = await getEquipmentReviews(id);
     return NextResponse.json({
       success: true,
       message: 'Ulasan berhasil dihapus.',
-      reviews: updatedReviews,
-      stats,
+      reviews,
+      stats: calculateEquipmentStats(reviews),
     });
   } catch (error: any) {
     console.error('Error deleting equipment review:', error);

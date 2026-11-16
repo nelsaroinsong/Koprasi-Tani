@@ -26,6 +26,7 @@ interface PetaniStats {
   totalKuantitasTerjual: number;
   cashSiapDiambil: number;
   cashSudahDiterima: number;
+  cashMenungguPembeli: number;
 }
 
 interface RecentSale {
@@ -58,6 +59,7 @@ export default function DashboardPetaniPage() {
         totalKuantitasTerjual: 0,
         cashSiapDiambil: 0,
         cashSudahDiterima: 0,
+        cashMenungguPembeli: 0,
       }
   );
   const [recentSales, setRecentSales] = useState<RecentSale[]>(() => cachedRecentSales || []);
@@ -136,6 +138,7 @@ export default function DashboardPetaniPage() {
           totalKuantitasTerjual: data.stats?.totalKuantitasTerjual || 0,
           cashSiapDiambil: data.stats?.cashSiapDiambil || 0,
           cashSudahDiterima: data.stats?.cashSudahDiterima || 0,
+          cashMenungguPembeli: data.stats?.cashMenungguPembeli || 0,
         };
         setStats(nextStats);
         cachedPetaniStats = nextStats;
@@ -268,7 +271,11 @@ export default function DashboardPetaniPage() {
               </div>
               <div className="text-[9px] sm:text-[11px] font-semibold text-[#e2f2c8] mt-0.5 flex items-center gap-1 truncate">
                 <CheckCircle2 className="w-3 h-3 text-[#D4F63D] shrink-0" />
-                <span className="truncate">Ambil di kasir koperasi</span>
+                <span className="truncate">
+                  {stats.cashMenungguPembeli > 0
+                    ? `+ Rp ${stats.cashMenungguPembeli.toLocaleString('id-ID')} menunggu pembeli`
+                    : 'Ambil di kasir koperasi'}
+                </span>
               </div>
             </div>
           </div>

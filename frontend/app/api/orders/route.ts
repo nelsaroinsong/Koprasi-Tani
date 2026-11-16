@@ -218,6 +218,7 @@ export async function GET() {
       where: {
         pembeliId: currentUser.id,
         status: 'SIAP_DIAMBIL',
+        isPaid: false, // Pesanan yang sudah lunas tidak boleh dibatalkan otomatis
         updatedAt: { lte: twentyFourHoursAgo },
       },
       include: { items: true },

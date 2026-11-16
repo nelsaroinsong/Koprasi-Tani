@@ -26,6 +26,8 @@ import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
 import { getPrimaryImage } from '@/lib/utils';
 import { validateMinahasaUtaraAddress, isMinahasaUtaraAddress } from '@/lib/address-validation';
+import { addDays, occupiedDays, todayWita, computePaymentDeadline } from '@/lib/rental-schedule';
+import { BATAS_BATAL_HARI, DENDA_PER_HARI, DP_PERSEN, hitungDp } from '@/lib/rental-policy';
 import {
   getRentalCart,
   clearRentalCart,
@@ -33,6 +35,9 @@ import {
   calculateRentalItemTotal,
   type RentalCartItem,
 } from '@/lib/rental-cart';
+
+/** Pemesanan paling jauh (sama dengan batas di server) */
+const MAX_BOOKING_DAYS = 90;
 
 export default function CheckoutSewaAlatPage() {
   const { user, isLoading: authLoading } = useAuth();
@@ -42,9 +47,11 @@ export default function CheckoutSewaAlatPage() {
   const [rentalCartItems, setRentalCartItems] = useState<RentalCartItem[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  const [rentalStartDate, setRentalStartDate] = useState(
-    new Date().toISOString().split('T')[0]
-  );
+  const [rentalStartDate, setRentalStartDate] = useState(() => todayWita());
+  // Sisa unit per alat per tanggal (dari kalender ketersediaan server)
+  const [availability, setAvailability] = useState<
+    Record<string, { jedaHari: number; sisa: Record<string, number> }>
+  >({});
   const [rentalLokasiLahan, setRentalLokasiLahan] = useState(user?.address || '');
   const [patokanLahan, setPatokanLahan] = useState('');
   const [rentalGpsCoords, setRentalGpsCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -92,6 +99,60 @@ export default function CheckoutSewaAlatPage() {
     return calculateRentalCartTotal(rentalCartItems);
   }, [rentalCartItems]);
 
+  // Muat kalender ketersediaan untuk setiap alat di keranjang (90 hari ke depan)
+  const cartEquipmentIds = useMemo(
+    () => [...new Set(rentalCartItems.map((it) => it.equipmentId))].sort().join(','),
+    [rentalCartItems]
+  );
+  useEffect(() => {
+    if (!cartEquipmentIds) return;
+    let active = true;
+    const from = todayWita();
+    const to = addDays(from, MAX_BOOKING_DAYS + 14);
+    Promise.all(
+      cartEquipmentIds.split(',').map((id) =>
+        fetch(`/api/equipments/${id}/availability?from=${from}&to=${to}`)
+          .then((r) => (r.ok ? r.json() : null))
+          .then((d) => [id, d] as const)
+          .catch(() => [id, null] as const)
+      )
+    ).then((results) => {
+      if (!active) return;
+      const next: Record<string, { jedaHari: number; sisa: Record<string, number> }> = {};
+      for (const [id, d] of results) {
+        if (!d?.days) continue;
+        next[id] = {
+          jedaHari: d.jedaHari || 0,
+          sisa: Object.fromEntries(d.days.map((day: any) => [day.date, day.sisa])),
+        };
+      }
+      setAvailability(next);
+    });
+    return () => {
+      active = false;
+    };
+  }, [cartEquipmentIds]);
+
+  /** Tanggal mulai tidak bisa dipilih jika ada alat di keranjang yang unitnya kurang pada rentang pakainya (+ jeda) */
+  const isStartDateUnavailable = useMemo(() => {
+    return (date: string) =>
+      rentalCartItems.some((it) => {
+        const av = availability[it.equipmentId];
+        if (!av) return false;
+        const lastDay = addDays(date, occupiedDays(it.satuanSewa, it.durasi) - 1 + av.jedaHari);
+        const needed = rentalCartItems
+          .filter((o) => o.equipmentId === it.equipmentId)
+          .reduce((sum, o) => sum + (o.jumlahUnit || 1), 0);
+        for (let d = date; d <= lastDay; d = addDays(d, 1)) {
+          const sisa = av.sisa[d];
+          if (sisa === undefined || sisa < needed) return true;
+        }
+        return false;
+      });
+  }, [availability, rentalCartItems]);
+
+  const selectedDateUnavailable = Boolean(rentalStartDate) && isStartDateUnavailable(rentalStartDate);
+
   const totalRentalUnits = useMemo(() => {
     return rentalCartItems.reduce((acc, curr) => acc + (curr.jumlahUnit || 1), 0);
   }, [rentalCartItems]);
@@ -113,9 +174,10 @@ export default function CheckoutSewaAlatPage() {
       !isSubmitting &&
       rentalCartItems.length > 0 &&
       Boolean(rentalStartDate) &&
+      !selectedDateUnavailable &&
       isAddressValid
     );
-  }, [isSubmitting, rentalCartItems.length, rentalStartDate, isAddressValid]);
+  }, [isSubmitting, rentalCartItems.length, rentalStartDate, selectedDateUnavailable, isAddressValid]);
 
   // Submit Pengajuan Sewa Multi-Alat
   const handleConfirmRentalOrder = async () => {
@@ -708,12 +770,25 @@ ${notes ? `*Catatan Kebutuhan:* ${notes}\n` : ''}
 
               {/* Input Tanggal & Patokan dalam Grid Responsif */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 items-start">
-                <CustomDatePicker
-                  label="Mulai Tanggal Pakai"
-                  required
-                  value={rentalStartDate}
-                  onChange={setRentalStartDate}
-                />
+                <div>
+                  <CustomDatePicker
+                    label="Mulai Tanggal Pakai"
+                    required
+                    value={rentalStartDate}
+                    onChange={setRentalStartDate}
+                    maxDate={addDays(todayWita(), MAX_BOOKING_DAYS)}
+                    isDateDisabled={isStartDateUnavailable}
+                  />
+                  <p
+                    className={`text-[10.5px] mt-1.5 font-semibold ${
+                      selectedDateUnavailable ? 'text-red-700' : 'text-[#68785b]'
+                    }`}
+                  >
+                    {selectedDateUnavailable
+                      ? 'Unit sudah penuh / sedang servis pada tanggal ini. Pilih tanggal lain.'
+                      : 'Tanggal yang dicoret sudah penuh atau sedang servis.'}
+                  </p>
+                </div>
 
                 <div>
                   <label className="block text-[11px] font-bold text-[#526046] uppercase tracking-wider mb-1.5">
@@ -798,9 +873,40 @@ ${notes ? `*Catatan Kebutuhan:* ${notes}\n` : ''}
                   <Banknote className="w-4 h-4 text-[#344d15]" />
                   <span>Ketentuan Pembayaran Kasir</span>
                 </div>
-                <p className="text-[11px] text-[#425234] leading-relaxed">
-                  Pembayaran wajib <strong>tunai di kasir kantor koperasi</strong>. Pengajuan ini berstatus <strong>reservasi sementara</strong>. Unit mesin resmi terkunci setelah diverifikasi admin dan Anda melunasi pembayaran di kasir sebelum batas waktu habis.
-                </p>
+                <ul className="text-[11px] text-[#425234] leading-relaxed space-y-1 list-disc pl-4">
+                  <li>
+                    Semua pembayaran <strong>tunai di kasir kantor koperasi</strong>.
+                  </li>
+                  <li>
+                    Setelah disetujui admin, bayar <strong>DP {DP_PERSEN}% (Rp {hitungDp(totalRentalAmount).toLocaleString('id-ID')})</strong>{' '}
+                    paling lambat{' '}
+                    <strong>
+                      {rentalStartDate
+                        ? computePaymentDeadline(rentalStartDate, 'H_MINUS_1').toLocaleString('id-ID', {
+                            timeZone: 'Asia/Makassar',
+                            weekday: 'short',
+                            day: 'numeric',
+                            month: 'short',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })
+                        : 'H-1'}{' '}
+                      WITA
+                    </strong>{' '}
+                    untuk mengunci jadwal.
+                  </li>
+                  <li>
+                    Sisa <strong>Rp {(totalRentalAmount - hitungDp(totalRentalAmount)).toLocaleString('id-ID')}</strong> dilunasi saat
+                    mengambil alat.
+                  </li>
+                  <li>
+                    Batal paling lambat <strong>H-{BATAS_BATAL_HARI}</strong>: DP kembali penuh. Lebih mepet: DP hangus.
+                  </li>
+                  <li>
+                    Terlambat mengembalikan: denda <strong>Rp {DENDA_PER_HARI.toLocaleString('id-ID')}/unit/hari</strong>.
+                    Kerusakan ditagihkan sesuai pengecekan saat pengembalian.
+                  </li>
+                </ul>
                 <div className="flex items-center gap-2 text-[10px] text-[#526046] font-semibold pt-1 border-t border-[#e2ebd6]">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#344d15]" />
                   <span>Lokasi: Kantor Koperasi Kolongan (08:00 – 16:30 WITA)</span>

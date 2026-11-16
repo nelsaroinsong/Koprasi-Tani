@@ -36,6 +36,7 @@ import {
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
 import { getPrimaryImage } from '@/lib/utils';
+import { BATAS_BATAL_HARI, DENDA_PER_HARI, DP_PERSEN, dpDikembalikanJikaBatal, hitungDp } from '@/lib/rental-policy';
 
 type OrderStatus = 'ALL' | 'MENUNGGU_PEMBAYARAN' | 'DIPROSES' | 'SIAP_DIAMBIL' | 'SELESAI' | 'DIBATALKAN';
 
@@ -51,7 +52,8 @@ const STATUS_FILTERS: { key: OrderStatus; label: string }[] = [
 const RENTAL_STATUS_FILTERS = [
   { key: 'ALL', label: 'Semua Pengajuan' },
   { key: 'MENUNGGU_PERSETUJUAN_ADMIN', label: 'Menunggu Persetujuan' },
-  { key: 'DISETUJUI', label: 'Disetujui' },
+  { key: 'DISETUJUI', label: 'Bayar DP' },
+  { key: 'DIKONFIRMASI', label: 'Terjadwal' },
   { key: 'SIAP_DIAMBIL', label: 'Siap Diambil' },
   { key: 'SEDANG_DISEWA', label: 'Sedang Disewa' },
   { key: 'SELESAI', label: 'Selesai' },
@@ -223,6 +225,7 @@ export default function PesananPage() {
     let pendingCount = 0;
     let disetujuiCount = 0;
     let siapCount = 0;
+    let terjadwalCount = 0;
     let aktifCount = 0;
     let selesaiCount = 0;
     let dibatalkanCount = 0;
@@ -231,6 +234,7 @@ export default function PesananPage() {
     for (const r of rentalOrders) {
       if (r.status === 'MENUNGGU_PERSETUJUAN_ADMIN') pendingCount++;
       if (r.status === 'DISETUJUI') disetujuiCount++;
+      if (r.status === 'DIKONFIRMASI') terjadwalCount++;
       if (r.status === 'SIAP_DIAMBIL') siapCount++;
       if (r.status === 'SEDANG_DISEWA') aktifCount++;
       if (r.status === 'SELESAI') selesaiCount++;
@@ -242,6 +246,7 @@ export default function PesananPage() {
       total: rentalOrders.length,
       pendingCount,
       disetujuiCount,
+      terjadwalCount,
       siapCount,
       aktifCount,
       selesaiCount,
@@ -410,14 +415,21 @@ Mohon info kesiapan fisik komoditas di gudang koperasi. Terima kasih.`;
           label: 'Menunggu Verifikasi Admin',
           badgeClass: 'bg-amber-50 text-amber-900 border-amber-300 font-bold',
           dotClass: 'bg-amber-500',
-          hint: 'Pengajuan sewa alat Anda sedang diverifikasi pengurus koperasi. Unit resmi terkunci setelah diverifikasi dan dilunasi tunai di kasir kantor koperasi.',
+          hint: `Pengajuan sewa alat Anda sedang diverifikasi pengurus koperasi. Setelah disetujui, bayar DP ${DP_PERSEN}% tunai di kasir untuk mengunci jadwal.`,
         };
       case 'DISETUJUI':
         return {
-          label: 'Menunggu Bayar di Kasir',
+          label: 'Disetujui • Bayar DP di Kasir',
           badgeClass: 'bg-blue-50 text-blue-900 border-blue-300 font-bold',
           dotClass: 'bg-blue-600',
-          hint: 'Pengajuan telah disetujui pengurus! Harap segera datang ke kantor koperasi untuk pelunasan tunai di kasir sebelum batas waktu pembayaran agar reservasi tidak hangus.',
+          hint: `Pengajuan disetujui. Bayar DP ${DP_PERSEN}% tunai di kasir koperasi sebelum batas waktu agar jadwal tidak hangus. Sisanya dibayar saat mengambil alat.`,
+        };
+      case 'DIKONFIRMASI':
+        return {
+          label: 'DP Lunas • Jadwal Terkunci',
+          badgeClass: 'bg-cyan-50 text-cyan-900 border-cyan-300 font-bold',
+          dotClass: 'bg-cyan-600',
+          hint: `DP sudah diterima dan jadwal Anda terkunci. Datang ke gudang koperasi pada hari pemakaian untuk melunasi sisa dan mengambil alat. Batal paling lambat H-${BATAS_BATAL_HARI} agar DP kembali penuh.`,
         };
       case 'SIAP_DIAMBIL':
         return {
@@ -431,28 +443,28 @@ Mohon info kesiapan fisik komoditas di gudang koperasi. Terima kasih.`;
           label: 'Sedang Digunakan di Lahan',
           badgeClass: 'bg-purple-50 text-purple-900 border-purple-300 font-bold',
           dotClass: 'bg-purple-600',
-          hint: 'Unit alat sedang aktif dalam masa pemakaian operasional di lahan perkebunan Anda.',
+          hint: `Unit alat sedang dipakai. Kembalikan paling lambat tanggal selesai sewa; keterlambatan dikenakan denda Rp ${DENDA_PER_HARI.toLocaleString('id-ID')}/unit/hari.`,
         };
       case 'SELESAI':
         return {
           label: 'Sewa Selesai & Kembali',
           badgeClass: 'bg-[#EAEDE7] text-[#1a2610] border-[#cfd6c9] font-bold',
           dotClass: 'bg-[#233414]',
-          hint: 'Masa sewa selesai dan fisik alat telah dikembalikan dalam kondisi baik ke koperasi.',
+          hint: 'Masa sewa selesai dan alat telah dikembalikan ke koperasi.',
         };
       case 'KADALUARSA':
         return {
           label: 'Batas Waktu Bayar Habis',
           badgeClass: 'bg-rose-50 text-rose-800 border-rose-200 font-bold',
           dotClass: 'bg-rose-500',
-          hint: 'Batas waktu pembayaran tunai di kasir telah terlewati tanpa pelunasan. Slot reservasi unit telah dialihkan otomatis.',
+          hint: 'Batas waktu pembayaran DP di kasir terlewati. Jadwal unit telah dibuka kembali untuk anggota lain.',
         };
       case 'DIBATALKAN':
         return {
           label: 'Dibatalkan',
           badgeClass: 'bg-stone-50 text-stone-700 border-stone-200 font-bold',
           dotClass: 'bg-stone-400',
-          hint: 'Pengajuan sewa alat ini telah dibatalkan oleh pemohon.',
+          hint: 'Pengajuan sewa alat ini telah dibatalkan.',
         };
       case 'DITOLAK':
         return {
@@ -930,7 +942,8 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
                 {[
                   { key: 'ALL', label: 'Semua Pengajuan', count: rentalStats.total },
                   { key: 'MENUNGGU_PERSETUJUAN_ADMIN', label: 'Menunggu Persetujuan', count: rentalStats.pendingCount },
-                  { key: 'DISETUJUI', label: 'Disetujui', count: rentalStats.disetujuiCount },
+                  { key: 'DISETUJUI', label: 'Bayar DP', count: rentalStats.disetujuiCount },
+                  { key: 'DIKONFIRMASI', label: 'Terjadwal', count: rentalStats.terjadwalCount },
                   { key: 'SIAP_DIAMBIL', label: 'Siap Diambil', count: rentalStats.siapCount },
                   { key: 'SEDANG_DISEWA', label: 'Sedang Disewa', count: rentalStats.aktifCount },
                   { key: 'SELESAI', label: 'Selesai', count: rentalStats.selesaiCount },
@@ -1074,12 +1087,13 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
                                 </div>
                                 <div className="space-y-0.5">
                                   <span className="font-bold text-blue-950 block">
-                                    Pengajuan Disetujui • Menunggu Pembayaran di Kasir Koperasi
+                                    Disetujui • Bayar DP Rp{' '}
+                                    {Number(rental.dpAmount ?? hitungDp(Number(rental.totalEstimasi || 0))).toLocaleString('id-ID')} di Kasir
                                   </span>
                                   <span className="text-blue-800 text-[11px] block leading-relaxed">
                                     {rental.paymentDeadline ? (
                                       <>
-                                        Harap selesaikan pembayaran tunai sebelum:{' '}
+                                        Bayar DP tunai paling lambat:{' '}
                                         <strong className="text-blue-950">
                                           {new Date(rental.paymentDeadline).toLocaleString('id-ID', {
                                             day: 'numeric',
@@ -1089,7 +1103,7 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
                                           })}{' '}
                                           WITA
                                         </strong>{' '}
-                                        agar slot unit resmi terkunci.
+                                        agar jadwal terkunci. Sisa dibayar saat mengambil alat.
                                       </>
                                     ) : (
                                       'Harap selesaikan pembayaran tunai di kasir kantor koperasi Kolongan hari ini sebelum 16:30 WITA.'
@@ -1100,6 +1114,37 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
                               <div className="text-[11px] font-bold text-blue-900 bg-white/90 border border-blue-200 px-3 py-1.5 rounded-xl self-start sm:self-auto shrink-0 shadow-2xs">
                                 📍 Kasir Kantor Koperasi (Kolongan)
                               </div>
+                            </div>
+                          )}
+
+                          {rental.status === 'DIKONFIRMASI' && (
+                            <div className="p-3 bg-cyan-50 border border-cyan-200 rounded-2xl text-[11px] text-cyan-900 leading-relaxed">
+                              DP Rp {Number(rental.dpAmount || 0).toLocaleString('id-ID')} sudah diterima. Datang pada{' '}
+                              <strong>{rental.startDate}</strong> untuk melunasi sisa{' '}
+                              <strong>
+                                Rp {Math.max(0, Number(rental.totalEstimasi || 0) - Number(rental.dpAmount || 0)).toLocaleString('id-ID')}
+                              </strong>{' '}
+                              dan mengambil alat.
+                            </div>
+                          )}
+
+                          {rental.status === 'DIBATALKAN' && rental.dpPaidAt && (
+                            <div className="p-3 bg-stone-50 border border-stone-200 rounded-2xl text-[11px] text-stone-700 leading-relaxed">
+                              {rental.dpForfeited
+                                ? `DP hangus karena dibatalkan kurang dari H-${BATAS_BATAL_HARI}.`
+                                : rental.dpRefundedAt
+                                ? 'DP sudah dikembalikan oleh kasir koperasi.'
+                                : 'DP Anda akan dikembalikan penuh. Silakan ambil di kasir koperasi.'}
+                            </div>
+                          )}
+
+                          {rental.status === 'SELESAI' && Number(rental.lateFee || 0) + Number(rental.damageFee || 0) > 0 && (
+                            <div className="p-3 bg-rose-50 border border-rose-200 rounded-2xl text-[11px] text-rose-800 leading-relaxed">
+                              Biaya tambahan: denda terlambat {rental.lateDays} hari Rp{' '}
+                              {Number(rental.lateFee || 0).toLocaleString('id-ID')}
+                              {Number(rental.damageFee || 0) > 0 &&
+                                `, kerusakan Rp ${Number(rental.damageFee).toLocaleString('id-ID')}${rental.damageNotes ? ` (${rental.damageNotes})` : ''}`}
+                              .
                             </div>
                           )}
 
@@ -1165,11 +1210,22 @@ Mohon info persetujuan admin koperasi untuk pengajuan ini. Terima kasih!`;
                           </div>
 
                           <div className="flex items-center gap-2 shrink-0">
-                            {rental.status === 'MENUNGGU_PERSETUJUAN_ADMIN' && (
+                            {(rental.status === 'MENUNGGU_PERSETUJUAN_ADMIN' ||
+                              rental.status === 'DIKONFIRMASI' ||
+                              (rental.status === 'DISETUJUI' && !rental.isPaid)) && (
                               <button
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
+                                  if (
+                                    rental.status === 'DIKONFIRMASI' &&
+                                    !dpDikembalikanJikaBatal(rental.startDate) &&
+                                    !window.confirm(
+                                      `Pembatalan kurang dari H-${BATAS_BATAL_HARI}: DP Rp ${Number(rental.dpAmount || 0).toLocaleString('id-ID')} tidak dapat dikembalikan. Lanjutkan?`
+                                    )
+                                  ) {
+                                    return;
+                                  }
                                   setCancelTarget({
                                     type: 'rental',
                                     id: rental.id,

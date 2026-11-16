@@ -4,11 +4,7 @@ import React, { useState, useEffect, use, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import AppHeader from '@/components/AppHeader';
-import LocationMapPreview from '@/components/LocationMapPreview';
-import CustomDatePicker from '@/components/ui/CustomDatePicker';
 import {
-  Tractor,
-  Calendar,
   Clock,
   ArrowLeft,
   CheckCircle2,
@@ -16,7 +12,6 @@ import {
   Package,
   Wrench,
   UserCheck,
-  MessageCircle,
   Plus,
   Minus,
   Maximize2,
@@ -38,20 +33,13 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
 import { toast } from 'sonner';
-import { validateMinahasaUtaraAddress } from '@/lib/address-validation';
 import {
   addToRentalCart,
   getRentalCart,
   type RentalCartItem,
 } from '@/lib/rental-cart';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
 import RatingAndReviewsShowcase from '@/components/reviews/RatingAndReviewsShowcase';
+import AvailabilityCalendar from '@/components/sewa/AvailabilityCalendar';
 
 interface EquipmentDetail {
   id: string;
@@ -88,14 +76,8 @@ export default function EquipmentDetailPage({
 
   // Form Booking State
   const [jumlahUnit, setJumlahUnit] = useState(1);
-  const [startDate, setStartDate] = useState(
-    new Date().toISOString().split('T')[0]
-  );
   const [durasi, setDurasi] = useState(1);
   const [includeOperator, setIncludeOperator] = useState(false);
-  const [lokasiLahan, setLokasiLahan] = useState('');
-  const [catatan, setCatatan] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Media Carousel & Lightbox State
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -103,7 +85,6 @@ export default function EquipmentDetailPage({
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
 
   // Modal Langsung Sewa Sekarang
-  const [isDirectCheckoutOpen, setIsDirectCheckoutOpen] = useState(false);
 
   // Review & Rating State
   const [reviews, setReviews] = useState<any[]>([]);
@@ -280,12 +261,6 @@ export default function EquipmentDetailPage({
     };
   }, [updateCartCount]);
 
-  useEffect(() => {
-    if (user?.address) {
-      setLokasiLahan(user.address);
-    }
-  }, [user]);
-
   // Fetch Equipment Detail
   const fetchDetail = useCallback(async () => {
     try {
@@ -371,79 +346,6 @@ export default function EquipmentDetailPage({
       message: `${jumlahUnit} unit ${equipment.nama} telah ditambahkan ke keranjang sewa.`,
       type: 'success',
     });
-  };
-
-  // Aksi: Direct Sewa Sekarang via WhatsApp & API
-  const handleDirectSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!equipment) return;
-
-    if (!user) {
-      showToast({
-        title: 'Perlu Masuk Akun',
-        message: 'Silakan masuk akun terlebih dahulu untuk mengajukan sewa.',
-        type: 'info',
-      });
-      router.push(`/login?callbackUrl=/sewa-alat/${equipment.id}`);
-      return;
-    }
-
-    const addressCheck = validateMinahasaUtaraAddress(lokasiLahan, true);
-    if (!addressCheck.isValid) {
-      showToast({
-        title: 'Wilayah Layanan Terbatas',
-        message:
-          addressCheck.error ||
-          'Lokasi lahan kebun wajib berada di wilayah Kabupaten Minahasa Utara (Minut).',
-        type: 'warning',
-      });
-      return;
-    }
-
-    try {
-      setIsSubmitting(true);
-      const res = await fetch('/api/equipments/rent', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          equipmentId: equipment.id,
-          startDate,
-          durasi,
-          jumlahUnit,
-          includeOperator,
-          lokasiLahan,
-          catatan,
-        }),
-      });
-
-      const data = await res.json();
-      if (res.ok && data.success) {
-        showToast({
-          title: 'Pengajuan Siap',
-          message: 'Detail sewa berhasil disiapkan. Mengalihkan ke WhatsApp pengurus...',
-          type: 'success',
-        });
-        setIsDirectCheckoutOpen(false);
-        if (data.waUrl) {
-          window.open(data.waUrl, '_blank');
-        }
-      } else {
-        showToast({
-          title: 'Gagal Mengajukan Sewa',
-          message: data.error || 'Terjadi kesalahan sistem saat memproses booking.',
-          type: 'error',
-        });
-      }
-    } catch (err: any) {
-      console.error(err);
-      showToast({
-        title: 'Gangguan Jaringan',
-        message: 'Tidak dapat mengirim pengajuan sewa.',
-        type: 'error',
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   if (isLoading) {
@@ -844,6 +746,9 @@ export default function EquipmentDetailPage({
                 </div>
               </div>
 
+              {/* Kalender ketersediaan unit per hari */}
+              <AvailabilityCalendar equipmentId={equipment.id} />
+
               {/* Description & Technical Specs */}
               <div className="pt-2 border-t border-[#EAEDE7] space-y-3">
                 {equipment.deskripsi && (
@@ -864,16 +769,6 @@ export default function EquipmentDetailPage({
 
               {/* Desktop Action Bar (Matching Gambar 5 Bottom Bar) */}
               <div className="hidden sm:flex items-center gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsDirectCheckoutOpen(true)}
-                  disabled={isOutOfStock}
-                  className="h-12 px-5 rounded-2xl bg-[#EAEDE7] hover:bg-[#dce1d6] text-[#1a2610] font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition cursor-pointer disabled:opacity-50"
-                >
-                  <Calendar className="w-4 h-4 text-[#233414]" />
-                  <span>Sewa Langsung</span>
-                </button>
-
                 <button
                   type="button"
                   onClick={handleAddToCart}
@@ -986,16 +881,6 @@ export default function EquipmentDetailPage({
       <div className="sm:hidden fixed bottom-0 inset-x-0 z-50 bg-white border-t border-[#dce1d6] px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex items-center gap-3 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
         <button
           type="button"
-          onClick={() => setIsDirectCheckoutOpen(true)}
-          disabled={isOutOfStock}
-          className="w-12 h-12 rounded-2xl bg-[#f4f5f1] hover:bg-[#EAEDE7] border border-[#dce1d6] text-[#1a2610] flex items-center justify-center shrink-0 transition cursor-pointer disabled:opacity-40"
-          title="Ajukan Sewa Langsung"
-        >
-          <Calendar className="w-5 h-5 text-[#233414]" />
-        </button>
-
-        <button
-          type="button"
           onClick={handleAddToCart}
           disabled={isOutOfStock}
           className="flex-1 h-12 px-5 rounded-full bg-[#233414] hover:bg-[#344d15] text-white font-bold text-sm flex items-center justify-center gap-2 transition cursor-pointer shadow-sm disabled:opacity-40"
@@ -1085,108 +970,6 @@ export default function EquipmentDetailPage({
         </div>
       )}
 
-      {/* MODAL 2: Dialog Direct Sewa Sekarang */}
-      <Dialog
-        open={isDirectCheckoutOpen}
-        onOpenChange={setIsDirectCheckoutOpen}
-      >
-        <DialogContent className="max-w-lg w-full max-h-[92dvh] sm:max-h-[88vh] flex flex-col p-0 overflow-hidden rounded-3xl bg-white border border-[#dce1d6] min-w-0">
-          <DialogHeader className="shrink-0 px-4 sm:px-5 py-3 sm:py-3.5 border-b border-[#dce1d6] bg-white z-10">
-            <DialogTitle className="text-sm sm:text-base font-bold text-[#1a2610] flex items-center gap-2">
-              <Tractor className="w-5 h-5 text-[#233414] shrink-0" />
-              <span className="truncate">Konfirmasi Sewa: {equipment.nama}</span>
-            </DialogTitle>
-          </DialogHeader>
-
-          <form onSubmit={handleDirectSubmit} className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden text-xs">
-            {/* Scrollable Body Modal */}
-            <div className="flex-1 overflow-y-auto px-4 sm:px-5 py-3.5 space-y-3.5 min-w-0 max-w-full">
-              <CustomDatePicker
-                label="Mulai Tanggal Penggunaan"
-                required
-                value={startDate}
-                onChange={setStartDate}
-              />
-
-              {/* Lokasi Lahan Kebun dengan Preview Maps & Deteksi GPS */}
-              <LocationMapPreview
-                value={lokasiLahan}
-                onChange={setLokasiLahan}
-                required={false}
-              />
-
-              <div>
-                <label className="block font-bold text-[#1a2610] mb-1">
-                  Catatan Tambahan
-                </label>
-                <textarea
-                  rows={2}
-                  value={catatan}
-                  onChange={(e) => setCatatan(e.target.value)}
-                  placeholder="Informasi kondisi tanah, jam operasional, atau implemen tambahan..."
-                  className="w-full px-3 py-2 bg-[#f4f5f1] border border-[#cfd6c9] rounded-xl text-[#1a2610] placeholder:text-[#68785b] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#233414] focus:border-[#233414]"
-                />
-              </div>
-
-              <div className="p-3 bg-[#e2f2c8]/60 border border-[#c9e39e] rounded-xl space-y-1">
-                <div className="flex justify-between font-bold text-[#1a2610]">
-                  <span>Rincian:</span>
-                  <span>
-                    {jumlahUnit} unit • {durasi} {equipment.satuanSewa}
-                  </span>
-                </div>
-                <div className="flex justify-between font-black text-sm text-[#233414] pt-1 border-t border-[#c9e39e] tabular-nums">
-                  <span>Total Estimasi:</span>
-                  <span>Rp {calculatedTotal.toLocaleString('id-ID')}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Sticky Action Footer (Aman dari Safari bottom bar) */}
-            <DialogFooter className="shrink-0 px-4 sm:px-5 py-3 border-t border-[#dce1d6] bg-white/95 backdrop-blur-sm z-10 flex items-center justify-end gap-2 pb-[max(14px,env(safe-area-inset-bottom))]">
-              <button
-                type="button"
-                onClick={() => setIsDirectCheckoutOpen(false)}
-                className="py-2.5 px-3.5 border border-[#cfd6c9] bg-white hover:bg-[#EAEDE7] text-[#526046] rounded-xl font-semibold transition-colors cursor-pointer"
-              >
-                Batal
-              </button>
-              <button
-                type="submit"
-                disabled={
-                  isSubmitting ||
-                  (Boolean(lokasiLahan) &&
-                    !validateMinahasaUtaraAddress(lokasiLahan, true).isValid)
-                }
-                className={`py-2.5 px-4 rounded-xl font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-60 ${
-                  Boolean(lokasiLahan) &&
-                  !validateMinahasaUtaraAddress(lokasiLahan, true).isValid
-                    ? 'bg-red-800 text-white cursor-not-allowed'
-                    : 'bg-[#233414] hover:bg-[#344d15] text-white'
-                }`}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin text-[#D4F63D]" />
-                    <span>Menyiapkan...</span>
-                  </>
-                ) : Boolean(lokasiLahan) &&
-                  !validateMinahasaUtaraAddress(lokasiLahan, true).isValid ? (
-                  <>
-                    <AlertCircle className="w-4 h-4 text-red-200" />
-                    <span>Lokasi Harus di Minut</span>
-                  </>
-                ) : (
-                  <>
-                    <MessageCircle className="w-4 h-4 text-[#D4F63D]" />
-                    <span>Ajukan ke WhatsApp PJ</span>
-                  </>
-                )}
-              </button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

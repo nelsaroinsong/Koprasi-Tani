@@ -167,6 +167,8 @@ export default function AppHeader({
   const isToko = currentActive === 'toko';
   const isSewaAlat = currentActive === 'sewa-alat';
   const shouldShowSubNav = showCatalogSubNav ?? (isToko || isSewaAlat);
+  // Halaman katalog utama punya sidebar filter di desktop (lg+) yang menggantikan sub-navbar ini
+  const hasCatalogSidebar = pathname === '/toko' || pathname === '/sewa-alat';
   const basePath = isSewaAlat ? '/sewa-alat' : '/toko';
 
   // Dynamic categories fetching if not supplied via props
@@ -368,7 +370,7 @@ export default function AppHeader({
 
         {/* Sub-navbar Mode Desktop Saja (Khusus Toko atau Sewa Alat) */}
         {shouldShowSubNav && (
-          <div className="hidden md:block border-t border-[#EAEDE7] bg-white">
+          <div className={`hidden md:block ${hasCatalogSidebar ? 'lg:hidden' : ''} border-t border-[#EAEDE7] bg-white`}>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-10 flex items-center justify-start gap-8 text-[13px]">
               {/* 1. Semua */}
               <button
@@ -505,7 +507,9 @@ export default function AppHeader({
       {/* Spacer placeholder to reserve exact height for fixed header (56px mobile, 64px desktop default, 105px when desktop sub-navbar is rendered) */}
       <div
         className={`${
-          shouldShowSubNav ? 'h-14 sm:h-16 md:h-[105px]' : 'h-14 sm:h-16'
+          shouldShowSubNav
+            ? `h-14 sm:h-16 md:h-[105px] ${hasCatalogSidebar ? 'lg:h-16' : ''}`
+            : 'h-14 sm:h-16'
         } shrink-0 pointer-events-none`}
         aria-hidden="true"
       />

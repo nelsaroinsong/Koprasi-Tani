@@ -1,13 +1,11 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { getCache, setCache, delCache, delCachePattern } from '@/lib/redis';
+import { listCategories, saveCategories } from '@/lib/category-store';
 
 export const dynamic = 'force-dynamic';
 
-const CATEGORIES_FILE = path.join(process.cwd(), 'data', 'categories.json');
 const CATEGORIES_CACHE_KEY = 'categories:list:with_count';
 
 export interface CategoryItem {
@@ -65,31 +63,14 @@ const DEFAULT_CATEGORIES: CategoryItem[] = [
   },
 ];
 
-function readCategoriesFromFile(): CategoryItem[] {
-  try {
-    if (fs.existsSync(CATEGORIES_FILE)) {
-      const content = fs.readFileSync(CATEGORIES_FILE, 'utf-8');
-      const parsed = JSON.parse(content);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
-      }
-    }
-  } catch (err) {
-    console.warn('Error reading categories file:', err);
-  }
-  return DEFAULT_CATEGORIES;
+// Kategori disimpan di tabel `categories` (PostgreSQL)
+async function readCategoriesFromFile(): Promise<CategoryItem[]> {
+  const list = (await listCategories('product')) as CategoryItem[];
+  return list.length > 0 ? list : DEFAULT_CATEGORIES;
 }
 
-function writeCategoriesToFile(categories: CategoryItem[]) {
-  try {
-    const dir = path.dirname(CATEGORIES_FILE);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    fs.writeFileSync(CATEGORIES_FILE, JSON.stringify(categories, null, 2), 'utf-8');
-  } catch (err) {
-    console.error('Error writing categories file:', err);
-  }
+async function writeCategoriesToFile(categories: CategoryItem[]) {
+  await saveCategories('product', categories);
 }
 
 // 1. GET: Ambil semua kategori komoditas beserta jumlah produk aktif (Di-cache di Redis)
@@ -101,7 +82,7 @@ export async function GET() {
       return NextResponse.json(cached);
     }
 
-    const categories = readCategoriesFromFile();
+    const categories = await readCategoriesFromFile();
 
     // Query jumlah produk per kategori dari database Postgres
     let countMap: Record<string, number> = {};
@@ -167,7 +148,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Nama kategori wajib diisi.' }, { status: 400 });
     }
 
-    const currentCategories = readCategoriesFromFile();
+    const currentCategories = await readCategoriesFromFile();
     const exists = currentCategories.some(
       (c) => c.name.toLowerCase() === name.toLowerCase() || c.slug.toLowerCase() === name.toLowerCase()
     );
@@ -191,7 +172,7 @@ export async function POST(request: Request) {
     };
 
     const updated = [...currentCategories, newCategory];
-    writeCategoriesToFile(updated);
+    await writeCategoriesToFile(updated);
     await delCachePattern('categories:*').catch(() => {});
     await delCachePattern('products:*').catch(() => {});
 
@@ -219,7 +200,7 @@ export async function PATCH(request: Request) {
 
     // Skenario A: Reorder daftar kategori utuh
     if (Array.isArray(body.categories)) {
-      writeCategoriesToFile(body.categories);
+      await writeCategoriesToFile(body.categories);
       await delCachePattern('categories:*').catch(() => {});
     await delCachePattern('products:*').catch(() => {});
       return NextResponse.json({
@@ -235,7 +216,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'ID kategori wajib disertakan.' }, { status: 400 });
     }
 
-    const currentCategories = readCategoriesFromFile();
+    const currentCategories = await readCategoriesFromFile();
     const index = currentCategories.findIndex((c) => c.id === id);
 
     if (index === -1) {
@@ -277,7 +258,7 @@ export async function PATCH(request: Request) {
     if (mobileBg) currentCategories[index].mobileBg = mobileBg.trim();
     if (isActive !== undefined) currentCategories[index].isActive = Boolean(isActive);
 
-    writeCategoriesToFile(currentCategories);
+    await writeCategoriesToFile(currentCategories);
     await delCachePattern('categories:*').catch(() => {});
     await delCachePattern('products:*').catch(() => {});
 
@@ -326,7 +307,7 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'ID kategori wajib disertakan.' }, { status: 400 });
     }
 
-    const currentCategories = readCategoriesFromFile();
+    const currentCategories = await readCategoriesFromFile();
 
     if (currentCategories.length <= idsToDelete.length) {
       return NextResponse.json(
@@ -360,7 +341,7 @@ export async function DELETE(request: Request) {
     }
 
     const updated = currentCategories.filter((c) => !idsToDelete.includes(c.id));
-    writeCategoriesToFile(updated);
+    await writeCategoriesToFile(updated);
     await delCachePattern('categories:*').catch(() => {});
     await delCachePattern('products:*').catch(() => {});
 

@@ -8,7 +8,6 @@ import {
   Tractor,
   Tag,
   FolderTree,
-  Building2,
   Settings,
   Search,
   ChevronDown,
@@ -46,7 +45,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { AdminProfileModal } from "@/components/admin/admin-profile-modal"
 import { signOut } from "next-auth/react"
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
@@ -109,7 +107,6 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
 
   const [isSearchOpen, setIsSearchOpen] = React.useState(false)
   const [searchQuery, setSearchQuery] = React.useState("")
-  const [isEditProfileOpen, setIsEditProfileOpen] = React.useState(false)
 
   // Collapsible Menu States (Semua dropdown terbuka secara default saat login ke admin dashboard)
   const [isTransaksiOpen, setIsTransaksiOpen] = React.useState(true)
@@ -161,7 +158,7 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
     { group: "Produk dan Layanan", item: "Sewa Alat", label: "Katalog Sewa Alat" },
     { group: "Produk dan Layanan", item: "Kategori Komoditas", label: "Kategori Produk" },
     { group: "Produk dan Layanan", item: "Kategori Sewa Alat", label: "Kategori Sewa Alat" },
-    { group: "Pengaturan Web", item: "Logo Mitra", label: "Logo Mitra" },
+    { group: "Pengaturan", item: "Pengaturan Akun", label: "Pengaturan Akun" },
   ]
 
   const filteredMenus = searchQuery.trim()
@@ -690,56 +687,6 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
                   })()}
                 </SidebarMenuItem>
 
-                {/* 2. Logo Mitra */}
-                <SidebarMenuItem>
-                  {(() => {
-                    const isActive =
-                      activeTab.group === "Pengaturan Web" &&
-                      activeTab.item === "Logo Mitra"
-
-                    return isCollapsed ? (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setActiveTab("Pengaturan Web", "Logo Mitra")
-                            }
-                            className={`w-8 h-8 mx-auto rounded-lg flex items-center justify-center transition cursor-pointer ${
-                              isActive
-                                ? "bg-white text-slate-900 border border-[#E5E7EB] shadow-2xs"
-                                : "text-slate-500 hover:bg-slate-200/50 hover:text-slate-900"
-                            }`}
-                          >
-                            <Building2 className="w-4 h-4 stroke-[1.8]" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="right" className="font-medium text-xs">
-                          Logo Mitra
-                        </TooltipContent>
-                      </Tooltip>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setActiveTab("Pengaturan Web", "Logo Mitra")
-                        }
-                        className={`flex items-center gap-2.5 px-2.5 py-2 w-full rounded-lg text-[13px] transition-all cursor-pointer text-left ${
-                          isActive
-                            ? "bg-white text-slate-900 font-semibold border border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
-                            : "text-slate-600 hover:bg-slate-200/40 hover:text-slate-900 font-medium"
-                        }`}
-                      >
-                        <Building2
-                          className={`w-4 h-4 shrink-0 stroke-[1.8] ${
-                            isActive ? "text-slate-800" : "text-slate-500"
-                          }`}
-                        />
-                        <span className="truncate">Logo Mitra</span>
-                      </button>
-                    )
-                  })()}
-                </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroup>
           </div>
@@ -759,24 +706,28 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
                     <TooltipTrigger asChild>
                       <button
                         type="button"
-                        onClick={() => setIsEditProfileOpen(true)}
+                        onClick={() => setActiveTab("Pengaturan", "Pengaturan Akun")}
                         className="w-8 h-8 mx-auto rounded-lg flex items-center justify-center text-slate-500 hover:bg-slate-200/50 hover:text-slate-900 transition cursor-pointer"
                       >
                         <Settings className="w-4 h-4 stroke-[1.8]" />
                       </button>
                     </TooltipTrigger>
                     <TooltipContent side="right" className="font-medium text-xs">
-                      Settings
+                      Pengaturan
                     </TooltipContent>
                   </Tooltip>
                 ) : (
                   <button
                     type="button"
-                    onClick={() => setIsEditProfileOpen(true)}
-                    className="flex items-center gap-2.5 px-2.5 py-2 w-full rounded-lg text-[13px] font-medium text-slate-600 hover:bg-slate-200/40 hover:text-slate-900 transition cursor-pointer text-left"
+                    onClick={() => setActiveTab("Pengaturan", "Pengaturan Akun")}
+                    className={`flex items-center gap-2.5 px-2.5 py-2 w-full rounded-lg text-[13px] transition-all cursor-pointer text-left ${
+                      activeTab.group === "Pengaturan"
+                        ? "bg-white text-slate-900 font-semibold border border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
+                        : "text-slate-600 hover:bg-slate-200/40 hover:text-slate-900 font-medium"
+                    }`}
                   >
                     <Settings className="w-4 h-4 text-slate-500 shrink-0 stroke-[1.8]" />
-                    <span className="truncate">Settings</span>
+                    <span className="truncate">Pengaturan</span>
                   </button>
                 )}
               </SidebarMenuItem>
@@ -794,16 +745,7 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
                   className="relative w-8 h-8 mx-auto rounded-full bg-slate-200/80 text-slate-700 font-semibold text-xs flex items-center justify-center border border-slate-300/80 cursor-pointer hover:ring-2 hover:ring-slate-300 transition"
                   title={`Profil: ${adminName}`}
                 >
-                  {user?.avatarUrl || user?.image ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={user.avatarUrl || user.image || ""}
-                      alt={adminName}
-                      className="w-full h-full rounded-full object-cover"
-                    />
-                  ) : (
-                    adminInitials
-                  )}
+                  <AdminAvatar src={user?.avatarUrl || user?.image || ""} name={adminName} initials={adminInitials} />
                   <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
                 </button>
               ) : (
@@ -813,16 +755,7 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <div className="relative w-8 h-8 rounded-full bg-[#F1F5F9] text-slate-700 font-semibold text-[11px] flex items-center justify-center shrink-0 border border-slate-200">
-                      {user?.avatarUrl || user?.image ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={user.avatarUrl || user.image || ""}
-                          alt={adminName}
-                          className="w-full h-full rounded-full object-cover"
-                        />
-                      ) : (
-                        adminInitials
-                      )}
+                      <AdminAvatar src={user?.avatarUrl || user?.image || ""} name={adminName} initials={adminInitials} />
                       <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
                     </div>
                     <div className="min-w-0">
@@ -842,19 +775,20 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
             <DropdownMenuContent
               side="top"
               align={isCollapsed ? "center" : "start"}
-              className="w-56 rounded-xl p-1.5 shadow-lg border-slate-200 bg-white z-50 text-xs"
+              sideOffset={8}
+              className={`${isCollapsed ? "w-60" : "w-(--radix-dropdown-menu-trigger-width) min-w-56"} rounded-xl p-1.5 shadow-lg border-slate-200 bg-white z-50 text-xs`}
             >
-              <DropdownMenuLabel className="px-2.5 py-1.5">
-                <div className="font-semibold text-slate-900">{adminName}</div>
-                <div className="text-[11px] text-slate-400 font-normal">{adminEmail}</div>
+              <DropdownMenuLabel className="px-2.5 py-1.5 min-w-0">
+                <div className="font-semibold text-slate-900 truncate" title={adminName}>{adminName}</div>
+                <div className="text-[11px] text-slate-400 font-normal truncate" title={adminEmail}>{adminEmail}</div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator className="my-1 border-slate-100" />
               <DropdownMenuItem
-                onClick={() => setIsEditProfileOpen(true)}
+                onClick={() => setActiveTab("Pengaturan", "Pengaturan Akun")}
                 className="cursor-pointer rounded-lg px-2 py-1.5 hover:bg-slate-100 text-slate-700 flex items-center gap-2"
               >
                 <UserCog className="w-4 h-4 text-slate-500" />
-                <span>Edit Profil Administrator</span>
+                <span>Pengaturan Akun</span>
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => window.open("/toko", "_blank")}
@@ -878,17 +812,21 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
         <SidebarRail />
       </Sidebar>
 
-      <AdminProfileModal
-        isOpen={isEditProfileOpen}
-        onClose={() => setIsEditProfileOpen(false)}
-        currentUser={{
-          name: adminName,
-          email: adminEmail,
-          avatar: user?.avatarUrl || user?.image || "",
-          phone: user?.phone || "",
-        }}
-        onUserUpdated={() => {}}
-      />
     </TooltipProvider>
+  )
+}
+
+function AdminAvatar({ src, name, initials }: { src: string; name: string; initials: string }) {
+  const [failed, setFailed] = React.useState(false)
+  if (!src || failed) return <>{initials}</>
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt={name}
+      referrerPolicy="no-referrer"
+      onError={() => setFailed(true)}
+      className="w-full h-full rounded-full object-cover"
+    />
   )
 }

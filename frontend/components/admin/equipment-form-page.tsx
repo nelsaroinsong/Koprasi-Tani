@@ -37,6 +37,7 @@ export interface EquipmentFormData {
   satuanSewa?: string;
   biayaOperator?: number | string;
   stokUnit?: number | string;
+  jedaHari?: number | string;
   kondisi?: string;
   imageUrl?: string;
   isTersedia?: boolean;
@@ -87,6 +88,9 @@ export function EquipmentFormPage({
   );
   const [stokUnit, setStokUnit] = useState(
     initialData?.stokUnit ? String(initialData.stokUnit) : '1'
+  );
+  const [jedaHari, setJedaHari] = useState(
+    initialData?.jedaHari !== undefined && initialData?.jedaHari !== null ? String(initialData.jedaHari) : '1'
   );
   const [kondisi, setKondisi] = useState(initialData?.kondisi || 'Sangat Baik');
   const [isTersedia, setIsTersedia] = useState(
@@ -165,6 +169,7 @@ export function EquipmentFormPage({
           if (parsed.satuanSewa) setSatuanSewa(parsed.satuanSewa);
           if (parsed.biayaOperator) setBiayaOperator(parsed.biayaOperator);
           if (parsed.stokUnit) setStokUnit(parsed.stokUnit);
+          if (parsed.jedaHari !== undefined) setJedaHari(String(parsed.jedaHari));
           if (parsed.kondisi) setKondisi(parsed.kondisi);
           if (parsed.kontakPj) setKontakPj(parsed.kontakPj);
           if (Array.isArray(parsed.images) && parsed.images.length > 0) {
@@ -186,6 +191,7 @@ export function EquipmentFormPage({
         satuanSewa,
         biayaOperator,
         stokUnit,
+        jedaHari,
         kondisi,
         kontakPj,
         images,
@@ -334,6 +340,7 @@ export function EquipmentFormPage({
         satuanSewa,
         biayaOperator: biayaOperator ? parseFloat(biayaOperator) : 0,
         stokUnit: stokNum,
+        jedaHari: Math.min(7, Math.max(0, parseInt(jedaHari, 10) || 0)),
         kondisi,
         imageUrl: primaryImageUrl || null,
         isTersedia,
@@ -650,6 +657,26 @@ export function EquipmentFormPage({
                 placeholder="1"
                 className="w-full text-xs px-3.5 py-2.5 bg-slate-100 border border-transparent rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 focus:bg-white transition text-slate-800 font-semibold"
               />
+            </div>
+
+            {/* Jeda antar-sewa */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                Jeda Antar-Sewa (hari)
+              </label>
+              <input
+                type="number"
+                min="0"
+                max="7"
+                value={jedaHari}
+                onChange={(e) => setJedaHari(e.target.value)}
+                placeholder="1"
+                className="w-full text-xs px-3.5 py-2.5 bg-slate-100 border border-transparent rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 focus:bg-white transition text-slate-800 font-semibold"
+              />
+              <p className="text-[11px] text-slate-400 mt-1">
+                Hari kosong setelah setiap sewa untuk pengembalian & pengecekan unit. Contoh: sewa selesai tgl 20 dengan
+                jeda 1 hari, unit baru bisa disewa lagi tgl 22. Isi 0 jika bisa langsung disewa esok harinya.
+              </p>
             </div>
 
             {/* Status Ketersediaan (Taste-Skills Switch Toggle) */}

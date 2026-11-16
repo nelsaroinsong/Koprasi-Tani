@@ -115,6 +115,7 @@
 
 @theme {
   --font-sans: var(--font-dm-sans), "DM Sans", system-ui, -apple-system, sans-serif;
+  --font-script: var(--font-great-vibes), "Great Vibes", cursive;
   --tracking-tighter: -0.05em;
   --tracking-tight: -0.035em;
   --tracking-normal: -0.025em;

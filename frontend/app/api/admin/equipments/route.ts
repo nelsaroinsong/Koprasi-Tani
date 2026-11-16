@@ -3,11 +3,8 @@ import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { delCachePattern } from '@/lib/redis';
 import { validateIndonesianPhone } from '@/lib/phone-validation';
-import {
-  readEquipmentsFromFile,
-  writeEquipmentsToFile,
-  type EquipmentItem,
-} from '@/lib/equipments';
+import { getEquipments, toEquipmentItem } from '@/lib/equipments';
+import { clampJeda } from '@/lib/equipment-rentals';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,37 +31,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Akses khusus administrator' }, { status: 403 });
     }
 
-    let list: EquipmentItem[] = [];
-
-    try {
-      const dbEquipments: any[] = await prisma.$queryRawUnsafe(
-        `SELECT * FROM equipments ORDER BY "createdAt" DESC`
-      );
-
-      if (dbEquipments && dbEquipments.length > 0) {
-        list = dbEquipments.map((eq) => ({
-          id: eq.id,
-          nama: eq.nama,
-          kategori: eq.kategori,
-          deskripsi: eq.deskripsi,
-          spesifikasi: eq.spesifikasi,
-          hargaSewa: Number(eq.hargaSewa),
-          satuanSewa: eq.satuanSewa || 'hari',
-          biayaOperator: eq.biayaOperator !== null ? Number(eq.biayaOperator) : null,
-          stokUnit: Number(eq.stokUnit) || 1,
-          kondisi: eq.kondisi || 'Sangat Baik',
-          imageUrl: eq.imageUrl,
-          isTersedia: eq.isTersedia ?? true,
-          kontakPj: eq.kontakPj,
-          createdAt: eq.createdAt,
-          updatedAt: eq.updatedAt,
-        }));
-      }
-    } catch {}
-
-    if (list.length === 0) {
-      list = readEquipmentsFromFile();
-    }
+    const list = await getEquipments();
 
     return NextResponse.json({
       success: true,
@@ -102,6 +69,7 @@ export async function POST(request: Request) {
       imageUrl = null,
       isTersedia = true,
       kontakPj = '081944078924',
+      jedaHari = 1,
     } = body;
 
     if (!nama || !kategori || hargaSewa === undefined) {
@@ -136,54 +104,25 @@ export async function POST(request: Request) {
       cleanKontakPj = '081944078924';
     }
 
-    const newId = crypto.randomUUID();
-    const nowIso = new Date().toISOString();
-
-    const newEquipment: EquipmentItem = {
-      id: newId,
-      nama: nama.trim(),
-      kategori: kategori.trim(),
-      deskripsi: deskripsi?.trim() || null,
-      spesifikasi: spesifikasi?.trim() || null,
-      hargaSewa: Number(hargaSewa),
-      satuanSewa: satuanSewa || 'hari',
-      biayaOperator: biayaOperator !== null && biayaOperator !== undefined ? Number(biayaOperator) : null,
-      stokUnit: Number(stokUnit) || 1,
-      kondisi: kondisi || 'Sangat Baik',
-      imageUrl: imageUrl || null,
-      isTersedia: Boolean(isTersedia),
-      kontakPj: cleanKontakPj,
-      createdAt: nowIso,
-      updatedAt: nowIso,
-    };
-
-    // Simpan ke PostgreSQL database
-    try {
-      await prisma.$executeRawUnsafe(
-        `INSERT INTO equipments (id, nama, kategori, deskripsi, spesifikasi, "hargaSewa", "satuanSewa", "biayaOperator", "stokUnit", kondisi, "imageUrl", "isTersedia", "kontakPj", "createdAt", "updatedAt")
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW(), NOW())`,
-        newEquipment.id,
-        newEquipment.nama,
-        newEquipment.kategori,
-        newEquipment.deskripsi,
-        newEquipment.spesifikasi,
-        newEquipment.hargaSewa,
-        newEquipment.satuanSewa,
-        newEquipment.biayaOperator,
-        newEquipment.stokUnit,
-        newEquipment.kondisi,
-        newEquipment.imageUrl,
-        newEquipment.isTersedia,
-        newEquipment.kontakPj
-      );
-    } catch (e) {
-      console.warn('Gagal insert ke PostgreSQL, menyimpan ke JSON fallback:', e);
-    }
-
-    // Simpan juga ke file fallback
-    const currentList = readEquipmentsFromFile();
-    currentList.unshift(newEquipment);
-    writeEquipmentsToFile(currentList);
+    const created = await prisma.equipment.create({
+      data: {
+        nama: nama.trim(),
+        kategori: kategori.trim(),
+        deskripsi: deskripsi?.trim() || null,
+        spesifikasi: spesifikasi?.trim() || null,
+        hargaSewa: Number(hargaSewa),
+        satuanSewa: satuanSewa || 'hari',
+        biayaOperator:
+          biayaOperator !== null && biayaOperator !== undefined ? Number(biayaOperator) : null,
+        stokUnit: Math.max(0, Number(stokUnit) || 1),
+        kondisi: kondisi || 'Sangat Baik',
+        imageUrl: imageUrl || null,
+        isTersedia: Boolean(isTersedia),
+        kontakPj: cleanKontakPj,
+        jedaHari: clampJeda(jedaHari),
+      },
+    });
+    const newEquipment = toEquipmentItem(created);
 
     // Hapus cache Redis
     await delCachePattern('equipments:*').catch(() => {});
@@ -226,6 +165,7 @@ export async function PUT(request: Request) {
       imageUrl,
       isTersedia,
       kontakPj,
+      jedaHari,
     } = body;
 
     if (!id) {
@@ -257,64 +197,33 @@ export async function PUT(request: Request) {
       cleanUpdatedKontakPj = '081944078924';
     }
 
-    // Update di PostgreSQL
-    try {
-      await prisma.$executeRawUnsafe(
-        `UPDATE equipments 
-         SET nama = COALESCE($2, nama),
-             kategori = COALESCE($3, kategori),
-             deskripsi = $4,
-             spesifikasi = $5,
-             "hargaSewa" = COALESCE($6, "hargaSewa"),
-             "satuanSewa" = COALESCE($7, "satuanSewa"),
-             "biayaOperator" = $8,
-             "stokUnit" = COALESCE($9, "stokUnit"),
-             kondisi = COALESCE($10, kondisi),
-             "imageUrl" = COALESCE($11, "imageUrl"),
-             "isTersedia" = COALESCE($12, "isTersedia"),
-             "kontakPj" = $13,
-             "updatedAt" = NOW()
-         WHERE id = $1`,
-        id,
-        nama,
-        kategori,
-        deskripsi,
-        spesifikasi,
-        hargaSewa !== undefined ? Number(hargaSewa) : null,
-        satuanSewa,
-        biayaOperator !== undefined && biayaOperator !== null ? Number(biayaOperator) : null,
-        stokUnit !== undefined ? Number(stokUnit) : null,
-        kondisi,
-        imageUrl,
-        isTersedia !== undefined ? Boolean(isTersedia) : null,
-        cleanUpdatedKontakPj ?? kontakPj
-      );
-    } catch (e) {
-      console.warn('Gagal update ke PostgreSQL:', e);
+    const existing = await prisma.equipment.findUnique({ where: { id } });
+    if (!existing) {
+      return NextResponse.json({ error: 'Unit alat tidak ditemukan' }, { status: 404 });
     }
 
-    // Update di file JSON fallback
-    const currentList = readEquipmentsFromFile();
-    const idx = currentList.findIndex((item) => item.id === id);
-    if (idx > -1) {
-      currentList[idx] = {
-        ...currentList[idx],
-        ...(nama && { nama }),
-        ...(kategori && { kategori }),
-        deskripsi: deskripsi !== undefined ? deskripsi : currentList[idx].deskripsi,
-        spesifikasi: spesifikasi !== undefined ? spesifikasi : currentList[idx].spesifikasi,
+    await prisma.equipment.update({
+      where: { id },
+      data: {
+        ...(nama && { nama: String(nama).trim() }),
+        ...(kategori && { kategori: String(kategori).trim() }),
+        ...(deskripsi !== undefined && { deskripsi: deskripsi ? String(deskripsi).trim() : null }),
+        ...(spesifikasi !== undefined && { spesifikasi: spesifikasi ? String(spesifikasi).trim() : null }),
         ...(hargaSewa !== undefined && { hargaSewa: Number(hargaSewa) }),
         ...(satuanSewa && { satuanSewa }),
-        biayaOperator: biayaOperator !== undefined ? (biayaOperator !== null ? Number(biayaOperator) : null) : currentList[idx].biayaOperator,
-        ...(stokUnit !== undefined && { stokUnit: Number(stokUnit) }),
+        ...(biayaOperator !== undefined && {
+          biayaOperator: biayaOperator !== null ? Number(biayaOperator) : null,
+        }),
+        ...(stokUnit !== undefined && { stokUnit: Math.max(0, Number(stokUnit) || 0) }),
         ...(kondisi && { kondisi }),
         ...(imageUrl && { imageUrl }),
         ...(isTersedia !== undefined && { isTersedia: Boolean(isTersedia) }),
-        kontakPj: kontakPj !== undefined ? kontakPj : currentList[idx].kontakPj,
-        updatedAt: new Date().toISOString(),
-      };
-      writeEquipmentsToFile(currentList);
-    }
+        ...(jedaHari !== undefined && { jedaHari: clampJeda(jedaHari) }),
+        ...((cleanUpdatedKontakPj ?? kontakPj) !== undefined && {
+          kontakPj: cleanUpdatedKontakPj ?? kontakPj,
+        }),
+      },
+    });
 
     // Invalidate Redis
     await delCachePattern('equipments:*').catch(() => {});
@@ -348,39 +257,14 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'ID alat wajib disertakan' }, { status: 400 });
     }
 
-    try {
-      if (typeof isTersedia === 'boolean') {
-        await prisma.$executeRawUnsafe(
-          `UPDATE equipments SET "isTersedia" = $1, "updatedAt" = NOW() WHERE id = $2`,
-          isTersedia,
-          id
-        );
-      }
-      if (kondisi) {
-        await prisma.$executeRawUnsafe(
-          `UPDATE equipments SET kondisi = $1, "updatedAt" = NOW() WHERE id = $2`,
-          kondisi,
-          id
-        );
-      }
-      if (typeof stokUnit === 'number') {
-        await prisma.$executeRawUnsafe(
-          `UPDATE equipments SET "stokUnit" = $1, "updatedAt" = NOW() WHERE id = $2`,
-          stokUnit,
-          id
-        );
-      }
-    } catch {}
-
-    const currentList = readEquipmentsFromFile();
-    const idx = currentList.findIndex((item) => item.id === id);
-    if (idx > -1) {
-      if (typeof isTersedia === 'boolean') currentList[idx].isTersedia = isTersedia;
-      if (kondisi) currentList[idx].kondisi = kondisi;
-      if (typeof stokUnit === 'number') currentList[idx].stokUnit = stokUnit;
-      currentList[idx].updatedAt = new Date().toISOString();
-      writeEquipmentsToFile(currentList);
-    }
+    await prisma.equipment.update({
+      where: { id },
+      data: {
+        ...(typeof isTersedia === 'boolean' && { isTersedia }),
+        ...(kondisi && { kondisi }),
+        ...(typeof stokUnit === 'number' && { stokUnit: Math.max(0, stokUnit) }),
+      },
+    });
 
     await delCachePattern('equipments:*').catch(() => {});
 
@@ -431,16 +315,24 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'ID unit alat wajib disertakan' }, { status: 400 });
     }
 
-    for (const id of idsToDelete) {
-      try {
-        await prisma.$executeRawUnsafe(`DELETE FROM equipments WHERE id = $1`, id);
-      } catch {}
+    // Alat yang punya riwayat sewa tidak dihapus agar riwayat transaksi tetap utuh
+    const withHistory = await prisma.equipmentRentalItem.findMany({
+      where: { equipmentId: { in: idsToDelete } },
+      select: { equipmentId: true, nama: true },
+      distinct: ['equipmentId'],
+    });
+    if (withHistory.length > 0) {
+      return NextResponse.json(
+        {
+          error: `Alat ${withHistory
+            .map((h) => `"${h.nama}"`)
+            .join(', ')} memiliki riwayat sewa sehingga tidak dapat dihapus. Nonaktifkan ketersediaannya saja.`,
+        },
+        { status: 400 }
+      );
     }
 
-    const currentList = readEquipmentsFromFile();
-    const deleteSet = new Set(idsToDelete);
-    const updated = currentList.filter((item) => !deleteSet.has(item.id));
-    writeEquipmentsToFile(updated);
+    await prisma.equipment.deleteMany({ where: { id: { in: idsToDelete } } });
 
     await delCachePattern('equipments:*').catch(() => {});
 

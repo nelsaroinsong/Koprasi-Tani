@@ -118,8 +118,12 @@ export function DashboardKpiCards() {
               <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform duration-200">
                 <Icon className="w-5 h-5 text-white stroke-[1.8]" />
               </div>
-              <div className="text-right">
-                <span className="text-[20px] sm:text-[23px] font-bold text-slate-900 tracking-tight tabular-nums">
+              <div className="text-right min-w-0">
+                <span
+                  className={`block whitespace-nowrap font-bold text-slate-900 tracking-tight tabular-nums ${
+                    item.value.length > 6 ? 'text-[17px] sm:text-[19px] mt-1.5' : 'text-[20px] sm:text-[23px]'
+                  }`}
+                >
                   {item.value}
                 </span>
               </div>

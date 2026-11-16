@@ -14,176 +14,367 @@ enum Role {
 }
 
 enum OrderStatus {
-  MENUNGGU_PEMBAYARAN    // Pembeli sudah checkout, belum bayar cash/transfer ke admin
-  DIPROSES               // Pembayaran diterima admin, pesanan disiapkan di gudang
-  SIAP_DIAMBIL           // Barang siap diambil di kantor koperasi / siap dikirim
-  SELESAI                // Barang diserahkan ke pembeli, transaksi selesai
-  DIBATALKAN             // Pesanan batal, stok otomatis dikembalikan
+  PESANAN_MASUK // Nilai lama yang masih ada di database (tidak dipakai lagi)
+  MENUNGGU_PEMBAYARAN // Pembeli sudah checkout, belum bayar cash/transfer ke admin
+  DIPROSES // Pembayaran diterima admin, pesanan disiapkan di gudang
+  SIAP_DIAMBIL // Barang siap diambil di kantor koperasi / siap dikirim
+  SELESAI // Barang diserahkan ke pembeli, transaksi selesai
+  DIBATALKAN // Pesanan batal, stok otomatis dikembalikan
 }
 
 enum PaymentMethod {
-  CASH_KOPERASI          // Bayar Tunai Langsung di Kantor/Gudang Koperasi
-  TRANSFER_KOPERASI      // Transfer ke Rekening Resmi Koperasi
+  CASH_KOPERASI // Bayar Tunai Langsung di Kantor/Gudang Koperasi
+  TRANSFER_KOPERASI // Transfer ke Rekening Resmi Koperasi
 }
 
 enum PayoutStatus {
-  MENUNGGU_PENCAIRAN     // Barang laku, hak cash petani belum diserahkan oleh admin koperasi
-  SUDAH_DICAIRKAN_CASH   // Admin sudah serahkan uang cash ke petani
+  MENUNGGU_PENCAIRAN // Barang laku, hak cash petani belum diserahkan oleh admin koperasi
+  SUDAH_DICAIRKAN_CASH // Admin sudah serahkan uang cash ke petani
 }
 
 model User {
-  id             String        @id @default(uuid())
-  email          String        @unique
-  password       String?
-  googleId       String?       @unique
-  name           String
-  phone          String?
-  address        String?
-  role           Role          @default(PEMBELI)
-  avatarUrl      String?
-  isVerified     Boolean       @default(false)
-  isOnboarded    Boolean       @default(false)
-  isActive       Boolean       @default(true)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  id          String   @id @default(uuid())
+  email       String   @unique
+  password    String?
+  googleId    String?  @unique
+  name        String
+  phone       String?
+  address     String?
+  role        Role     @default(PEMBELI)
+  avatarUrl   String?
+  isVerified  Boolean  @default(false)
+  isOnboarded Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // Relasi ke Produk komoditas yang disetor petani ke gudang koperasi
-  products       Product[]
+  products Product[]
 
   // Relasi pesanan yang dibeli pembeli
-  ordersPurchased Order[]      @relation("PembeliOrders")
+  ordersPurchased Order[] @relation("PembeliOrders")
 
   // Relasi item penjualan komoditas milik petani untuk pencairan uang cash
-  soldItems       OrderItem[]  @relation("PetaniOrderItems")
+  soldItems OrderItem[] @relation("PetaniOrderItems")
 
   // Relasi ulasan dan follow petani
-  reviews         Review[]
-  following       Follow[]     @relation("UserFollows")
-  followers       Follow[]     @relation("PetaniFollowers")
+  reviews   Review[]
+  following Follow[] @relation("UserFollows")
+  followers Follow[] @relation("PetaniFollowers")
+
+  // Relasi sewa alat & ulasan alat
+  equipmentRentals EquipmentRental[]
+  equipmentReviews EquipmentReview[]
 
   @@map("users")
 }
 
 model Product {
-  id             String        @id @default(uuid())
+  id             String   @id @default(uuid())
   nama           String
   deskripsi      String?
-  kategori       String        // "Kelapa", "Jagung", "Olahan", "Turunan"
-  hargaPerSatuan Decimal       @db.Decimal(12, 2)
-  satuan         String        @default("kg") // "kg", "karung", "butir"
-  stok           Int           @default(0)
+  kategori       String // "Kelapa", "Jagung", "Olahan", "Turunan"
+  hargaPerSatuan Decimal  @db.Decimal(12, 2)
+  satuan         String   @default("kg") // "kg", "karung", "butir"
+  stok           Int      @default(0)
   imageUrl       String?
-  isTersedia     Boolean       @default(true)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  isTersedia     Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  petani         User          @relation(fields: [petaniId], references: [id])
-  petaniId       String
+  petani   User   @relation(fields: [petaniId], references: [id])
+  petaniId String
 
-  orderItems     OrderItem[]
-  reviews        Review[]
+  orderItems OrderItem[]
+  reviews    Review[]
 
   @@map("products")
 }
 
 model Order {
-  id              String        @id @default(uuid())
-  orderNumber     String        @unique // e.g. "KOP-202609-001"
-  pembeliId       String
-  pembeli         User          @relation("PembeliOrders", fields: [pembeliId], references: [id])
-  
-  status          OrderStatus   @default(MENUNGGU_PEMBAYARAN)
-  paymentMethod   PaymentMethod @default(CASH_KOPERASI)
-  isPaid          Boolean       @default(false)
-  paidAt          DateTime?
-  
-  totalAmount     Decimal       @db.Decimal(12, 2)
-  catatan         String?
-  alamatKirim     String?
-  
-  items           OrderItem[]
-  
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  id          String @id @default(uuid())
+  orderNumber String @unique // e.g. "KOP-202609-001"
+  pembeliId   String
+  pembeli     User   @relation("PembeliOrders", fields: [pembeliId], references: [id])
+
+  status        OrderStatus   @default(MENUNGGU_PEMBAYARAN)
+  paymentMethod PaymentMethod @default(CASH_KOPERASI)
+  isPaid        Boolean       @default(false)
+  paidAt        DateTime?
+
+  totalAmount Decimal @db.Decimal(12, 2)
+  catatan     String?
+  alamatKirim String?
+
+  items OrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("orders")
 }
 
 model OrderItem {
-  id              String        @id @default(uuid())
-  orderId         String
-  order           Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  
-  productId       String
-  product         Product       @relation(fields: [productId], references: [id])
-  
-  namaProduk      String
-  hargaPerSatuan  Decimal       @db.Decimal(12, 2)
-  satuan          String
-  quantity        Int
-  subtotal        Decimal       @db.Decimal(12, 2)
-  
+  id      String @id @default(uuid())
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  namaProduk     String
+  hargaPerSatuan Decimal @db.Decimal(12, 2)
+  satuan         String
+  quantity       Int
+  subtotal       Decimal @db.Decimal(12, 2)
+
   // Hubungan ke Petani penyetor komoditas untuk penyerahan cash dari admin
-  petaniId        String
-  petani          User          @relation("PetaniOrderItems", fields: [petaniId], references: [id])
-  payoutStatus    PayoutStatus  @default(MENUNGGU_PENCAIRAN)
-  payoutAt        DateTime?     // Waktu admin menyerahkan uang cash ke petani
-  
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  petaniId     String
+  petani       User         @relation("PetaniOrderItems", fields: [petaniId], references: [id])
+  payoutStatus PayoutStatus @default(MENUNGGU_PENCAIRAN)
+  payoutAt     DateTime? // Waktu admin menyerahkan uang cash ke petani
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("order_items")
 }
 
 model Review {
-  id          String   @id @default(uuid())
-  rating      Int      @default(5) // Rating 1-5
-  komentar    String?
-  fotoUrl     String?
-  
-  productId   String
-  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id       String  @id @default(uuid())
+  rating   Int     @default(5) // Rating 1-5
+  komentar String?
+  fotoUrl  String?
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("reviews")
 }
 
 model Follow {
-  id          String   @id @default(uuid())
-  followerId  String
-  follower    User     @relation("UserFollows", fields: [followerId], references: [id], onDelete: Cascade)
-  
-  petaniId    String
-  petani      User     @relation("PetaniFollowers", fields: [petaniId], references: [id], onDelete: Cascade)
-  
-  createdAt   DateTime @default(now())
+  id         String @id @default(uuid())
+  followerId String
+  follower   User   @relation("UserFollows", fields: [followerId], references: [id], onDelete: Cascade)
+
+  petaniId String
+  petani   User   @relation("PetaniFollowers", fields: [petaniId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
 
   @@unique([followerId, petaniId])
   @@map("follows")
 }
 
 model Equipment {
-  id              String      @id @default(uuid())
-  nama            String
-  kategori        String      // "Traktor & Pengolah Lahan", "Mesin Panen & Perontok", "Penyemprot & Pemupukan", "Pascapanen & Pengolahan"
-  deskripsi       String?
-  spesifikasi     String?     // e.g. "40 HP Diesel 4WD, Rotary Tiller"
-  hargaSewa       Decimal     @db.Decimal(12, 2)
-  satuanSewa      String      @default("hari") // "hari", "jam", "hektar"
-  biayaOperator   Decimal?    @db.Decimal(12, 2)
-  stokUnit        Int         @default(1)
-  kondisi         String      @default("Sangat Baik")
-  imageUrl        String?
-  isTersedia      Boolean     @default(true)
-  kontakPj        String?
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  id            String   @id @default(uuid())
+  nama          String
+  kategori      String // "Traktor & Pengolah Lahan", "Mesin Panen & Perontok", "Penyemprot & Pemupukan", "Pascapanen & Pengolahan"
+  deskripsi     String?
+  spesifikasi   String? // e.g. "40 HP Diesel 4WD, Rotary Tiller"
+  hargaSewa     Decimal  @db.Decimal(12, 2)
+  satuanSewa    String   @default("hari") // "hari", "jam", "hektar"
+  biayaOperator Decimal? @db.Decimal(12, 2)
+  stokUnit      Int      @default(1)
+  kondisi       String   @default("Sangat Baik")
+  imageUrl      String?
+  isTersedia    Boolean  @default(true)
+  kontakPj      String?
+  // Jeda hari setelah setiap sewa (pengembalian & pengecekan unit) sebelum bisa disewa lagi
+  jedaHari      Int      @default(1)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  rentalItems EquipmentRentalItem[]
+  reviews     EquipmentReview[]
+  maintenance EquipmentMaintenance[]
 
   @@map("equipments")
 }
 
+enum EquipmentRentalStatus {
+  MENUNGGU_PERSETUJUAN_ADMIN // Diajukan pengguna, belum mengunci unit
+  DISETUJUI // Disetujui admin, menunggu DP di kasir; jadwal dikunci sampai batas bayar DP
+  DIKONFIRMASI // DP sudah dibayar, jadwal terkunci; sisa dilunasi saat serah terima
+  SIAP_DIAMBIL // Sudah lunas penuh di kasir, unit siap diambil pada tanggal mulai
+  SEDANG_DISEWA // Unit sedang dipakai di lahan
+  SELESAI // Unit sudah dikembalikan
+  DITOLAK
+  DIBATALKAN
+  KADALUARSA // Lewat batas bayar tanpa pelunasan
+}
+
+model EquipmentRental {
+  id         String  @id @default(uuid())
+  rentalCode String  @unique
+  userId     String
+  user       User    @relation(fields: [userId], references: [id])
+  // Snapshot data pemohon saat pengajuan
+  userName   String
+  userEmail  String
+  userPhone  String?
+  userRole   String?
+
+  status      EquipmentRentalStatus @default(MENUNGGU_PERSETUJUAN_ADMIN)
+  startDate   DateTime              @db.Date // Hari pertama pemakaian
+  endDate     DateTime              @db.Date // Hari terakhir pemakaian (inklusif)
+  lokasiLahan String?
+  farmLat     Float?
+  farmLng     Float?
+  catatan     String?
+
+  totalEstimasi   Decimal   @db.Decimal(12, 2)
+  paymentMethod   String    @default("CASH_KOPERASI")
+  isPaid          Boolean   @default(false)
+  paymentDeadline DateTime?
+  paidAt          DateTime?
+  cashierName     String?
+  cashierNotes    String?
+  approvedAt      DateTime?
+  rejectedReason  String?
+
+  // Uang muka (DP) tunai di kasir
+  dpAmount     Decimal?  @db.Decimal(12, 2)
+  dpPaidAt     DateTime?
+  dpForfeited  Boolean   @default(false) // DP hangus karena batal mepet
+  dpRefundedAt DateTime? // DP sudah dikembalikan tunai ke penyewa
+
+  // Serah terima & pengembalian
+  pickedUpAt  DateTime?
+  returnedAt  DateTime?
+  lateDays    Int                         @default(0)
+  lateFee     Decimal                     @default(0) @db.Decimal(12, 2)
+  damageFee   Decimal                     @default(0) @db.Decimal(12, 2)
+  damageNotes String?
+  inspections EquipmentRentalInspection[]
+
+  items EquipmentRentalItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@map("equipment_rentals")
+}
+
+model EquipmentRentalItem {
+  id          String          @id @default(uuid())
+  rentalId    String
+  rental      EquipmentRental @relation(fields: [rentalId], references: [id], onDelete: Cascade)
+  equipmentId String
+  equipment   Equipment       @relation(fields: [equipmentId], references: [id])
+
+  nama            String
+  kategori        String
+  hargaSewa       Decimal  @db.Decimal(12, 2)
+  satuanSewa      String
+  jumlahUnit      Int
+  durasi          Int
+  includeOperator Boolean  @default(false)
+  biayaOperator   Decimal? @db.Decimal(12, 2)
+  subtotal        Decimal  @db.Decimal(12, 2)
+  imageUrl        String?
+
+  // Rentang tanggal unit ini terpakai (inklusif), dipakai untuk cek bentrok jadwal
+  startDate DateTime @db.Date
+  endDate   DateTime @db.Date
+
+  @@index([equipmentId, startDate, endDate])
+  @@map("equipment_rental_items")
+}
+
+model EquipmentReview {
+  id          String    @id @default(uuid())
+  equipmentId String
+  equipment   Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rating      Int       @default(5)
+  komentar    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([equipmentId])
+  @@map("equipment_reviews")
+}
+
+model Category {
+  id          String   @id
+  name        String   @unique
+  slug        String
+  emoji       String?
+  imageUrl    String?
+  description String?
+  mobileBg    String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("categories")
+}
+
+model EquipmentCategory {
+  id          String   @id
+  name        String   @unique
+  slug        String
+  emoji       String?
+  imageUrl    String?
+  description String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("equipment_categories")
+}
+
+// Pengaturan aplikasi berbentuk key-value (lokasi gudang, logo mitra, statistik pencarian)
+model AppSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+
+  @@map("app_settings")
+}
+
+// Catatan kondisi unit saat serah terima (SERAH_TERIMA) dan saat dikembalikan (PENGEMBALIAN)
+model EquipmentRentalInspection {
+  id        String          @id @default(uuid())
+  rentalId  String
+  rental    EquipmentRental @relation(fields: [rentalId], references: [id], onDelete: Cascade)
+  type      String // "SERAH_TERIMA" | "PENGEMBALIAN"
+  kondisi   String // "Baik" | "Ada kerusakan ringan" | "Rusak"
+  jamMesin  Float? // Hour meter mesin
+  bbmLevel  String? // "Penuh" | "3/4" | "1/2" | "1/4" | "Kosong"
+  catatan   String?
+  fotoUrls  String[]        @default([])
+  petugas   String?
+  createdAt DateTime        @default(now())
+
+  @@index([rentalId])
+  @@map("equipment_rental_inspections")
+}
+
+// Blokir jadwal unit untuk servis/perawatan (unit tidak bisa disewa pada rentang ini)
+model EquipmentMaintenance {
+  id          String    @id @default(uuid())
+  equipmentId String
+  equipment   Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  startDate   DateTime  @db.Date
+  endDate     DateTime  @db.Date
+  jumlahUnit  Int       @default(1)
+  alasan      String
+  createdBy   String?
+  createdAt   DateTime  @default(now())
+
+  @@index([equipmentId, startDate, endDate])
+  @@map("equipment_maintenance")
+}
