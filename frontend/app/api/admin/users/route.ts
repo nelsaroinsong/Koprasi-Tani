@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { actorFromSession, logAudit, rpAudit } from '@/lib/audit-log';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { delCachePattern } from '@/lib/redis';
@@ -189,6 +190,15 @@ export async function POST(request: Request) {
       delCachePattern('petani:*'),
     ]).catch(() => {});
 
+    await logAudit({
+      actor: actorFromSession(session),
+      action: 'USER_CREATE',
+      entityType: 'USER',
+      entityId: newUser.id,
+      entityLabel: newUser.name,
+      summary: `Menambah akun ${newUser.role === 'PETANI' ? 'petani' : 'pembeli'} "${newUser.name}" (${newUser.email})`,
+    });
+
     return NextResponse.json({
       success: true,
       message: `Berhasil menambahkan data ${role === 'PETANI' ? 'Petani' : 'Pembeli'}.`,
@@ -281,6 +291,18 @@ export async function PUT(request: Request) {
       delCachePattern('petani:*'),
     ]).catch(() => {});
 
+    await logAudit({
+      actor: actorFromSession(session),
+      action: 'USER_UPDATE',
+      entityType: 'USER',
+      entityId: updatedUser.id,
+      entityLabel: updatedUser.name,
+      summary: `Mengubah data akun "${updatedUser.name}"${
+        typeof updateData.isActive === 'boolean' ? ` · akun ${updateData.isActive ? 'diaktifkan' : 'dinonaktifkan'}` : ''
+      }`,
+      details: { fields: Object.keys(updateData) },
+    });
+
     return NextResponse.json({
       success: true,
       message: 'Data pengguna berhasil diperbarui.',
@@ -322,6 +344,15 @@ export async function PATCH(request: Request) {
       delCachePattern('user:profile:*'),
       delCachePattern('petani:*'),
     ]).catch(() => {});
+
+    await logAudit({
+      actor: actorFromSession(session),
+      action: 'USER_VERIFY',
+      entityType: 'USER',
+      entityId: updatedUser.id,
+      entityLabel: updatedUser.name,
+      summary: `${isVerified ? 'Memverifikasi' : 'Membatalkan verifikasi'} petani "${updatedUser.name}"`,
+    });
 
     return NextResponse.json({
       success: true,
@@ -383,7 +414,30 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Tidak ada pengguna valid yang dapat dihapus' }, { status: 404 });
     }
 
-    const validIds = usersToDelete.map((u) => u.id);
+    // Pengguna yang punya riwayat transaksi TIDAK boleh dihapus: riwayat penjualan, bagi hasil,
+    // dan pesanan akan ikut hilang. Admin diminta menonaktifkan akun sebagai gantinya.
+    const [buyerOrders, sellerItems, rentalRows] = await Promise.all([
+      prisma.order.findMany({ where: { pembeliId: { in: usersToDelete.map((u) => u.id) } }, select: { pembeliId: true } }),
+      prisma.orderItem.findMany({ where: { petaniId: { in: usersToDelete.map((u) => u.id) } }, select: { petaniId: true } }),
+      prisma.equipmentRental.findMany({ where: { userId: { in: usersToDelete.map((u) => u.id) } }, select: { userId: true } }),
+    ]);
+    const withHistory = new Set<string>([
+      ...buyerOrders.map((o) => o.pembeliId),
+      ...sellerItems.map((i) => i.petaniId).filter((x): x is string => Boolean(x)),
+      ...rentalRows.map((r) => r.userId),
+    ]);
+    const blockedUsers = usersToDelete.filter((u) => withHistory.has(u.id));
+    const validIds = usersToDelete.filter((u) => !withHistory.has(u.id)).map((u) => u.id);
+
+    if (validIds.length === 0) {
+      return NextResponse.json(
+        {
+          error: `${blockedUsers.map((u) => u.name).join(', ')} memiliki riwayat transaksi sehingga tidak bisa dihapus. Nonaktifkan akunnya agar tidak bisa login, riwayat tetap tersimpan.`,
+          code: 'HAS_TRANSACTIONS',
+        },
+        { status: 409 }
+      );
+    }
 
     // Hapus seluruh data berelasi pengguna dalam satu transaksi aman (Cascade Cleanup)
     await prisma.$transaction(async (tx) => {
@@ -489,6 +543,18 @@ export async function DELETE(request: Request) {
       await tx.user.deleteMany({
         where: { id: { in: validIds } },
       });
+    });
+
+    await logAudit({
+      actor: actorFromSession(session),
+      action: 'USER_DELETE',
+      entityType: 'USER',
+      entityId: validIds.length === 1 ? validIds[0] : null,
+      entityLabel: usersToDelete.filter((u) => validIds.includes(u.id)).map((u) => u.name).join(', '),
+      summary: `Menghapus ${validIds.length} pengguna tanpa riwayat transaksi${
+        blockedUsers.length ? ` (${blockedUsers.length} dilewati karena punya riwayat)` : ''
+      }`,
+      details: { deleted: validIds, skipped: blockedUsers.map((u) => u.id) },
     });
 
     // Invalidate seluruh cache terkait pengguna, petani, produk, dan pesanan

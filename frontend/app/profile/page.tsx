@@ -749,7 +749,7 @@ export default function ProfilePage() {
 
               <button
                 type="button"
-                onClick={logout}
+                onClick={() => logout()}
                 className="px-3.5 py-2 sm:px-5 sm:py-2.5 rounded-xl border border-[#cfd6c9] bg-white hover:bg-[#ffedea] hover:border-red-200 text-[#1a2610] hover:text-[#831c1e] text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
               >
                 <LogOut className="w-3.5 h-3.5 sm:w-4 sm:h-4" />

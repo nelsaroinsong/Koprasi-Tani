@@ -18,9 +18,21 @@ import { DashboardLocationMap } from '@/components/admin/dashboard-location-map'
 import { RecentUsersTable } from '@/components/admin/recent-users-table';
 import { WarehouseLocationPage } from '@/components/admin/warehouse-location-page';
 import { AdminSettingsPage } from '@/components/admin/admin-settings-page';
+import { AuditLogPage } from '@/components/admin/audit-log-page';
+import { FinanceReportPage } from '@/components/admin/finance-report-page';
 
 export default function AdminPage() {
   const { activeTab, setActiveTab } = useAdmin();
+
+  // Laporan Keuangan
+  if (activeTab.group === 'Analitik' && activeTab.item === 'Laporan Keuangan') {
+    return <FinanceReportPage />;
+  }
+
+  // Log Aktivitas Admin
+  if (activeTab.group === 'Analitik' && activeTab.item === 'Log Aktivitas') {
+    return <AuditLogPage />;
+  }
 
   // 0. Halaman Pengaturan Akun Administrator
   if (activeTab.group === 'Pengaturan') {

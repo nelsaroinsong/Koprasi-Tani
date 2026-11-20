@@ -31,6 +31,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { AdminProfileModal } from "@/components/admin/admin-profile-modal"
+import { ADMIN_LOGIN_PATH } from '@/lib/admin-routes';
 
 export function NavUser({
   user: initialUser,
@@ -133,7 +134,7 @@ export function NavUser({
               <DropdownMenuItem
                 onClick={async () => {
                   await signOut({ redirect: false });
-                  window.location.replace('/admin-koperasi-sinar-pagi-sejahtera');
+                  window.location.replace(ADMIN_LOGIN_PATH);
                 }}
                 className="cursor-pointer gap-2.5 py-2 px-2.5 rounded-lg text-xs font-semibold text-red-600 focus:text-red-700 focus:bg-red-50 hover:bg-red-50 transition"
               >

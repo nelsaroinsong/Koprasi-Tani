@@ -461,12 +461,12 @@ export function OrdersDataTable({
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || 'Gagal menghapus pesanan terpilih');
+        throw new Error(data.error || 'Gagal mengarsipkan pesanan terpilih');
       }
 
       showToast({
-        title: 'Pesanan Dihapus',
-        message: data.message || `${selectedOrders.length} pesanan berhasil dihapus`,
+        title: 'Pesanan Diarsipkan',
+        message: data.message || `${selectedOrders.length} pesanan diarsipkan`,
         type: 'success',
       });
 
@@ -475,7 +475,7 @@ export function OrdersDataTable({
       fetchOrders();
     } catch (err: any) {
       showToast({
-        title: 'Gagal Menghapus',
+        title: 'Gagal Mengarsipkan',
         message: err.message || 'Terjadi kesalahan saat menghapus pesanan',
         type: 'error',
       });
@@ -496,12 +496,12 @@ export function OrdersDataTable({
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || 'Gagal menghapus pesanan');
+        throw new Error(data.error || 'Gagal mengarsipkan pesanan');
       }
 
       showToast({
-        title: 'Pesanan Dihapus',
-        message: data.message || `Pesanan #${orderToDelete.orderNumber} berhasil dihapus`,
+        title: 'Pesanan Diarsipkan',
+        message: data.message || `Pesanan #${orderToDelete.orderNumber} diarsipkan`,
         type: 'success',
       });
 
@@ -513,7 +513,7 @@ export function OrdersDataTable({
       fetchOrders();
     } catch (err: any) {
       showToast({
-        title: 'Gagal Menghapus',
+        title: 'Gagal Mengarsipkan',
         message: err.message || 'Terjadi kesalahan saat menghapus pesanan',
         type: 'error',
       });
@@ -987,7 +987,7 @@ export function OrdersDataTable({
                       className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-rose-600"
                     >
                       <Trash2 className="w-3.5 h-3.5 text-rose-600" />
-                      <span>Hapus Terpilih ({selectedOrders.length})</span>
+                      <span>Arsipkan Terpilih ({selectedOrders.length})</span>
                     </DropdownMenuItem>
                   </>
                 )}
@@ -1028,7 +1028,7 @@ export function OrdersDataTable({
                 className="h-8 px-3.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
               >
                 <Trash2 className="w-3.5 h-3.5" />
-                <span>Hapus Semua Terpilih ({selectedOrders.length})</span>
+                <span>Arsipkan Terpilih ({selectedOrders.length})</span>
               </button>
             </div>
           </div>
@@ -1398,7 +1398,7 @@ export function OrdersDataTable({
                                 className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-rose-600 hover:bg-rose-50"
                               >
                                 <Trash2 className="w-3.5 h-3.5 text-rose-600" />
-                                <span>Hapus Pesanan</span>
+                                <span>Arsipkan Pesanan</span>
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -2014,12 +2014,12 @@ export function OrdersDataTable({
             </div>
             <div className="space-y-1.5 flex-1">
               <DialogTitle className="text-base font-bold text-slate-900">
-                Hapus {selectedOrders.length} Pesanan Terpilih?
+                Arsipkan {selectedOrders.length} Pesanan Terpilih?
               </DialogTitle>
               <p className="text-xs text-slate-500 leading-relaxed">
-                Apakah Anda yakin ingin menghapus{' '}
+                Arsipkan{' '}
                 <strong className="text-slate-800 font-semibold">{selectedOrders.length} pesanan</strong>?
-                Data pesanan akan dihapus permanen dari sistem koperasi dan stok komoditas akan dikembalikan bila belum selesai.
+                Pesanan disembunyikan dari daftar, tetapi tetap tersimpan untuk laporan & bagi hasil. Hanya pesanan Selesai atau Dibatalkan yang bisa diarsipkan; pesanan aktif dilewati.
               </p>
             </div>
           </div>
@@ -2042,12 +2042,12 @@ export function OrdersDataTable({
               {isDeleting ? (
                 <>
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>Menghapus...</span>
+                  <span>Mengarsipkan...</span>
                 </>
               ) : (
                 <>
                   <Trash2 className="w-3.5 h-3.5" />
-                  <span>Ya, Hapus Semua</span>
+                  <span>Ya, Arsipkan</span>
                 </>
               )}
             </button>
@@ -2067,10 +2067,10 @@ export function OrdersDataTable({
             </div>
             <div className="space-y-1.5 flex-1">
               <DialogTitle className="text-base font-bold text-slate-900">
-                Hapus Pesanan #{orderToDelete?.orderNumber}?
+                Arsipkan Pesanan #{orderToDelete?.orderNumber}?
               </DialogTitle>
               <p className="text-xs text-slate-500 leading-relaxed">
-                Tindakan ini tidak dapat dibatalkan. Data transaksi akan dihapus dari riwayat pesanan koperasi.
+                Pesanan disembunyikan dari daftar admin, tetapi data transaksinya tetap tersimpan untuk laporan & bagi hasil petani. Pesanan aktif harus dibatalkan atau diselesaikan dulu.
               </p>
             </div>
           </div>
@@ -2093,12 +2093,12 @@ export function OrdersDataTable({
               {isDeleting ? (
                 <>
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>Menghapus...</span>
+                  <span>Mengarsipkan...</span>
                 </>
               ) : (
                 <>
                   <Trash2 className="w-3.5 h-3.5" />
-                  <span>Hapus Pesanan</span>
+                  <span>Arsipkan Pesanan</span>
                 </>
               )}
             </button>

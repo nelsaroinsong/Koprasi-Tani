@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { actorFromSession, logAudit, rpAudit } from '@/lib/audit-log';
 import { notifyPayoutPaid } from '@/lib/user-notifications';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
@@ -230,6 +231,15 @@ export async function POST(request: Request) {
     }
     for (const [pid, info] of perPetani) {
       notifyPayoutPaid(pid, info.total, info.count, info.ids.sort().join(',').slice(0, 180));
+      await logAudit({
+        actor: actorFromSession(session),
+        action: 'PAYOUT_CASH',
+        entityType: 'PAYOUT',
+        entityId: pid,
+        entityLabel: targetItems.find((t) => t.petaniId === pid)?.petani?.name || 'Petani',
+        summary: `Menyerahkan tunai ${rpAudit(info.total)} ke ${targetItems.find((t) => t.petaniId === pid)?.petani?.name || 'petani'} (${info.count} item)`,
+        details: { total: info.total, orderItemIds: info.ids },
+      });
     }
 
     // Invalidate payout summary and petani dashboard caches

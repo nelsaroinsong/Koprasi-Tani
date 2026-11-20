@@ -30,6 +30,7 @@ function AdminLoginContent() {
         ? 'Terjadi kendala saat masuk dengan Google. Silakan coba kembali.'
         : null;
   const shownError = errorMessage ?? urlErrorMessage;
+  const isTimeout = searchParams.get('reason') === 'timeout';
 
   const handleGoogleLogin = async () => {
     setErrorMessage(null);
@@ -69,6 +70,19 @@ function AdminLoginContent() {
               Masuk dengan akun Google resmi pengurus Koperasi Sinar Pagi Sejahtera.
             </p>
           </div>
+
+          {/* Sesi admin berakhir karena tidak aktif */}
+          {isTimeout && !shownError && (
+            <div className="mb-5 p-3.5 rounded-xl bg-[#fffbeb] border border-[#fde68a] text-[#92400e] flex items-start gap-2.5 text-xs">
+              <AlertCircle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+              <div>
+                <div className="font-semibold text-[13px]">Sesi Admin Berakhir</div>
+                <p className="mt-0.5 leading-relaxed">
+                  Anda otomatis keluar demi keamanan karena tidak ada aktivitas. Silakan masuk kembali.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Error Alert Box (Matching Login User) */}
           {shownError && (

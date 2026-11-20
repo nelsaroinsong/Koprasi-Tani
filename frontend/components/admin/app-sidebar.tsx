@@ -16,6 +16,8 @@ import {
   LogOut,
   UserCog,
   ExternalLink,
+  History,
+  FileBarChart2,
 } from "lucide-react"
 
 import {
@@ -47,6 +49,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { signOut } from "next-auth/react"
+import { ADMIN_LOGIN_PATH } from "@/lib/admin-routes"
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   user?: {
@@ -188,6 +191,8 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
     { group: "Produk dan Layanan", item: "Kategori Komoditas", label: "Kategori Produk" },
     { group: "Produk dan Layanan", item: "Kategori Sewa Alat", label: "Kategori Sewa Alat" },
     { group: "Pengaturan", item: "Pengaturan Akun", label: "Pengaturan Akun" },
+    { group: "Analitik", item: "Laporan Keuangan", label: "Laporan Keuangan" },
+    { group: "Analitik", item: "Log Aktivitas", label: "Log Aktivitas Admin" },
   ]
 
   const filteredMenus = searchQuery.trim()
@@ -725,6 +730,86 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
                   })()}
                 </SidebarMenuItem>
 
+                {/* 2. Laporan Keuangan */}
+                <SidebarMenuItem>
+                  {(() => {
+                    const isFinanceActive = activeTab.group === "Analitik" && activeTab.item === "Laporan Keuangan"
+                    return isCollapsed ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            onClick={() => setActiveTab("Analitik", "Laporan Keuangan")}
+                            className={`w-8 h-8 mx-auto rounded-lg flex items-center justify-center transition cursor-pointer ${
+                              isFinanceActive
+                                ? "bg-white text-slate-900 border border-[#E5E7EB] shadow-2xs"
+                                : "text-slate-500 hover:bg-slate-200/50 hover:text-slate-900"
+                            }`}
+                          >
+                            <FileBarChart2 className="w-4 h-4 stroke-[1.8]" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="font-medium text-xs">
+                          Laporan Keuangan
+                        </TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab("Analitik", "Laporan Keuangan")}
+                        className={`flex items-center gap-2.5 px-2.5 py-2 w-full rounded-lg text-[13px] transition-all cursor-pointer text-left ${
+                          isFinanceActive
+                            ? "bg-white text-slate-900 font-semibold border border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
+                            : "text-slate-600 hover:bg-slate-200/40 hover:text-slate-900 font-medium"
+                        }`}
+                      >
+                        <FileBarChart2 className={`w-4 h-4 shrink-0 stroke-[1.8] ${isFinanceActive ? "text-slate-800" : "text-slate-500"}`} />
+                        <span>Laporan Keuangan</span>
+                      </button>
+                    )
+                  })()}
+                </SidebarMenuItem>
+
+                {/* 3. Log Aktivitas Admin */}
+                <SidebarMenuItem>
+                  {(() => {
+                    const isAuditActive = activeTab.group === "Analitik" && activeTab.item === "Log Aktivitas"
+                    return isCollapsed ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            onClick={() => setActiveTab("Analitik", "Log Aktivitas")}
+                            className={`w-8 h-8 mx-auto rounded-lg flex items-center justify-center transition cursor-pointer ${
+                              isAuditActive
+                                ? "bg-white text-slate-900 border border-[#E5E7EB] shadow-2xs"
+                                : "text-slate-500 hover:bg-slate-200/50 hover:text-slate-900"
+                            }`}
+                          >
+                            <History className="w-4 h-4 stroke-[1.8]" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="font-medium text-xs">
+                          Log Aktivitas
+                        </TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab("Analitik", "Log Aktivitas")}
+                        className={`flex items-center gap-2.5 px-2.5 py-2 w-full rounded-lg text-[13px] transition-all cursor-pointer text-left ${
+                          isAuditActive
+                            ? "bg-white text-slate-900 font-semibold border border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
+                            : "text-slate-600 hover:bg-slate-200/40 hover:text-slate-900 font-medium"
+                        }`}
+                      >
+                        <History className={`w-4 h-4 shrink-0 stroke-[1.8] ${isAuditActive ? "text-slate-800" : "text-slate-500"}`} />
+                        <span>Log Aktivitas</span>
+                      </button>
+                    )
+                  })()}
+                </SidebarMenuItem>
+
               </SidebarMenu>
             </SidebarGroup>
           </div>
@@ -837,7 +922,7 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
               </DropdownMenuItem>
               <DropdownMenuSeparator className="my-1 border-slate-100" />
               <DropdownMenuItem
-                onClick={() => signOut({ callbackUrl: "/login" })}
+                onClick={() => signOut({ callbackUrl: ADMIN_LOGIN_PATH })}
                 className="cursor-pointer rounded-lg px-2 py-1.5 hover:bg-rose-50 text-rose-600 flex items-center gap-2"
               >
                 <LogOut className="w-4 h-4" />

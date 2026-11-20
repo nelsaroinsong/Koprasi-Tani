@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { actorFromSession, logAudit, rpAudit } from '@/lib/audit-log';
+import { archiveMessage, archiveRentals } from '@/lib/archive';
 import { notifyRentalStatus } from '@/lib/user-notifications';
 import type { Prisma } from '@prisma/client';
 import { auth } from '@/auth';
@@ -67,8 +69,11 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const statusParam = searchParams.get('status') as EquipmentRentalStatus | 'ALL' | null;
     const q = searchParams.get('q')?.trim();
+    const showArchived = searchParams.get('archived') === 'true';
 
     const where: Prisma.EquipmentRentalWhereInput = {
+      // Arsip disembunyikan dari daftar admin kecuali diminta
+      archivedAt: showArchived ? { not: null } : null,
       ...(statusParam && statusParam !== 'ALL' && STATUS_LIST.includes(statusParam)
         ? { status: statusParam }
         : {}),
@@ -160,6 +165,14 @@ export async function PATCH(request: Request) {
       await invalidateRentalCaches();
       const refundedDto = toRentalDTO(updated);
       notifyRentalStatus(refundedDto, { dpRefunded: true });
+      await logAudit({
+        actor: actorFromSession(session),
+        action: 'RENTAL_DP_REFUND',
+        entityType: 'RENTAL',
+        entityId: refundedDto.id,
+        entityLabel: `#${refundedDto.rentalCode}`,
+        summary: `Menandai DP ${rpAudit(refundedDto.dpAmount)} sewa #${refundedDto.rentalCode} sudah dikembalikan ke ${refundedDto.userName}`,
+      });
       return NextResponse.json({ success: true, rental: refundedDto, message: 'DP ditandai sudah dikembalikan.' });
     }
 
@@ -294,8 +307,27 @@ export async function PATCH(request: Request) {
     await invalidateRentalCaches();
 
     const dto = toRentalDTO(updated);
-    // Beri tahu penyewa tentang perubahan status
-    if (to !== current.status) notifyRentalStatus(dto);
+    // Beri tahu penyewa tentang perubahan status + catat di log aktivitas
+    if (to !== current.status) {
+      notifyRentalStatus(dto);
+      await logAudit({
+        actor: actorFromSession(session),
+        action: 'RENTAL_STATUS',
+        entityType: 'RENTAL',
+        entityId: dto.id,
+        entityLabel: `#${dto.rentalCode}`,
+        summary: `Status sewa #${dto.rentalCode} (${dto.userName}): ${current.status} → ${to}`,
+        details: {
+          from: current.status,
+          to,
+          dpAmount: dto.dpAmount ?? null,
+          totalEstimasi: dto.totalEstimasi,
+          lateFee: dto.lateFee ?? 0,
+          damageFee: dto.damageFee ?? 0,
+          reason: dto.rejectedReason ?? null,
+        },
+      });
+    }
     const rp = (n: number) => `Rp ${n.toLocaleString('id-ID')}`;
     const message =
       to === 'DISETUJUI'
@@ -339,22 +371,21 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Daftar ID sewa alat tidak boleh kosong' }, { status: 400 });
     }
 
-    const res = await prisma.equipmentRental.deleteMany({
+    // Tidak pernah hapus permanen: arsipkan (hanya sewa yang sudah final)
+    const matched = await prisma.equipmentRental.findMany({
       where: { OR: [{ id: { in: idsToDelete } }, { rentalCode: { in: idsToDelete } }] },
+      select: { id: true },
     });
-    if (res.count === 0) {
-      return NextResponse.json(
-        { error: 'Tidak ada data pengajuan sewa yang cocok untuk dihapus' },
-        { status: 404 }
-      );
+    if (matched.length === 0) {
+      return NextResponse.json({ error: 'Tidak ada data pengajuan sewa yang cocok' }, { status: 404 });
     }
-
+    const result = await archiveRentals(matched.map((m) => m.id), actorFromSession(session));
     await invalidateRentalCaches();
 
-    return NextResponse.json({
-      success: true,
-      message: `${res.count} data sewa alat berhasil dihapus dari sistem.`,
-    });
+    if (result.archived.length === 0) {
+      return NextResponse.json({ error: archiveMessage('sewa', result), ...result }, { status: 400 });
+    }
+    return NextResponse.json({ success: true, message: archiveMessage('sewa', result), ...result });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Gagal menghapus data sewa alat' }, { status: 500 });
   }

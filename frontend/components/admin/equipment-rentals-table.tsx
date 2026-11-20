@@ -394,15 +394,15 @@ export function EquipmentRentalsTable() {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || 'Gagal menghapus pengajuan sewa terpilih');
+        throw new Error(data.error || 'Gagal mengarsipkan sewa terpilih');
       }
 
-      showToast(data.message || `${selectedRentals.length} pengajuan sewa berhasil dihapus`);
+      showToast(data.message || `${selectedRentals.length} sewa diarsipkan`);
       setSelectedRentals([]);
       setIsBulkDeleteOpen(false);
       fetchRentals();
     } catch (err: any) {
-      showToast(err.message || 'Terjadi kesalahan saat menghapus data sewa');
+      showToast(err.message || 'Terjadi kesalahan saat mengarsipkan data sewa');
     } finally {
       setIsDeleting(false);
     }
@@ -422,10 +422,10 @@ export function EquipmentRentalsTable() {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || 'Gagal menghapus data sewa alat');
+        throw new Error(data.error || 'Gagal mengarsipkan data sewa');
       }
 
-      showToast(data.message || `Sewa #${rentalToDelete.rentalCode} berhasil dihapus`);
+      showToast(data.message || `Sewa #${rentalToDelete.rentalCode} diarsipkan`);
       setSelectedRentals((prev) => prev.filter((id) => id !== rentalToDelete.id));
       if (selectedRental?.id === rentalToDelete.id) {
         setSelectedRental(null);
@@ -433,7 +433,7 @@ export function EquipmentRentalsTable() {
       setRentalToDelete(null);
       fetchRentals();
     } catch (err: any) {
-      showToast(err.message || 'Terjadi kesalahan saat menghapus data sewa');
+      showToast(err.message || 'Terjadi kesalahan saat mengarsipkan data sewa');
     } finally {
       setIsDeleting(false);
     }
@@ -1088,7 +1088,7 @@ export function EquipmentRentalsTable() {
                       className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-rose-600"
                     >
                       <Trash2 className="w-3.5 h-3.5 text-rose-600" />
-                      <span>Hapus Terpilih ({selectedRentals.length})</span>
+                      <span>Arsipkan Terpilih ({selectedRentals.length})</span>
                     </DropdownMenuItem>
                   </>
                 )}
@@ -1129,7 +1129,7 @@ export function EquipmentRentalsTable() {
                 className="h-8 px-3.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
               >
                 <Trash2 className="w-3.5 h-3.5" />
-                <span>Hapus Semua Terpilih ({selectedRentals.length})</span>
+                <span>Arsipkan Terpilih ({selectedRentals.length})</span>
               </button>
             </div>
           </div>
@@ -1623,7 +1623,7 @@ export function EquipmentRentalsTable() {
                                 className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-rose-600 hover:bg-rose-50"
                               >
                                 <Trash2 className="w-3.5 h-3.5 text-rose-600" />
-                                <span>Hapus Data Sewa</span>
+                                <span>Arsipkan Data Sewa</span>
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -2128,10 +2128,10 @@ export function EquipmentRentalsTable() {
                   type="button"
                   onClick={() => setRentalToDelete(selectedRental)}
                   className="px-2.5 py-2 text-xs font-semibold text-rose-600 bg-white border border-rose-200 hover:bg-rose-50 rounded-xl transition cursor-pointer flex items-center gap-1 shadow-2xs"
-                  title="Hapus data sewa ini"
+                  title="Arsipkan data sewa ini"
                 >
                   <Trash2 className="w-3.5 h-3.5 text-rose-600" />
-                  <span className="hidden sm:inline">Hapus</span>
+                  <span className="hidden sm:inline">Arsipkan</span>
                 </button>
               </div>
 
@@ -2274,12 +2274,12 @@ export function EquipmentRentalsTable() {
             </div>
             <div className="space-y-1.5 flex-1">
               <DialogTitle className="text-base font-bold text-slate-900">
-                Hapus {selectedRentals.length} Sewa Alat Terpilih?
+                Arsipkan {selectedRentals.length} Sewa Alat Terpilih?
               </DialogTitle>
               <p className="text-xs text-slate-500 leading-relaxed">
-                Apakah Anda yakin ingin menghapus{' '}
+                Arsipkan{' '}
                 <strong className="text-slate-800 font-semibold">{selectedRentals.length} data sewa alat</strong>?
-                Data pengajuan sewa ini akan dihapus secara permanen dari sistem koperasi.
+                Data disembunyikan dari daftar, tetapi tetap tersimpan untuk laporan. Hanya sewa yang sudah Selesai, Ditolak, Dibatalkan, atau Kadaluarsa yang bisa diarsipkan.
               </p>
             </div>
           </div>
@@ -2302,12 +2302,12 @@ export function EquipmentRentalsTable() {
               {isDeleting ? (
                 <>
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>Menghapus...</span>
+                  <span>Mengarsipkan...</span>
                 </>
               ) : (
                 <>
                   <Trash2 className="w-3.5 h-3.5" />
-                  <span>Ya, Hapus Semua</span>
+                  <span>Ya, Arsipkan</span>
                 </>
               )}
             </button>
@@ -2327,12 +2327,12 @@ export function EquipmentRentalsTable() {
             </div>
             <div className="space-y-1.5 flex-1">
               <DialogTitle className="text-base font-bold text-slate-900">
-                Hapus Pengajuan Sewa #{rentalToDelete?.rentalCode}?
+                Arsipkan Sewa #{rentalToDelete?.rentalCode}?
               </DialogTitle>
               <p className="text-xs text-slate-500 leading-relaxed">
-                Apakah Anda yakin ingin menghapus data sewa pemohon{' '}
+                Arsipkan data sewa pemohon{' '}
                 <strong className="text-slate-800 font-semibold">{rentalToDelete?.userName || 'Umum'}</strong>?
-                Tindakan ini tidak dapat dibatalkan.
+                Data disembunyikan dari daftar tetapi tetap tersimpan untuk laporan. Sewa yang masih aktif harus ditolak, dibatalkan, atau diselesaikan dulu.
               </p>
             </div>
           </div>
@@ -2355,12 +2355,12 @@ export function EquipmentRentalsTable() {
               {isDeleting ? (
                 <>
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>Menghapus...</span>
+                  <span>Mengarsipkan...</span>
                 </>
               ) : (
                 <>
                   <Trash2 className="w-3.5 h-3.5" />
-                  <span>Hapus Data</span>
+                  <span>Arsipkan</span>
                 </>
               )}
             </button>

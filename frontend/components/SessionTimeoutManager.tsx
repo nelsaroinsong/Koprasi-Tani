@@ -59,8 +59,8 @@ export default function SessionTimeoutManager() {
         });
 
         // Logout dan alihkan ke halaman login
-        logout();
-        router.push('/login?reason=timeout');
+        // logout() mengarahkan admin ke login admin, pengguna ke /login
+        logout({ reason: 'timeout' });
       }
     };
 

@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { actorFromSession, logAudit, rpAudit } from '@/lib/audit-log';
+import { archiveMessage, archiveOrders } from '@/lib/archive';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { getCache, setCache, delCachePattern } from '@/lib/redis';
@@ -24,6 +26,7 @@ export async function GET(request: Request) {
     const startDateParam = searchParams.get('startDate');
     const endDateParam = searchParams.get('endDate');
     const isExport = searchParams.get('export') === 'true';
+    const showArchived = searchParams.get('archived') === 'true';
     const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
     const limit = isExport
       ? 1000
@@ -33,13 +36,14 @@ export async function GET(request: Request) {
     // Batalkan otomatis pesanan yang lewat batas ambil & bayar (sebelum membaca cache)
     await expireOverduePickupOrders();
 
-    const cacheKey = `admin:orders:v4:p=${page}:l=${limit}:s=${statusParam || 'all'}:m=${methodParam || 'all'}:sd=${startDateParam || ''}:ed=${endDateParam || ''}:q=${search || ''}:exp=${isExport}`;
+    const cacheKey = `admin:orders:v5:a=${showArchived}:p=${page}:l=${limit}:s=${statusParam || 'all'}:m=${methodParam || 'all'}:sd=${startDateParam || ''}:ed=${endDateParam || ''}:q=${search || ''}:exp=${isExport}`;
     const cachedResponse = await getCache<any>(cacheKey);
     if (cachedResponse && !isExport) {
       return NextResponse.json(cachedResponse);
     }
 
-    const whereCondition: Record<string, any> = {};
+    // Arsip disembunyikan dari daftar admin kecuali diminta (statistik tetap menghitung semua)
+    const whereCondition: Record<string, any> = { archivedAt: showArchived ? { not: null } : null };
 
     if (
       statusParam &&
@@ -125,6 +129,7 @@ export async function GET(request: Request) {
           status: true,
           totalAmount: true,
           isPaid: true,
+          archivedAt: true,
         },
       }),
       prisma.product.count(),
@@ -153,6 +158,8 @@ export async function GET(request: Request) {
       if (ord.status !== 'DIBATALKAN') {
         totalOmset += Number(ord.totalAmount);
       }
+      // Jumlah per tab mengikuti daftar yang tampil (arsip / non-arsip); omzet tetap menghitung semua
+      if (Boolean(ord.archivedAt) !== showArchived) continue;
       if (ord.status === 'MENUNGGU_PEMBAYARAN') pendingCount++;
       if (ord.status === 'DIPROSES') diprosesCount++;
       if (ord.status === 'SIAP_DIAMBIL') siapDiambilCount++;
@@ -250,56 +257,12 @@ export async function DELETE(request: Request) {
       );
     }
 
-    // Ambil order beserta item komoditas untuk mengembalikan stok jika pesanan belum selesai/dibatalkan
-    const ordersToDelete = await prisma.order.findMany({
-      where: { id: { in: orderIds } },
-      include: { items: true },
-    });
-
-    if (ordersToDelete.length === 0) {
-      return NextResponse.json(
-        { error: 'Tidak ada data pesanan yang cocok untuk dihapus' },
-        { status: 404 }
-      );
+    // Tidak pernah hapus permanen: arsipkan (hanya pesanan yang sudah Selesai / Dibatalkan)
+    const result = await archiveOrders(orderIds.map(String), actorFromSession(session));
+    if (result.archived.length === 0) {
+      return NextResponse.json({ error: archiveMessage('pesanan', result), ...result }, { status: 400 });
     }
-
-    await prisma.$transaction(async (tx) => {
-      // Kembalikan stok untuk pesanan aktif
-      for (const ord of ordersToDelete) {
-        if (ord.status !== 'DIBATALKAN' && ord.status !== 'SELESAI') {
-          for (const item of ord.items) {
-            await tx.product
-              .update({
-                where: { id: item.productId },
-                data: {
-                  stok: {
-                    increment: item.quantity,
-                  },
-                },
-              })
-              .catch(() => {});
-          }
-        }
-      }
-
-      // Hapus seluruh pesanan (cascade ke order_items)
-      await tx.order.deleteMany({
-        where: { id: { in: orderIds } },
-      });
-    });
-
-    // Invalidate Redis caches
-    await Promise.all([
-      delCachePattern('admin:orders:*'),
-      delCachePattern('user:orders:*'),
-      delCachePattern('products:*'),
-      delCachePattern('product:detail:*'),
-    ]).catch(() => {});
-
-    return NextResponse.json({
-      success: true,
-      message: `${ordersToDelete.length} pesanan berhasil dihapus dari sistem.`,
-    });
+    return NextResponse.json({ success: true, message: archiveMessage('pesanan', result), ...result });
   } catch (error: any) {
     console.error('Error saat menghapus pesanan admin:', error);
     return NextResponse.json(

@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { actorFromSession, logAudit, rpAudit } from '@/lib/audit-log';
+import { archiveMessage, archiveOrders } from '@/lib/archive';
 import { notifyOrderStatus } from '@/lib/user-notifications';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
@@ -204,6 +206,36 @@ export async function PATCH(
     if (isExtend) notifyOrderStatus(updatedOrder, { extended: true });
     else if (isStatusChange) notifyOrderStatus(updatedOrder);
 
+    // Log aktivitas admin
+    const actor = actorFromSession(session);
+    const label = `#${updatedOrder.orderNumber}`;
+    if (isExtend) {
+      await logAudit({
+        actor, action: 'ORDER_EXTEND_PICKUP', entityType: 'ORDER', entityId: id, entityLabel: label,
+        summary: `Memperpanjang batas ambil pesanan ${label}`,
+        details: { pickupDeadline: updatedOrder.pickupDeadline },
+      });
+    } else if (isStatusChange) {
+      await logAudit({
+        actor, action: 'ORDER_STATUS', entityType: 'ORDER', entityId: id, entityLabel: label,
+        summary: `Status pesanan ${label} (${updatedOrder.pembeli?.name || 'pembeli'}): ${existingOrder.status} → ${status}${
+          status === 'SELESAI' ? ` · terima tunai ${rpAudit(updatedOrder.totalAmount)}` : ''
+        }`,
+        details: {
+          from: existingOrder.status,
+          to: status,
+          totalAmount: Number(updatedOrder.totalAmount),
+          pickupCodeVerified: status === 'SELESAI' ? Boolean(existingOrder.pickupCode) : undefined,
+          cancelReason: status === 'DIBATALKAN' ? updatedOrder.cancelReason : undefined,
+        },
+      });
+    } else if (isPaid !== undefined) {
+      await logAudit({
+        actor, action: 'ORDER_PAYMENT_FLAG', entityType: 'ORDER', entityId: id, entityLabel: label,
+        summary: `Menandai pesanan ${label} ${isPaid ? 'LUNAS' : 'BELUM LUNAS'}`,
+      });
+    }
+
     const message = isExtend
       ? `Batas ambil diperpanjang ${PICKUP_WINDOW_HOURS} jam.`
       : status === 'SIAP_DIAMBIL'
@@ -254,49 +286,19 @@ export async function DELETE(
 
     const { id } = await params;
 
-    const existingOrder = await prisma.order.findUnique({
-      where: { id },
-      include: { items: true },
-    });
-
-    if (!existingOrder) {
-      return NextResponse.json({ error: 'Pesanan tidak ditemukan' }, { status: 404 });
+    // Tidak pernah hapus permanen: arsipkan (hanya pesanan yang sudah Selesai / Dibatalkan)
+    const result = await archiveOrders([id], actorFromSession(session));
+    if (result.archived.length === 0) {
+      return NextResponse.json(
+        {
+          error: result.skipped.length
+            ? `Pesanan ${result.skipped[0].label} ${result.skipped[0].reason}.`
+            : 'Pesanan tidak ditemukan atau sudah diarsipkan.',
+        },
+        { status: 400 }
+      );
     }
-
-    await prisma.$transaction(async (tx) => {
-      // Kembalikan stok jika belum dibatalkan/selesai
-      if (existingOrder.status !== 'DIBATALKAN' && existingOrder.status !== 'SELESAI') {
-        for (const item of existingOrder.items) {
-          await tx.product
-            .update({
-              where: { id: item.productId },
-              data: {
-                stok: {
-                  increment: item.quantity,
-                },
-              },
-            })
-            .catch(() => {});
-        }
-      }
-
-      await tx.order.delete({
-        where: { id },
-      });
-    });
-
-    // Invalidate Redis caches
-    await Promise.all([
-      delCachePattern('admin:orders:*'),
-      delCachePattern('user:orders:*'),
-      delCachePattern('products:*'),
-      delCachePattern('product:detail:*'),
-    ]).catch(() => {});
-
-    return NextResponse.json({
-      success: true,
-      message: `Pesanan #${existingOrder.orderNumber} berhasil dihapus.`,
-    });
+    return NextResponse.json({ success: true, message: `Pesanan ${result.archived[0]} diarsipkan.` });
   } catch (error: any) {
     console.error('Error saat menghapus pesanan admin:', error);
     return NextResponse.json(

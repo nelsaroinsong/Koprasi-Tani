@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { actorFromSession, logAudit, rpAudit } from '@/lib/audit-log';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { delCachePattern } from '@/lib/redis';
@@ -235,6 +236,15 @@ export async function POST(request: Request) {
       delCachePattern('petani:*'),
     ]).catch(() => {});
 
+    await logAudit({
+      actor: actorFromSession(session),
+      action: 'PRODUCT_CREATE',
+      entityType: 'PRODUCT',
+      entityId: newProduct.id,
+      entityLabel: newProduct.nama,
+      summary: `Menambah produk "${newProduct.nama}" — ${rpAudit(newProduct.hargaPerSatuan)}/${newProduct.satuan}, stok ${newProduct.stok}`,
+    });
+
     return NextResponse.json({
       success: true,
       product: {
@@ -286,6 +296,22 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'ID produk tidak diberikan' }, { status: 400 });
     }
 
+    // Produk yang sudah pernah terjual tidak boleh dihapus (riwayat penjualan & bagi hasil akan hilang)
+    const soldRows = await prisma.orderItem.findMany({
+      where: { productId: { in: idsToDelete } },
+      select: { productId: true },
+      distinct: ['productId'],
+    });
+    const soldIds = new Set(soldRows.map((r) => r.productId));
+    const requestedCount = idsToDelete.length;
+    idsToDelete = idsToDelete.filter((pid) => !soldIds.has(pid));
+    if (idsToDelete.length === 0) {
+      return NextResponse.json(
+        { error: requestedCount > 1 ? 'Semua produk terpilih sudah pernah terjual sehingga tidak bisa dihapus. Matikan "Tersedia" agar tidak tampil di toko.' : 'Produk ini sudah pernah terjual, jadi tidak bisa dihapus (riwayat penjualan & bagi hasil petani akan hilang). Matikan "Tersedia" agar tidak tampil di toko.', code: 'HAS_SALES' },
+        { status: 409 }
+      );
+    }
+
     await prisma.$transaction(async (tx) => {
       // 1. Hapus reviews terkait produk
       await tx.review.deleteMany({
@@ -332,9 +358,18 @@ export async function DELETE(request: Request) {
       delCachePattern('user:orders:*'),
     ]).catch(() => {});
 
+    await logAudit({
+      actor: actorFromSession(session),
+      action: 'PRODUCT_DELETE',
+      entityType: 'PRODUCT',
+      entityId: idsToDelete.length === 1 ? idsToDelete[0] : null,
+      summary: `Menghapus ${idsToDelete.length} produk yang belum pernah terjual${soldIds.size ? ` (${soldIds.size} dilewati karena sudah terjual)` : ''}`,
+      details: { deleted: idsToDelete, skipped: [...soldIds] },
+    });
+
     return NextResponse.json({
       success: true,
-      message: `${idsToDelete.length} produk berhasil dihapus`,
+      message: `${idsToDelete.length} produk berhasil dihapus${soldIds.size ? `; ${soldIds.size} produk dilewati karena sudah pernah terjual` : ''}`,
     });
   } catch (error) {
     console.error('Error delete products by admin:', error);

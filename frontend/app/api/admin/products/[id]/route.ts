@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { actorFromSession, logAudit, rpAudit } from '@/lib/audit-log';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { delCachePattern } from '@/lib/redis';
@@ -82,6 +83,11 @@ export async function PUT(
       updateData.petaniId = farmer.id;
     }
 
+    const before = await prisma.product.findUnique({
+      where: { id },
+      select: { nama: true, hargaPerSatuan: true, stok: true, isTersedia: true, petaniId: true },
+    });
+
     const updated = await prisma.product.update({
       where: { id },
       data: updateData,
@@ -104,6 +110,28 @@ export async function PUT(
       delCachePattern('product:detail:*'),
       delCachePattern('petani:*'),
     ]).catch(() => {});
+
+    {
+      const changes: string[] = [];
+      if (before && Number(before.hargaPerSatuan) !== Number(updated.hargaPerSatuan))
+        changes.push(`harga ${rpAudit(before.hargaPerSatuan)} → ${rpAudit(updated.hargaPerSatuan)}`);
+      if (before && before.stok !== updated.stok) changes.push(`stok ${before.stok} → ${updated.stok}`);
+      if (before && before.isTersedia !== updated.isTersedia) changes.push(updated.isTersedia ? 'diaktifkan' : 'dinonaktifkan');
+      if (before && before.petaniId !== updated.petaniId) changes.push('pemilik petani diganti');
+      if (before && before.nama !== updated.nama) changes.push(`nama "${before.nama}" → "${updated.nama}"`);
+      await logAudit({
+        actor: actorFromSession(session),
+        action: 'PRODUCT_UPDATE',
+        entityType: 'PRODUCT',
+        entityId: id,
+        entityLabel: updated.nama,
+        summary: `Mengubah produk "${updated.nama}"${changes.length ? `: ${changes.join(', ')}` : ''}`,
+        details: {
+          before: before ? { ...before, hargaPerSatuan: Number(before.hargaPerSatuan) } : null,
+          after: { hargaPerSatuan: Number(updated.hargaPerSatuan), stok: updated.stok, isTersedia: updated.isTersedia },
+        },
+      });
+    }
 
     return NextResponse.json({
       success: true,
@@ -152,6 +180,15 @@ export async function PATCH(
       delCachePattern('petani:*'),
     ]).catch(() => {});
 
+    await logAudit({
+      actor: actorFromSession(session),
+      action: 'PRODUCT_AVAILABILITY',
+      entityType: 'PRODUCT',
+      entityId: id,
+      entityLabel: updated.nama,
+      summary: `${updated.isTersedia ? 'Mengaktifkan' : 'Menonaktifkan'} produk "${updated.nama}" di toko`,
+    });
+
     return NextResponse.json({
       success: true,
       product: {
@@ -183,7 +220,14 @@ export async function DELETE(
 
     const { id } = await params;
 
-    // Hapus relasi yang merujuk ke produk (reviews, order_items) dalam transaksi
+    // Produk yang sudah pernah terjual tidak boleh dihapus (riwayat penjualan & bagi hasil akan hilang)
+    const target = await prisma.product.findUnique({ where: { id }, select: { nama: true } });
+    const soldCount = await prisma.orderItem.count({ where: { productId: id } });
+    if (soldCount > 0) {
+      return NextResponse.json({ error: 'Produk ini sudah pernah terjual, jadi tidak bisa dihapus (riwayat penjualan & bagi hasil petani akan hilang). Matikan "Tersedia" agar tidak tampil di toko.', code: 'HAS_SALES' }, { status: 409 });
+    }
+
+    // Hapus relasi yang merujuk ke produk (reviews) dalam transaksi
     await prisma.$transaction(async (tx) => {
       // 1. Hapus reviews terkait produk
       await tx.review.deleteMany({
@@ -229,6 +273,15 @@ export async function DELETE(
       delCachePattern('admin:payouts:*'),
       delCachePattern('user:orders:*'),
     ]).catch(() => {});
+
+    await logAudit({
+      actor: actorFromSession(session),
+      action: 'PRODUCT_DELETE',
+      entityType: 'PRODUCT',
+      entityId: id,
+      entityLabel: target?.nama || null,
+      summary: `Menghapus produk "${target?.nama || id}" (belum pernah terjual)`,
+    });
 
     return NextResponse.json({
       success: true,

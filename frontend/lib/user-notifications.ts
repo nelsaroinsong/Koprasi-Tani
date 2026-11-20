@@ -47,7 +47,8 @@ interface NotifyInput {
   } | false;
 }
 
-export async function notifyUser(input: NotifyInput): Promise<void> {
+/** @returns true bila notifikasi baru dibuat (false bila sudah pernah / gagal) */
+export async function notifyUser(input: NotifyInput): Promise<boolean> {
   try {
     let created;
     try {
@@ -63,18 +64,18 @@ export async function notifyUser(input: NotifyInput): Promise<void> {
       });
     } catch (err: any) {
       // P2002 = eventKey sudah ada -> peristiwa ini sudah pernah diberitahukan
-      if (err?.code === 'P2002') return;
+      if (err?.code === 'P2002') return false;
       throw err;
     }
 
     await delCache(`user:notifications:${input.userId}`).catch(() => {});
 
-    if (input.email === false) return;
+    if (input.email === false) return true;
     const user = await prisma.user.findUnique({
       where: { id: input.userId },
       select: { email: true, name: true, isActive: true },
     });
-    if (!user?.email || !user.isActive) return;
+    if (!user?.email || !user.isActive) return true;
 
     const { sent } = await sendNotificationEmail({
       to: user.email,
@@ -89,8 +90,10 @@ export async function notifyUser(input: NotifyInput): Promise<void> {
     if (sent) {
       await prisma.userNotification.update({ where: { id: created.id }, data: { emailedAt: new Date() } });
     }
+    return true;
   } catch (error) {
     console.error('[Notifikasi] Gagal membuat notifikasi:', error);
+    return false;
   }
 }
 

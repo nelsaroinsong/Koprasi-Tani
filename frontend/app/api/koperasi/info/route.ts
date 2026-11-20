@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { actorFromSession, logAudit, rpAudit } from '@/lib/audit-log';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/auth';
 import { getCache, setCache, delCache } from '@/lib/redis';
@@ -138,6 +139,15 @@ export async function PATCH(request: Request) {
 
     // Invalidate Redis cache
     await delCache(KOPERASI_CACHE_KEY);
+
+    await logAudit({
+      actor: actorFromSession(session),
+      action: 'SETTINGS_WAREHOUSE',
+      entityType: 'SETTINGS',
+      entityLabel: 'Lokasi gudang koperasi',
+      summary: `Mengubah alamat/titik gudang: ${updated.address || '-'} (${savedCoords.latitude.toFixed(5)}, ${savedCoords.longitude.toFixed(5)})`,
+      details: { alamat: updated.address, telepon: updated.phone, ...savedCoords },
+    });
 
     return NextResponse.json({
       success: true,

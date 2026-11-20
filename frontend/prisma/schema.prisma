@@ -115,6 +115,8 @@ model Order {
   completedAt    DateTime?
   cancelledAt    DateTime?
   cancelReason   String?
+  /// Diarsipkan admin (disembunyikan dari daftar admin, data & laporan tetap utuh)
+  archivedAt     DateTime?
 
   items OrderItem[]
 
@@ -285,6 +287,9 @@ model EquipmentRental {
 
   items EquipmentRentalItem[]
 
+  /// Diarsipkan admin (disembunyikan dari daftar admin, data & laporan tetap utuh)
+  archivedAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -406,4 +411,26 @@ model EquipmentMaintenance {
 
   @@index([equipmentId, startDate, endDate])
   @@map("equipment_maintenance")
+}
+
+/// Jejak aksi admin (siapa, melakukan apa, kapan) untuk pemeriksaan kas & data
+model AuditLog {
+  id          String   @id @default(uuid())
+  actorId     String?
+  actorEmail  String?
+  actorName   String?
+  /// Contoh: ORDER_STATUS, ORDER_ARCHIVE, PAYOUT_CASH, RENTAL_STATUS, PRODUCT_UPDATE, USER_DELETE
+  action      String
+  entityType  String // ORDER | RENTAL | PAYOUT | PRODUCT | USER | EQUIPMENT | SETTINGS
+  entityId    String?
+  /// Label mudah dibaca, mis. "#KOP-2611-4626"
+  entityLabel String?
+  summary     String
+  details     Json?
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([entityType, entityId])
+  @@index([actorId])
+  @@map("audit_logs")
 }

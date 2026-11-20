@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession, signIn as nextAuthSignIn, signOut as nextAuthSignOut } from 'next-auth/react';
+import { loginPathAfterLogout } from '@/lib/admin-routes';
 
 export type UserRole = 'PETANI' | 'PEMBELI' | 'ADMIN';
 
@@ -26,7 +27,7 @@ interface AuthContextType {
   selectRole: (role: 'PETANI' | 'PEMBELI') => Promise<void>;
   updateProfile: (data: Partial<User>) => void;
   refreshUser: () => Promise<User | null>;
-  logout: () => void;
+  logout: (opts?: { reason?: string }) => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -380,7 +381,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Logout Handler
-  const logout = async () => {
+  const logout = async (opts?: { reason?: string }) => {
+    // Admin kembali ke login admin; pembeli/petani ke login pengguna
+    const target = loginPathAfterLogout({
+      role: (currentUser as any)?.role || (session?.user as any)?.role,
+      pathname: typeof window !== 'undefined' ? window.location.pathname : null,
+      reason: opts?.reason,
+    });
     saveUser(null);
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem('koperasi_user');
@@ -397,7 +404,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('Error saat sign out:', err);
     }
 
-    window.location.replace('/login');
+    window.location.replace(target);
   };
 
   const isLoading = status === 'loading';
