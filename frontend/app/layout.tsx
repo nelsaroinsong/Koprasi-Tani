@@ -24,7 +24,6 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  icons: [],
   title: 'Koperasi Sinar Pagi Sejahtera - Minahasa Utara',
   description: 'Platform digital agribisnis, jual beli komoditas, sewa alat.',
   openGraph: {

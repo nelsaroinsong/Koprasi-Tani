@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { notifyPayoutPaid } from '@/lib/user-notifications';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { getCache, setCache, delCache, delCachePattern } from '@/lib/redis';
@@ -172,17 +173,40 @@ export async function POST(request: Request) {
       order: { status: 'SELESAI', isPaid: true },
     };
 
+    // Cairkan persis item yang dilihat admin di dialog konfirmasi (itemIds),
+    // agar jumlah uang yang diserahkan sama dengan yang tercatat.
     if (itemIds && Array.isArray(itemIds) && itemIds.length > 0) {
-      whereClause.id = { in: itemIds };
-    } else if (petaniId) {
+      whereClause.id = { in: itemIds.map(String) };
+    }
+    if (petaniId) {
       whereClause.petaniId = petaniId;
     }
 
-    // Ambil item yang akan dicairkan untuk menghitung total cash
-    const targetItems = await prisma.orderItem.findMany({
-      where: whereClause,
-      include: { petani: true },
-    });
+    // Ambil & tandai dalam satu transaksi; tolak jika sebagian sudah diproses permintaan lain (klik ganda)
+    let targetItems;
+    try {
+      targetItems = await prisma.$transaction(async (tx) => {
+        const items = await tx.orderItem.findMany({ where: whereClause, include: { petani: true } });
+        if (items.length === 0) return items;
+        if (Array.isArray(itemIds) && itemIds.length > 0 && items.length !== itemIds.length) {
+          throw new Error('STALE');
+        }
+        const updated = await tx.orderItem.updateMany({
+          where: { id: { in: items.map((i) => i.id) }, payoutStatus: 'MENUNGGU_PENCAIRAN' },
+          data: { payoutStatus: 'SUDAH_DICAIRKAN_CASH', payoutAt: new Date() },
+        });
+        if (updated.count !== items.length) throw new Error('STALE');
+        return items;
+      });
+    } catch (err: any) {
+      if (err?.message === 'STALE') {
+        return NextResponse.json(
+          { error: 'Data bagi hasil berubah (mungkin sudah dicairkan dari perangkat lain). Muat ulang lalu cek kembali jumlahnya.' },
+          { status: 409 }
+        );
+      }
+      throw err;
+    }
 
     if (targetItems.length === 0) {
       return NextResponse.json(
@@ -194,14 +218,19 @@ export async function POST(request: Request) {
     const totalCashHanded = targetItems.reduce((sum, item) => sum + Number(item.subtotal), 0);
     const petaniName = targetItems[0]?.petani?.name || 'Petani';
 
-    // Update status menjadi SUDAH_DICAIRKAN_CASH
-    await prisma.orderItem.updateMany({
-      where: whereClause,
-      data: {
-        payoutStatus: 'SUDAH_DICAIRKAN_CASH',
-        payoutAt: new Date(),
-      },
-    });
+    // Beri tahu petani bahwa uang tunai sudah diserahkan (dikelompokkan per petani)
+    const perPetani = new Map<string, { total: number; count: number; ids: string[] }>();
+    for (const it of targetItems) {
+      if (!it.petaniId) continue;
+      const cur = perPetani.get(it.petaniId) || { total: 0, count: 0, ids: [] };
+      cur.total += Number(it.subtotal);
+      cur.count += 1;
+      cur.ids.push(it.id);
+      perPetani.set(it.petaniId, cur);
+    }
+    for (const [pid, info] of perPetani) {
+      notifyPayoutPaid(pid, info.total, info.count, info.ids.sort().join(',').slice(0, 180));
+    }
 
     // Invalidate payout summary and petani dashboard caches
     await Promise.all([

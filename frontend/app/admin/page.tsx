@@ -14,6 +14,7 @@ import { TokoProductFormPage } from '@/components/admin/toko-product-form-page';
 import EquipmentsDataTable from '@/components/admin/equipments-data-table';
 import { EquipmentRentalsTable } from '@/components/admin/equipment-rentals-table';
 import { DashboardKpiCards } from '@/components/admin/dashboard-kpi-cards';
+import { DashboardLocationMap } from '@/components/admin/dashboard-location-map';
 import { RecentUsersTable } from '@/components/admin/recent-users-table';
 import { WarehouseLocationPage } from '@/components/admin/warehouse-location-page';
 import { AdminSettingsPage } from '@/components/admin/admin-settings-page';
@@ -42,7 +43,11 @@ export default function AdminPage() {
       return (
         <WarehouseLocationPage
           initialAddress={activeTab.payload?.address}
-          onBack={() => setActiveTab('Produk dan Layanan', 'Toko Online')}
+          onBack={() =>
+            activeTab.payload?.from === 'dashboard'
+              ? setActiveTab('Dashboard', 'Ringkasan')
+              : setActiveTab('Produk dan Layanan', 'Toko Online')
+          }
         />
       );
     }
@@ -102,6 +107,7 @@ export default function AdminPage() {
   // 5. Default: Halaman Dashboard Utama (5 KPI Cards + User Baru Mendaftar View Only)
   return (
     <div className="space-y-5 w-full pb-10">
+      <DashboardLocationMap />
       <DashboardKpiCards />
       <RecentUsersTable />
     </div>

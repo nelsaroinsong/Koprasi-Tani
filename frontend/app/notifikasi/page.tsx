@@ -25,7 +25,8 @@ import BottomNav from '@/components/BottomNav';
 import {
   AppNotification,
   INITIAL_SYSTEM_NOTIFICATION,
-  buildNotificationsFromTransactions,
+  loadNotifications,
+  markServerNotificationsRead,
   getStoredReadIds,
   saveReadIds,
   getCachedNotifications,
@@ -62,29 +63,7 @@ export default function NotifikasiPage() {
     }
 
     try {
-      const [ordersRes, rentalsRes] = await Promise.all([
-        fetch('/api/orders').catch(() => null),
-        fetch('/api/equipments/rent').catch(() => null),
-      ]);
-
-      let ordersList: any[] = [];
-      let rentalsList: any[] = [];
-
-      if (ordersRes && ordersRes.ok) {
-        const data = await ordersRes.json();
-        if (Array.isArray(data.orders)) {
-          ordersList = data.orders;
-        }
-      }
-
-      if (rentalsRes && rentalsRes.ok) {
-        const data = await rentalsRes.json();
-        if (Array.isArray(data.rentals)) {
-          rentalsList = data.rentals;
-        }
-      }
-
-      const built = buildNotificationsFromTransactions(ordersList, rentalsList, user.id);
+      const built = await loadNotifications(user.id);
       setNotifications(built);
       setCachedNotifications(built, user.id);
     } catch (e) {
@@ -152,6 +131,7 @@ export default function NotifikasiPage() {
       readMap[n.id] = true;
     });
     saveReadIds(readMap, user?.id);
+    markServerNotificationsRead('all');
 
     const updated = notifications.map((n) => ({ ...n, isRead: true }));
     setNotifications(updated);
@@ -164,6 +144,7 @@ export default function NotifikasiPage() {
   const handleNotificationClick = (notif: AppNotification) => {
     const readMap = getStoredReadIds(user?.id);
     readMap[notif.id] = true;
+    markServerNotificationsRead([notif]);
     saveReadIds(readMap, user?.id);
 
     const updated = notifications.map((n) => (n.id === notif.id ? { ...n, isRead: true } : n));

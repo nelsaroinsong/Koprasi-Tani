@@ -496,6 +496,7 @@ export async function DELETE(request: Request) {
       delCachePattern('user:profile:*'),
       delCachePattern('petani:*'),
       delCachePattern('products:*'),
+      delCachePattern('product:detail:*'),
       delCachePattern('admin:orders:*'),
       delCachePattern('admin:payouts:*'),
       delCachePattern('user:orders:*'),

@@ -13,8 +13,6 @@ import {
   EyeOff,
   Tag,
   ShoppingBag,
-  MapPin,
-  LocateFixed,
   Download,
   XCircle,
   ExternalLink,
@@ -107,26 +105,6 @@ export function TokoOnlineDataTable() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<AdminProductData | null>(null);
 
-  // Warehouse Address States
-  const [warehouseAddress, setWarehouseAddress] = useState(
-    'Koperasi Sinar Pagi Sejahtera — Jl. Raya Kolongan, Kec. Kalawat, Kabupaten Minahasa Utara, Sulawesi Utara'
-  );
-  const [isEditAddressOpen, setIsEditAddressOpen] = useState(false);
-  const [tempAddress, setTempAddress] = useState('');
-  const [isSavingAddress, setIsSavingAddress] = useState(false);
-  const [isLocating, setIsLocating] = useState(false);
-
-  // Fetch warehouse address
-  const fetchCoopInfo = useCallback(async () => {
-    try {
-      const res = await fetch('/api/koperasi/info');
-      const data = await res.json();
-      if (data?.alamat) {
-        setWarehouseAddress(data.alamat);
-      }
-    } catch {}
-  }, []);
-
   // Fetch updated categories list
   const fetchCategories = useCallback(async () => {
     try {
@@ -142,9 +120,8 @@ export function TokoOnlineDataTable() {
   }, []);
 
   useEffect(() => {
-    fetchCoopInfo();
     fetchCategories();
-  }, [fetchCoopInfo, fetchCategories]);
+  }, [fetchCategories]);
 
   // Helper emoji kategori komoditas
   const getCategoryEmoji = useCallback(
@@ -330,98 +307,6 @@ export function TokoOnlineDataTable() {
     }
   };
 
-  // Simpan Alamat Gudang
-  const handleSaveAddress = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!tempAddress.trim()) return;
-    try {
-      setIsSavingAddress(true);
-      const res = await fetch('/api/koperasi/info', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ alamat: tempAddress.trim() }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Gagal mengubah alamat gudang.');
-      setWarehouseAddress(data.alamat);
-      setIsEditAddressOpen(false);
-      showToast({
-        title: 'Alamat Gudang Diperbarui',
-        message: 'Alamat serah terima barang di toko online telah berhasil diperbarui.',
-        type: 'success',
-      });
-    } catch (err: any) {
-      showToast({
-        title: 'Gagal Simpan Alamat',
-        message: err.message,
-        type: 'error',
-      });
-    } finally {
-      setIsSavingAddress(false);
-    }
-  };
-
-  // Deteksi Lokasi Sekarang (GPS Geolocation)
-  const handleUseCurrentLocation = async () => {
-    if (typeof window === 'undefined' || !navigator.geolocation) {
-      showToast({
-        title: 'Lokasi Tidak Didukung',
-        message: 'Peramban Anda tidak mendukung deteksi lokasi (Geolocation).',
-        type: 'error',
-      });
-      return;
-    }
-
-    try {
-      setIsLocating(true);
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0,
-        });
-      });
-
-      const { latitude, longitude } = position.coords;
-      const res = await fetch(`/api/geocode/reverse?lat=${latitude}&lng=${longitude}`);
-      const data = await res.json();
-
-      if (res.ok && data?.address) {
-        setTempAddress(`Koperasi Sinar Pagi Sejahtera — ${data.address}`);
-        showToast({
-          title: 'Lokasi Dideteksi',
-          message: 'Alamat gudang disesuaikan dengan posisi GPS Anda saat ini.',
-          type: 'success',
-        });
-      } else {
-        setTempAddress(
-          `Koperasi Sinar Pagi Sejahtera — Titik GPS (${latitude.toFixed(6)}, ${longitude.toFixed(6)})`
-        );
-        showToast({
-          title: 'Koordinat GPS Ditemukan',
-          message: 'Titik koordinat berhasil dimasukkan ke kolom alamat.',
-          type: 'info',
-        });
-      }
-    } catch (err: any) {
-      if (err?.code === 1) {
-        showToast({
-          title: 'Akses Lokasi Dibatalkan',
-          message: 'Permintaan lokasi dibatalkan. Anda tetap dapat mengetik alamat secara manual.',
-          type: 'info',
-        });
-        return;
-      }
-      showToast({
-        title: 'Gagal Deteksi Lokasi',
-        message: 'Pastikan izin akses lokasi peramban telah diaktifkan.',
-        type: 'error',
-      });
-    } finally {
-      setIsLocating(false);
-    }
-  };
-
   // Ekspor Data Komoditas ke CSV
   const handleExportCSV = async () => {
     try {
@@ -563,46 +448,6 @@ export function TokoOnlineDataTable() {
             Perlu restok panen atau penyesuaian
           </p>
         </div>
-      </div>
-
-      {/* 2. Kartu Alamat Gudang (1 Bawah Lebar Memanjang) */}
-      <div className="bg-white rounded-2xl border border-[#ECEEF2] p-4 sm:px-5 sm:py-4 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
-        <div className="flex items-start sm:items-center gap-3.5 min-w-0">
-          <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
-            <MapPin className="w-4 h-4" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-semibold text-slate-800">
-                Alamat Gudang Serah Terima & Pickup Point
-              </span>
-              <span className="inline-flex items-center gap-1 text-[10.5px] text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Gudang Aktif
-              </span>
-            </div>
-            <div className="mt-1 text-xs sm:text-[13px] font-medium text-slate-700 leading-snug break-words">
-              {warehouseAddress}
-            </div>
-            <p className="mt-0.5 text-[11px] text-slate-400">
-              Titik pengambilan barang bagi pembeli & serah terima hasil panen dari petani
-            </p>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => {
-            setActiveTab('Produk dan Layanan', 'Lokasi Gudang', {
-              address: warehouseAddress,
-            });
-          }}
-          className="h-8 px-3 text-xs font-medium text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs shrink-0 self-start sm:self-auto"
-          title="Buka halaman peta untuk mengarahkan titik lokasi gudang atau deteksi via GPS"
-        >
-          <LocateFixed className="w-3.5 h-3.5 text-slate-500" />
-          <span>Ubah / GPS</span>
-        </button>
       </div>
 
       {/* 2. Kravio Outer Double-Container Shell */}
@@ -1186,84 +1031,6 @@ export function TokoOnlineDataTable() {
         </DialogContent>
       </Dialog>
 
-      {/* Modal 3: Edit Warehouse Address Dialog */}
-      <Dialog open={isEditAddressOpen} onOpenChange={setIsEditAddressOpen}>
-        <DialogContent className="sm:max-w-md rounded-2xl p-6 bg-white border border-slate-200 shadow-xl">
-          <DialogHeader>
-            <DialogTitle className="text-base font-semibold text-slate-900 flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
-                <MapPin className="w-4 h-4" />
-              </div>
-              <span>Alamat Gudang & Lokasi Serah Terima</span>
-            </DialogTitle>
-          </DialogHeader>
-
-          <form onSubmit={handleSaveAddress} className="space-y-4 my-2">
-            <p className="text-xs text-slate-500 leading-relaxed">
-              Alamat ini digunakan oleh pembeli saat checkout sebagai titik pengambilan barang pesanan fisik di koperasi.
-            </p>
-
-            <div>
-              <div className="flex items-center justify-between gap-2 mb-1.5">
-                <label className="block text-xs font-semibold text-slate-700">
-                  Alamat Lengkap Gudang *
-                </label>
-                <button
-                  type="button"
-                  onClick={handleUseCurrentLocation}
-                  disabled={isLocating || isSavingAddress}
-                  className="inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md transition cursor-pointer disabled:opacity-50"
-                  title="Deteksi alamat secara otomatis dari GPS saat ini"
-                >
-                  {isLocating ? (
-                    <>
-                      <Loader2 className="w-3 h-3 animate-spin text-slate-600" />
-                      <span>Mendeteksi Lokasi...</span>
-                    </>
-                  ) : (
-                    <>
-                      <LocateFixed className="w-3 h-3 text-slate-600" />
-                      <span>Gunakan GPS Sekarang</span>
-                    </>
-                  )}
-                </button>
-              </div>
-              <textarea
-                rows={3}
-                value={tempAddress}
-                onChange={(e) => setTempAddress(e.target.value)}
-                placeholder="Contoh: Koperasi Sinar Pagi Sejahtera — Jl. Raya Kolongan, Kec. Kalawat, Minahasa Utara"
-                className="w-full text-xs p-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 font-medium text-slate-800 placeholder:text-slate-400"
-                required
-              />
-            </div>
-
-            <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setIsEditAddressOpen(false)}
-                className="px-4 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg text-xs font-medium cursor-pointer"
-              >
-                Batal
-              </button>
-              <button
-                type="submit"
-                disabled={isSavingAddress || !tempAddress.trim()}
-                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-60"
-              >
-                {isSavingAddress ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>Menyimpan...</span>
-                  </>
-                ) : (
-                  <span>Simpan Alamat</span>
-                )}
-              </button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

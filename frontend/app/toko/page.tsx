@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
-import { getCart, saveCart } from '@/lib/cart';
+import { cappedAddQuantity, getCart, saveCart } from '@/lib/cart';
 import { getPrimaryImage } from '@/lib/utils';
 import { CatalogSidebar, CatalogToolbar } from '@/components/catalog/CatalogSidebar';
 import { CatalogPagination } from '@/components/catalog/CatalogPagination';
@@ -410,9 +410,19 @@ function TokoOnlineContent() {
 
       const existingCart = getCart(user);
       const itemIdx = existingCart.findIndex((i) => i.id === product.id);
+      const { addable, inCart } = cappedAddQuantity(existingCart, product.id, quantity, Number(product.stok));
+      if (addable <= 0) {
+        showToast({
+          title: 'Stok Sudah di Keranjang',
+          message: `Semua stok "${product.nama}" (${Number(product.stok)} ${product.satuan}) sudah ada di keranjang Anda.`,
+          type: 'info',
+        });
+        return;
+      }
 
       if (itemIdx > -1) {
-        existingCart[itemIdx].quantity = (existingCart[itemIdx].quantity || 1) + quantity;
+        existingCart[itemIdx].quantity = inCart + addable;
+        existingCart[itemIdx].stok = Number(product.stok);
       } else {
         existingCart.push({
           id: product.id,
@@ -421,7 +431,8 @@ function TokoOnlineContent() {
           hargaPerSatuan: Number(product.hargaPerSatuan),
           satuan: product.satuan,
           imageUrl: getPrimaryImage(product.imageUrl),
-          quantity,
+          quantity: addable,
+          stok: Number(product.stok),
           petaniName: product.petani?.name || 'Petani Binaan',
         });
       }
@@ -430,7 +441,10 @@ function TokoOnlineContent() {
 
       showToast({
         title: 'Dimasukkan ke Keranjang',
-        message: `${quantity} ${product.satuan} "${product.nama}" berhasil ditambahkan ke keranjang belanja Anda.`,
+        message:
+          addable < quantity
+            ? `Hanya ${addable} ${product.satuan} ditambahkan karena stok terbatas (total di keranjang ${inCart + addable} ${product.satuan}).`
+            : `${addable} ${product.satuan} "${product.nama}" berhasil ditambahkan ke keranjang belanja Anda.`,
         type: 'success',
       });
     } catch (e) {

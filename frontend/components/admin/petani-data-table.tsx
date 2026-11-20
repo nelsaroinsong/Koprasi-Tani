@@ -1,6 +1,9 @@
 'use client';
 
+import { UserActivitySummary } from '@/components/admin/user-activity-summary';
+import { waLink } from '@/lib/utils';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useRefetchOnNewActivity } from '@/components/admin/admin-notifications';
 import {
   Table,
   TableHeader,
@@ -163,6 +166,9 @@ export function PetaniDataTable() {
       setIsLoading(false);
     }
   }, [currentPage, limit, debouncedSearch, filterStatus]);
+
+  // Pesanan/data baru masuk -> tabel memuat ulang otomatis
+  useRefetchOnNewActivity('petani', fetchPetani);
 
   useEffect(() => {
     fetchPetani();
@@ -479,7 +485,7 @@ export function PetaniDataTable() {
                         <TableCell className="py-3 whitespace-nowrap">
                           {petani.phone ? (
                             <a
-                              href={`https://wa.me/${petani.phone.replace(/\D/g, '')}`}
+                              href={waLink(petani.phone)}
                               target="_blank"
                               rel="noreferrer"
                               onClick={(e) => e.stopPropagation()}
@@ -676,7 +682,10 @@ export function PetaniDataTable() {
                     <DialogTitle className="text-[15px] font-semibold text-slate-900 truncate">
                       {detailPetani.name}
                     </DialogTitle>
-                    <span className="text-[11px] text-slate-400">Petani Mitra Koperasi</span>
+                    <span className="text-[11px] text-slate-400">
+                      Petani Mitra Koperasi
+                      {!detailPetani.isActive && <span className="ml-1.5 text-rose-600 font-medium">· Akun nonaktif</span>}
+                    </span>
                   </div>
                 </div>
 
@@ -736,7 +745,7 @@ export function PetaniDataTable() {
                       <dd className="font-medium">
                         {detailPetani.phone ? (
                           <a
-                            href={`https://wa.me/${detailPetani.phone.replace(/\D/g, '')}`}
+                            href={waLink(detailPetani.phone)}
                             target="_blank"
                             rel="noreferrer"
                             className="text-emerald-700 hover:underline inline-flex items-center gap-1"
@@ -770,6 +779,8 @@ export function PetaniDataTable() {
                     </div>
                   </dl>
                 </section>
+
+                <UserActivitySummary key={detailPetani.id} userId={detailPetani.id} role="PETANI" />
               </div>
 
               {/* Footer Modal Actions */}

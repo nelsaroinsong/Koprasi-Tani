@@ -1,5 +1,6 @@
 'use client';
 
+import { ORDER_STATUS_LABEL, RENTAL_STATUS_LABEL, rentalSummary, saleStatus } from '@/lib/transaction-labels';
 import React, { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -120,11 +121,7 @@ export default function TransactionDetailPage({
               subtotal: Number(i.subtotal || 0),
             }));
 
-            let statusLabel = 'Menunggu Pembayaran Kasir Koperasi';
-            if (found.status === 'SELESAI') statusLabel = 'Selesai & Sah';
-            else if (found.status === 'DIPROSES') statusLabel = 'Sedang Diproses Gudang';
-            else if (found.status === 'SIAP_DIAMBIL') statusLabel = 'Siap Diambil di Kantor Kasir';
-            else if (found.status === 'DIBATALKAN') statusLabel = 'Dibatalkan';
+            const statusLabel = ORDER_STATUS_LABEL[found.status] || found.status;
 
             matched = {
               id: `order-${found.id}`,
@@ -144,7 +141,7 @@ export default function TransactionDetailPage({
               dateLabel: d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
               timeLabel: d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
               itemsList,
-              locationInfo: warehouseAddress,
+              locationInfo: 'Kantor & Gudang Koperasi',
               notes: found.catatan || undefined,
               raw: found,
             };
@@ -157,29 +154,22 @@ export default function TransactionDetailPage({
             (r: any) =>
               `rental-${r.id}` === targetId ||
               r.id === targetId ||
-              r.rentalNumber === targetId ||
-              `#${r.rentalNumber}` === targetId
+              r.rentalCode === targetId ||
+              `#${r.rentalCode}` === targetId
           );
 
           if (found) {
             const d = new Date(found.createdAt || Date.now());
-            const equipName = found.items?.[0]?.equipmentName || 'Sewa Alat Pertanian';
-            const duration = found.durationDays || found.durasi || 1;
-
-            let statusLabel = 'Menunggu Persetujuan Admin';
-            if (found.status === 'DISETUJUI') statusLabel = 'Disetujui Admin Koperasi';
-            else if (found.status === 'SIAP_DIAMBIL') statusLabel = 'Siap Diambil di Gudang Koperasi';
-            else if (found.status === 'SEDANG_DISEWA') statusLabel = 'Sedang Disewa di Lahan';
-            else if (found.status === 'SELESAI') statusLabel = 'Sewa Selesai';
-            else if (found.status === 'DITOLAK') statusLabel = 'Pengajuan Ditolak';
+            const rs = rentalSummary(found);
+            const statusLabel = RENTAL_STATUS_LABEL[found.status] || found.status;
 
             matched = {
               id: `rental-${found.id}`,
               type: 'SEWA_ALAT',
-              title: equipName,
+              title: rs.name,
               categoryLabel: 'Pengajuan Sewa Alat Tani',
-              refNumber: `#${found.rentalNumber || found.id.slice(0, 8)}`,
-              amount: Number(found.totalAmount || found.totalEstimasi || 0),
+              refNumber: rs.ref,
+              amount: rs.total,
               isIncome: false,
               status: found.status,
               statusLabel,
@@ -187,16 +177,14 @@ export default function TransactionDetailPage({
               date: d,
               dateLabel: d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
               timeLabel: d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
-              itemsList: [
-                {
-                  name: equipName,
-                  qty: duration,
-                  unit: 'Hari',
-                  price: Number(found.totalAmount || found.totalEstimasi || 0) / duration,
-                  subtotal: Number(found.totalAmount || found.totalEstimasi || 0),
-                },
-              ],
-              locationInfo: found.lokasiLahan || found.farmLocationAddress || 'Minahasa Utara',
+              itemsList: (found.items || []).map((i: any) => ({
+                name: `${i.nama}${i.jumlahUnit > 1 ? ` (${i.jumlahUnit} unit)` : ''}`,
+                qty: Number(i.durasi) || 1,
+                unit: i.satuanSewa || 'hari',
+                price: Number(i.hargaSewa || 0) * (Number(i.jumlahUnit) || 1),
+                subtotal: Number(i.subtotal || 0),
+              })),
+              locationInfo: found.lokasiLahan || 'Minahasa Utara',
               notes: found.catatan || found.notes || undefined,
               raw: found,
             };
@@ -215,7 +203,7 @@ export default function TransactionDetailPage({
 
           if (found) {
             const d = new Date(found.orderDate || found.createdAt || Date.now());
-            const isPaid = found.payoutStatus === 'SUDAH_DICAIRKAN';
+            const sale = saleStatus(found);
 
             matched = {
               id: `sale-${found.id}`,
@@ -226,7 +214,7 @@ export default function TransactionDetailPage({
               amount: Number(found.subtotal || 0),
               isIncome: true,
               status: found.payoutStatus,
-              statusLabel: isPaid ? 'Dana Sudah Dicairkan Cash' : 'Siap Diambil di Kasir Koperasi',
+              statusLabel: sale.label,
               paymentMethod: 'Pencairan Kasir Koperasi',
               date: d,
               dateLabel: d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
@@ -240,7 +228,7 @@ export default function TransactionDetailPage({
                   subtotal: Number(found.subtotal || 0),
                 },
               ],
-              locationInfo: warehouseAddress,
+              locationInfo: 'Kantor & Gudang Koperasi',
               raw: found,
             };
           }
@@ -255,7 +243,7 @@ export default function TransactionDetailPage({
     }
 
     loadData();
-  }, [targetId, user?.role, warehouseAddress]);
+  }, [targetId, user?.role]);
 
   return (
     <div className="min-h-screen bg-[#f4f5f1] flex flex-col font-sans pb-28 sm:pb-16">
@@ -404,9 +392,11 @@ export default function TransactionDetailPage({
                   {/* Lokasi Serah Terima */}
                   {txData.locationInfo && (
                     <div className="flex justify-between items-start py-1 border-t border-[#EAEDE7] gap-3">
-                      <span className="text-[#526046] font-medium shrink-0">Lokasi Ambil</span>
+                      <span className="text-[#526046] font-medium shrink-0">
+                        {txData.type === 'SEWA_ALAT' ? 'Lokasi Lahan' : 'Lokasi Ambil'}
+                      </span>
                       <span className="font-medium text-[#1a2610] text-right text-xs">
-                        {txData.locationInfo}
+                        {txData.type === 'SEWA_ALAT' ? txData.locationInfo : warehouseAddress}
                       </span>
                     </div>
                   )}

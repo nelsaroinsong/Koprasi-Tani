@@ -5,7 +5,7 @@ import LandingHero from '@/components/landing/LandingHero';
 import PartnerLogos from '@/components/landing/PartnerLogos';
 import AboutUsBento from '@/components/landing/AboutUsBento';
 import MainFooter from '@/components/MainFooter';
-import WeightSweepPreloader from '@/components/ui/weight-sweep-preloader';
+import GooeyPreloader from '@/components/landing/GooeyPreloader';
 
 export default function Home() {
   const [showPreloader, setShowPreloader] = useState(true);
@@ -13,15 +13,12 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#f4f5f1] text-slate-900 flex flex-col selection:bg-[#D4F63D] selection:text-slate-950 font-sans">
-      {/* Variable Font Weight Sweep Preloader saat buka beranda */}
+      {/* Gooey blobs preloader saat buka beranda */}
       {showPreloader && (
-        <WeightSweepPreloader
-          fixed
-          durationMs={2200}
-          preset="paper"
+        <GooeyPreloader
+          durationMs={2000}
           label="Koperasi Sinar Pagi Sejahtera"
           caption="Memuat Ekosistem Pertanian"
-          logoSrc="/landing/koperasi-full-white.png"
           onReveal={() => setIsHeroReady(true)}
           onComplete={() => setShowPreloader(false)}
         />

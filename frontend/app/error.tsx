@@ -16,10 +16,10 @@ export default function ErrorBoundary({ error, reset }: ErrorProps) {
     console.error('Application Error caught by error boundary:', error);
 
     // Auto-recovery jika ChunkLoadError terjadi akibat rebuild/hot-reload file dev server
+    const msg = error?.message || '';
     const isChunkError =
       error?.name === 'ChunkLoadError' ||
-      error?.message?.includes('Loading chunk') ||
-      error?.message?.includes('ChunkLoadError');
+      /Loading (CSS )?chunk|ChunkLoadError|Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module/i.test(msg);
 
     if (isChunkError) {
       const lastReload = sessionStorage.getItem('chunk_reload_ts');

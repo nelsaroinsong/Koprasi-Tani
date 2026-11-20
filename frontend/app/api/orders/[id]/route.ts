@@ -3,78 +3,11 @@ import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { delCachePattern } from '@/lib/redis';
 
-// Batas waktu pembayaran (24 jam)
-const AUTO_CANCEL_HOURS = 24;
-const AUTO_CANCEL_MS = AUTO_CANCEL_HOURS * 60 * 60 * 1000;
-
-// Helper: Batalkan pesanan kedaluwarsa secara otomatis dan kembalikan stok fisik (24 jam batas bayar di kasir)
-async function checkAndAutoCancelExpiredOrder(order: any) {
-  // Hitung mundur batas waktu pembayaran 24 jam HANYA berlaku ketika pesanan sudah di tahap SIAP_DIAMBIL
-  // Pesanan yang sudah lunas (mis. transfer) tidak boleh dibatalkan otomatis
-  if (order.status !== 'SIAP_DIAMBIL' || order.isPaid) {
-    return order;
-  }
-
-  // Dihitung mundur sejak pesanan siap diambil (updatedAt), bukan dari awal checkout (createdAt)
-  const readyAt = new Date(order.updatedAt || order.createdAt).getTime();
-  const now = Date.now();
-  const elapsed = now - readyAt;
-
-  if (elapsed >= AUTO_CANCEL_MS) {
-    try {
-      const canceled = await prisma.$transaction(async (tx) => {
-        // Kembalikan stok produk
-        for (const item of order.items) {
-          if (item.productId && item.quantity > 0) {
-            await tx.product.update({
-              where: { id: item.productId },
-              data: {
-                stok: { increment: item.quantity },
-              },
-            });
-          }
-        }
-
-        // Update status order
-        return await tx.order.update({
-          where: { id: order.id },
-          data: {
-            status: 'DIBATALKAN',
-            isPaid: false,
-            paidAt: null,
-            catatan: order.catatan
-              ? `${order.catatan} (Otomatis dibatalkan sistem: Melewati batas waktu pembayaran 24 jam sejak siap diambil)`
-              : '(Otomatis dibatalkan sistem: Melewati batas waktu pembayaran 24 jam sejak siap diambil)',
-          },
-          include: {
-            items: {
-              include: {
-                product: {
-                  select: { id: true, nama: true, imageUrl: true, satuan: true },
-                },
-                petani: {
-                  select: { id: true, name: true, phone: true },
-                },
-              },
-            },
-            pembeli: {
-              select: { id: true, name: true, phone: true, address: true, email: true },
-            },
-          },
-        });
-      });
-
-      await delCachePattern('user:orders:*');
-      await delCachePattern('products:*');
-      return canceled;
-    } catch (err) {
-      console.error('Error auto-canceling order:', err);
-      return order;
-    }
-  }
-
-  return order;
-}
+import {
+  effectivePickupDeadline,
+  expireOverduePickupOrders,
+  PICKUP_WINDOW_HOURS,
+} from '@/lib/order-lifecycle';
 
 // 1. GET: Ambil detail 1 pesanan
 export async function GET(
@@ -100,7 +33,7 @@ export async function GET(
     const targetId = decodeURIComponent(id);
 
     // Cari pesanan berdasarkan ID atau OrderNumber dengan AND kondisi otorisasi
-    let order = await prisma.order.findFirst({
+    const findOrder = () => prisma.order.findFirst({
       where: {
         AND: [
           {
@@ -135,21 +68,29 @@ export async function GET(
       },
     });
 
-    if (!order) {
-      return NextResponse.json({ error: 'Pesanan tidak ditemukan' }, { status: 404 });
-    }
-
-    // Periksa apakah sudah melewati batas 72 jam
-    order = await checkAndAutoCancelExpiredOrder(order);
+    let order = await findOrder();
 
     if (!order) {
       return NextResponse.json({ error: 'Pesanan tidak ditemukan' }, { status: 404 });
     }
+
+    // Lewat batas ambil & bayar -> batalkan otomatis lalu ambil ulang data terbaru
+    if (order.status === 'SIAP_DIAMBIL' && !order.isPaid) {
+      const expired = await expireOverduePickupOrders({ orderId: order.id });
+      if (expired > 0) order = (await findOrder()) ?? order;
+    }
+
+    // Kode ambil hanya untuk pemilik pesanan (pembeli), bukan admin/petani
+    const isOwner = order.pembeliId === currentUser.id;
+    const { pickupCode, ...orderWithoutCode } = order;
 
     return NextResponse.json({
       success: true,
       order: {
-        ...order,
+        ...orderWithoutCode,
+        pickupCode: isOwner && order.status === 'SIAP_DIAMBIL' ? pickupCode : null,
+        pickupDeadline: effectivePickupDeadline(order)?.toISOString() ?? null,
+        pickupWindowHours: PICKUP_WINDOW_HOURS,
         totalAmount: Number(order.totalAmount),
         items: (order.items || []).map((i: any) => ({
           ...i,
@@ -224,7 +165,7 @@ export async function PATCH(
         return NextResponse.json(
           {
             error:
-              'Pesanan sudah siap di kasir. Tidak dapat dibatalkan manual. Pesanan akan otomatis dibatalkan sistem jika belum dibayar dalam 24 jam.',
+              `Pesanan sudah siap di kasir. Tidak dapat dibatalkan manual. Pesanan akan otomatis dibatalkan sistem jika belum diambil & dibayar dalam ${PICKUP_WINDOW_HOURS} jam.`,
           },
           { status: 400 }
         );
@@ -259,17 +200,19 @@ export async function PATCH(
         }
       }
 
-      const noteSuffix = alasanBatal
-        ? ` (Dibatalkan pembeli: ${alasanBatal})`
-        : ' (Dibatalkan oleh pembeli)';
-
       return await tx.order.update({
         where: { id: order.id },
         data: {
           status: 'DIBATALKAN',
           isPaid: false,
           paidAt: null,
-          catatan: order.catatan ? `${order.catatan}${noteSuffix}` : noteSuffix.trim(),
+          cancelledAt: new Date(),
+          cancelReason:
+            currentUser.role === 'ADMIN'
+              ? alasanBatal?.trim() || 'Dibatalkan oleh admin koperasi'
+              : alasanBatal?.trim()
+                ? `Dibatalkan pembeli: ${alasanBatal.trim()}`
+                : 'Dibatalkan oleh pembeli',
         },
         include: {
           items: {
@@ -291,6 +234,7 @@ export async function PATCH(
 
     await delCachePattern('user:orders:*');
     await delCachePattern('products:*');
+    await delCachePattern('product:detail:*');
 
     return NextResponse.json({
       success: true,

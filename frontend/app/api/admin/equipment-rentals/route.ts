@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { notifyRentalStatus } from '@/lib/user-notifications';
 import type { Prisma } from '@prisma/client';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
@@ -157,7 +158,9 @@ export async function PATCH(request: Request) {
         include: RENTAL_INCLUDE,
       });
       await invalidateRentalCaches();
-      return NextResponse.json({ success: true, rental: toRentalDTO(updated), message: 'DP ditandai sudah dikembalikan.' });
+      const refundedDto = toRentalDTO(updated);
+      notifyRentalStatus(refundedDto, { dpRefunded: true });
+      return NextResponse.json({ success: true, rental: refundedDto, message: 'DP ditandai sudah dikembalikan.' });
     }
 
     if (!status || !STATUS_LIST.includes(status)) {
@@ -291,6 +294,8 @@ export async function PATCH(request: Request) {
     await invalidateRentalCaches();
 
     const dto = toRentalDTO(updated);
+    // Beri tahu penyewa tentang perubahan status
+    if (to !== current.status) notifyRentalStatus(dto);
     const rp = (n: number) => `Rp ${n.toLocaleString('id-ID')}`;
     const message =
       to === 'DISETUJUI'

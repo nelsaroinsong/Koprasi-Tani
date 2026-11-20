@@ -208,3 +208,73 @@ export function addTransactionNotification(notif: Omit<AppNotification, 'id' | '
     window.dispatchEvent(customEvent);
   } catch {}
 }
+
+// ------------------------------------------------------------------
+// Notifikasi dari server (perubahan status pesanan, sewa, bagi hasil)
+// ------------------------------------------------------------------
+
+/** id lokal "order-<uuid>" -> id notifikasi di server */
+const SERVER_ID_SEPARATOR = '::';
+
+export function serverIdOf(notif: AppNotification): string | null {
+  const i = notif.id.indexOf(SERVER_ID_SEPARATOR);
+  return i > -1 ? notif.id.slice(i + SERVER_ID_SEPARATOR.length) : null;
+}
+
+/**
+ * Muat notifikasi akun: dari server bila ada; akun lama tanpa riwayat notifikasi
+ * memakai daftar dari transaksi (perilaku sebelumnya) sebagai cadangan.
+ */
+export async function loadNotifications(userId: string): Promise<AppNotification[]> {
+  const readMap = getStoredReadIds(userId);
+  const welcome: AppNotification = {
+    ...INITIAL_SYSTEM_NOTIFICATION,
+    isRead: Boolean(readMap[INITIAL_SYSTEM_NOTIFICATION.id]),
+  };
+
+  const res = await fetch('/api/user/notifications', { cache: 'no-store' }).catch(() => null);
+  if (res && res.ok) {
+    const data = await res.json().catch(() => null);
+    const list: any[] = Array.isArray(data?.notifications) ? data.notifications : [];
+    if (list.length > 0) {
+      const items: AppNotification[] = list.map((n) => ({
+        // prefix menentukan ikon: order- / rental- / payout-
+        id: `${String(n.kind).toLowerCase()}-${SERVER_ID_SEPARATOR}${n.id}`,
+        title: n.title,
+        message: n.message,
+        type: 'transaksi',
+        time: formatTimeAgo(n.createdAt),
+        href: n.href || undefined,
+        isRead: Boolean(n.isRead),
+        createdAt: n.createdAt,
+      }));
+      return [...items, welcome];
+    }
+  }
+
+  const [ordersRes, rentalsRes] = await Promise.all([
+    fetch('/api/orders').catch(() => null),
+    fetch('/api/equipments/rent').catch(() => null),
+  ]);
+  const orders = ordersRes && ordersRes.ok ? (await ordersRes.json().catch(() => ({})))?.orders : [];
+  const rentals = rentalsRes && rentalsRes.ok ? (await rentalsRes.json().catch(() => ({})))?.rentals : [];
+  return buildNotificationsFromTransactions(
+    Array.isArray(orders) ? orders : [],
+    Array.isArray(rentals) ? rentals : [],
+    userId
+  );
+}
+
+/** Tandai dibaca di server (untuk notifikasi yang berasal dari server) */
+export function markServerNotificationsRead(notifs: AppNotification[] | 'all') {
+  const body =
+    notifs === 'all'
+      ? { all: true }
+      : { ids: notifs.map(serverIdOf).filter((x): x is string => Boolean(x)) };
+  if (notifs !== 'all' && (body as { ids: string[] }).ids.length === 0) return;
+  fetch('/api/user/notifications', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  }).catch(() => {});
+}

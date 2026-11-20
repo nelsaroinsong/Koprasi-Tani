@@ -231,6 +231,7 @@ export async function POST(request: Request) {
     // Invalidate product catalog and farmer caches
     await Promise.all([
       delCachePattern('products:*'),
+      delCachePattern('product:detail:*'),
       delCachePattern('petani:*'),
     ]).catch(() => {});
 
@@ -324,6 +325,7 @@ export async function DELETE(request: Request) {
     // Invalidate caches
     await Promise.all([
       delCachePattern('products:*'),
+      delCachePattern('product:detail:*'),
       delCachePattern('petani:*'),
       delCachePattern('admin:orders:*'),
       delCachePattern('admin:payouts:*'),

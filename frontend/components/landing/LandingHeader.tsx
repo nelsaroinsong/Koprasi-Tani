@@ -319,10 +319,10 @@ export default function LandingHeader() {
           <div ref={bottomRef} className="pt-4 sm:pt-6">
             <button
               onClick={() => navigateTo(user ? '/toko' : '/login')}
-              className="w-full py-4 px-6 rounded-xl bg-white hover:bg-[#D4F63D] text-slate-950 font-mono text-xs sm:text-sm font-bold tracking-widest uppercase flex items-center justify-center gap-2 active:scale-[0.99] transition-all duration-200 cursor-pointer shadow-xl"
+              className="w-full py-4 px-6 rounded-xl bg-white hover:bg-[#D4F63D] text-slate-950 font-sans text-[15px] sm:text-base font-medium tracking-tight leading-none flex items-center justify-center gap-2 active:scale-[0.99] transition-all duration-200 cursor-pointer shadow-xl"
             >
-              <span>{user ? 'DASHBOARD TOKO' : 'MASUK / GABUNG'}</span>
-              <span className="font-mono text-sm">&gt;</span>
+              <span>{user ? 'Dashboard Toko' : 'Masuk / Gabung'}</span>
+              <ArrowRight className="w-4 h-4 stroke-[2.5]" />
             </button>
           </div>
         </div>,

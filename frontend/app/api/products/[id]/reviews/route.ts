@@ -138,25 +138,24 @@ export async function POST(
     }
 
     let review: any;
+    let isUpdate = false;
     if ((prisma as any).review) {
-      review = await (prisma as any).review.create({
-        data: {
-          rating: parsedRating,
-          komentar: komentar?.trim() || null,
-          fotoUrl: fotoUrl?.trim() || null,
-          productId,
-          userId: currentUser.id,
-        },
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              avatarUrl: true,
-            },
-          },
-        },
+      // Satu pembeli = satu ulasan per komoditas. Kirim ulang = memperbarui ulasan lama
+      // (mencegah rating digelembungkan dengan ulasan berulang).
+      const existing = await prisma.review.findFirst({
+        where: { productId, userId: currentUser.id },
+        select: { id: true },
       });
+      const reviewData = {
+        rating: parsedRating,
+        komentar: komentar?.trim() || null,
+        fotoUrl: fotoUrl?.trim() || null,
+      };
+      const include = { user: { select: { id: true, name: true, avatarUrl: true } } };
+      isUpdate = Boolean(existing);
+      review = existing
+        ? await prisma.review.update({ where: { id: existing.id }, data: reviewData, include })
+        : await prisma.review.create({ data: { ...reviewData, productId, userId: currentUser.id }, include });
     } else {
       const reviewId = crypto.randomUUID();
       const now = new Date();
@@ -199,7 +198,8 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
-      message: 'Terima kasih atas ulasan Anda!',
+      message: isUpdate ? 'Ulasan Anda berhasil diperbarui.' : 'Terima kasih atas ulasan Anda!',
+      updated: isUpdate,
       review,
     });
   } catch (error: any) {

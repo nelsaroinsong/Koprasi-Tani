@@ -155,9 +155,24 @@ export default function ProductDetailPage({
     try {
       const existingCart = getCart(user);
       const itemIdx = existingCart.findIndex((i) => i.id === prod.id);
+      const stock = Math.max(0, Number(prod.stok) || 0);
+      const inCart = itemIdx > -1 ? existingCart[itemIdx].quantity || 0 : 0;
+      const addable = Math.min(quantity, stock - inCart);
+
+      // Jumlah di keranjang tidak boleh melebihi stok gudang
+      if (addable <= 0) {
+        showToast({
+          title: 'Stok Sudah di Keranjang',
+          message: `Semua stok "${prod.nama}" (${stock} ${prod.satuan}) sudah ada di keranjang Anda.`,
+          type: 'info',
+        });
+        if (redirectAfter) router.push('/checkout/toko');
+        return;
+      }
 
       if (itemIdx > -1) {
-        existingCart[itemIdx].quantity = (existingCart[itemIdx].quantity || 1) + quantity;
+        existingCart[itemIdx].quantity = inCart + addable;
+        existingCart[itemIdx].stok = stock;
       } else {
         existingCart.push({
           id: prod.id,
@@ -166,7 +181,8 @@ export default function ProductDetailPage({
           hargaPerSatuan: Number(prod.hargaPerSatuan),
           satuan: prod.satuan,
           imageUrl: prod.imageUrl,
-          quantity,
+          quantity: addable,
+          stok: stock,
           petaniName: productData.petani?.name || 'Petani Binaan',
         });
       }
@@ -175,7 +191,10 @@ export default function ProductDetailPage({
 
       showToast({
         title: 'Dimasukkan ke Keranjang',
-        message: `${quantity} ${prod.satuan} "${prod.nama}" berhasil ditambahkan ke keranjang.`,
+        message:
+          addable < quantity
+            ? `Hanya ${addable} ${prod.satuan} "${prod.nama}" ditambahkan — sisa stok sudah ada di keranjang (total ${inCart + addable} ${prod.satuan}).`
+            : `${addable} ${prod.satuan} "${prod.nama}" berhasil ditambahkan ke keranjang.`,
         type: 'success',
       });
 
@@ -607,7 +626,7 @@ export default function ProductDetailPage({
                   </span>
                   <span className="text-[#cfd6c9]">•</span>
                   <span className="text-[#526046] tabular-nums">
-                    {product.totalSold ? `${product.totalSold} ${product.satuan}` : 'Panen Baru'}
+                    {product.totalSold ? `${product.totalSold} ${product.satuan} terjual` : 'Panen Baru'}
                   </span>
                 </div>
 

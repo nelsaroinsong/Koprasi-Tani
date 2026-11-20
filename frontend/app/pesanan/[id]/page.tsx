@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, use } from 'react';
+import React, { useState, useEffect, useRef, use } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import AppHeader from '@/components/AppHeader';
@@ -28,6 +28,7 @@ import {
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
 import { getPrimaryImage } from '@/lib/utils';
+import { BATAS_BATAL_HARI, DENDA_PER_HARI, DP_PERSEN, dpDikembalikanJikaBatal, hitungDp } from '@/lib/rental-policy';
 
 export default function OrderDetailPage({
   params,
@@ -79,14 +80,19 @@ export default function OrderDetailPage({
       .catch(() => {});
   }, []);
 
+  // Muat ulang diam-diam (tanpa layar loading) agar status terbaru langsung tampil,
+  // mis. setelah petugas kasir memverifikasi kode ambil.
+  const [refreshKey, setRefreshKey] = useState(0);
+  const hasLoadedRef = useRef(false);
+
   // Fetch data pesanan atau sewa alat
   useEffect(() => {
     async function loadDetail() {
       try {
-        setIsLoading(true);
+        if (!hasLoadedRef.current) setIsLoading(true);
 
-        // 1. Coba ambil langsung dari endpoint detail pesanan spesifik
-        const resSingleOrder = await fetch(`/api/orders/${targetId}`).catch(() => null);
+        // 1. Coba ambil langsung dari endpoint detail pesanan spesifik (lewati untuk sewa alat)
+        const resSingleOrder = isSewaType ? null : await fetch(`/api/orders/${targetId}`, { cache: 'no-store' }).catch(() => null);
         if (resSingleOrder && resSingleOrder.ok) {
           const singleData = await resSingleOrder.json();
           const order = singleData.order || singleData;
@@ -99,7 +105,7 @@ export default function OrderDetailPage({
         }
 
         // 2. Fallback: Cari di orders list toko online pembeli
-        const resOrders = await fetch('/api/orders').catch(() => null);
+        const resOrders = isSewaType ? null : await fetch('/api/orders', { cache: 'no-store' }).catch(() => null);
         if (resOrders && resOrders.ok) {
           const data = await resOrders.json();
           const ordersList = Array.isArray(data)
@@ -118,7 +124,7 @@ export default function OrderDetailPage({
         }
 
         // 3. Jika tidak ketemu di orders toko, cari di sewa alat
-        const resRentals = await fetch('/api/equipments/rent').catch(() => null);
+        const resRentals = await fetch('/api/equipments/rent', { cache: 'no-store' }).catch(() => null);
         if (resRentals && resRentals.ok) {
           const rentalData = await resRentals.json();
           const rentalsList = Array.isArray(rentalData)
@@ -150,8 +156,25 @@ export default function OrderDetailPage({
       }
     }
 
-    loadDetail();
-  }, [targetId]);
+    loadDetail().finally(() => {
+      hasLoadedRef.current = true;
+    });
+  }, [targetId, isSewaType, refreshKey]);
+
+  // Selama pesanan belum final: cek status tiap 20 detik & saat tab dibuka kembali
+  const isFinalStatus = ['SELESAI', 'DIBATALKAN', 'DITOLAK', 'KADALUARSA'].includes(orderData?.status);
+  useEffect(() => {
+    if (!orderData || isFinalStatus) return;
+    const refresh = () => {
+      if (document.visibilityState === 'visible') setRefreshKey((k) => k + 1);
+    };
+    const t = setInterval(refresh, 20_000);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      clearInterval(t);
+      document.removeEventListener('visibilitychange', refresh);
+    };
+  }, [orderData, isFinalStatus]);
 
   // Alur 4 Tahap Toko Online (Alur: Pesanan Masuk -> Disiapkan Gudang -> Bayar di Kasir -> Ambil di Kasir)
   // Tahap 1: Pesanan Masuk (MENUNGGU_PEMBAYARAN - Tombol batalkan berlaku bagi pembeli)
@@ -177,9 +200,9 @@ export default function OrderDetailPage({
       case 'SIAP_DIAMBIL':
         return {
           step: 3,
-          label: 'Bayar di Kasir',
+          label: 'Siap Diambil • Bayar di Kasir',
           badgeClass: 'bg-[#233414] text-[#D4F63D] border-[#233414] font-bold',
-          hint: 'Komoditas telah siap di kasir! Silakan bayar tunai (cash) atau transfer ke kasir koperasi dalam batas waktu 24 jam.',
+          hint: 'Komoditas sudah siap! Datang ke kasir koperasi, tunjukkan kode ambil di bawah, lalu bayar tunai sebelum batas waktu.',
         };
       case 'SELESAI':
         return {
@@ -205,60 +228,76 @@ export default function OrderDetailPage({
     }
   };
 
-  // Status Sewa Alat
+  // Status Sewa Alat (step: posisi di stepper 1..4, 0 = alur berhenti)
   const getRentalStatusConfig = (status: string) => {
     switch (status) {
       case 'MENUNGGU_PERSETUJUAN_ADMIN':
         return {
-          label: 'Menunggu Verifikasi Admin',
-          badgeClass: 'bg-amber-50 text-amber-900 border-amber-300 font-bold',
-          hint: 'Pengajuan sewa alat Anda sedang diverifikasi pengurus koperasi. Unit resmi terkunci setelah diverifikasi dan dilunasi tunai di kasir.',
+          label: 'Menunggu Verifikasi',
+          step: 1,
+          badgeClass: 'bg-amber-50 text-amber-900 border-amber-200',
+          hint: `Pengurus koperasi sedang mengecek jadwal dan ketersediaan unit. Setelah disetujui, bayar DP ${DP_PERSEN}% tunai di kasir untuk mengunci jadwal.`,
         };
       case 'DISETUJUI':
         return {
-          label: 'Menunggu Bayar di Kasir',
-          badgeClass: 'bg-blue-50 text-blue-900 border-blue-300 font-bold',
-          hint: 'Pengajuan telah disetujui! Harap segera datang ke kantor koperasi untuk pelunasan tunai di kasir sebelum batas waktu pembayaran.',
+          label: 'Disetujui • Bayar DP',
+          step: 2,
+          badgeClass: 'bg-blue-50 text-blue-900 border-blue-200',
+          hint: `Pengajuan disetujui. Bayar DP ${DP_PERSEN}% tunai di kasir koperasi sebelum batas waktu agar jadwal tidak hangus.`,
+        };
+      case 'DIKONFIRMASI':
+        return {
+          label: 'Jadwal Terkunci',
+          step: 3,
+          badgeClass: 'bg-cyan-50 text-cyan-900 border-cyan-200',
+          hint: 'DP sudah diterima dan jadwal Anda terkunci. Datang ke gudang koperasi pada tanggal mulai sewa untuk melunasi sisa dan mengambil alat.',
         };
       case 'SIAP_DIAMBIL':
         return {
-          label: 'Lunas Tunai • Siap Diambil',
-          badgeClass: 'bg-emerald-50 text-emerald-900 border-emerald-300 font-bold',
-          hint: 'Pembayaran tunai telah diterima kasir koperasi. Unit mesin resmi terkunci untuk Anda dan siap diambil di pool koperasi.',
+          label: 'Lunas • Siap Diambil',
+          step: 3,
+          badgeClass: 'bg-emerald-50 text-emerald-900 border-emerald-200',
+          hint: 'Pembayaran sudah lunas. Alat siap diambil di gudang koperasi pada tanggal mulai sewa.',
         };
       case 'SEDANG_DISEWA':
         return {
-          label: 'Sedang Digunakan di Lahan',
-          badgeClass: 'bg-purple-50 text-purple-900 border-purple-300 font-bold',
-          hint: 'Unit alat sedang beroperasi aktif di lokasi lahan perkebunan Anda.',
+          label: 'Sedang Dipakai',
+          step: 4,
+          badgeClass: 'bg-purple-50 text-purple-900 border-purple-200',
+          hint: `Alat sedang Anda pakai. Kembalikan paling lambat tanggal selesai sewa; keterlambatan dikenakan denda Rp ${DENDA_PER_HARI.toLocaleString('id-ID')}/unit/hari.`,
         };
       case 'SELESAI':
         return {
-          label: 'Sewa Selesai & Kembali',
-          badgeClass: 'bg-[#EAEDE7] text-[#1a2610] border-[#cfd6c9] font-bold',
-          hint: 'Masa sewa telah selesai dan alat telah dikembalikan dalam kondisi baik ke koperasi.',
+          label: 'Selesai',
+          step: 5,
+          badgeClass: 'bg-[#EAEDE7] text-[#1a2610] border-[#cfd6c9]',
+          hint: 'Masa sewa selesai dan alat sudah dikembalikan ke koperasi. Terima kasih!',
         };
       case 'KADALUARSA':
         return {
-          label: 'Batas Waktu Bayar Habis',
-          badgeClass: 'bg-rose-50 text-rose-800 border-rose-200 font-bold',
-          hint: 'Batas waktu pembayaran tunai di kasir koperasi telah berakhir tanpa pelunasan. Slot reservasi telah dibuka kembali.',
+          label: 'Kadaluarsa',
+          step: 0,
+          badgeClass: 'bg-rose-50 text-rose-800 border-rose-200',
+          hint: 'Batas waktu pembayaran DP terlewati. Jadwal unit sudah dibuka kembali untuk anggota lain.',
         };
       case 'DITOLAK':
         return {
-          label: 'Pengajuan Ditolak',
-          badgeClass: 'bg-red-50 text-red-700 border-red-200 font-bold',
-          hint: 'Pengajuan sewa belum dapat disetujui karena jadwal bertabrakan atau unit dalam perbaikan.',
+          label: 'Ditolak',
+          step: 0,
+          badgeClass: 'bg-red-50 text-red-700 border-red-200',
+          hint: 'Pengajuan belum dapat disetujui, misalnya karena jadwal bertabrakan atau unit sedang diservis.',
         };
       case 'DIBATALKAN':
         return {
           label: 'Dibatalkan',
-          badgeClass: 'bg-stone-50 text-stone-700 border-stone-200 font-bold',
-          hint: 'Pengajuan sewa alat ini telah dibatalkan oleh pemohon.',
+          step: 0,
+          badgeClass: 'bg-stone-50 text-stone-700 border-stone-200',
+          hint: 'Pengajuan sewa alat ini telah dibatalkan.',
         };
       default:
         return {
           label: status,
+          step: 1,
           badgeClass: 'bg-[#f4f5f1] text-[#1a2610] border-[#dce1d6]',
           hint: 'Status sewa alat sedang diproses.',
         };
@@ -278,8 +317,10 @@ export default function OrderDetailPage({
 
     const calculateTime = () => {
       // Dihitung mundur ketika sudah berada di tahap siap diambil (updatedAt), bukan dari awal checkout (createdAt)
-      const readyTime = new Date(orderData.updatedAt || orderData.createdAt).getTime();
-      const expireTime = readyTime + 24 * 60 * 60 * 1000;
+      // Pakai batas yang disimpan server; fallback untuk data lama tanpa pickupDeadline
+      const expireTime = orderData.pickupDeadline
+        ? new Date(orderData.pickupDeadline).getTime()
+        : new Date(orderData.readyAt || orderData.updatedAt || orderData.createdAt).getTime() + 24 * 60 * 60 * 1000;
       const now = Date.now();
       const diff = expireTime - now;
 
@@ -339,7 +380,7 @@ export default function OrderDetailPage({
       showToast({
         title: isRental ? 'Pengajuan Dibatalkan' : 'Pesanan Dibatalkan',
         message: isRental
-          ? 'Pengajuan sewa alat pertanian berhasil dibatalkan.'
+          ? data.message || 'Pengajuan sewa alat berhasil dibatalkan.'
           : 'Pesanan berhasil dibatalkan. Stok barang telah dikembalikan ke katalog koperasi.',
         type: 'info',
       });
@@ -370,19 +411,17 @@ export default function OrderDetailPage({
     if (!reviewItem) return;
     try {
       setIsSubmittingReview(true);
-      const res = await fetch('/api/reviews', {
+      const productId = reviewItem.productId || reviewItem.product?.id;
+      if (!productId) throw new Error('Komoditas untuk ulasan ini tidak ditemukan.');
+      const res = await fetch(`/api/products/${productId}/reviews`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          productId: reviewItem.productId || reviewItem.product?.id,
-          rating: reviewRating,
-          comment: reviewComment,
-        }),
+        body: JSON.stringify({ rating: reviewRating, komentar: reviewComment }),
       });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Gagal mengirim ulasan');
 
-      if (!res.ok) throw new Error('Gagal mengirim ulasan');
-
-      showToast({ message: 'Ulasan dan penilaian berhasil dikirim!', type: 'success' });
+      showToast({ message: data.message || 'Ulasan dan penilaian berhasil dikirim!', type: 'success' });
       setReviewItem(null);
       setReviewComment('');
     } catch (err: any) {
@@ -392,8 +431,35 @@ export default function OrderDetailPage({
     }
   };
 
+  // Ringkasan sewa alat
+  const rentalCfg = orderData && isRental ? getRentalStatusConfig(orderData.status) : null;
+  const rentalTotal = Number(orderData?.totalEstimasi ?? orderData?.totalAmount ?? 0);
+  const rentalDp = Number(orderData?.dpAmount ?? hitungDp(rentalTotal));
+  const rentalDpPaid = Boolean(orderData?.dpPaidAt);
+  const rentalSisa = Math.max(0, rentalTotal - (rentalDpPaid ? rentalDp : 0));
+  const rentalExtra = Number(orderData?.lateFee || 0) + Number(orderData?.damageFee || 0);
+  const canCancelRental =
+    isRental &&
+    !!orderData &&
+    (orderData.status === 'MENUNGGU_PERSETUJUAN_ADMIN' ||
+      orderData.status === 'DIKONFIRMASI' ||
+      (orderData.status === 'DISETUJUI' && !orderData.isPaid));
+  const cancelForfeitsDp =
+    canCancelRental && rentalDpPaid && !!orderData?.startDate && !dpDikembalikanJikaBatal(orderData.startDate);
+  const fmtDate = (d?: string | null, withWeekday = false) =>
+    d
+      ? new Date(`${String(d).slice(0, 10)}T00:00:00Z`).toLocaleDateString('id-ID', {
+          ...(withWeekday ? { weekday: 'short' as const } : {}),
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+          timeZone: 'UTC',
+        })
+      : '-';
+  const RENTAL_STEPS = ['Diajukan', 'Bayar DP', 'Ambil Alat', 'Kembalikan'];
+
   return (
-    <div className="min-h-screen bg-[#f4f5f1] pb-24 text-[#1a2610] font-sans">
+    <div className="min-h-screen bg-[#f4f5f1] pb-28 lg:pb-10 text-[#1a2610] font-sans">
       <AppHeader />
 
       <main className="max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 pt-4 sm:pt-6 space-y-4">
@@ -407,7 +473,7 @@ export default function OrderDetailPage({
             <span>Kembali ke Pesanan</span>
           </Link>
 
-          <span className="text-[11px] font-semibold text-[#5b6950]">
+          <span className="hidden sm:inline text-[11px] font-semibold text-[#5b6950]">
             {isRental ? 'Detail Pengajuan Sewa Alat' : 'Detail Pesanan Toko Online'}
           </span>
         </div>
@@ -437,77 +503,65 @@ export default function OrderDetailPage({
             {/* Kartu Utama Rincian */}
             <div className="bg-white rounded-xl sm:rounded-2xl border border-[#dce1d6] shadow-2xs overflow-hidden">
               {/* Header Kartu */}
-              <div className="p-3.5 sm:p-4 border-b border-[#dce1d6] bg-[#f4f5f1]/70 flex flex-wrap items-center justify-between gap-2.5 text-xs">
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="flex items-center gap-1.5 font-bold text-[#1a2610] text-xs sm:text-sm">
-                    {isRental ? (
-                      <Tractor className="w-4 h-4 text-[#233414]" />
-                    ) : (
-                      <Store className="w-4 h-4 text-[#233414]" />
-                    )}
-                    <span>Koperasi Sinar Pagi Sejahtera</span>
+              <div className="px-4 py-3.5 sm:px-5 border-b border-[#dce1d6] bg-[#f4f5f1]/70">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 text-[11px] font-semibold text-[#5b6950]">
+                      {isRental ? (
+                        <Tractor className="w-3.5 h-3.5 text-[#233414]" aria-hidden="true" />
+                      ) : (
+                        <Store className="w-3.5 h-3.5 text-[#233414]" aria-hidden="true" />
+                      )}
+                      <span>{isRental ? 'Sewa Alat' : 'Toko Online'}</span>
+                    </div>
+                    <div className="font-mono text-sm sm:text-base font-black text-[#1a2610] mt-0.5 truncate">
+                      #{orderData.orderNumber || orderData.rentalCode || orderData.id}
+                    </div>
+                    <div className="text-xs text-[#526046] flex items-center gap-1 mt-0.5">
+                      <Calendar className="w-3.5 h-3.5 text-[#5b6950]" aria-hidden="true" />
+                      <span>
+                        Diajukan{' '}
+                        {new Date(orderData.createdAt).toLocaleString('id-ID', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          hour12: false,
+                        })}
+                      </span>
+                    </div>
                   </div>
-                  <span className="text-[#cfd6c9]">•</span>
-                  <div className="text-[#526046] text-[11px] flex items-center gap-1">
-                    <Calendar className="w-3.5 h-3.5 text-[#5b6950]" />
-                    <span>
-                      {new Date(orderData.createdAt).toLocaleDateString('id-ID', {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </span>
-                  </div>
-                  <span className="text-[#cfd6c9]">•</span>
-                  <span className="font-mono text-[11px] text-[#233414] font-bold">
-                    #{orderData.orderNumber || orderData.rentalCode || orderData.id}
+                  <span
+                    className={`shrink-0 px-2.5 py-1 rounded-full text-[11px] font-bold border whitespace-nowrap ${
+                      isRental ? rentalCfg!.badgeClass : getStatusConfig(orderData.status).badgeClass
+                    }`}
+                  >
+                    {isRental ? rentalCfg!.label : getStatusConfig(orderData.status).label}
                   </span>
                 </div>
-
-                <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end pt-2 sm:pt-0 border-t sm:border-t-0 border-[#dce1d6]">
-                  {isRental ? (
-                    <span
-                      className={`px-2.5 py-1 rounded-lg text-xs font-extrabold border ${
-                        getRentalStatusConfig(orderData.status).badgeClass
-                      }`}
-                    >
-                      {getRentalStatusConfig(orderData.status).label}
-                    </span>
-                  ) : (
-                    <span
-                      className={`px-2.5 py-1 rounded-lg text-xs font-extrabold border ${
-                        getStatusConfig(orderData.status).badgeClass
-                      }`}
-                    >
-                      {getStatusConfig(orderData.status).label}
-                    </span>
-                  )}
-
-                  {/* Tombol Batalkan Cepat di Header (Hanya berlaku saat masih sebagai Pesanan Masuk) */}
-                  {!isRental && orderData.status === 'MENUNGGU_PEMBAYARAN' && (
-                    <button
-                      type="button"
-                      onClick={() => setIsCancelModalOpen(true)}
-                      className="px-3 py-1.5 rounded-lg text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 transition cursor-pointer shadow-2xs flex items-center gap-1 shrink-0"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                      <span>Batalkan</span>
-                    </button>
-                  )}
-                  {isRental && orderData.status === 'MENUNGGU_PERSETUJUAN_ADMIN' && (
-                    <button
-                      type="button"
-                      onClick={() => setIsCancelModalOpen(true)}
-                      className="px-3 py-1.5 rounded-lg text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 transition cursor-pointer shadow-2xs flex items-center gap-1 shrink-0"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                      <span>Batalkan</span>
-                    </button>
-                  )}
-                </div>
               </div>
+
+              {/* Alasan pembatalan (otomatis karena lewat batas, oleh admin, atau oleh pembeli) */}
+              {!isRental && orderData.status === 'DIBATALKAN' && (
+                <div className="px-4 sm:px-5 py-3 border-b border-[#dce1d6] bg-red-50/60 text-xs text-red-800 flex items-start gap-2">
+                  <X className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold">Alasan dibatalkan: </span>
+                    {orderData.cancelReason || 'Pesanan dibatalkan.'}
+                    {orderData.cancelledAt && (
+                      <span className="text-red-600/80">
+                        {' '}
+                        ·{' '}
+                        {new Date(orderData.cancelledAt).toLocaleString('id-ID', {
+                          dateStyle: 'medium',
+                          timeStyle: 'short',
+                        })}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Visual Stepper 4 Tahap (Khusus Toko Online: Bayar Dulu baru Ambil di Kasir) */}
               {!isRental && orderData.status !== 'DIBATALKAN' && (
@@ -599,6 +653,26 @@ export default function OrderDetailPage({
                     </div>
 
                     {/* Akumulasi Batas Waktu Pembayaran 24 Jam (Tahap Bayar di Kasir: Dihitung 24 jam sejak siap diambil) */}
+                    {/* Kode Ambil: ditunjukkan ke petugas kasir saat serah terima */}
+                    {orderData.status === 'SIAP_DIAMBIL' && orderData.pickupCode && (
+                      <div className="mt-2.5 p-4 rounded-xl bg-[#233414] text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                          <div className="text-[11px] font-semibold uppercase tracking-wider text-[#D4F63D]">
+                            Kode Ambil Pesanan
+                          </div>
+                          <p className="text-[11px] text-white/75 mt-0.5 max-w-xs leading-relaxed">
+                            Tunjukkan kode ini ke petugas kasir saat mengambil & membayar. Jangan bagikan ke orang lain.
+                          </p>
+                        </div>
+                        <div
+                          className="font-mono text-[28px] sm:text-[32px] font-black tracking-[0.3em] text-[#D4F63D] tabular-nums select-all"
+                          aria-label={`Kode ambil ${orderData.pickupCode.split('').join(' ')}`}
+                        >
+                          {orderData.pickupCode}
+                        </div>
+                      </div>
+                    )}
+
                     {orderData.status === 'SIAP_DIAMBIL' && (
                       <div className="mt-2.5 p-3 rounded-xl bg-amber-50/95 border border-amber-300 text-amber-950 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
                         <div className="flex items-center gap-2">
@@ -644,32 +718,118 @@ export default function OrderDetailPage({
                 </div>
               )}
 
-              {/* Status Hint & Cancel Pengajuan Sewa Alat */}
-              {isRental && (
-                <div className="border-b border-[#dce1d6]">
-                  <div className="p-3.5 sm:p-4 bg-[#e2f2c8]/50 text-xs text-[#1a2610] flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-[#233414] shrink-0" />
-                    <span className="font-medium">{getRentalStatusConfig(orderData.status).hint}</span>
-                  </div>
+              {/* Status & Alur Sewa Alat */}
+              {isRental && rentalCfg && (
+                <div className="p-4 sm:p-5 border-b border-[#dce1d6] space-y-3.5">
+                  {rentalCfg.step > 0 && (
+                    <ol className="grid grid-cols-4 relative" aria-label="Tahapan sewa">
+                      <span className="absolute top-3.5 left-[12.5%] right-[12.5%] h-0.5 bg-[#dce1d6]" aria-hidden="true" />
+                      <span
+                        className="absolute top-3.5 left-[12.5%] h-0.5 bg-[#233414] transition-all duration-500"
+                        style={{ width: `${(Math.min(rentalCfg.step, 4) - 1) * 25}%` }}
+                        aria-hidden="true"
+                      />
+                      {RENTAL_STEPS.map((label, i) => {
+                        const n = i + 1;
+                        const done = rentalCfg.step > n;
+                        const current = rentalCfg.step === n;
+                        return (
+                          <li key={label} className="relative z-10 flex flex-col items-center text-center">
+                            <span
+                              className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black ${
+                                done
+                                  ? 'bg-[#233414] text-[#D4F63D]'
+                                  : current
+                                  ? 'bg-[#233414] text-[#D4F63D] ring-4 ring-[#e2f2c8]'
+                                  : 'bg-white text-[#5b6950] border border-[#cfd6c9]'
+                              }`}
+                              aria-current={current ? 'step' : undefined}
+                            >
+                              {done ? <CheckCircle2 className="w-4 h-4" aria-hidden="true" /> : n}
+                            </span>
+                            <span
+                              className={`mt-1.5 text-[11px] sm:text-xs font-bold ${
+                                current || done ? 'text-[#1a2610]' : 'text-[#5b6950]'
+                              }`}
+                            >
+                              {label}
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ol>
+                  )}
 
-                  {orderData.status === 'MENUNGGU_PERSETUJUAN_ADMIN' && (
-                    <div className="p-3 bg-amber-50/90 border-t border-amber-200/80 text-xs text-amber-950 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-amber-600 shrink-0 animate-pulse" />
-                        <div>
-                          <span className="font-bold">Pengajuan Sedang Diverifikasi Admin Koperasi</span>
-                          <p className="text-[10px] text-amber-700 mt-0.5">
-                            Anda dapat membatalkan pengajuan sewa ini sebelum disetujui staf/pengurus koperasi.
-                          </p>
+                  <p className="text-[13px] text-[#425234] leading-relaxed">{rentalCfg.hint}</p>
+
+                  {orderData.status === 'DISETUJUI' && !orderData.isPaid && (
+                    <div className="p-3.5 rounded-2xl bg-blue-50 border border-blue-200 text-blue-950">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-semibold">DP {DP_PERSEN}% di kasir</span>
+                        <span className="text-base font-black tabular-nums">Rp {rentalDp.toLocaleString('id-ID')}</span>
+                      </div>
+                      {orderData.paymentDeadline && (
+                        <div className="mt-1 text-xs text-blue-800 flex items-center gap-1.5">
+                          <Clock className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                          Paling lambat{' '}
+                          <strong>
+                            {new Date(orderData.paymentDeadline).toLocaleString('id-ID', {
+                              weekday: 'short',
+                              day: 'numeric',
+                              month: 'short',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              hour12: false,
+                              timeZone: 'Asia/Makassar',
+                            })}{' '}
+                            WITA
+                          </strong>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {(orderData.status === 'DIKONFIRMASI' || orderData.status === 'SIAP_DIAMBIL') && (
+                    <div className="p-3.5 rounded-2xl bg-cyan-50 border border-cyan-200 text-cyan-950 flex items-center justify-between gap-2">
+                      <div className="text-xs">
+                        <div className="font-semibold">Ambil alat pada</div>
+                        <div className="font-bold">{fmtDate(orderData.startDate, true)}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs font-semibold">{orderData.isPaid ? 'Status bayar' : 'Sisa dibayar saat ambil'}</div>
+                        <div className="text-base font-black tabular-nums">
+                          {orderData.isPaid ? 'Lunas' : `Rp ${rentalSisa.toLocaleString('id-ID')}`}
                         </div>
                       </div>
+                    </div>
+                  )}
+
+                  {orderData.status === 'DIBATALKAN' && rentalDpPaid && (
+                    <div className="p-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs text-stone-700 leading-relaxed">
+                      {orderData.dpForfeited
+                        ? `DP Rp ${rentalDp.toLocaleString('id-ID')} hangus karena dibatalkan kurang dari H-${BATAS_BATAL_HARI}.`
+                        : orderData.dpRefundedAt
+                        ? 'DP sudah dikembalikan oleh kasir koperasi.'
+                        : `DP Rp ${rentalDp.toLocaleString('id-ID')} akan dikembalikan penuh. Silakan ambil di kasir koperasi.`}
+                    </div>
+                  )}
+
+                  {canCancelRental && (
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-3 border-t border-[#eef1ea]">
+                      <p className="text-xs text-[#526046] leading-relaxed">
+                        {cancelForfeitsDp
+                          ? `Pembatalan sekarang (kurang dari H-${BATAS_BATAL_HARI}) membuat DP hangus.`
+                          : rentalDpPaid
+                          ? `Batal paling lambat H-${BATAS_BATAL_HARI} agar DP kembali penuh.`
+                          : 'Anda masih bisa membatalkan pengajuan ini tanpa biaya.'}
+                      </p>
                       <button
                         type="button"
                         onClick={() => setIsCancelModalOpen(true)}
-                        className="w-full sm:w-auto px-3.5 py-1.5 rounded-lg border border-red-300 bg-white hover:bg-red-50 text-red-700 text-xs font-bold transition cursor-pointer shadow-2xs flex items-center justify-center gap-1.5"
+                        className="w-full sm:w-auto min-h-[40px] px-4 rounded-xl border border-red-200 bg-white hover:bg-red-50 text-red-700 text-xs font-bold transition cursor-pointer shrink-0 flex items-center justify-center gap-1.5"
                       >
-                        <X className="w-3.5 h-3.5" />
-                        <span>Batalkan Pengajuan Sewa</span>
+                        <X className="w-3.5 h-3.5" aria-hidden="true" />
+                        Batalkan Pengajuan
                       </button>
                     </div>
                   )}
@@ -705,8 +865,8 @@ export default function OrderDetailPage({
                                 className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl object-cover border border-[#dce1d6] shrink-0 shadow-2xs"
                               />
                             ) : (
-                              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-[#e2f2c8]/60 text-[#233414] flex items-center justify-center shrink-0 border border-[#c9e39e] text-xl sm:text-2xl font-bold shadow-2xs">
-                                🌾
+                              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-[#e2f2c8]/60 text-[#233414] flex items-center justify-center shrink-0 border border-[#c9e39e]">
+                                <Package className="w-6 h-6" aria-hidden="true" />
                               </div>
                             )}
 
@@ -788,8 +948,8 @@ export default function OrderDetailPage({
                                 className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl object-cover border border-[#dce1d6] shrink-0 shadow-2xs"
                               />
                             ) : (
-                              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-[#e2f2c8]/60 text-[#233414] flex items-center justify-center shrink-0 border border-[#c9e39e] text-xl sm:text-2xl font-bold shadow-2xs">
-                                🚜
+                              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-[#e2f2c8]/60 text-[#233414] flex items-center justify-center shrink-0 border border-[#c9e39e]">
+                                <Tractor className="w-6 h-6" aria-hidden="true" />
                               </div>
                             )}
 
@@ -810,11 +970,16 @@ export default function OrderDetailPage({
                                 {itemQty} unit × Rp {itemPrice.toLocaleString('id-ID')} / {itemUnit}
                               </div>
 
-                              <div className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-lg bg-white/90 border border-[#dce1d6] text-xs text-[#2b4413] shadow-2xs max-w-full">
-                                <Clock className="w-3.5 h-3.5 text-[#5b6950] shrink-0" />
-                                <span className="text-[#5b6950] text-[11px] font-normal shrink-0">Durasi:</span>
-                                <span className="font-bold text-[#1a2610] truncate">
-                                  {itemDuration} {itemUnit} (Mulai {orderData.startDate})
+                              <div className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-lg bg-white border border-[#dce1d6] text-xs text-[#1a2610] max-w-full">
+                                <Calendar className="w-3.5 h-3.5 text-[#5b6950] shrink-0" aria-hidden="true" />
+                                <span className="font-semibold truncate">
+                                  {fmtDate(item.startDate || orderData.startDate)}
+                                  {(item.endDate || orderData.endDate) &&
+                                  String(item.endDate || orderData.endDate).slice(0, 10) !==
+                                    String(item.startDate || orderData.startDate).slice(0, 10)
+                                    ? ` – ${fmtDate(item.endDate || orderData.endDate)}`
+                                    : ''}{' '}
+                                  · {itemDuration} {itemUnit}
                                 </span>
                               </div>
                             </div>
@@ -870,58 +1035,74 @@ export default function OrderDetailPage({
               </div>
 
               {/* Rincian Pembayaran */}
-              <div className="p-4 sm:p-5 border-t border-[#dce1d6] flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white">
-                <div>
-                  <div className="text-xs text-[#526046]">Metode Pembayaran:</div>
-                  <div className="text-xs font-bold text-[#1a2610] mt-0.5">
-                    {orderData.paymentMethod === 'CASH_KOPERASI' || isRental
-                      ? 'Bayar Tunai di Kasir Koperasi'
-                      : 'Transfer Bank'}
-                  </div>
+              <div className="p-4 sm:p-5 border-t border-[#dce1d6] bg-white text-[13px]">
+                <div className="flex items-center justify-between gap-2 text-xs text-[#526046]">
+                  <span>Metode pembayaran</span>
+                  <span className="font-semibold text-[#1a2610]">
+                    {orderData.paymentMethod === 'CASH_KOPERASI' || isRental ? 'Tunai di kasir koperasi' : 'Transfer bank'}
+                  </span>
                 </div>
-
-                <div className="text-left sm:text-right">
-                  <div className="text-xs text-[#526046]">Total Pembayaran:</div>
-                  <div className="text-xl font-black text-[#233414] tracking-tight mt-0.5 tabular-nums">
-                    Rp{' '}
-                    {Number(
-                      orderData.totalAmount ?? orderData.totalEstimasi ?? 0
-                    ).toLocaleString('id-ID')}
+                {isRental ? (
+                  <dl className="mt-3 space-y-1.5">
+                    <div className="flex justify-between gap-2">
+                      <dt className="text-[#526046]">Biaya sewa</dt>
+                      <dd className="font-semibold tabular-nums">Rp {rentalTotal.toLocaleString('id-ID')}</dd>
+                    </div>
+                    <div className="flex justify-between gap-2">
+                      <dt className="text-[#526046]">DP {DP_PERSEN}% {rentalDpPaid ? '(sudah dibayar)' : ''}</dt>
+                      <dd className={`font-semibold tabular-nums ${rentalDpPaid ? 'text-emerald-700' : ''}`}>
+                        {rentalDpPaid ? '− ' : ''}Rp {rentalDp.toLocaleString('id-ID')}
+                      </dd>
+                    </div>
+                    {rentalExtra > 0 && (
+                      <div className="flex justify-between gap-2">
+                        <dt className="text-[#526046]">
+                          Denda & kerusakan
+                          {orderData.damageNotes ? ` (${orderData.damageNotes})` : ''}
+                        </dt>
+                        <dd className="font-semibold tabular-nums text-rose-700">Rp {rentalExtra.toLocaleString('id-ID')}</dd>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between gap-2 pt-2.5 mt-1 border-t border-dashed border-[#dce1d6]">
+                      <dt className="font-bold text-[#1a2610]">
+                        {orderData.isPaid ? 'Total dibayar' : rentalDpPaid ? 'Sisa pelunasan' : 'Total biaya'}
+                      </dt>
+                      <dd className="text-xl font-black text-[#233414] tracking-tight tabular-nums">
+                        Rp{' '}
+                        {(orderData.isPaid
+                          ? rentalTotal + rentalExtra
+                          : rentalDpPaid
+                          ? rentalSisa + rentalExtra
+                          : rentalTotal
+                        ).toLocaleString('id-ID')}
+                      </dd>
+                    </div>
+                  </dl>
+                ) : (
+                  <div className="mt-3 pt-2.5 border-t border-dashed border-[#dce1d6] flex items-center justify-between gap-2">
+                    <span className="font-bold text-[#1a2610]">Total pembayaran</span>
+                    <span className="text-xl font-black text-[#233414] tracking-tight tabular-nums">
+                      Rp {Number(orderData.totalAmount ?? orderData.totalEstimasi ?? 0).toLocaleString('id-ID')}
+                    </span>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Footer Actions */}
-              <div className="p-4 bg-[#EAEDE7]/70 border-t border-[#dce1d6] flex flex-wrap items-center justify-between gap-2.5 text-xs">
-                <div className="text-[#526046] text-[11px]">
-                  Ada pertanyaan seputar pesanan ini? Hubungi langsung staf/admin koperasi.
-                </div>
-
-                <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto justify-end">
-                  {((!isRental && orderData.status === 'MENUNGGU_PEMBAYARAN') ||
-                    (isRental && orderData.status === 'MENUNGGU_PERSETUJUAN_ADMIN')) && (
-                    <button
-                      type="button"
-                      onClick={() => setIsCancelModalOpen(true)}
-                      className="w-full sm:w-auto px-4 py-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 border border-red-300 font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-2xs"
-                    >
-                      <X className="w-4 h-4" />
-                      <span>{isRental ? 'Batalkan Pengajuan' : 'Batalkan Pesanan'}</span>
-                    </button>
-                  )}
-
+              <div className="p-4 bg-[#f4f5f1]/80 border-t border-[#dce1d6] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                <p className="text-[#526046]">Ada pertanyaan? Hubungi admin koperasi.</p>
+                <div className="grid grid-cols-2 sm:flex items-center gap-2">
                   <button
                     type="button"
                     onClick={handleOpenWhatsApp}
-                    className="w-full sm:w-auto px-4 py-2 rounded-lg bg-[#233414] hover:bg-[#344d15] text-white font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
+                    className="min-h-[44px] px-4 rounded-xl bg-[#233414] hover:bg-[#344d15] text-white font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
                   >
-                    <MessageCircle className="w-4 h-4 text-[#D4F63D]" />
-                    <span>Chat Admin WhatsApp</span>
+                    <MessageCircle className="w-4 h-4 text-[#D4F63D]" aria-hidden="true" />
+                    Chat Admin
                   </button>
-
                   <Link
                     href={isRental ? '/sewa-alat' : '/toko'}
-                    className="w-full sm:w-auto px-4 py-2 rounded-lg border border-[#cfd6c9] hover:bg-[#f4f5f1] bg-white text-[#1a2610] font-bold text-xs transition text-center"
+                    className="min-h-[44px] px-4 rounded-xl border border-[#cfd6c9] hover:bg-white bg-white/70 text-[#1a2610] font-bold text-xs transition flex items-center justify-center"
                   >
                     {isRental ? 'Sewa Alat Lain' : 'Beli Lagi'}
                   </Link>
@@ -931,29 +1112,6 @@ export default function OrderDetailPage({
           </div>
         )}
 
-        {/* Sticky Floating Bottom Action Bar Khusus Mobile & Tablet Kecil */}
-        {orderData &&
-          ((!isRental && orderData.status === 'MENUNGGU_PEMBAYARAN') ||
-            (isRental && orderData.status === 'MENUNGGU_PERSETUJUAN_ADMIN')) && (
-            <div className="sm:hidden fixed bottom-0 left-0 right-0 p-3 bg-white/95 backdrop-blur-md border-t border-[#dce1d6] z-40 flex items-center gap-2 shadow-lg">
-              <button
-                type="button"
-                onClick={() => setIsCancelModalOpen(true)}
-                className="flex-1 py-2.5 px-3 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 border border-red-300 font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-2xs"
-              >
-                <X className="w-4 h-4" />
-                <span>{isRental ? 'Batalkan Sewa' : 'Batalkan Pesanan'}</span>
-              </button>
-              <button
-                type="button"
-                onClick={handleOpenWhatsApp}
-                className="flex-1 py-2.5 px-3 rounded-lg bg-[#233414] hover:bg-[#344d15] text-white font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
-              >
-                <MessageCircle className="w-4 h-4 text-[#D4F63D]" />
-                <span>Chat Admin WA</span>
-              </button>
-            </div>
-          )}
       </main>
 
       {/* Modal Dialog Beri Ulasan */}
@@ -1046,10 +1204,25 @@ export default function OrderDetailPage({
                 <AlertCircle className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-[#1a2610]">Batalkan Pesanan Ini?</h3>
+                <h3 className="text-base font-bold text-[#1a2610]">
+                  {isRental ? 'Batalkan Pengajuan Sewa?' : 'Batalkan Pesanan Ini?'}
+                </h3>
                 <p className="text-xs text-[#526046] mt-0.5 leading-relaxed">
-                  Pesanan akan dibatalkan secara permanen dan seluruh stok komoditas akan dikembalikan ke gudang koperasi.
+                  {isRental
+                    ? 'Jadwal alat akan dilepas untuk anggota lain dan pengajuan tidak bisa dilanjutkan.'
+                    : 'Pesanan akan dibatalkan secara permanen dan seluruh stok komoditas akan dikembalikan ke gudang koperasi.'}
                 </p>
+                {isRental && rentalDpPaid && (
+                  <p
+                    className={`mt-2 p-2.5 rounded-lg text-xs font-semibold leading-relaxed ${
+                      cancelForfeitsDp ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                    }`}
+                  >
+                    {cancelForfeitsDp
+                      ? `DP Rp ${rentalDp.toLocaleString('id-ID')} hangus karena pembatalan kurang dari H-${BATAS_BATAL_HARI}.`
+                      : `DP Rp ${rentalDp.toLocaleString('id-ID')} akan dikembalikan penuh di kasir.`}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -1082,7 +1255,7 @@ export default function OrderDetailPage({
                 className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50 shadow-xs"
               >
                 {isCanceling ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-                <span>Ya, Batalkan Pesanan</span>
+                <span>{isRental ? 'Ya, Batalkan Sewa' : 'Ya, Batalkan Pesanan'}</span>
               </button>
             </div>
           </div>

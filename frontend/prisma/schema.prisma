@@ -66,6 +66,8 @@ model User {
   equipmentRentals EquipmentRental[]
   equipmentReviews EquipmentReview[]
 
+  notifications UserNotification[] @relation("UserNotifications")
+
   @@map("users")
 }
 
@@ -106,12 +108,39 @@ model Order {
   catatan     String?
   alamatKirim String?
 
+  // Serah terima di kasir koperasi
+  readyAt        DateTime? // Waktu pesanan ditandai SIAP_DIAMBIL
+  pickupDeadline DateTime? // Batas ambil & bayar; lewat batas -> dibatalkan otomatis, stok kembali
+  pickupCode     String? // Kode 6 digit milik pembeli, diverifikasi admin saat serah terima
+  completedAt    DateTime?
+  cancelledAt    DateTime?
+  cancelReason   String?
+
   items OrderItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@map("orders")
+}
+
+/// Notifikasi untuk pembeli / petani (perubahan status pesanan, sewa, bagi hasil)
+model UserNotification {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  kind      String // ORDER | RENTAL | PAYOUT | SYSTEM
+  title     String
+  message   String
+  href      String?
+  /// Kunci unik peristiwa (mis. "order:<id>:SIAP_DIAMBIL") agar tidak terkirim ganda
+  eventKey  String?   @unique
+  isRead    Boolean   @default(false)
+  emailedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, isRead, createdAt])
+  @@map("user_notifications")
 }
 
 model OrderItem {

@@ -1,4 +1,5 @@
 import { Prisma } from '@prisma/client';
+import { notifyRentalStatus } from '@/lib/user-notifications';
 import { prisma } from '@/lib/prisma';
 import { addDays, eachDate, todayWita, toDateOnly } from '@/lib/rental-schedule';
 
@@ -164,10 +165,21 @@ export function toRentalDTO(r: RentalRow): EquipmentRentalOrder {
  * Dipanggil sebelum membaca data sewa / menghitung ketersediaan.
  */
 export async function expireOverdueRentals(db: Db = prisma): Promise<number> {
+  const where = { status: 'DISETUJUI' as const, isPaid: false, dpPaidAt: null, paymentDeadline: { lt: new Date() } };
+  const overdue = await db.equipmentRental.findMany({ where, select: { id: true } });
+  if (overdue.length === 0) return 0;
   const res = await db.equipmentRental.updateMany({
-    where: { status: 'DISETUJUI', isPaid: false, dpPaidAt: null, paymentDeadline: { lt: new Date() } },
+    where: { ...where, id: { in: overdue.map((r) => r.id) } },
     data: { status: 'KADALUARSA', rejectedReason: 'Melewati batas pembayaran DP di kasir koperasi' },
   });
+  // Notifikasi hanya di luar transaksi (agar tidak terkirim bila transaksi dibatalkan)
+  if (res.count > 0 && db === prisma) {
+    const expired = await prisma.equipmentRental.findMany({
+      where: { id: { in: overdue.map((r) => r.id) }, status: 'KADALUARSA' },
+      include: RENTAL_INCLUDE,
+    });
+    for (const r of expired) notifyRentalStatus(toRentalDTO(r));
+  }
   return res.count;
 }
 

@@ -19,7 +19,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Pengguna tidak ditemukan' }, { status: 404 });
     }
 
-    const cacheKey = `petani:dashboard:${currentUser.id}`;
+    const cacheKey = `petani:dashboard:v2:${currentUser.id}`;
     const cachedData = await getCache<any>(cacheKey);
     if (cachedData) {
       return NextResponse.json(cachedData);
@@ -65,9 +65,10 @@ export async function GET() {
     let cashMenungguPembeli = 0;
 
     for (const item of soldItems) {
-      totalKuantitasTerjual += item.quantity;
       const subtotalNum = Number(item.subtotal);
       const isOrderCompleted = item.order.status === 'SELESAI' && item.order.isPaid;
+      // "Terjual" hanya dari pesanan yang benar-benar selesai (pesanan aktif masih bisa batal)
+      if (isOrderCompleted) totalKuantitasTerjual += item.quantity;
       if (item.payoutStatus === 'MENUNGGU_PENCAIRAN' && !isOrderCompleted) {
         // Pembeli belum menyelesaikan pembayaran/pengambilan: belum bisa dicairkan
         cashMenungguPembeli += subtotalNum;
@@ -98,6 +99,9 @@ export async function GET() {
         payoutStatus: i.payoutStatus,
         payoutAt: i.payoutAt?.toISOString() || null,
         orderDate: i.order.createdAt.toISOString(),
+        // Untuk membedakan "siap diambil" vs "menunggu pesanan pembeli selesai"
+        orderStatus: i.order.status,
+        orderPaid: i.order.isPaid,
       })),
     };
 

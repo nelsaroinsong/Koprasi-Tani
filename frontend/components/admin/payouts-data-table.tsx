@@ -1,5 +1,7 @@
 'use client';
 
+import { waLink } from '@/lib/utils';
+import { notifyAdminDataChanged, useRefetchOnNewActivity } from '@/components/admin/admin-notifications';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Table,
@@ -76,6 +78,9 @@ export function PayoutsDataTable() {
     }
   }, []);
 
+  // Pesanan/data baru masuk -> tabel memuat ulang otomatis
+  useRefetchOnNewActivity('bagiHasil', fetchPayouts);
+
   useEffect(() => {
     fetchPayouts();
   }, [fetchPayouts]);
@@ -123,11 +128,21 @@ export function PayoutsDataTable() {
       const res = await fetch('/api/admin/payouts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ petaniId: petaniToPayCash.petani.id }),
+        body: JSON.stringify({
+          petaniId: petaniToPayCash.petani.id,
+          // Persis item yang tampil di konfirmasi -> total yang dicatat = uang yang diserahkan
+          itemIds: petaniToPayCash.pendingItems.map((it: any) => it.id),
+        }),
       });
+      notifyAdminDataChanged();
 
       const data = await res.json();
       if (!res.ok) {
+        if (res.status === 409) {
+          setPetaniToPayCash(null);
+          setSelectedPetaniPayout(null);
+          fetchPayouts();
+        }
         throw new Error(data.error || 'Gagal menyerahkan uang cash ke petani.');
       }
 
@@ -605,7 +620,7 @@ export function PayoutsDataTable() {
                     </DialogTitle>
                     {selectedPetaniPayout.petani.phone ? (
                       <a
-                        href={`https://wa.me/${selectedPetaniPayout.petani.phone.replace(/\D/g, '')}`}
+                        href={waLink(selectedPetaniPayout.petani.phone)}
                         target="_blank"
                         rel="noreferrer"
                         className="text-xs text-emerald-700 hover:underline inline-flex items-center gap-1"

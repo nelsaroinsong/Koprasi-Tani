@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { getCache, setCache, delCachePattern } from '@/lib/redis';
+import { effectivePickupDeadline, expireOverduePickupOrders, stripPickupCode } from '@/lib/order-lifecycle';
 
 // 1. GET: Ambil seluruh daftar pesanan masuk untuk Admin Koperasi
 export async function GET(request: Request) {
@@ -29,7 +30,10 @@ export async function GET(request: Request) {
       : Math.max(1, Math.min(50, parseInt(searchParams.get('limit') || '10', 10)));
     const skip = isExport ? 0 : (page - 1) * limit;
 
-    const cacheKey = `admin:orders:v3:p=${page}:l=${limit}:s=${statusParam || 'all'}:m=${methodParam || 'all'}:sd=${startDateParam || ''}:ed=${endDateParam || ''}:q=${search || ''}:exp=${isExport}`;
+    // Batalkan otomatis pesanan yang lewat batas ambil & bayar (sebelum membaca cache)
+    await expireOverduePickupOrders();
+
+    const cacheKey = `admin:orders:v4:p=${page}:l=${limit}:s=${statusParam || 'all'}:m=${methodParam || 'all'}:sd=${startDateParam || ''}:ed=${endDateParam || ''}:q=${search || ''}:exp=${isExport}`;
     const cachedResponse = await getCache<any>(cacheKey);
     if (cachedResponse && !isExport) {
       return NextResponse.json(cachedResponse);
@@ -175,11 +179,15 @@ export async function GET(request: Request) {
     const responseData = {
       success: true,
       orders: orders.map((o) => ({
-        ...o,
+        ...stripPickupCode(o),
         totalAmount: Number(o.totalAmount),
         createdAt: o.createdAt.toISOString(),
         updatedAt: o.updatedAt.toISOString(),
         paidAt: o.paidAt?.toISOString() || null,
+        readyAt: o.readyAt?.toISOString() || null,
+        completedAt: o.completedAt?.toISOString() || null,
+        cancelledAt: o.cancelledAt?.toISOString() || null,
+        pickupDeadline: effectivePickupDeadline(o)?.toISOString() ?? null,
         items: o.items.map((i) => ({
           ...i,
           hargaPerSatuan: Number(i.hargaPerSatuan),
@@ -285,6 +293,7 @@ export async function DELETE(request: Request) {
       delCachePattern('admin:orders:*'),
       delCachePattern('user:orders:*'),
       delCachePattern('products:*'),
+      delCachePattern('product:detail:*'),
     ]).catch(() => {});
 
     return NextResponse.json({

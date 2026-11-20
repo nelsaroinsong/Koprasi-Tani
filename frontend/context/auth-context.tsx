@@ -261,6 +261,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (typeof window !== 'undefined') {
       localStorage.removeItem(STORAGE_KEY);
       localStorage.removeItem('koperasi_user');
+      // Hapus penanda login portal admin yang mungkin tertinggal (mis. admin batal
+      // memilih akun Google). Tanpa ini, login user publik ikut diperlakukan
+      // sebagai login admin dan ditolak dengan pesan "bukan administrator".
+      document.cookie = 'ksps_admin_login=; Max-Age=0; Path=/; SameSite=Lax';
     }
     setLocalUser(null);
 

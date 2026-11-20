@@ -17,7 +17,8 @@ import { useAuth } from '@/context/auth-context';
 import {
   AppNotification,
   INITIAL_SYSTEM_NOTIFICATION,
-  buildNotificationsFromTransactions,
+  loadNotifications,
+  markServerNotificationsRead,
   getStoredReadIds,
   saveReadIds,
   getCachedNotifications,
@@ -68,30 +69,7 @@ export default function NotificationDropdown() {
     }
 
     try {
-      const [ordersRes, rentalsRes] = await Promise.all([
-        fetch('/api/orders').catch(() => null),
-        fetch('/api/equipments/rent').catch(() => null),
-      ]);
-
-      let ordersList: any[] = [];
-      let rentalsList: any[] = [];
-
-      if (ordersRes && ordersRes.ok) {
-        const data = await ordersRes.json();
-        if (Array.isArray(data.orders)) {
-          ordersList = data.orders;
-        }
-      }
-
-      if (rentalsRes && rentalsRes.ok) {
-        const data = await rentalsRes.json();
-        if (Array.isArray(data.rentals)) {
-          rentalsList = data.rentals;
-        }
-      }
-
-      // Build notifications: At start of account -> only system notif. If transactions exist -> transaction notifs + system notif!
-      const built = buildNotificationsFromTransactions(ordersList, rentalsList, user.id);
+      const built = await loadNotifications(user.id);
       setNotifications(built);
       setCachedNotifications(built, user.id);
     } catch (e) {
@@ -126,12 +104,21 @@ export default function NotificationDropdown() {
       syncNotifications();
     };
 
+    // Cek notifikasi baru tiap 60 detik & saat tab dibuka kembali
+    const poll = setInterval(() => {
+      if (document.visibilityState === 'visible') syncNotifications();
+    }, 60_000);
+    const onVisible = () => document.visibilityState === 'visible' && syncNotifications();
+    document.addEventListener('visibilitychange', onVisible);
+
     window.addEventListener('koperasi-new-transaction', handleTxUpdate);
     window.addEventListener('order-created', handleTxUpdate);
     window.addEventListener('rental-created', handleTxUpdate);
     window.addEventListener('koperasi-notifications-updated', handleTxUpdate);
 
     return () => {
+      clearInterval(poll);
+      document.removeEventListener('visibilitychange', onVisible);
       window.removeEventListener('koperasi-new-transaction', handleTxUpdate);
       window.removeEventListener('order-created', handleTxUpdate);
       window.removeEventListener('rental-created', handleTxUpdate);
@@ -196,6 +183,7 @@ export default function NotificationDropdown() {
       readMap[n.id] = true;
     });
     saveReadIds(readMap, user?.id);
+    markServerNotificationsRead('all');
 
     const updated = notifications.map((n) => ({ ...n, isRead: true }));
     setNotifications(updated);
@@ -208,6 +196,7 @@ export default function NotificationDropdown() {
   const handleNotificationClick = (notif: AppNotification) => {
     const readMap = getStoredReadIds(user?.id);
     readMap[notif.id] = true;
+    markServerNotificationsRead([notif]);
     saveReadIds(readMap, user?.id);
 
     const updated = notifications.map((n) => (n.id === notif.id ? { ...n, isRead: true } : n));

@@ -1,5 +1,8 @@
 'use client';
 
+import { ReasonConfirmDialog } from '@/components/admin/reason-confirm-dialog';
+import { waLink } from '@/lib/utils';
+import { notifyAdminDataChanged, useRefetchOnNewActivity } from '@/components/admin/admin-notifications';
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   Table,
@@ -46,6 +49,8 @@ import {
   Square,
   ShoppingBag,
   Wallet,
+  KeyRound,
+  TimerReset,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useDebounce } from '@/hooks/use-debounce';
@@ -85,6 +90,22 @@ const HATCHED_BG_STYLE: React.CSSProperties = {
   backgroundImage:
     'repeating-linear-gradient(-45deg, #F3F4F6, #F3F4F6 4px, #F9FAFB 4px, #F9FAFB 8px)',
 };
+
+/** Sisa waktu menuju batas ambil & bayar, mis. "5j 12m" */
+function formatRemaining(deadlineIso: string | null | undefined, now: number) {
+  if (!deadlineIso) return null;
+  const diff = new Date(deadlineIso).getTime() - now;
+  if (diff <= 0) return { text: 'Lewat batas', tone: 'expired' as const };
+  const h = Math.floor(diff / 3_600_000);
+  const m = Math.floor((diff % 3_600_000) / 60_000);
+  const text = h > 0 ? `${h}j ${m}m` : `${Math.max(m, 1)}m`;
+  return { text, tone: diff < 3 * 3_600_000 ? ('urgent' as const) : ('normal' as const) };
+}
+
+function formatDateTime(iso: string | null | undefined) {
+  if (!iso) return null;
+  return new Date(iso).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
+}
 
 /**
  * Komponen Timeline 4-Tahap Persis Referensi Gambar (Shipment Event)
@@ -211,6 +232,21 @@ export function OrdersDataTable({
   const [orderToDelete, setOrderToDelete] = useState<any | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Konfirmasi pembatalan pesanan (dengan alasan untuk pembeli)
+  const [cancelTarget, setCancelTarget] = useState<any | null>(null);
+
+  // Serah terima: verifikasi kode ambil dari pembeli
+  const [pickupTarget, setPickupTarget] = useState<any | null>(null);
+  const [pickupCodeInput, setPickupCodeInput] = useState('');
+  const [pickupCodeError, setPickupCodeError] = useState<string | null>(null);
+
+  // Jam berjalan untuk hitung mundur batas ambil (diperbarui tiap 30 detik)
+  const [nowTick, setNowTick] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNowTick(Date.now()), 30_000);
+    return () => clearInterval(t);
+  }, []);
+
   const headerCheckboxRef = useRef<HTMLInputElement>(null);
   const debouncedSearch = useDebounce(searchQuery, 300);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -302,6 +338,9 @@ export function OrdersDataTable({
     }
   }, [currentPage, limit, debouncedSearch, filterStatus, dateRange, isDashboard]);
 
+  // Pesanan/data baru masuk -> tabel memuat ulang otomatis
+  useRefetchOnNewActivity('pesananToko', fetchOrders);
+
   useEffect(() => {
     fetchOrders();
     return () => {
@@ -311,52 +350,87 @@ export function OrdersDataTable({
     };
   }, [fetchOrders]);
 
-  const handleUpdateStatus = async (orderId: string, newStatus: string) => {
+  /** Kirim perubahan ke API. Mengembalikan pesan error (atau null jika berhasil). */
+  const patchOrder = async (orderId: string, payload: Record<string, any>): Promise<{ error: string | null; code?: string }> => {
     try {
       setIsUpdatingStatus(true);
       const res = await fetch(`/api/admin/orders/${orderId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify(payload),
       });
-
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || 'Gagal mengubah status pesanan');
+        return { error: data.error || 'Gagal mengubah status pesanan', code: data.code };
       }
 
+      notifyAdminDataChanged();
       showToast(data.message || 'Status pesanan berhasil diperbarui');
 
-      setOrders((prev) =>
-        prev.map((o) =>
-          o.id === orderId
-            ? {
-                ...o,
-                status: newStatus,
-                isPaid: newStatus === 'SELESAI' ? true : newStatus === 'DIBATALKAN' ? false : o.isPaid,
-              }
-            : o
-        )
-      );
-
-      if (selectedOrder && selectedOrder.id === orderId) {
-        setSelectedOrder((prev: any) =>
-          prev
-            ? {
-                ...prev,
-                status: newStatus,
-                isPaid: newStatus === 'SELESAI' ? true : newStatus === 'DIBATALKAN' ? false : prev.isPaid,
-              }
-            : null
-        );
+      if (data.order) {
+        const merge = (o: any) => ({ ...o, ...data.order, pembeli: o.pembeli, items: o.items });
+        setOrders((prev) => prev.map((o) => (o.id === orderId ? merge(o) : o)));
+        setSelectedOrder((prev: any) => (prev && prev.id === orderId ? merge(prev) : prev));
       }
 
       fetchOrders();
+      return { error: null };
     } catch (err: any) {
-      showToast(err.message || 'Terjadi kesalahan sistem');
+      return { error: err.message || 'Terjadi kesalahan sistem' };
     } finally {
       setIsUpdatingStatus(false);
     }
+  };
+
+  const handleUpdateStatus = async (orderId: string, newStatus: string) => {
+    // Pembatalan tidak bisa diurungkan: buka dialog konfirmasi + alasan dulu
+    if (newStatus === 'DIBATALKAN') {
+      setCancelTarget(orders.find((o) => o.id === orderId) || selectedOrder);
+      return;
+    }
+    const { error } = await patchOrder(orderId, { status: newStatus });
+    if (error) showToast(error);
+  };
+
+  const handleConfirmCancel = async (reason: string) => {
+    if (!cancelTarget) return;
+    const { error } = await patchOrder(cancelTarget.id, {
+      status: 'DIBATALKAN',
+      ...(reason ? { cancelReason: reason } : {}),
+    });
+    if (error) {
+      showToast(error);
+      return;
+    }
+    setCancelTarget(null);
+  };
+
+  const handleExtendPickup = async (orderId: string) => {
+    const { error } = await patchOrder(orderId, { action: 'EXTEND_PICKUP' });
+    if (error) showToast(error);
+  };
+
+  const openPickupDialog = (order: any) => {
+    setPickupTarget(order);
+    setPickupCodeInput('');
+    setPickupCodeError(null);
+  };
+
+  const handleConfirmPickup = async () => {
+    if (!pickupTarget) return;
+    if (pickupTarget.hasPickupCode && pickupCodeInput.length !== 6) {
+      setPickupCodeError('Masukkan 6 digit kode ambil dari pembeli.');
+      return;
+    }
+    const { error } = await patchOrder(pickupTarget.id, {
+      status: 'SELESAI',
+      pickupCode: pickupCodeInput,
+    });
+    if (error) {
+      setPickupCodeError(error);
+      return;
+    }
+    setPickupTarget(null);
   };
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -383,6 +457,7 @@ export function OrdersDataTable({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ orderIds: selectedOrders }),
       });
+      notifyAdminDataChanged();
 
       const data = await res.json();
       if (!res.ok) {
@@ -417,6 +492,7 @@ export function OrdersDataTable({
       const res = await fetch(`/api/admin/orders/${orderToDelete.id}`, {
         method: 'DELETE',
       });
+      notifyAdminDataChanged();
 
       const data = await res.json();
       if (!res.ok) {
@@ -658,6 +734,9 @@ export function OrdersDataTable({
   };
 
   // Status Badge ringkas dengan dot berwarna
+  const selectedRemaining =
+    selectedOrder?.status === 'SIAP_DIAMBIL' ? formatRemaining(selectedOrder.pickupDeadline, nowTick) : null;
+
   const STATUS_BADGE: Record<string, { label: string; cls: string; dot: string }> = {
     MENUNGGU_PEMBAYARAN: { label: 'Menunggu Bayar', cls: 'bg-slate-50 text-slate-700 border-slate-200', dot: 'bg-slate-400' },
     DIPROSES: { label: 'Diproses', cls: 'bg-blue-50 text-blue-700 border-blue-200', dot: 'bg-blue-500' },
@@ -684,7 +763,9 @@ export function OrdersDataTable({
         Tunai Kasir
       </span>
       <div className="text-[11px] font-medium">
-        {order.status === 'DIBATALKAN' || !order.isPaid ? (
+        {order.status === 'DIBATALKAN' ? (
+          <span className="text-slate-400">Tidak ditagih</span>
+        ) : !order.isPaid ? (
           <span className="text-amber-600">Belum lunas</span>
         ) : (
           <span className="text-emerald-600">Lunas</span>
@@ -1062,9 +1143,26 @@ export function OrdersDataTable({
                           className="py-3 whitespace-nowrap"
                           onClick={(e) => e.stopPropagation()}
                         >
+                          {order.status === 'SIAP_DIAMBIL' && (() => {
+                            const r = formatRemaining(order.pickupDeadline, nowTick);
+                            if (!r) return null;
+                            return (
+                              <div
+                                className={`mb-1 flex w-fit items-center gap-1 h-5 px-1.5 rounded text-[10px] font-semibold border ${
+                                  r.tone === 'normal'
+                                    ? 'bg-slate-50 text-slate-600 border-slate-200'
+                                    : 'bg-rose-50 text-rose-700 border-rose-200'
+                                }`}
+                                title={`Batas ambil & bayar: ${formatDateTime(order.pickupDeadline)}`}
+                              >
+                                <Clock className="w-2.5 h-2.5" />
+                                {r.tone === 'expired' ? r.text : `Sisa ${r.text}`}
+                              </div>
+                            );
+                          })()}
                           {order.status === 'SELESAI' || order.status === 'DIBATALKAN' ? (
                             <div
-                              className="inline-block cursor-default select-none opacity-95"
+                              className="block w-fit cursor-default select-none opacity-95"
                               title={
                                 order.status === 'SELESAI'
                                   ? 'Pesanan telah selesai & lunas (status permanen)'
@@ -1114,11 +1212,11 @@ export function OrdersDataTable({
 
                                 {order.status === 'SIAP_DIAMBIL' && (
                                   <DropdownMenuItem
-                                    onClick={() => handleUpdateStatus(order.id, 'SELESAI')}
+                                    onClick={() => openPickupDialog(order)}
                                     className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-emerald-700 hover:bg-emerald-50 font-semibold"
                                   >
                                     <Check className="w-3.5 h-3.5 text-emerald-600" strokeWidth={2.5} />
-                                    <span>Terima Tunai & Selesaikan</span>
+                                    <span>Verifikasi Kode & Selesaikan</span>
                                   </DropdownMenuItem>
                                 )}
 
@@ -1185,7 +1283,7 @@ export function OrdersDataTable({
                               </div>
                               {order.pembeli?.phone && (
                                 <a
-                                  href={`https://wa.me/${order.pembeli.phone.replace(/\D/g, '')}`}
+                                  href={waLink(order.pembeli.phone)}
                                   target="_blank"
                                   rel="noreferrer"
                                   onClick={(e) => e.stopPropagation()}
@@ -1275,11 +1373,11 @@ export function OrdersDataTable({
 
                                   {order.status === 'SIAP_DIAMBIL' && (
                                     <DropdownMenuItem
-                                      onClick={() => handleUpdateStatus(order.id, 'SELESAI')}
+                                      onClick={() => openPickupDialog(order)}
                                       className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-emerald-700 hover:bg-emerald-50 font-semibold"
                                     >
                                       <Check className="w-3.5 h-3.5 text-emerald-600" strokeWidth={2.5} />
-                                      <span>Terima Tunai & Selesaikan</span>
+                                      <span>Verifikasi Kode & Selesaikan</span>
                                     </DropdownMenuItem>
                                   )}
 
@@ -1375,6 +1473,117 @@ export function OrdersDataTable({
           </div>
         </div>
       </div>
+
+      {/* Konfirmasi Batalkan Pesanan */}
+      <ReasonConfirmDialog
+        key={cancelTarget?.id || 'none'}
+        open={Boolean(cancelTarget)}
+        title="Batalkan pesanan ini?"
+        subtitle={
+          cancelTarget
+            ? `#${cancelTarget.orderNumber} · ${cancelTarget.pembeli?.name || 'Pembeli'} · Rp ${Number(cancelTarget.totalAmount).toLocaleString('id-ID')}`
+            : undefined
+        }
+        consequences={[
+          'Stok komoditas dikembalikan ke gudang.',
+          'Pembeli melihat status Dibatalkan beserta alasannya.',
+          'Tindakan ini tidak bisa diurungkan.',
+        ]}
+        quickReasons={['Stok tidak tersedia', 'Pembeli tidak bisa dihubungi', 'Permintaan pembeli', 'Kualitas tidak sesuai']}
+        confirmLabel="Ya, Batalkan Pesanan"
+        isSubmitting={isUpdatingStatus}
+        onConfirm={handleConfirmCancel}
+        onClose={() => setCancelTarget(null)}
+      />
+
+      {/* Verifikasi Kode Ambil saat Serah Terima di Kasir */}
+      <Dialog open={Boolean(pickupTarget)} onOpenChange={(open) => !open && !isUpdatingStatus && setPickupTarget(null)}>
+        <DialogContent className="max-w-sm p-6 bg-white border border-slate-200 rounded-2xl shadow-xl">
+          {pickupTarget && (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleConfirmPickup();
+              }}
+              className="space-y-4"
+            >
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center shrink-0">
+                  <KeyRound className="w-5 h-5 text-emerald-700" />
+                </div>
+                <div className="min-w-0">
+                  <DialogTitle className="text-base font-bold text-slate-900">Serah Terima Pesanan</DialogTitle>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    #{pickupTarget.orderNumber} · {pickupTarget.pembeli?.name || 'Pembeli'}
+                  </p>
+                </div>
+              </div>
+
+              {pickupTarget.hasPickupCode ? (
+                <div className="space-y-1.5">
+                  <label htmlFor="pickup-code" className="text-xs font-semibold text-slate-800">
+                    Kode ambil dari HP pembeli
+                  </label>
+                  <input
+                    id="pickup-code"
+                    autoFocus
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={6}
+                    value={pickupCodeInput}
+                    onChange={(e) => {
+                      setPickupCodeInput(e.target.value.replace(/\D/g, '').slice(0, 6));
+                      setPickupCodeError(null);
+                    }}
+                    placeholder="••••••"
+                    className={`w-full h-14 text-center font-mono text-[26px] font-bold tracking-[0.45em] text-slate-900 bg-white border rounded-xl focus:outline-none focus:ring-2 transition ${
+                      pickupCodeError ? 'border-rose-300 focus:ring-rose-500/40' : 'border-slate-200 focus:ring-slate-900/30'
+                    }`}
+                  />
+                  {pickupCodeError ? (
+                    <p className="text-[11.5px] text-rose-600 font-medium">{pickupCodeError}</p>
+                  ) : (
+                    <p className="text-[11.5px] text-slate-500">
+                      Minta pembeli membuka halaman pesanannya, lalu ketik 6 digit kode yang tampil.
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-[11.5px] text-amber-800">
+                  Pesanan ini dibuat sebelum fitur kode ambil ada. Pastikan nama & nomor HP pembeli sesuai sebelum
+                  menyerahkan barang.
+                  {pickupCodeError && <div className="mt-1 font-semibold text-rose-600">{pickupCodeError}</div>}
+                </div>
+              )}
+
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-[11.5px] text-slate-600">
+                Dengan menyelesaikan, Anda menyatakan pembayaran tunai{' '}
+                <b className="text-slate-900">Rp {Number(pickupTarget.totalAmount).toLocaleString('id-ID')}</b> sudah
+                diterima dan barang diserahkan.
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPickupTarget(null)}
+                  disabled={isUpdatingStatus}
+                  className="h-9 px-3.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUpdatingStatus || (pickupTarget.hasPickupCode && pickupCodeInput.length !== 6)}
+                  className="h-9 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {isUpdatingStatus ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" strokeWidth={2.5} />}
+                  Selesaikan Pesanan
+                </button>
+              </div>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* 3. Detail & Tracking Timeline Modal */}
       {selectedOrder && (
@@ -1537,7 +1746,7 @@ export function OrdersDataTable({
                     <dd className="font-medium">
                       {selectedOrder.pembeli?.phone ? (
                         <a
-                          href={`https://wa.me/${selectedOrder.pembeli.phone.replace(/\D/g, '')}`}
+                          href={waLink(selectedOrder.pembeli.phone)}
                           target="_blank"
                           rel="noreferrer"
                           className="text-emerald-700 hover:underline inline-flex items-center gap-1"
@@ -1555,7 +1764,11 @@ export function OrdersDataTable({
                     <dt className="text-slate-500">Pembayaran</dt>
                     <dd className="font-medium text-slate-900 flex items-center gap-2">
                       Tunai Kasir
-                      {selectedOrder.status === 'DIBATALKAN' || !selectedOrder.isPaid ? (
+                      {selectedOrder.status === 'DIBATALKAN' ? (
+                        <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 text-[10.5px] font-semibold">
+                          Tidak ditagih
+                        </span>
+                      ) : !selectedOrder.isPaid ? (
                         <span className="px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 text-[10.5px] font-semibold">
                           Belum lunas
                         </span>
@@ -1569,9 +1782,93 @@ export function OrdersDataTable({
                   <div className="px-4 py-2.5 grid grid-cols-[120px_1fr] gap-3">
                     <dt className="text-slate-500">Titik Ambil</dt>
                     <dd className="font-medium text-slate-900 leading-relaxed">
-                      {selectedOrder.alamatKirim || 'Kantor & Gudang Koperasi (Ambil Langsung)'}
+                      Kantor & Gudang Koperasi (ambil langsung)
                     </dd>
                   </div>
+                  {(selectedOrder.alamatKirim || selectedOrder.pembeli?.address) && (
+                    <div className="px-4 py-2.5 grid grid-cols-[120px_1fr] gap-3">
+                      <dt className="text-slate-500">Alamat Pembeli</dt>
+                      <dd className="font-medium text-slate-900 leading-relaxed">
+                        {selectedOrder.alamatKirim || selectedOrder.pembeli?.address}
+                      </dd>
+                    </div>
+                  )}
+                </dl>
+              </section>
+
+              {/* Serah Terima: batas ambil, kode, & waktu tiap tahap */}
+              <section className="rounded-xl border border-slate-200 overflow-hidden">
+                <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center gap-1.5">
+                  <KeyRound className="w-3.5 h-3.5 text-slate-500" />
+                  <h3 className="text-[12px] font-semibold text-slate-800">Serah Terima & Waktu</h3>
+                </div>
+
+                {selectedOrder.status === 'SIAP_DIAMBIL' && (
+                    <div
+                      className={`px-4 py-3 border-b flex flex-wrap items-center justify-between gap-2 ${
+                        selectedRemaining?.tone === 'normal' ? 'bg-white border-slate-100' : 'bg-rose-50/60 border-rose-100'
+                      }`}
+                    >
+                      <div>
+                        <div className="text-[11px] text-slate-500">Batas ambil & bayar</div>
+                        <div className="text-[13px] font-semibold text-slate-900 tabular-nums">
+                          {formatDateTime(selectedOrder.pickupDeadline) || '-'}
+                          {selectedRemaining && (
+                            <span className={`ml-2 text-[11px] font-semibold ${selectedRemaining.tone === 'normal' ? 'text-slate-500' : 'text-rose-600'}`}>
+                              {selectedRemaining.tone === 'expired' ? '(lewat batas)' : `(sisa ${selectedRemaining.text})`}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-slate-400 mt-0.5">
+                          Lewat batas & belum dibayar → dibatalkan otomatis, stok kembali ke gudang.
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleExtendPickup(selectedOrder.id)}
+                        disabled={isUpdatingStatus}
+                        className="h-8 px-3 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-[11.5px] font-semibold text-slate-700 flex items-center gap-1.5 cursor-pointer shadow-2xs disabled:opacity-50"
+                        title="Pembeli minta waktu tambahan"
+                      >
+                        <TimerReset className="w-3.5 h-3.5" />
+                        Perpanjang 24 jam
+                      </button>
+                    </div>
+                )}
+
+                {selectedOrder.status === 'SIAP_DIAMBIL' && (
+                  <div className="px-4 py-2.5 border-b border-slate-100 text-[11.5px] text-slate-600 flex items-start gap-2">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                    <span>
+                      {selectedOrder.hasPickupCode
+                        ? 'Pembeli memegang kode ambil 6 digit di halaman pesanannya. Minta kode itu saat serah terima.'
+                        : 'Pesanan lama tanpa kode ambil — cocokkan identitas pembeli secara manual.'}
+                    </span>
+                  </div>
+                )}
+
+                {selectedOrder.status === 'DIBATALKAN' && (
+                  <div className="px-4 py-2.5 border-b border-rose-100 bg-rose-50/60 text-[11.5px] text-rose-700">
+                    <span className="font-semibold">Alasan batal: </span>
+                    {selectedOrder.cancelReason || 'Tidak tercatat'}
+                  </div>
+                )}
+
+                <dl className="divide-y divide-slate-100">
+                  {[
+                    { label: 'Dipesan', value: selectedOrder.createdAt },
+                    { label: 'Siap diambil', value: selectedOrder.readyAt },
+                    { label: 'Dibayar', value: selectedOrder.paidAt },
+                    { label: 'Selesai', value: selectedOrder.completedAt },
+                    { label: 'Dibatalkan', value: selectedOrder.cancelledAt },
+                  ]
+                    .filter((row) => row.value)
+                    .map((row) => (
+                      <div key={row.label} className="px-4 py-2 grid grid-cols-[120px_1fr] gap-3">
+                        <dt className="text-slate-500">{row.label}</dt>
+                        <dd className="font-medium text-slate-900 tabular-nums">{formatDateTime(row.value)}</dd>
+                      </div>
+                    ))}
                 </dl>
               </section>
 
@@ -1677,12 +1974,12 @@ export function OrdersDataTable({
                 {selectedOrder.status === 'SIAP_DIAMBIL' && (
                   <button
                     type="button"
-                    onClick={() => handleUpdateStatus(selectedOrder.id, 'SELESAI')}
+                    onClick={() => openPickupDialog(selectedOrder)}
                     disabled={isUpdatingStatus}
                     className="px-3.5 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
                   >
                     <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
-                    <span>Terima Tunai & Selesaikan</span>
+                    <span>Verifikasi Kode & Selesaikan</span>
                   </button>
                 )}
 

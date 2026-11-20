@@ -35,6 +35,8 @@ const PRESETS: Record<string, { paper: string; ink: string }> = {
 
 const DEFAULT_SANS =
   '"Inter Tight", "Inter Variable", "Inter", "Segoe UI Variable Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif';
+const DEFAULT_TEXT =
+  'var(--font-dm-sans), "DM Sans", system-ui, -apple-system, sans-serif';
 const DEFAULT_MONO =
   '"JetBrains Mono", "SF Mono", ui-monospace, Menlo, Consolas, monospace';
 
@@ -61,7 +63,8 @@ function wspWeight(z: number, minW: number, maxW: number): number {
 }
 
 function wspTracking(weight: number): number {
-  return -0.02 - 0.05 * wspClamp01((weight - 100) / 800);
+  // Thin glyphs have more internal whitespace, so they need tighter tracking
+  return -0.085 + 0.02 * wspClamp01((weight - 100) / 800);
 }
 
 function wspTicks(z: number, maxTicks: number): number {
@@ -124,11 +127,11 @@ const WSP_STYLES = `
   justify-content: space-between;
   align-items: center;
   gap: 16px;
-  font-family: var(--wsp-mono);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: .2em;
-  text-transform: uppercase;
+  font-family: var(--wsp-text);
+  font-size: 15px;
+  font-weight: 400;
+  letter-spacing: -0.025em;
+  line-height: 1.08;
   z-index: 5;
 }
 .wsp-hud span:last-child {
@@ -140,7 +143,7 @@ const WSP_STYLES = `
   position: absolute;
   left: clamp(18px, 4vw, 44px);
   right: clamp(18px, 4vw, 44px);
-  top: calc(clamp(18px, 4vh, 36px) + 24px);
+  top: calc(clamp(18px, 4vh, 36px) + 28px);
   height: 0;
   border-top: 1px solid currentColor;
   opacity: .15;
@@ -167,15 +170,16 @@ const WSP_STYLES = `
   position: absolute;
   left: clamp(18px, 4vw, 44px);
   right: clamp(18px, 4vw, 44px);
-  top: calc(clamp(18px, 4vh, 36px) + 40px);
+  top: calc(clamp(18px, 4vh, 36px) + 46px);
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   gap: 20px;
-  font-family: var(--wsp-mono);
-  font-size: 10px;
-  letter-spacing: .2em;
-  text-transform: uppercase;
+  font-family: var(--wsp-text);
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: -0.025em;
+  line-height: 1.08;
   z-index: 5;
 }
 .wsp-foot > span {
@@ -447,6 +451,7 @@ export default function WeightSweepPreloader({
           '--wsp-ink': chosenPalette.ink,
           '--wsp-sans': fontFamily,
           '--wsp-mono': monoFamily,
+          '--wsp-text': DEFAULT_TEXT,
         } as React.CSSProperties
       }
     >

@@ -1,6 +1,9 @@
 'use client';
 
+import { UserActivitySummary } from '@/components/admin/user-activity-summary';
+import { waLink } from '@/lib/utils';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useRefetchOnNewActivity } from '@/components/admin/admin-notifications';
 import {
   Table,
   TableHeader,
@@ -134,6 +137,9 @@ export function PembeliDataTable() {
     }
   }, [currentPage, limit, debouncedSearch]);
 
+  // Pesanan/data baru masuk -> tabel memuat ulang otomatis
+  useRefetchOnNewActivity('pembeli', fetchPembeli);
+
   useEffect(() => {
     fetchPembeli();
     return () => {
@@ -201,13 +207,7 @@ export function PembeliDataTable() {
   };
 
   // Helper waHref
-  const getWaHref = (phone: string | null) => {
-    if (!phone) return '#';
-    const digits = phone.replace(/\D/g, '');
-    return digits.startsWith('0')
-      ? `https://wa.me/62${digits.slice(1)}`
-      : `https://wa.me/${digits}`;
-  };
+  const getWaHref = (phone: string | null) => waLink(phone);
 
   // Jika sedang membuka Form Tambah / Edit Pembeli, render Halaman Penuh Form
   if (viewMode === 'FORM') {
@@ -604,9 +604,15 @@ export function PembeliDataTable() {
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className="inline-flex items-center gap-1.5 h-6 px-2 rounded-md border text-[11px] font-medium bg-emerald-50 text-emerald-700 border-emerald-200">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                    Aktif
+                  <span
+                    className={`inline-flex items-center gap-1.5 h-6 px-2 rounded-md border text-[11px] font-medium ${
+                      detailPembeli.isActive
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : 'bg-slate-100 text-slate-600 border-slate-200'
+                    }`}
+                  >
+                    <span className={`w-1.5 h-1.5 rounded-full ${detailPembeli.isActive ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                    {detailPembeli.isActive ? 'Aktif' : 'Nonaktif'}
                   </span>
 
                   <button
@@ -684,13 +690,21 @@ export function PembeliDataTable() {
 
                     <div className="px-4 py-2.5 grid grid-cols-[120px_1fr] gap-3">
                       <dt className="text-slate-500">Status Akun</dt>
-                      <dd className="font-medium text-emerald-700 flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        <span>Pelanggan Aktif</span>
+                      <dd
+                        className={`font-medium flex items-center gap-1.5 ${
+                          detailPembeli.isActive ? 'text-emerald-700' : 'text-slate-500'
+                        }`}
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${detailPembeli.isActive ? 'bg-emerald-500' : 'bg-slate-400'}`}
+                        />
+                        <span>{detailPembeli.isActive ? 'Pelanggan aktif' : 'Akun dinonaktifkan'}</span>
                       </dd>
                     </div>
                   </dl>
                 </section>
+
+                <UserActivitySummary key={detailPembeli.id} userId={detailPembeli.id} role="PEMBELI" />
               </div>
 
               {/* Footer Modal Actions */}

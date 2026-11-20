@@ -21,6 +21,7 @@ import {
   ExternalLink,
   Banknote,
   Building2,
+  CheckCircle2,
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
@@ -320,25 +321,44 @@ ${notes ? `*Catatan Kebutuhan:* ${notes}\n` : ''}
     );
   }
 
-  // Tampilan Sukses Pengajuan Sewa (Ticket / Receipt Style)
+  // Tampilan Sukses Pengajuan Sewa
   if (createdRentalResult) {
     const rentalDate = createdRentalResult.createdAt
       ? new Date(createdRentalResult.createdAt)
       : new Date();
-    const formattedDate = rentalDate
-      .toLocaleDateString('id-ID', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-      })
-      .toUpperCase();
-    const formattedTime = rentalDate
-      .toLocaleTimeString('id-ID', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-      })
-      .replace('.', ':');
+    const submittedAt = rentalDate.toLocaleString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+      timeZone: 'Asia/Makassar',
+    });
+    const startDateLabel = createdRentalResult.startDate
+      ? new Date(`${createdRentalResult.startDate}T00:00:00Z`).toLocaleDateString('id-ID', {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+          timeZone: 'UTC',
+        })
+      : '-';
+    const total = Number(createdRentalResult.totalEstimasi || 0);
+    const dp = hitungDp(total);
+    const sisa = Math.max(0, total - dp);
+    const dpDeadline = createdRentalResult.startDate
+      ? computePaymentDeadline(createdRentalResult.startDate, 'H_MINUS_1').toLocaleString('id-ID', {
+          weekday: 'short',
+          day: 'numeric',
+          month: 'short',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+          timeZone: 'Asia/Makassar',
+        })
+      : null;
+    const rp = (n: number) => `Rp ${n.toLocaleString('id-ID')}`;
 
     const finalLocationText =
       createdRentalResult.savedLocationAddress ||
@@ -346,251 +366,166 @@ ${notes ? `*Catatan Kebutuhan:* ${notes}\n` : ''}
       'Minahasa Utara, Sulawesi Utara';
     const finalGps = createdRentalResult.savedGpsCoords || rentalGpsCoords;
 
+    const steps = [
+      {
+        title: 'Verifikasi pengurus',
+        desc: 'Admin mengecek jadwal & ketersediaan unit. Status bisa dipantau di halaman Pesanan.',
+        active: true,
+      },
+      {
+        title: `Bayar DP ${DP_PERSEN}% di kasir`,
+        desc: `${rp(dp)} tunai${dpDeadline ? `, paling lambat ${dpDeadline} WITA` : ''} untuk mengunci jadwal.`,
+        active: false,
+      },
+      {
+        title: 'Lunasi sisa & ambil alat',
+        desc: `${rp(sisa)} dibayar saat pengambilan pada tanggal mulai sewa.`,
+        active: false,
+      },
+    ];
+
     return (
       <div className="min-h-screen bg-[#f4f5f1] flex flex-col font-sans">
         <AppHeader activePage="sewa-alat" />
 
-        <main className="flex-1 flex flex-col items-center justify-center px-4 py-6 sm:py-10">
-          {/* Ticket / Receipt Card */}
-          <div className="w-full max-w-[340px] sm:max-w-[370px] bg-white rounded-3xl border border-[#dce1d6] overflow-hidden relative">
-            {/* Top Section: Party Popper & Heading */}
-            <div className="pt-7 pb-4 px-6 text-center">
-              <div className="w-16 h-16 mx-auto mb-3 flex items-center justify-center">
-                <svg
-                  className="w-16 h-16"
-                  viewBox="0 0 100 100"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M38 18C44 12 56 22 62 14"
-                    stroke="#344d15"
-                    strokeWidth="3.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <path
-                    d="M26 22C32 16 38 24 45 18"
-                    stroke="#547318"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <path
-                    d="M48 28C54 22 64 30 70 24"
-                    stroke="#233414"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <circle cx="34" cy="12" r="3" fill="#D4F63D" />
-                  <circle cx="58" cy="22" r="3.5" fill="#547318" />
-                  <circle cx="68" cy="14" r="2.5" fill="#344d15" />
-                  <circle cx="48" cy="8" r="2" fill="#233414" />
-                  <rect
-                    x="54"
-                    y="26"
-                    width="4.5"
-                    height="4.5"
-                    rx="1"
-                    transform="rotate(25 54 26)"
-                    fill="#D4F63D"
-                  />
-                  <rect
-                    x="28"
-                    y="18"
-                    width="4"
-                    height="4"
-                    rx="1"
-                    transform="rotate(-15 28 18)"
-                    fill="#547318"
-                  />
-                  <path
-                    d="M12 68L48 24C49 25 51 27 52 29L16 73C14 74 12 72 12 68Z"
-                    fill="#233414"
-                  />
-                  <path
-                    d="M18 61L30 46L36 51L24 66L18 61Z"
-                    fill="#344d15"
-                  />
-                  <path
-                    d="M29 47L41 32L47 37L35 52L29 47Z"
-                    fill="#D4F63D"
-                  />
-                  <path
-                    d="M40 33L48 24C49 25 51 27 52 29L44 38L40 33Z"
-                    fill="#547318"
-                  />
-                  <path
-                    d="M12 68C10 70 9 75 14 76C16 76 16 73 16 73L12 68Z"
-                    fill="#1a2610"
-                  />
-                </svg>
+        <main className="flex-1 w-full max-w-[420px] mx-auto px-4 pt-5 sm:pt-10 pb-32 lg:pb-12 space-y-3.5">
+          {/* Kartu ringkasan */}
+          <section className="bg-white rounded-3xl border border-[#dce1d6] overflow-hidden">
+            <div className="px-5 pt-6 pb-5 text-center">
+              <div className="w-14 h-14 mx-auto rounded-full bg-[#eef6e2] ring-8 ring-[#f6faef] flex items-center justify-center">
+                <CheckCircle2 className="w-7 h-7 text-[#344d15]" aria-hidden="true" />
               </div>
-
-              <h1 className="text-xl sm:text-2xl font-black text-[#1a2610] tracking-tight">
+              <h1 className="mt-4 text-xl sm:text-2xl font-black text-[#1a2610] tracking-tight">
                 Pengajuan Terkirim
               </h1>
-              <p className="text-xs text-[#526046] mt-1 max-w-[260px] mx-auto leading-relaxed">
-                Pengajuan sewa alat resmi Anda telah berhasil dikirim ke pengurus koperasi.
+              <p className="mt-1 text-[13px] text-[#526046] leading-relaxed max-w-[280px] mx-auto">
+                Pengurus koperasi akan memverifikasi pengajuan sewa Anda.
               </p>
+              <span className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-900 text-[11px] font-bold">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" aria-hidden="true" />
+                Menunggu persetujuan admin
+              </span>
             </div>
 
-            {/* Ticket Cutout Notches & Perforated Line */}
-            <div className="relative my-2 flex items-center">
-              <div className="absolute -left-3.5 w-7 h-7 rounded-full bg-[#f4f5f1] border-r border-[#dce1d6]" />
-              <div className="w-full border-t-2 border-dashed border-[#dce1d6] mx-5" />
-              <div className="absolute -right-3.5 w-7 h-7 rounded-full bg-[#f4f5f1] border-l border-[#dce1d6]" />
+            {/* Garis sobekan tiket */}
+            <div className="relative flex items-center" aria-hidden="true">
+              <div className="absolute -left-3 w-6 h-6 rounded-full bg-[#f4f5f1] border border-[#dce1d6]" />
+              <div className="w-full border-t-2 border-dashed border-[#e3e8dd] mx-5" />
+              <div className="absolute -right-3 w-6 h-6 rounded-full bg-[#f4f5f1] border border-[#dce1d6]" />
             </div>
 
-            {/* Ticket Body / Metadata Grid */}
-            <div className="px-6 py-4 space-y-4 text-left">
-              {/* Row 1: Ticket ID & Amount */}
-              <div className="flex justify-between items-start gap-2">
-                <div>
-                  <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#5b6950]">
-                    TICKET ID / NO. SEWA
-                  </div>
-                  <div className="text-xs sm:text-sm font-black text-[#1a2610] font-mono tracking-tight mt-0.5 tabular-nums">
-                    #{createdRentalResult.rentalCode}
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#5b6950]">
-                    ESTIMASI BIAYA
-                  </div>
-                  <div className="text-xs sm:text-sm font-black text-[#233414] mt-0.5 tabular-nums">
-                    Rp {Number(createdRentalResult.totalEstimasi).toLocaleString('id-ID')}
-                  </div>
-                </div>
+            <dl className="px-5 py-4 divide-y divide-[#eef1ea] text-[13px]">
+              <div className="flex items-center justify-between gap-3 pb-2.5">
+                <dt className="text-[#5b6950]">No. Sewa</dt>
+                <dd className="font-mono font-bold text-[#1a2610] tabular-nums">#{createdRentalResult.rentalCode}</dd>
               </div>
-
-              {/* Row 2: Date & Time + Start Date */}
-              <div className="flex justify-between items-start gap-2">
-                <div>
-                  <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#5b6950]">
-                    DATE & TIME
-                  </div>
-                  <div className="text-[11px] sm:text-xs font-bold text-[#1a2610] mt-0.5 tabular-nums">
-                    {formattedDate} | {formattedTime}
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#5b6950]">
-                    MULAI SEWA
-                  </div>
-                  <div className="text-[11px] sm:text-xs font-bold text-[#344d15] mt-0.5 tabular-nums">
-                    {createdRentalResult.startDate}
-                  </div>
-                </div>
+              <div className="flex items-start justify-between gap-3 py-2.5">
+                <dt className="text-[#5b6950] shrink-0">Mulai sewa</dt>
+                <dd className="font-semibold text-[#1a2610] text-right">{startDateLabel}</dd>
               </div>
-
-              {/* Location Pill Box */}
-              <div className="p-3 bg-[#f4f5f1] border border-[#dce1d6] rounded-2xl flex items-center gap-2.5 text-left">
-                <div className="w-9 h-9 rounded-xl bg-[#233414] text-[#D4F63D] flex items-center justify-center shrink-0">
-                  <MapPin className="w-4 h-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-1">
-                    <span className="text-xs font-bold text-[#1a2610] truncate">
-                      Lokasi Lahan Kebun
-                    </span>
-                    {finalGps && (
-                      <a
-                        href={`https://www.google.com/maps?q=${finalGps.lat},${finalGps.lng}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-0.5 text-[10px] font-bold text-[#233414] hover:underline shrink-0"
-                      >
-                        <span>Maps</span>
-                        <ExternalLink className="w-2.5 h-2.5" />
-                      </a>
-                    )}
-                  </div>
-                  <div className="text-[10px] text-[#526046] line-clamp-2 mt-0.5">
-                    {finalLocationText}
-                  </div>
-                </div>
+              <div className="flex items-center justify-between gap-3 py-2.5">
+                <dt className="text-[#5b6950]">Diajukan</dt>
+                <dd className="font-medium text-[#1a2610] tabular-nums">{submittedAt} WITA</dd>
               </div>
-
-              {/* Petunjuk Pembayaran Kasir Koperasi */}
-              <div className="p-3 bg-[#f8faf4] border border-[#dce6d2] rounded-2xl space-y-1.5 text-left">
-                <div className="flex items-center gap-1.5 text-[#233414] font-bold text-xs">
-                  <Banknote className="w-3.5 h-3.5 shrink-0 text-[#344d15]" />
-                  <span>Pembayaran Tunai di Kasir Koperasi</span>
-                </div>
-                <p className="text-[11px] text-[#425234] leading-relaxed">
-                  Pengajuan ini berstatus <strong>reservasi sementara</strong>. Setelah disetujui admin, harap kunjungi kasir kantor koperasi di Kolongan sebelum batas waktu pembayaran untuk pelunasan tunai agar unit resmi terkunci.
-                </p>
-                <div className="text-[10px] font-semibold text-[#526046] flex items-center gap-1 pt-0.5">
-                  <Clock className="w-3 h-3 text-[#344d15]" />
-                  <span>Jam Layanan Kasir: 08:00 – 16:30 WITA</span>
-                </div>
+              <div className="flex items-center justify-between gap-3 pt-2.5">
+                <dt className="text-[#5b6950]">Estimasi biaya</dt>
+                <dd className="text-base font-black text-[#1a2610] tabular-nums">{rp(total)}</dd>
               </div>
+            </dl>
 
-              {/* Status Badge */}
-              <div className="flex items-center justify-center pt-0.5 pb-2">
-                <span className="px-2.5 py-1 bg-amber-50 text-amber-900 border border-amber-200 rounded-full text-[10px] font-black uppercase tracking-wider inline-flex items-center gap-1.5 shadow-2xs">
-                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                  <span>Reservasi Sementara • Menunggu ACC & Batas Bayar</span>
-                </span>
+            {/* Lokasi */}
+            <div className="mx-5 mb-5 p-3 rounded-2xl bg-[#f4f5f1] border border-[#e3e8dd] flex items-start gap-3">
+              <div className="w-9 h-9 rounded-xl bg-[#233414] text-[#D4F63D] flex items-center justify-center shrink-0">
+                <MapPin className="w-4 h-4" aria-hidden="true" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[13px] font-bold text-[#1a2610]">Lokasi lahan</span>
+                  {finalGps && (
+                    <a
+                      href={`https://www.google.com/maps?q=${finalGps.lat},${finalGps.lng}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 min-h-[32px] px-2 -mr-2 rounded-lg text-xs font-bold text-[#233414] hover:bg-white transition"
+                    >
+                      Buka Maps
+                      <ExternalLink className="w-3 h-3" aria-hidden="true" />
+                    </a>
+                  )}
+                </div>
+                <p className="text-xs text-[#526046] leading-relaxed line-clamp-2">{finalLocationText}</p>
               </div>
             </div>
+          </section>
 
-            {/* Scalloped / Perforated Receipt Bottom Edge */}
-            <div className="relative w-full overflow-hidden flex justify-between px-2 pt-2 -mb-2.5">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="w-5 h-5 rounded-full bg-[#f4f5f1] border-t border-[#dce1d6] shrink-0"
-                />
+          {/* Langkah selanjutnya */}
+          <section className="bg-white rounded-3xl border border-[#dce1d6] p-5">
+            <h2 className="text-sm font-extrabold text-[#1a2610]">Langkah selanjutnya</h2>
+            <ol className="mt-3.5">
+              {steps.map((step, i) => (
+                <li key={step.title} className="relative flex gap-3 pb-4 last:pb-0">
+                  {i < steps.length - 1 && (
+                    <span className="absolute left-[13px] top-7 bottom-0 w-px bg-[#dce1d6]" aria-hidden="true" />
+                  )}
+                  <span
+                    className={`relative z-10 w-[27px] h-[27px] rounded-full flex items-center justify-center text-xs font-black shrink-0 ${
+                      step.active ? 'bg-[#233414] text-[#D4F63D]' : 'bg-[#f0f3ec] text-[#5b6950] border border-[#dce1d6]'
+                    }`}
+                  >
+                    {i + 1}
+                  </span>
+                  <div className="min-w-0 pt-0.5">
+                    <p className="text-[13px] font-bold text-[#1a2610]">{step.title}</p>
+                    <p className="text-xs text-[#526046] leading-relaxed mt-0.5">{step.desc}</p>
+                  </div>
+                </li>
               ))}
+            </ol>
+            <div className="mt-4 pt-3.5 border-t border-[#eef1ea] flex items-start gap-2 text-xs text-[#526046]">
+              <Clock className="w-3.5 h-3.5 mt-0.5 shrink-0 text-[#344d15]" aria-hidden="true" />
+              <span>
+                Kasir Kantor Koperasi Kolongan, 08:00–16:30 WITA. Batal paling lambat H-{BATAS_BATAL_HARI} agar DP kembali penuh.
+              </span>
             </div>
-          </div>
+          </section>
 
-          {/* Action Buttons Below Ticket */}
-          <div className="w-full max-w-[340px] sm:max-w-[370px] mt-5 px-1 space-y-3">
-            <div className="flex items-center gap-2.5 sm:gap-3 w-full">
-              <button
-                type="button"
-                onClick={() =>
-                  handleOpenRentalWhatsApp({
-                    rentalNumber: createdRentalResult.rentalCode,
-                    userName: user?.name,
-                    userPhone: user?.phone,
-                    startDate: createdRentalResult.startDate,
-                    durationDays: 1,
-                    farmLocationAddress: finalLocationText,
-                    farmLocationGps: finalGps,
-                    totalAmount: createdRentalResult.totalEstimasi,
-                    notes: rentalCatatan,
-                    items: createdRentalResult.rentalOrder?.items,
-                  })
-                }
-                className="flex-1 py-2.5 sm:py-3 px-3 rounded-xl bg-white hover:bg-[#EAEDE7] text-[#1a2610] border border-[#cfd6c9] font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition cursor-pointer"
-              >
-                <span>Konfirmasi WA</span>
-                <MessageCircle className="w-3.5 h-3.5 text-[#344d15] shrink-0" />
-              </button>
-
-              <Link
-                href="/pesanan"
-                className="flex-1 py-2.5 sm:py-3 px-3 rounded-xl bg-[#233414] hover:bg-[#344d15] text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition"
-              >
-                <span>Status Pesanan</span>
-                <ArrowRight className="w-3.5 h-3.5 text-[#D4F63D] shrink-0" />
-              </Link>
-            </div>
-
-            {/* Link Kembali ke Katalog Sewa Alat */}
-            <div className="text-center pt-0.5">
-              <Link
-                href="/sewa-alat"
-                className="text-xs font-semibold text-[#526046] hover:text-[#233414] hover:underline inline-flex items-center gap-1 transition"
-              >
-                <span>← Buka Katalog Sewa Alat Lagi</span>
-              </Link>
-            </div>
+          {/* Aksi */}
+          <div className="space-y-2.5 pt-1">
+            <Link
+              href="/pesanan"
+              className="w-full min-h-[48px] rounded-2xl bg-[#233414] hover:bg-[#344d15] text-white font-bold text-sm flex items-center justify-center gap-2 transition"
+            >
+              Lihat Status Pesanan
+              <ArrowRight className="w-4 h-4 text-[#D4F63D]" aria-hidden="true" />
+            </Link>
+            <button
+              type="button"
+              onClick={() =>
+                handleOpenRentalWhatsApp({
+                  rentalNumber: createdRentalResult.rentalCode,
+                  userName: user?.name,
+                  userPhone: user?.phone,
+                  startDate: createdRentalResult.startDate,
+                  durationDays: 1,
+                  farmLocationAddress: finalLocationText,
+                  farmLocationGps: finalGps,
+                  totalAmount: createdRentalResult.totalEstimasi,
+                  notes: rentalCatatan,
+                  items: createdRentalResult.rentalOrder?.items,
+                })
+              }
+              className="w-full min-h-[48px] rounded-2xl bg-white hover:bg-[#f0f3ec] text-[#1a2610] border border-[#cfd6c9] font-bold text-sm flex items-center justify-center gap-2 transition cursor-pointer"
+            >
+              <MessageCircle className="w-4 h-4 text-[#344d15]" aria-hidden="true" />
+              Konfirmasi via WhatsApp
+            </button>
+            <Link
+              href="/sewa-alat"
+              className="w-full min-h-[44px] flex items-center justify-center gap-1.5 text-[13px] font-semibold text-[#526046] hover:text-[#233414] transition"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" />
+              Kembali ke Katalog Sewa Alat
+            </Link>
           </div>
         </main>
       </div>
@@ -630,7 +565,7 @@ ${notes ? `*Catatan Kebutuhan:* ${notes}\n` : ''}
   }
 
   return (
-    <div className="min-h-screen bg-[#f4f5f1] flex flex-col font-sans pb-36 lg:pb-16">
+    <div className="min-h-screen bg-[#f4f5f1] flex flex-col font-sans">
       <div className="hidden sm:block">
         <AppHeader activePage="sewa-alat" />
       </div>
@@ -665,7 +600,7 @@ ${notes ? `*Catatan Kebutuhan:* ${notes}\n` : ''}
       {/* Spacer placeholder mode mobile agar konten tidak tertutup fixed navbar */}
       <div className="sm:hidden h-14 shrink-0 pointer-events-none" aria-hidden="true" />
 
-      <main className="flex-1 max-w-[1440px] w-full mx-auto px-3.5 sm:px-8 lg:px-12 py-3.5 sm:py-6 lg:py-8 space-y-4 sm:space-y-6 pb-32 lg:pb-12 min-w-0">
+      <main className="flex-1 max-w-[1440px] w-full mx-auto px-3.5 sm:px-8 lg:px-12 py-3.5 sm:py-6 lg:py-8 space-y-4 sm:space-y-6 pb-36 lg:pb-12 min-w-0">
         {/* Desktop Compact Back Link */}
         <div className="hidden sm:flex items-center justify-between pb-1">
           <Link

@@ -28,7 +28,7 @@ import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
-import { getCart, saveCart } from '@/lib/cart';
+import { cappedAddQuantity, getCart, saveCart } from '@/lib/cart';
 
 // Cache instan client-side untuk navigasi cepat (0ms buka halaman saat sudah pernah dibuka)
 const farmerStoreCache = new Map<string, any>();
@@ -140,6 +140,11 @@ export default function PetaniStorePage({
       }
     } catch (err) {
       console.error('Error toggle follow:', err);
+      showToast({
+        title: 'Gagal',
+        message: 'Koneksi terputus. Periksa internet Anda lalu coba lagi.',
+        type: 'error',
+      });
     } finally {
       setIsFollowLoading(false);
     }
@@ -189,9 +194,19 @@ export default function PetaniStorePage({
 
       const existingCart = getCart(user);
       const itemIdx = existingCart.findIndex((i) => i.id === product.id);
+      const { addable, inCart } = cappedAddQuantity(existingCart, product.id, 1, Number(product.stok));
+      if (addable <= 0) {
+        showToast({
+          title: 'Stok Sudah di Keranjang',
+          message: `Semua stok "${product.nama}" (${Number(product.stok)} ${product.satuan}) sudah ada di keranjang Anda.`,
+          type: 'info',
+        });
+        return;
+      }
 
       if (itemIdx > -1) {
-        existingCart[itemIdx].quantity = (existingCart[itemIdx].quantity || 1) + 1;
+        existingCart[itemIdx].quantity = inCart + addable;
+        existingCart[itemIdx].stok = Number(product.stok);
       } else {
         existingCart.push({
           id: product.id,
@@ -201,6 +216,7 @@ export default function PetaniStorePage({
           satuan: product.satuan,
           imageUrl: product.imageUrl,
           quantity: 1,
+          stok: Number(product.stok),
           petaniName: storeData?.petani?.name || 'Petani Binaan',
         });
       }
@@ -400,8 +416,19 @@ export default function PetaniStorePage({
 
                 {/* Action Buttons: Follow, Chat Penjual, Share */}
                 <div className="flex items-center gap-2 flex-wrap pt-0.5">
+                  {user?.id === petaniId ? (
+                    /* Toko milik sendiri: tidak bisa follow / chat diri sendiri */
+                    <Link
+                      href="/dashboard"
+                      className="h-8 sm:h-9 px-4 sm:px-5 rounded-xl bg-[#233414] hover:bg-[#344d15] text-white border border-[#233414] text-xs font-semibold transition-colors flex items-center gap-1.5"
+                    >
+                      <span>Kelola di Dashboard</span>
+                    </Link>
+                  ) : (
+                  <>
                   {/* Follow Button */}
                   <button
+                    aria-pressed={isFollowed}
                     onClick={handleToggleFollow}
                     disabled={isFollowLoading}
                     className={`h-8 sm:h-9 px-4 sm:px-5 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer ${
@@ -430,6 +457,8 @@ export default function PetaniStorePage({
                     <MessageCircle className="w-3.5 h-3.5 text-[#344d15]" />
                     <span>Chat Penjual</span>
                   </button>
+                  </>
+                  )}
 
                   {/* Share Icon Button */}
                   <button

@@ -91,6 +91,8 @@ function CartContent() {
       .map((item) => {
         if (item.id === id) {
           const nextQty = (item.quantity || 1) + delta;
+          // Tidak boleh melebihi stok gudang yang diketahui
+          if (delta > 0 && typeof item.stok === 'number' && nextQty > item.stok) return item;
           return nextQty > 0 ? { ...item, quantity: nextQty } : null;
         }
         return item;
@@ -459,7 +461,8 @@ function CartContent() {
                               <button
                                 type="button"
                                 onClick={() => handleUpdateQuantity(item.id, 1)}
-                                className="w-6 h-6 rounded-full flex items-center justify-center text-[#526046] hover:text-[#1a2610] hover:bg-[#f4f5f1] transition cursor-pointer"
+                                disabled={typeof item.stok === 'number' && item.quantity >= item.stok}
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-[#526046] hover:text-[#1a2610] hover:bg-[#f4f5f1] transition cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
                                 title="Tambah"
                               >
                                 <Plus className="w-3.5 h-3.5" />
@@ -546,7 +549,8 @@ function CartContent() {
                                 <button
                                   type="button"
                                   onClick={() => handleUpdateQuantity(item.id, 1)}
-                                  className="w-5 h-5 flex items-center justify-center text-[#526046]"
+                                disabled={typeof item.stok === 'number' && item.quantity >= item.stok}
+                                  className="w-5 h-5 flex items-center justify-center text-[#526046] disabled:opacity-30 disabled:cursor-not-allowed"
                                 >
                                   <Plus className="w-3 h-3" />
                                 </button>

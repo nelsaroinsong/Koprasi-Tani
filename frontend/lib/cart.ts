@@ -9,6 +9,8 @@ export interface CartItem {
   imageUrl?: string;
   quantity: number;
   petaniName?: string;
+  /** Stok gudang saat item terakhir ditambahkan (batas tombol +) */
+  stok?: number;
 }
 
 /**
@@ -108,4 +110,14 @@ export function clearCart(userOrIdentifier?: any): void {
 export function getCartTotalCount(userOrIdentifier?: any): number {
   const items = getCart(userOrIdentifier);
   return items.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0);
+}
+
+/**
+ * Hitung berapa yang masih boleh ditambahkan ke keranjang tanpa melebihi stok gudang.
+ * @returns { addable, inCart } — addable 0 berarti seluruh stok sudah ada di keranjang.
+ */
+export function cappedAddQuantity(cart: CartItem[], productId: string, requested: number, stock: number) {
+  const inCart = cart.find((i) => i.id === productId)?.quantity || 0;
+  const addable = Math.max(0, Math.min(requested, Math.max(0, Number(stock) || 0) - inCart));
+  return { addable, inCart };
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import { saleStatus } from '@/lib/transaction-labels';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import AppHeader from '@/components/AppHeader';
@@ -36,7 +37,9 @@ interface RecentSale {
   quantity: number;
   satuan: string;
   subtotal: number;
-  payoutStatus: 'MENUNGGU_PENCAIRAN' | 'SUDAH_DICAIRKAN';
+  payoutStatus: 'MENUNGGU_PENCAIRAN' | 'SUDAH_DICAIRKAN_CASH';
+  orderStatus?: string;
+  orderPaid?: boolean;
   payoutAt: string | null;
   orderDate: string;
 }
@@ -248,7 +251,7 @@ export default function DashboardPetaniPage() {
                 <span className="text-[10px] sm:text-xs font-semibold text-[#5b6950] ml-1">terjual</span>
               </div>
               <div className="text-[9px] sm:text-[11px] text-[#5b6950] mt-0.5 truncate">
-                Telah laku dibeli pelanggan
+                Dari pesanan yang sudah selesai
               </div>
             </div>
           </div>
@@ -539,7 +542,12 @@ export default function DashboardPetaniPage() {
                           Rp {sale.subtotal.toLocaleString('id-ID')}
                         </td>
                         <td className="py-2.5 px-3 sm:px-4">
-                          {sale.payoutStatus === 'MENUNGGU_PENCAIRAN' ? (
+                          {saleStatus(sale).tone === 'waiting' ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-50 text-slate-600 border border-slate-200">
+                              <Clock className="w-3 h-3 text-slate-500" />
+                              <span>Menunggu Pembeli</span>
+                            </span>
+                          ) : saleStatus(sale).tone === 'ready' ? (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-900 border border-amber-300">
                               <Coins className="w-3 h-3 text-amber-700" />
                               <span>Siap Diambil di Kasir</span>

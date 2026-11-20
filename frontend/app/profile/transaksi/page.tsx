@@ -1,5 +1,6 @@
 'use client';
 
+import { ORDER_STATUS_LABEL, RENTAL_STATUS_LABEL, rentalSummary, saleStatus } from '@/lib/transaction-labels';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -125,11 +126,7 @@ export default function TransactionHistoryPage() {
           ? `${firstItemName} +${itemCount - 1} produk • #${o.orderNumber}`
           : `${firstItemName} • #${o.orderNumber}`;
 
-      let statusLabel = 'Menunggu Pembayaran';
-      if (o.status === 'SELESAI') statusLabel = 'Selesai & Sah';
-      else if (o.status === 'DIPROSES') statusLabel = 'Sedang Diproses';
-      else if (o.status === 'SIAP_DIAMBIL') statusLabel = 'Siap Diambil';
-      else if (o.status === 'DIBATALKAN') statusLabel = 'Dibatalkan';
+      const statusLabel = ORDER_STATUS_LABEL[o.status] || o.status;
 
       list.push({
         id: `order-${o.id}`,
@@ -152,21 +149,15 @@ export default function TransactionHistoryPage() {
     // 2. Equipment Rentals (Pengeluaran Sewa / Rupiah Keluar)
     rentals.forEach((r) => {
       const d = new Date(r.createdAt || Date.now());
-      const equipName = r.items?.[0]?.equipmentName || 'Sewa Alat Pertanian';
-      const duration = r.durationDays || r.durasi || 1;
-
-      let statusLabel = 'Menunggu Persetujuan';
-      if (r.status === 'DISETUJUI') statusLabel = 'Disetujui Admin';
-      else if (r.status === 'SEDANG_DISEWA') statusLabel = 'Sedang Disewa';
-      else if (r.status === 'SELESAI') statusLabel = 'Selesai';
-      else if (r.status === 'DITOLAK') statusLabel = 'Ditolak';
+      const rs = rentalSummary(r);
+      const statusLabel = RENTAL_STATUS_LABEL[r.status] || r.status;
 
       list.push({
         id: `rental-${r.id}`,
         type: 'SEWA_ALAT',
-        title: equipName,
-        subtitle: `Sewa ${duration} Hari • #${r.rentalNumber || r.id.slice(0, 8)}`,
-        amount: Number(r.totalAmount || r.totalEstimasi || 0),
+        title: rs.name,
+        subtitle: `Sewa ${rs.durationLabel} • ${rs.ref}`,
+        amount: rs.total,
         isIncome: false,
         date: d,
         dateLabel: d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
@@ -174,7 +165,7 @@ export default function TransactionHistoryPage() {
         status: r.status,
         statusLabel,
         paymentMethod: 'Tunai di Kasir Koperasi',
-        refNumber: `#${r.rentalNumber || r.id.slice(0, 8)}`,
+        refNumber: rs.ref,
         rawDetails: r,
       });
     });
@@ -182,7 +173,7 @@ export default function TransactionHistoryPage() {
     // 3. Farmer Sales / Payouts (Pemasukan / Rupiah Masuk)
     farmerSales.forEach((s) => {
       const d = new Date(s.orderDate || s.createdAt || Date.now());
-      const isPaid = s.payoutStatus === 'SUDAH_DICAIRKAN';
+      const sale = saleStatus(s);
 
       list.push({
         id: `sale-${s.id}`,
@@ -195,7 +186,7 @@ export default function TransactionHistoryPage() {
         dateLabel: d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
         timeLabel: d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
         status: s.payoutStatus,
-        statusLabel: isPaid ? 'Dana Sudah Dicairkan' : 'Siap Diambil di Kasir',
+        statusLabel: sale.label,
         paymentMethod: 'Pencairan Kasir Koperasi',
         refNumber: `#${s.orderNumber}`,
         rawDetails: s,

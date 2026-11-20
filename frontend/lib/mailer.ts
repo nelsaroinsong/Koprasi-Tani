@@ -136,3 +136,80 @@ export async function sendOtpEmail(
     throw new Error('Gagal mengirim email verifikasi OTP. Silakan periksa kembali alamat email penerima.');
   }
 }
+
+function escapeHtml(s: string) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+let cachedTransporter: ReturnType<typeof nodemailer.createTransport> | null = null;
+function getTransporter() {
+  if (!SMTP_USER || !SMTP_PASS) return null;
+  if (cachedTransporter) return cachedTransporter;
+  const cleanUser = SMTP_USER.trim();
+  const cleanPass = SMTP_PASS.trim();
+  const isGmail = cleanUser.toLowerCase().includes('@gmail.com') || SMTP_HOST === 'smtp.gmail.com';
+  cachedTransporter = nodemailer.createTransport(
+    isGmail
+      ? { service: 'gmail', auth: { user: cleanUser, pass: cleanPass } }
+      : { host: SMTP_HOST, port: SMTP_PORT, secure: SMTP_SECURE, auth: { user: cleanUser, pass: cleanPass } }
+  );
+  return cachedTransporter;
+}
+
+/**
+ * Email pemberitahuan status (pesanan, sewa, bagi hasil).
+ * Tanpa SMTP di .env -> hanya dicatat di console (mode pengembangan), tidak melempar error.
+ */
+export async function sendNotificationEmail(opts: {
+  to: string;
+  name?: string | null;
+  subject: string;
+  title: string;
+  message: string;
+  /** Kotak sorotan, mis. kode ambil */
+  highlight?: { label: string; value: string } | null;
+  actionUrl?: string | null;
+  actionLabel?: string;
+}): Promise<{ sent: boolean }> {
+  const transporter = getTransporter();
+  if (!transporter) {
+    console.log(`[KOPERASI EMAIL - DEV MODE] Ke ${opts.to}: ${opts.subject} — ${opts.message}`);
+    return { sent: false };
+  }
+
+  const hl = opts.highlight
+    ? `<div style="background:#f0fdf4;border:2px dashed #10b981;border-radius:12px;padding:16px;text-align:center;margin:20px 0;">
+         <div style="font-size:11px;font-weight:700;color:#047857;text-transform:uppercase;letter-spacing:1px;">${escapeHtml(opts.highlight.label)}</div>
+         <div style="font-size:30px;font-weight:900;letter-spacing:6px;color:#065f46;font-family:'Courier New',monospace;margin-top:6px;">${escapeHtml(opts.highlight.value)}</div>
+       </div>`
+    : '';
+  const btn = opts.actionUrl
+    ? `<p style="text-align:center;margin:24px 0 8px;"><a href="${escapeHtml(opts.actionUrl)}" style="display:inline-block;background:#233414;color:#ffffff;text-decoration:none;font-weight:700;font-size:13px;padding:12px 22px;border-radius:10px;">${escapeHtml(opts.actionLabel || 'Lihat Detail')}</a></p>`
+    : '';
+
+  try {
+    await transporter.sendMail({
+      from: `"Koperasi Sinar Pagi Sejahtera" <${SMTP_USER!.trim()}>`,
+      to: opts.to,
+      subject: opts.subject,
+      text: `${opts.title}\n\n${opts.message}${opts.highlight ? `\n\n${opts.highlight.label}: ${opts.highlight.value}` : ''}${opts.actionUrl ? `\n\n${opts.actionUrl}` : ''}`,
+      html: `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+        <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;background:#f4f5f1;margin:0;padding:24px;color:#1a2610;">
+          <div style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:16px;border:1px solid #dce1d6;padding:28px;">
+            <div style="font-size:12px;font-weight:700;color:#344d15;text-transform:uppercase;letter-spacing:1px;">Koperasi Sinar Pagi Sejahtera</div>
+            <h1 style="font-size:18px;margin:8px 0 14px;color:#1a2610;">${escapeHtml(opts.title)}</h1>
+            <p style="font-size:14px;line-height:1.6;margin:0 0 6px;">Halo ${escapeHtml(opts.name || 'Anggota Koperasi')},</p>
+            <p style="font-size:14px;line-height:1.6;color:#526046;margin:0;">${escapeHtml(opts.message)}</p>
+            ${hl}${btn}
+            <p style="font-size:11px;color:#8a957f;border-top:1px solid #eaede7;padding-top:16px;margin-top:24px;line-height:1.5;">
+              Email ini dikirim otomatis karena ada perubahan pada transaksi Anda. Jangan bagikan kode ambil kepada siapa pun.
+            </p>
+          </div>
+        </body></html>`,
+    });
+    return { sent: true };
+  } catch (error) {
+    console.error('[Nodemailer Error] Gagal mengirim email notifikasi:', error);
+    return { sent: false };
+  }
+}

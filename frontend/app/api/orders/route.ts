@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
+import { notifyPetaniNewOrder } from '@/lib/user-notifications';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { getCache, setCache, delCache, delCachePattern } from '@/lib/redis';
+import { effectivePickupDeadline, expireOverduePickupOrders } from '@/lib/order-lifecycle';
 
 // 1. POST: Buat Pesanan Baru oleh Pembeli (Otomatis potong stok di gudang koperasi)
 export async function POST(request: Request) {
@@ -157,6 +159,9 @@ export async function POST(request: Request) {
       return createdOrder;
     });
 
+    // Beri tahu petani bahwa komoditasnya dipesan
+    notifyPetaniNewOrder(newOrder);
+
     // Invalidate Redis caches secara instan agar stok terbaru langsung terpantau oleh pembeli lain
     await Promise.all([
       delCachePattern('products:*'),
@@ -206,49 +211,13 @@ export async function GET() {
       return NextResponse.json({ error: 'Pengguna tidak ditemukan' }, { status: 404 });
     }
 
+    // Batalkan otomatis pesanan yang lewat batas ambil & bayar (sebelum membaca cache)
+    await expireOverduePickupOrders({ pembeliId: currentUser.id });
+
     const cacheKey = `user:orders:${currentUser.id}`;
     const cachedOrders = await getCache<any>(cacheKey);
     if (cachedOrders) {
       return NextResponse.json(cachedOrders);
-    }
-
-    // 1. Periksa dan batalkan pesanan yang belum dibayar lewat dari 24 jam sejak siap diambil di kasir (SIAP_DIAMBIL)
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const expiredOrders = await prisma.order.findMany({
-      where: {
-        pembeliId: currentUser.id,
-        status: 'SIAP_DIAMBIL',
-        isPaid: false, // Pesanan yang sudah lunas tidak boleh dibatalkan otomatis
-        updatedAt: { lte: twentyFourHoursAgo },
-      },
-      include: { items: true },
-    });
-
-    if (expiredOrders.length > 0) {
-      await prisma.$transaction(async (tx) => {
-        for (const exp of expiredOrders) {
-          for (const item of exp.items) {
-            if (item.productId && item.quantity > 0) {
-              await tx.product.update({
-                where: { id: item.productId },
-                data: { stok: { increment: item.quantity } },
-              });
-            }
-          }
-          await tx.order.update({
-            where: { id: exp.id },
-            data: {
-              status: 'DIBATALKAN',
-              isPaid: false,
-              paidAt: null,
-              catatan: exp.catatan
-                ? `${exp.catatan} (Otomatis dibatalkan sistem: Melewati batas pembayaran 24 jam sejak siap diambil)`
-                : '(Otomatis dibatalkan sistem: Melewati batas pembayaran 24 jam sejak siap diambil)',
-            },
-          });
-        }
-      });
-      await delCachePattern('products:*');
     }
 
     const orders = await prisma.order.findMany({
@@ -273,8 +242,10 @@ export async function GET() {
 
     const responseData = {
       success: true,
-      orders: orders.map((o) => ({
+      orders: orders.map(({ pickupCode, ...o }) => ({
         ...o,
+        pickupCode: o.status === 'SIAP_DIAMBIL' ? pickupCode : null,
+        pickupDeadline: effectivePickupDeadline(o)?.toISOString() ?? null,
         totalAmount: Number(o.totalAmount),
         items: o.items.map((i) => ({
           ...i,

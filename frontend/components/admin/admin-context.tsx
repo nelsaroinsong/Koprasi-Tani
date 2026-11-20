@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { AdminNotificationsProvider } from "@/components/admin/admin-notifications"
 
 export type AdminTab = {
   group: string
@@ -30,7 +31,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AdminContext.Provider value={{ activeTab, setActiveTab }}>
-      {children}
+      <AdminNotificationsProvider>{children}</AdminNotificationsProvider>
     </AdminContext.Provider>
   )
 }

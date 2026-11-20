@@ -31,6 +31,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { useAdmin } from "@/components/admin/admin-context"
+import { CountBadge, useAdminNotifications, type BadgeKey } from "@/components/admin/admin-notifications"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -65,11 +66,13 @@ function TreeBranchItem({
   isActive,
   isLast,
   onClick,
+  badge = 0,
 }: {
   label: string
   isActive: boolean
   isLast?: boolean
   onClick: () => void
+  badge?: number
 }) {
   return (
     <div className="relative flex items-center pl-6">
@@ -88,13 +91,14 @@ function TreeBranchItem({
       <button
         type="button"
         onClick={onClick}
-        className={`w-full text-left px-2.5 py-1.5 rounded-lg text-[12.5px] transition-all cursor-pointer truncate ${
+        className={`w-full flex items-center justify-between gap-2 text-left px-2.5 py-1.5 rounded-lg text-[12.5px] transition-all cursor-pointer ${
           isActive
             ? "bg-white text-slate-900 font-semibold border border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
             : "text-slate-500 hover:text-slate-900 hover:bg-slate-200/40 font-medium"
         }`}
       >
-        {label}
+        <span className="truncate">{label}</span>
+        <CountBadge count={badge} />
       </button>
     </div>
   )
@@ -104,6 +108,31 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
   const { activeTab, setActiveTab } = useAdmin()
   const { toggleSidebar, state } = useSidebar()
   const isCollapsed = state === "collapsed"
+  const { badges, refresh: refreshBadges, markSeen } = useAdminNotifications()
+  const transaksiBadge = badges.pesananToko + badges.pesananSewa + badges.bagiHasil
+  const keanggotaanBadge = badges.petani + badges.pembeli
+
+  // Menu yang sedang dibuka -> badge-nya dianggap sudah dilihat
+  const activeSection: BadgeKey | null =
+    activeTab.group === "Pengguna" && activeTab.item === "Petani"
+      ? "petani"
+      : activeTab.group === "Pengguna" && activeTab.item === "Pembeli"
+        ? "pembeli"
+        : activeTab.group === "Transaksi Koperasi" && activeTab.item === "Bagi Hasil Petani"
+          ? "bagiHasil"
+          : activeTab.group === "Transaksi Koperasi" &&
+              ["Pesanan Sewa Alat", "Pengajuan Sewa Alat", "Sewa Alat"].includes(activeTab.item)
+            ? "pesananSewa"
+            : activeTab.group === "Transaksi Koperasi"
+              ? "pesananToko"
+              : null
+
+  // Membuka / mengklik menu = badge menu itu dianggap sudah dilihat.
+  // Item baru yang masuk SAAT halaman terbuka tetap memunculkan badge (klik menunya lagi untuk menghapus).
+  React.useEffect(() => {
+    if (activeSection) markSeen(activeSection)
+    else refreshBadges()
+  }, [activeTab, activeSection, markSeen, refreshBadges])
 
   const [isSearchOpen, setIsSearchOpen] = React.useState(false)
   const [searchQuery, setSearchQuery] = React.useState("")
@@ -302,7 +331,7 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
 
         {/* 2. Scrollable Navigation Content */}
         <SidebarContent
-          className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 py-2 flex flex-col justify-between bg-[#F8F9FA] [scrollbar-width:thin]"
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 py-2 flex flex-col justify-between bg-[#F8F9FA] no-scrollbar [scrollbar-width:none]"
           onWheel={(e) => {
             e.stopPropagation()
           }}
@@ -368,13 +397,14 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
                           onClick={() =>
                             setActiveTab("Transaksi Koperasi", "Pesanan Toko")
                           }
-                          className={`w-8 h-8 mx-auto rounded-lg flex items-center justify-center transition cursor-pointer ${
+                          className={`relative w-8 h-8 mx-auto rounded-lg flex items-center justify-center transition cursor-pointer ${
                             activeTab.group === "Transaksi Koperasi"
                               ? "bg-white text-slate-900 border border-[#E5E7EB] shadow-2xs"
                               : "text-slate-500 hover:bg-slate-200/50 hover:text-slate-900"
                           }`}
                         >
                           <Tag className="w-4 h-4 stroke-[1.8]" />
+                          {transaksiBadge > 0 && <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500 ring-2 ring-[#F8F9FA]" />}
                         </button>
                       </TooltipTrigger>
                       <TooltipContent side="right" className="font-medium text-xs">
@@ -392,6 +422,7 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
                           <Tag className="w-4 h-4 text-slate-500 shrink-0 stroke-[1.8]" />
                           <span>Transaksi</span>
                         </div>
+                        {!isTransaksiOpen && <CountBadge count={transaksiBadge} className="ml-auto mr-1.5" />}
                         <ChevronDown
                           className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
                             isTransaksiOpen ? "rotate-180" : "rotate-0"
@@ -407,6 +438,7 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
                               activeTab.group === "Transaksi Koperasi" &&
                               (activeTab.item === "Pesanan Toko" || activeTab.item === "Pesanan Masuk")
                             }
+                            badge={badges.pesananToko}
                             onClick={() =>
                               setActiveTab("Transaksi Koperasi", "Pesanan Toko")
                             }
@@ -419,6 +451,7 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
                                 activeTab.item === "Pengajuan Sewa Alat" ||
                                 activeTab.item === "Sewa Alat")
                             }
+                            badge={badges.pesananSewa}
                             onClick={() =>
                               setActiveTab(
                                 "Transaksi Koperasi",
@@ -433,6 +466,7 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
                               activeTab.group === "Transaksi Koperasi" &&
                               activeTab.item === "Bagi Hasil Petani"
                             }
+                            badge={badges.bagiHasil}
                             onClick={() =>
                               setActiveTab(
                                 "Transaksi Koperasi",
@@ -454,13 +488,14 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
                         <button
                           type="button"
                           onClick={() => setActiveTab("Pengguna", "Petani")}
-                          className={`w-8 h-8 mx-auto rounded-lg flex items-center justify-center transition cursor-pointer ${
+                          className={`relative w-8 h-8 mx-auto rounded-lg flex items-center justify-center transition cursor-pointer ${
                             activeTab.group === "Pengguna"
                               ? "bg-white text-slate-900 border border-[#E5E7EB] shadow-2xs"
                               : "text-slate-500 hover:bg-slate-200/50 hover:text-slate-900"
                           }`}
                         >
                           <Users className="w-4 h-4 stroke-[1.8]" />
+                          {keanggotaanBadge > 0 && <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500 ring-2 ring-[#F8F9FA]" />}
                         </button>
                       </TooltipTrigger>
                       <TooltipContent side="right" className="font-medium text-xs">
@@ -478,6 +513,7 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
                           <Users className="w-4 h-4 text-slate-500 shrink-0 stroke-[1.8]" />
                           <span>Keanggotaan</span>
                         </div>
+                        {!isKeanggotaanOpen && <CountBadge count={keanggotaanBadge} className="ml-auto mr-1.5" />}
                         <ChevronDown
                           className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
                             isKeanggotaanOpen ? "rotate-180" : "rotate-0"
@@ -493,6 +529,7 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
                               activeTab.group === "Pengguna" &&
                               activeTab.item === "Petani"
                             }
+                            badge={badges.petani}
                             onClick={() => setActiveTab("Pengguna", "Petani")}
                           />
                           <TreeBranchItem
@@ -502,6 +539,7 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
                               activeTab.group === "Pengguna" &&
                               activeTab.item === "Pembeli"
                             }
+                            badge={badges.pembeli}
                             onClick={() => setActiveTab("Pengguna", "Pembeli")}
                           />
                         </div>

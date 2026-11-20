@@ -1,5 +1,8 @@
 'use client';
 
+import { ReasonConfirmDialog } from '@/components/admin/reason-confirm-dialog';
+import { waLink } from '@/lib/utils';
+import { notifyAdminDataChanged, useRefetchOnNewActivity } from '@/components/admin/admin-notifications';
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   Table,
@@ -87,6 +90,14 @@ const STATUS_TABS: { key: string; label: string; dot: string }[] = [
  * Tahap 3: Lunas Tunai Kasir & Siap Diambil (Tractor)
  * Tahap 4: Selesai & Kembali (Check)
  */
+/** "2026-11-21" -> "21 Nov 2026" (tanggal kalender, tanpa geser zona waktu) */
+function formatDateOnlyId(dateOnly?: string | null) {
+  if (!dateOnly) return '-';
+  const [y, m, d] = dateOnly.slice(0, 10).split('-').map(Number);
+  if (!y || !m || !d) return dateOnly;
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('id-ID', { timeZone: 'UTC', day: 'numeric', month: 'short', year: 'numeric' });
+}
+
 function RentalEventTimeline({ status }: { status: EquipmentRentalStatus }) {
   const isRejected = status === 'DITOLAK' || status === 'DIBATALKAN' || status === 'KADALUARSA';
 
@@ -182,6 +193,17 @@ export function EquipmentRentalsTable() {
 
   // Selected Rental for Detail Modal
   const [selectedRental, setSelectedRental] = useState<EquipmentRentalOrder | null>(null);
+  // Konfirmasi tolak / batalkan sewa (dengan alasan untuk penyewa)
+  const [rejectTarget, setRejectTarget] = useState<{
+    rental: EquipmentRentalOrder;
+    status: EquipmentRentalStatus;
+  } | null>(null);
+  // Jam berjalan untuk penanda "lewat batas" di dialog detail
+  const [nowTs, setNowTs] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNowTs(Date.now()), 60_000);
+    return () => clearInterval(t);
+  }, []);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
   // Modal Persetujuan Sewa & Penetapan Batas Bayar Kasir
@@ -248,6 +270,9 @@ export function EquipmentRentalsTable() {
       setIsLoading(false);
     }
   }, [showToast]);
+
+  // Pesanan/data baru masuk -> tabel memuat ulang otomatis
+  useRefetchOnNewActivity('pesananSewa', fetchRentals);
 
   useEffect(() => {
     fetchRentals();
@@ -365,6 +390,7 @@ export function EquipmentRentalsTable() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rentalIds: selectedRentals }),
       });
+      notifyAdminDataChanged();
 
       const data = await res.json();
       if (!res.ok) {
@@ -392,6 +418,7 @@ export function EquipmentRentalsTable() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rentalIds: [rentalToDelete.id] }),
       });
+      notifyAdminDataChanged();
 
       const data = await res.json();
       if (!res.ok) {
@@ -424,6 +451,12 @@ export function EquipmentRentalsTable() {
       rejectedReason?: string;
     } & Partial<InspectionPayload>
   ): Promise<boolean> => {
+    // Menolak / membatalkan tidak bisa diurungkan: buka dialog konfirmasi + alasan dulu
+    if ((newStatus === 'DITOLAK' || newStatus === 'DIBATALKAN') && !extraData?.rejectedReason) {
+      const target = rentals.find((r) => r.id === rentalId) || selectedRental;
+      if (target) setRejectTarget({ rental: target, status: newStatus });
+      return false;
+    }
     try {
       setIsUpdatingStatus(true);
       const res = await fetch('/api/admin/equipment-rentals', {
@@ -435,6 +468,7 @@ export function EquipmentRentalsTable() {
           ...extraData,
         }),
       });
+      notifyAdminDataChanged();
 
       const data = await res.json();
       if (res.ok && data.success) {
@@ -465,6 +499,7 @@ export function EquipmentRentalsTable() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: rental.id, action: 'DP_REFUNDED' }),
       });
+      notifyAdminDataChanged();
       const data = await res.json();
       showToast(data.message || data.error || 'Selesai.');
       if (res.ok) {
@@ -1417,7 +1452,7 @@ export function EquipmentRentalsTable() {
                               </div>
                               {rental.userPhone && (
                                 <a
-                                  href={`https://wa.me/${rental.userPhone.replace(/\D/g, '')}`}
+                                  href={waLink(rental.userPhone)}
                                   target="_blank"
                                   rel="noreferrer"
                                   onClick={(e) => e.stopPropagation()}
@@ -1738,20 +1773,36 @@ export function EquipmentRentalsTable() {
               {/* Stepper Timeline Horizontal */}
               {(() => {
                 const status = selectedRental.status;
-                const isRejected = status === 'DITOLAK' || status === 'DIBATALKAN';
+                const isRejected = status === 'DITOLAK' || status === 'DIBATALKAN' || status === 'KADALUARSA';
+                const stopLabel =
+                  status === 'KADALUARSA' ? 'Kadaluarsa' : status === 'DIBATALKAN' ? 'Dibatalkan' : 'Ditolak';
+                const stopDesc =
+                  status === 'KADALUARSA'
+                    ? 'Lewat batas bayar DP'
+                    : status === 'DIBATALKAN'
+                      ? 'Sewa dibatalkan'
+                      : 'Pengajuan ditolak';
                 const level =
                   status === 'SELESAI'
                     ? 4
                     : status === 'SIAP_DIAMBIL' || status === 'SEDANG_DISEWA'
-                    ? 3
-                    : status === 'DISETUJUI'
-                    ? 2
-                    : 1;
+                      ? 3
+                      : status === 'DISETUJUI' || status === 'DIKONFIRMASI'
+                        ? 2
+                        : 1;
 
                 const steps = [
                   { label: 'Diajukan', desc: 'Permohonan masuk', icon: FileText },
-                  { label: 'Disetujui', desc: 'Verifikasi admin', icon: ShieldCheck },
-                  { label: 'Siap Diambil', desc: 'Di pool koperasi', icon: Tractor },
+                  {
+                    label: status === 'DIKONFIRMASI' ? 'DP Diterima' : 'Disetujui',
+                    desc: status === 'DIKONFIRMASI' ? 'Jadwal terkunci' : 'Menunggu DP',
+                    icon: ShieldCheck,
+                  },
+                  {
+                    label: status === 'SEDANG_DISEWA' ? 'Dipakai' : 'Siap Diambil',
+                    desc: status === 'SEDANG_DISEWA' ? 'Unit di lahan' : 'Di pool koperasi',
+                    icon: Tractor,
+                  },
                   { label: 'Selesai', desc: 'Unit dikembalikan', icon: Check },
                 ];
 
@@ -1762,7 +1813,7 @@ export function EquipmentRentalsTable() {
                         Alur Pengajuan & Penggunaan Sewa
                       </h3>
                       <span className="text-[11px] text-slate-400">
-                        {isRejected ? 'Pengajuan ditolak/dibatalkan' : `Tahap ${level} dari 4`}
+                        {isRejected ? stopDesc : `Tahap ${level} dari 4`}
                       </span>
                     </div>
 
@@ -1811,10 +1862,10 @@ export function EquipmentRentalsTable() {
                                   : 'text-slate-400'
                               }`}
                             >
-                              {rejectedNode ? 'Ditolak' : s.label}
+                              {rejectedNode ? stopLabel : s.label}
                             </span>
                             <span className="text-[10.5px] text-slate-400 mt-0.5 leading-tight px-1">
-                              {rejectedNode ? 'Pengajuan dihentikan' : s.desc}
+                              {rejectedNode ? stopDesc : s.desc}
                             </span>
                           </li>
                         );
@@ -1823,6 +1874,13 @@ export function EquipmentRentalsTable() {
                   </section>
                 );
               })()}
+
+              {['DITOLAK', 'DIBATALKAN', 'KADALUARSA'].includes(selectedRental.status) && (
+                <section className="p-3 rounded-xl border border-rose-200 bg-rose-50/60 text-[11.5px] text-rose-700">
+                  <span className="font-semibold">Alasan: </span>
+                  {selectedRental.rejectedReason || 'Tidak tercatat'}
+                </section>
+              )}
 
               {/* Info Pemohon & Titik Pengambilan */}
               <section className="rounded-xl border border-slate-200 overflow-hidden">
@@ -1846,7 +1904,7 @@ export function EquipmentRentalsTable() {
                     <dd className="font-medium">
                       {selectedRental.userPhone ? (
                         <a
-                          href={`https://wa.me/${selectedRental.userPhone.replace(/\D/g, '')}`}
+                          href={waLink(selectedRental.userPhone)}
                           target="_blank"
                           rel="noreferrer"
                           className="text-emerald-700 hover:underline inline-flex items-center gap-1"
@@ -1869,16 +1927,38 @@ export function EquipmentRentalsTable() {
                   </div>
 
                   <div className="px-4 py-2.5 grid grid-cols-[120px_1fr] gap-3">
-                    <dt className="text-slate-500">Jadwal Mulai</dt>
-                    <dd className="font-medium text-slate-900">
-                      {selectedRental.startDate}
+                    <dt className="text-slate-500">Jadwal Sewa</dt>
+                    <dd className="font-medium text-slate-900 tabular-nums">
+                      {formatDateOnlyId(selectedRental.startDate)}
+                      {selectedRental.endDate && selectedRental.endDate !== selectedRental.startDate && (
+                        <> – {formatDateOnlyId(selectedRental.endDate)}</>
+                      )}
                     </dd>
                   </div>
+
+                  {selectedRental.status === 'DISETUJUI' && selectedRental.paymentDeadline && (
+                    <div className="px-4 py-2.5 grid grid-cols-[120px_1fr] gap-3">
+                      <dt className="text-slate-500">Batas Bayar DP</dt>
+                      <dd
+                        className={`font-semibold tabular-nums ${
+                          new Date(selectedRental.paymentDeadline).getTime() < nowTs ? 'text-rose-600' : 'text-amber-700'
+                        }`}
+                      >
+                        {new Date(selectedRental.paymentDeadline).toLocaleString('id-ID', {
+                          timeZone: 'Asia/Makassar',
+                          dateStyle: 'medium',
+                          timeStyle: 'short',
+                        })}{' '}
+                        WITA
+                        {new Date(selectedRental.paymentDeadline).getTime() < nowTs && ' (lewat batas)'}
+                      </dd>
+                    </div>
+                  )}
 
                   <div className="px-4 py-2.5 grid grid-cols-[120px_1fr] gap-3">
                     <dt className="text-slate-500">Lokasi Lahan</dt>
                     <dd className="font-medium text-slate-900 leading-relaxed">
-                      {selectedRental.lokasiLahan || 'Kantor & Pool Koperasi'}
+                      {selectedRental.lokasiLahan || <span className="text-slate-400">-</span>}
                     </dd>
                   </div>
 
@@ -2149,6 +2229,38 @@ export function EquipmentRentalsTable() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Konfirmasi Tolak / Batalkan Sewa */}
+      <ReasonConfirmDialog
+        key={rejectTarget?.rental.id || 'none'}
+        open={Boolean(rejectTarget)}
+        title={
+          rejectTarget?.rental.status === 'MENUNGGU_PERSETUJUAN_ADMIN' ? 'Tolak pengajuan sewa?' : 'Batalkan sewa ini?'
+        }
+        subtitle={
+          rejectTarget
+            ? `#${rejectTarget.rental.rentalCode} · ${rejectTarget.rental.userName || 'Penyewa'} · mulai ${rejectTarget.rental.startDate}`
+            : undefined
+        }
+        consequences={[
+          'Jadwal unit alat dilepas dan bisa dipesan penyewa lain.',
+          ...(rejectTarget?.rental.dpPaidAt
+            ? ['DP sudah dibayar — cek di detail apakah DP perlu dikembalikan ke penyewa.']
+            : []),
+          'Penyewa melihat status beserta alasannya. Tindakan ini tidak bisa diurungkan.',
+        ]}
+        quickReasons={['Unit sedang perbaikan', 'Jadwal bentrok', 'Di luar wilayah layanan', 'Permintaan penyewa']}
+        confirmLabel={rejectTarget?.rental.status === 'MENUNGGU_PERSETUJUAN_ADMIN' ? 'Ya, Tolak' : 'Ya, Batalkan'}
+        isSubmitting={isUpdatingStatus}
+        onConfirm={async (reason) => {
+          if (!rejectTarget) return;
+          const ok = await handleUpdateStatus(rejectTarget.rental.id, rejectTarget.status, {
+            rejectedReason: reason || 'Ditolak oleh admin koperasi',
+          });
+          if (ok) setRejectTarget(null);
+        }}
+        onClose={() => setRejectTarget(null)}
+      />
 
       {/* Modal Konfirmasi Hapus Masal (Bulk Delete) */}
       <Dialog
