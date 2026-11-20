@@ -1,6 +1,8 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
+  // Folder hasil build bisa diganti (mis. build uji tanpa mengganggu dev server): NEXT_DIST_DIR=.next-build
+  distDir: process.env.NEXT_DIST_DIR || '.next',
   reactStrictMode: true,
   devIndicators: false,
   poweredByHeader: false, // Menghilangkan header X-Powered-By agar fingerprint server tidak bocor

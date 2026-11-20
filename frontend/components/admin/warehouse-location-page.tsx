@@ -19,7 +19,6 @@ import {
   Copy,
   Check,
   RefreshCw,
-  RotateCcw,
   Phone,
   Store,
   X,
@@ -29,6 +28,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/context/toast-context';
 import { createKoperasiPinElement } from '@/lib/koperasi-map-pin';
+import { applyBaseLayer, buildBaseMapStyle, MAP_MAX_ZOOM } from '@/lib/map-tiles';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { Map as MapLibreMap, Marker as MapLibreMarker } from 'maplibre-gl';
 
@@ -276,69 +276,13 @@ export function WarehouseLocationPage({ initialAddress, onBack }: WarehouseLocat
 
       const map = new maplibregl.Map({
         container: mapContainerRef.current,
-        style: {
-          version: 8,
-          sources: {
-            'google-hybrid': {
-              type: 'raster',
-              tiles: [
-                'https://mt0.google.com/vt/lyrs=y&hl=id&x={x}&y={y}&z={z}',
-                'https://mt1.google.com/vt/lyrs=y&hl=id&x={x}&y={y}&z={z}',
-                'https://mt2.google.com/vt/lyrs=y&hl=id&x={x}&y={y}&z={z}',
-                'https://mt3.google.com/vt/lyrs=y&hl=id&x={x}&y={y}&z={z}',
-              ],
-              tileSize: 256,
-              maxzoom: 21,
-            },
-            'google-streets': {
-              type: 'raster',
-              tiles: [
-                'https://mt0.google.com/vt/lyrs=m&hl=id&x={x}&y={y}&z={z}',
-                'https://mt1.google.com/vt/lyrs=m&hl=id&x={x}&y={y}&z={z}',
-                'https://mt2.google.com/vt/lyrs=m&hl=id&x={x}&y={y}&z={z}',
-                'https://mt3.google.com/vt/lyrs=m&hl=id&x={x}&y={y}&z={z}',
-              ],
-              tileSize: 256,
-              maxzoom: 21,
-            },
-            'google-terrain': {
-              type: 'raster',
-              tiles: [
-                'https://mt0.google.com/vt/lyrs=p&hl=id&x={x}&y={y}&z={z}',
-                'https://mt1.google.com/vt/lyrs=p&hl=id&x={x}&y={y}&z={z}',
-                'https://mt2.google.com/vt/lyrs=p&hl=id&x={x}&y={y}&z={z}',
-                'https://mt3.google.com/vt/lyrs=p&hl=id&x={x}&y={y}&z={z}',
-              ],
-              tileSize: 256,
-              maxzoom: 21,
-            },
-          },
-          layers: [
-            {
-              id: 'streets-layer',
-              type: 'raster',
-              source: 'google-streets',
-              layout: { visibility: activeLayerRef.current === 'streets' ? 'visible' : 'none' },
-            },
-            {
-              id: 'terrain-layer',
-              type: 'raster',
-              source: 'google-terrain',
-              layout: { visibility: activeLayerRef.current === 'terrain' ? 'visible' : 'none' },
-            },
-            {
-              id: 'hybrid-layer',
-              type: 'raster',
-              source: 'google-hybrid',
-              layout: { visibility: activeLayerRef.current === 'hybrid' ? 'visible' : 'none' },
-            },
-          ],
-        },
+        style: buildBaseMapStyle(activeLayerRef.current),
         center: [initialLng, initialLat],
         zoom: 16.5,
         pitch: 0,
         maxPitch: 60,
-        attributionControl: false,
+        attributionControl: { compact: true },
+        maxZoom: MAP_MAX_ZOOM,
       });
 
       mapInstanceRef.current = map;
@@ -398,12 +342,7 @@ export function WarehouseLocationPage({ initialAddress, onBack }: WarehouseLocat
   const handleSwitchLayer = (layer: LayerType) => {
     setActiveLayer(layer);
     activeLayerRef.current = layer;
-    const map = mapInstanceRef.current;
-    if (map && map.isStyleLoaded()) {
-      map.setLayoutProperty('streets-layer', 'visibility', layer === 'streets' ? 'visible' : 'none');
-      map.setLayoutProperty('terrain-layer', 'visibility', layer === 'terrain' ? 'visible' : 'none');
-      map.setLayoutProperty('hybrid-layer', 'visibility', layer === 'hybrid' ? 'visible' : 'none');
-    }
+    applyBaseLayer(mapInstanceRef.current, layer);
   };
 
   // Navigasi Peta
@@ -484,25 +423,6 @@ export function WarehouseLocationPage({ initialAddress, onBack }: WarehouseLocat
       });
       setTimeout(() => setCopiedField(null), 2000);
     } catch {}
-  };
-
-  // Reset ke Lokasi Gudang Default (Kolongan, Kalawat)
-  const handleResetDefault = () => {
-    if (
-      typeof window !== 'undefined' &&
-      !window.confirm('Kembalikan pin & alamat ke titik awal bawaan (Kolongan, Kalawat)? Perubahan belum tersimpan sampai Anda menekan Simpan.')
-    ) {
-      return;
-    }
-    setAddressValue(DEFAULT_ADDRESS, false);
-    setSuggestedAddress(null);
-    setPinPlace({ title: 'Jl. Raya Kolongan', subtitle: 'Kec. Kalawat, Kabupaten Minahasa Utara, Sulawesi Utara' });
-    updatePinPosition(DEFAULT_LAT, DEFAULT_LNG, true, 16.5);
-    showToast({
-      title: 'Titik Gudang Direset',
-      message: 'Dikembalikan ke titik awal Desa Kolongan, Kec. Kalawat.',
-      type: 'info',
-    });
   };
 
   // Deteksi GPS Geolocation Peramban Pengguna
@@ -882,7 +802,7 @@ export function WarehouseLocationPage({ initialAddress, onBack }: WarehouseLocat
                 type="button"
                 onClick={handleDetectCurrentLocation}
                 disabled={isDetectingGPS}
-                className="absolute bottom-3 right-3 z-10 h-9 px-3 rounded-xl bg-white/95 hover:bg-white border border-slate-200/90 shadow-md text-[11.5px] font-semibold text-slate-800 flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
+                className="absolute bottom-10 right-3 z-10 h-9 px-3 rounded-xl bg-white/95 hover:bg-white border border-slate-200/90 shadow-md text-[11.5px] font-semibold text-slate-800 flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
                 title="Pindahkan pin ke lokasi perangkat Anda saat ini"
               >
                 {isDetectingGPS ? <Loader2 className="w-4 h-4 animate-spin" /> : <LocateFixed className="w-4 h-4 text-[#233414]" />}
@@ -1081,17 +1001,7 @@ export function WarehouseLocationPage({ initialAddress, onBack }: WarehouseLocat
             </section>
 
             {/* Footer */}
-            <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between gap-2">
-              <button
-                type="button"
-                onClick={handleResetDefault}
-                disabled={isSaving}
-                className="text-[11.5px] font-medium text-slate-500 hover:text-slate-800 flex items-center gap-1 cursor-pointer"
-                title="Kembalikan pin ke titik awal bawaan (Kolongan, Kalawat)"
-              >
-                <RotateCcw className="w-3 h-3" />
-                Kembalikan ke titik awal
-              </button>
+            <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-end gap-2">
               {renderSaveButton()}
             </div>
           </div>

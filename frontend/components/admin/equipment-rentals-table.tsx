@@ -53,6 +53,8 @@ import {
   Wallet,
   ChevronDown,
   Trash2,
+  Archive,
+  ArchiveRestore,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useDebounce } from '@/hooks/use-debounce';
@@ -81,6 +83,7 @@ const STATUS_TABS: { key: string; label: string; dot: string }[] = [
   { key: 'SELESAI', label: 'Selesai', dot: 'bg-emerald-500' },
   { key: 'KADALUARSA', label: 'Batas Bayar Lewat', dot: 'bg-rose-400' },
   { key: 'DITOLAK', label: 'Ditolak / Batal', dot: 'bg-rose-500' },
+  { key: 'ARSIP', label: 'Arsip', dot: 'bg-slate-300' },
 ];
 
 /**
@@ -274,15 +277,51 @@ export function EquipmentRentalsTable() {
   // Pesanan/data baru masuk -> tabel memuat ulang otomatis
   useRefetchOnNewActivity('pesananSewa', fetchRentals);
 
+  // Data arsip dimuat terpisah (tidak memengaruhi statistik tab lain)
+  const [archivedRentals, setArchivedRentals] = useState<EquipmentRentalOrder[]>([]);
+  const [archiveReloadKey, setArchiveReloadKey] = useState(0);
+  useEffect(() => {
+    if (filterStatus !== 'ARSIP') return;
+    let active = true;
+    fetch('/api/admin/equipment-rentals?archived=true', { cache: 'no-store' })
+      .then((res) => res.json())
+      .then((data) => {
+        if (active && Array.isArray(data.rentals)) setArchivedRentals(data.rentals);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [filterStatus, archiveReloadKey]);
+
+  const handleUnarchive = async (rental: EquipmentRentalOrder) => {
+    try {
+      const res = await fetch('/api/admin/equipment-rentals', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: rental.id, action: 'UNARCHIVE' }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Gagal memulihkan data sewa');
+      showToast(data.message || `Sewa #${rental.rentalCode} dipulihkan`);
+      setSelectedRental(null);
+      setArchiveReloadKey((k) => k + 1);
+      notifyAdminDataChanged();
+      fetchRentals();
+    } catch (err: any) {
+      showToast(err.message || 'Gagal memulihkan data sewa');
+    }
+  };
+
   useEffect(() => {
     fetchRentals();
   }, [fetchRentals]);
 
   // Filter & Search data on client
   const filteredRentals = useMemo(() => {
-    let result = rentals;
+    let result = filterStatus === 'ARSIP' ? archivedRentals : rentals;
 
-    if (filterStatus !== 'ALL') {
+    if (filterStatus !== 'ALL' && filterStatus !== 'ARSIP') {
       if (filterStatus === 'DITOLAK') {
         result = result.filter(
           (r) => r.status === 'DITOLAK' || r.status === 'DIBATALKAN'
@@ -315,7 +354,7 @@ export function EquipmentRentalsTable() {
     }
 
     return result;
-  }, [rentals, filterStatus, debouncedSearch, dateRange]);
+  }, [rentals, filterStatus, debouncedSearch, dateRange, archivedRentals]);
 
   // Status counts for tabs
   const stats = useMemo(() => {
@@ -912,6 +951,7 @@ export function EquipmentRentalsTable() {
               if (tab.key === 'SELESAI') count = stats.completed;
               if (tab.key === 'KADALUARSA') count = stats.expired;
               if (tab.key === 'DITOLAK') count = stats.rejected;
+              if (tab.key === 'ARSIP') count = filterStatus === 'ARSIP' ? archivedRentals.length : (null as unknown as number);
 
               return (
                 <button
@@ -1618,13 +1658,23 @@ export function EquipmentRentalsTable() {
                               )}
 
                               <DropdownMenuSeparator className="my-1 border-slate-100" />
-                              <DropdownMenuItem
-                                onClick={() => setRentalToDelete(rental)}
-                                className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-rose-600 hover:bg-rose-50"
-                              >
-                                <Trash2 className="w-3.5 h-3.5 text-rose-600" />
-                                <span>Arsipkan Data Sewa</span>
-                              </DropdownMenuItem>
+                              {rental.archivedAt ? (
+                                <DropdownMenuItem
+                                  onClick={() => handleUnarchive(rental)}
+                                  className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-slate-700 hover:bg-slate-100"
+                                >
+                                  <ArchiveRestore className="w-3.5 h-3.5 text-slate-500" />
+                                  <span>Pulihkan dari Arsip</span>
+                                </DropdownMenuItem>
+                              ) : (
+                                <DropdownMenuItem
+                                  onClick={() => setRentalToDelete(rental)}
+                                  className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-rose-600 hover:bg-rose-50"
+                                >
+                                  <Archive className="w-3.5 h-3.5 text-rose-600" />
+                                  <span>Arsipkan Data Sewa</span>
+                                </DropdownMenuItem>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
@@ -2124,6 +2174,16 @@ export function EquipmentRentalsTable() {
                   </button>
                 )}
 
+                {selectedRental.archivedAt ? (
+                  <button
+                    type="button"
+                    onClick={() => handleUnarchive(selectedRental)}
+                    className="px-2.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition cursor-pointer flex items-center gap-1 shadow-2xs"
+                  >
+                    <ArchiveRestore className="w-3.5 h-3.5 text-slate-600" />
+                    <span className="hidden sm:inline">Pulihkan</span>
+                  </button>
+                ) : (
                 <button
                   type="button"
                   onClick={() => setRentalToDelete(selectedRental)}
@@ -2133,6 +2193,7 @@ export function EquipmentRentalsTable() {
                   <Trash2 className="w-3.5 h-3.5 text-rose-600" />
                   <span className="hidden sm:inline">Arsipkan</span>
                 </button>
+                )}
               </div>
 
               <div className="flex items-center gap-2">

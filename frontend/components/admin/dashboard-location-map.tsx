@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useAdmin } from '@/components/admin/admin-context';
 import { createKoperasiPinElement } from '@/lib/koperasi-map-pin';
+import { applyBaseLayer, buildBaseMapStyle, MAP_MAX_ZOOM } from '@/lib/map-tiles';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
 interface KoperasiInfo {
@@ -24,11 +25,6 @@ interface KoperasiInfo {
   latitude: number;
   longitude: number;
 }
-
-const googleTiles = (layer: 'm' | 'y') => [
-  `https://mt0.google.com/vt/lyrs=${layer}&hl=id&x={x}&y={y}&z={z}`,
-  `https://mt1.google.com/vt/lyrs=${layer}&hl=id&x={x}&y={y}&z={z}`,
-];
 
 const DEFAULT_ZOOM = 16.5;
 
@@ -73,34 +69,11 @@ export function DashboardLocationMap() {
 
       const map = new maplibregl.Map({
         container: mapContainerRef.current,
-        style: {
-          version: 8,
-          sources: {
-            'google-streets': { type: 'raster', tiles: googleTiles('m'), tileSize: 256 },
-            'google-hybrid': { type: 'raster', tiles: googleTiles('y'), tileSize: 256 },
-          },
-          layers: [
-            {
-              id: 'layer-streets',
-              type: 'raster',
-              source: 'google-streets',
-              minzoom: 0,
-              maxzoom: 21,
-              layout: { visibility: 'none' },
-            },
-            {
-              id: 'layer-hybrid',
-              type: 'raster',
-              source: 'google-hybrid',
-              minzoom: 0,
-              maxzoom: 21,
-              layout: { visibility: 'visible' },
-            },
-          ],
-        },
+        style: buildBaseMapStyle('hybrid'),
         center: [info.longitude, info.latitude],
         zoom: DEFAULT_ZOOM,
-        attributionControl: false,
+        attributionControl: { compact: true },
+        maxZoom: MAP_MAX_ZOOM,
         // Scroll halaman dashboard tidak ikut men-zoom peta (zoom: tombol +/- atau Ctrl + scroll)
         cooperativeGestures: true,
       });
@@ -144,10 +117,7 @@ export function DashboardLocationMap() {
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !isMapReady) return;
-    try {
-      map.setLayoutProperty('layer-streets', 'visibility', mapStyleMode === 'streets' ? 'visible' : 'none');
-      map.setLayoutProperty('layer-hybrid', 'visibility', mapStyleMode === 'hybrid' ? 'visible' : 'none');
-    } catch {}
+    applyBaseLayer(map, mapStyleMode);
   }, [mapStyleMode, isMapReady]);
 
   const handleZoomIn = () => mapRef.current?.zoomIn({ duration: 250 });
@@ -202,7 +172,7 @@ export function DashboardLocationMap() {
         </div>
 
         {/* Kontrol Pusatkan & Zoom (Kanan Bawah) */}
-        <div className="absolute bottom-2.5 right-2.5 z-10 flex flex-col gap-1.5">
+        <div className="absolute bottom-9 right-2.5 z-10 flex flex-col gap-1.5">
           <button
             type="button"
             onClick={handleRecenter}

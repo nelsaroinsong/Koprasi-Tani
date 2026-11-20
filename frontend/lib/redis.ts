@@ -214,3 +214,36 @@ export async function releaseLock(key: string, token: string): Promise<boolean> 
     return false;
   }
 }
+
+/**
+ * Tambah penghitung atomik dengan masa berlaku (untuk rate limit).
+ * @returns jumlah setelah ditambah & sisa detik, atau null bila Redis tidak tersedia
+ */
+export async function incrementWithTtl(key: string, ttlSeconds: number): Promise<{ count: number; ttl: number } | null> {
+  const client = await getReadyClient();
+  if (!client) return null;
+  try {
+    const results = await client.multi().incr(key).ttl(key).exec();
+    const count = Number(results?.[0]?.[1] ?? 0);
+    let ttl = Number(results?.[1]?.[1] ?? -1);
+    if (ttl < 0) {
+      await client.expire(key, ttlSeconds);
+      ttl = ttlSeconds;
+    }
+    return { count, ttl };
+  } catch {
+    return null;
+  }
+}
+
+/** Baca penghitung tanpa menambah (untuk rate limit) */
+export async function peekCounter(key: string): Promise<{ count: number; ttl: number } | null> {
+  const client = await getReadyClient();
+  if (!client) return null;
+  try {
+    const [val, ttl] = await Promise.all([client.get(key), client.ttl(key)]);
+    return { count: Number(val || 0), ttl: Math.max(0, Number(ttl)) };
+  } catch {
+    return null;
+  }
+}

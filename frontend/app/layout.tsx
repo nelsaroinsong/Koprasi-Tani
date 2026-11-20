@@ -21,11 +21,14 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   viewportFit: 'cover',
+  themeColor: '#233414',
 };
 
 export const metadata: Metadata = {
   title: 'Koperasi Sinar Pagi Sejahtera - Minahasa Utara',
   description: 'Platform digital agribisnis, jual beli komoditas, sewa alat.',
+  applicationName: 'Koperasi Tani',
+  appleWebApp: { capable: true, title: 'Koperasi Tani', statusBarStyle: 'default' },
   openGraph: {
     title: 'Koperasi Sinar Pagi Sejahtera - Minahasa Utara',
     description: 'Platform digital agribisnis, jual beli komoditas, sewa alat.',
@@ -42,6 +45,7 @@ import { AuthProvider } from '@/context/auth-context';
 import { SessionProvider } from '@/components/providers/session-provider';
 import { ToastProvider } from '@/context/toast-context';
 import SessionTimeoutManager from '@/components/SessionTimeoutManager';
+import ServiceWorkerRegister from '@/components/ServiceWorkerRegister';
 import ChunkLoadRecovery from '@/components/ChunkLoadRecovery';
 import SmoothScrollProvider from '@/components/providers/smooth-scroll-provider';
 import { auth } from '@/auth';
@@ -63,6 +67,7 @@ export default async function RootLayout({children}: {children: React.ReactNode}
               <SmoothScrollProvider>
                 <ChunkLoadRecovery />
                 <SessionTimeoutManager />
+                <ServiceWorkerRegister />
                 {children}
               </SmoothScrollProvider>
             </ToastProvider>

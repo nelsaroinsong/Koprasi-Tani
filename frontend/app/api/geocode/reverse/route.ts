@@ -1,3 +1,4 @@
+import { googleNearbyPlaces, googleReverseGeocode, googleTextSearch } from '@/lib/google-maps-official';
 import { NextResponse } from 'next/server';
 
 // Daftar koordinat 10 Kecamatan di Kabupaten Minahasa Utara
@@ -90,142 +91,42 @@ function extractStreetOrJagaFromAddress(addr: string): string {
 }
 
 /**
- * 1. Mesin Utama Reverse Geocode Presisi Setara Google Maps Native:
- * Membaca alamat jalan/lorong/nomor rumah/nama PT tepat di koordinat yang dipilih pada ubin Google Maps!
+ * 1. Alamat presisi di titik pin melalui Google Geocoding API RESMI (bila GOOGLE_MAPS_API_KEY diset).
+ *    Tanpa key -> null, lalu memakai POI terdekat / OpenStreetMap (Photon) di bawah.
  */
 async function fetchExactGoogleMapsAddress(
   lat: number,
   lng: number
 ): Promise<{ exactAddress: string; title: string; subtitle: string } | null> {
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3600);
-    const dLat = Number((lat + 0.00004).toFixed(6));
-    const url = `https://www.google.com/maps?saddr=${lat},${lng}&daddr=${dLat},${lng}&hl=id&output=embed`;
-
-    const res = await fetch(url, {
-      headers: {
-        'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-      },
-      signal: controller.signal,
-    });
-    clearTimeout(timeoutId);
-
-    if (!res.ok) return null;
-    const html = await res.text();
-
-    // Pola array di initEmbed: [[[lat1,lng1],[lat2,lng2]],["Alamat 1","Alamat 2"]
-    const match = html.match(
-      /\[\[\[\s*-?\d+\.\d+\s*,\s*-?\d+\.\d+\s*\]\s*,\s*\[\s*-?\d+\.\d+\s*,\s*-?\d+\.\d+\s*\]\]\s*,\s*\[\s*"([^"]+)"/
-    );
-
-    if (match && match[1]) {
-      const rawAddress = match[1].replace(/\\"/g, '"').trim();
-      const cleaned = cleanGooglePlusCodes(rawAddress);
-      // Valid address harus memiliki karakter huruf (bukan sekadar deretan angka koordinat)
-      if (cleaned && cleaned.length >= 5 && /[a-zA-Z]/.test(cleaned)) {
-        const parts = cleaned
-          .split(',')
-          .map((p) => p.trim())
-          .filter(Boolean);
-        const primaryTitle = parts[0] || cleaned;
-        const secondarySubtitle = parts.slice(1).join(', ') || cleaned;
-        return {
-          exactAddress: cleaned,
-          title: primaryTitle,
-          subtitle: secondarySubtitle,
-        };
-      }
-    }
-  } catch {
-    // Abaikan jika gagal dan lanjut ke fallback
-  }
-  return null;
+  const formatted = await googleReverseGeocode(lat, lng);
+  if (!formatted) return null;
+  const cleaned = cleanGooglePlusCodes(formatted);
+  if (!cleaned || cleaned.length < 5 || !/[a-zA-Z]/.test(cleaned)) return null;
+  const parts = cleaned.split(',').map((p) => p.trim()).filter(Boolean);
+  return { exactAddress: cleaned, title: parts[0] || cleaned, subtitle: parts.slice(1).join(', ') || cleaned };
 }
 
 /**
- * 2. Ambil daftar kandidat tempat terdekat (Sekitar Pin) dari Google Map Index
- * untuk ditampilkan sebagai chip cepat ala Grab.
+ * 2. Tempat di sekitar pin melalui Google Places API (New) RESMI (bila GOOGLE_MAPS_API_KEY diset).
+ *    Tanpa key -> daftar kosong (chip tempat sekitar tidak ditampilkan).
  */
-async function fetchNearbyMapPlaces(
-  lat: number,
-  lng: number
-): Promise<NearbyPlaceCandidate[]> {
-  const queries = ['perusahaan', 'Jl.', 'toko', 'gereja', 'sekolah', 'kantor', 'kost'];
-  const candidateMap = new Map<string, NearbyPlaceCandidate>();
-
-  await Promise.all(
-    queries.map(async (q) => {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 2800);
-        const url = `https://www.google.com/search?tbm=map&authuser=0&hl=id&gl=id&q=${encodeURIComponent(
-          q
-        )}&pb=!4m12!1m3!1d75!2d${lng}!3d${lat}!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!7i12!10b1`;
-
-        const res = await fetch(url, {
-          headers: {
-            'User-Agent':
-              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-          },
-          signal: controller.signal,
-        });
-        clearTimeout(timeoutId);
-
-        if (!res.ok) return;
-        const text = await res.text();
-        if (!text.startsWith(")]}'")) return;
-
-        const parsed = JSON.parse(text.slice(4));
-        const list = parsed?.[0]?.[1];
-        if (!Array.isArray(list)) return;
-
-        for (const item of list) {
-          const entry = item?.[14];
-          if (!entry) continue;
-
-          const name: string = entry[11] || '';
-          const rawAddr: string = entry[18] || entry[39] || '';
-          const pLat: number = entry[9]?.[2];
-          const pLng: number = entry[9]?.[3];
-          const category: string = entry[13]?.[0] || '';
-
-          if (!name || typeof pLat !== 'number' || typeof pLng !== 'number') continue;
-          if (/^[23456789CFGHJMPQRVWX]{4,8}\+[23456789CFGHJMPQRVWX]{2,4}$/i.test(name)) {
-            continue;
-          }
-
-          const distMeters = Math.round(
-            Math.hypot((pLat - lat) * 111320, (pLng - lng) * 111120)
-          );
-
-          if (distMeters > 380) continue;
-
-          const cleanAddr = cleanGooglePlusCodes(rawAddr);
-          const extractedStreet = extractStreetOrJagaFromAddress(cleanAddr);
-
-          const key = name.toLowerCase().trim();
-          const existing = candidateMap.get(key);
-          if (!existing || distMeters < existing.distanceMeters) {
-            candidateMap.set(key, {
-              name: name.trim(),
-              address: cleanAddr || name.trim(),
-              category: category || undefined,
-              lat: pLat,
-              lng: pLng,
-              distanceMeters: distMeters,
-              streetName: extractedStreet || undefined,
-            });
-          }
-        }
-      } catch {}
+async function fetchNearbyMapPlaces(lat: number, lng: number): Promise<NearbyPlaceCandidate[]> {
+  const places = await googleNearbyPlaces(lat, lng, 380);
+  return places
+    .map((p) => {
+      const cleanAddr = cleanGooglePlusCodes(p.address);
+      return {
+        name: p.name.trim(),
+        address: cleanAddr || p.name.trim(),
+        category: p.category,
+        lat: p.lat,
+        lng: p.lng,
+        distanceMeters: Math.round(Math.hypot((p.lat - lat) * 111320, (p.lng - lng) * 111120)),
+        streetName: extractStreetOrJagaFromAddress(cleanAddr) || undefined,
+      };
     })
-  );
-
-  return Array.from(candidateMap.values()).sort(
-    (a, b) => a.distanceMeters - b.distanceMeters
-  );
+    .filter((p) => p.distanceMeters <= 380)
+    .sort((x, y) => x.distanceMeters - y.distanceMeters);
 }
 
 export async function GET(request: Request) {

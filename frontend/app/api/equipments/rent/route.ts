@@ -1,3 +1,4 @@
+import { enforceRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
@@ -81,6 +82,9 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const session = await auth();
+    // Batasi frekuensi request (anti spam / tebak-tebakan)
+    const limited = await enforceRateLimit(request, RATE_LIMITS.rentalRequest, session?.user?.email);
+    if (limited) return limited;
     if (!session?.user?.email) {
       return NextResponse.json(
         { error: 'Silakan login terlebih dahulu untuk mengajukan sewa alat' },

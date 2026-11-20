@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { actorFromSession, logAudit, rpAudit } from '@/lib/audit-log';
-import { archiveMessage, archiveRentals } from '@/lib/archive';
+import { archiveMessage, archiveRentals, unarchiveRentals } from '@/lib/archive';
 import { notifyRentalStatus } from '@/lib/user-notifications';
 import type { Prisma } from '@prisma/client';
 import { auth } from '@/auth';
@@ -133,6 +133,15 @@ export async function PATCH(request: Request) {
       damageNotes,
     } = body;
     const status = body.status as EquipmentRentalStatus | undefined;
+
+    // Pulihkan dari arsip (tanpa mengubah status)
+    if (action === 'UNARCHIVE') {
+      const restored = await unarchiveRentals([String(id)], actorFromSession(session));
+      if (restored.length === 0) {
+        return NextResponse.json({ error: 'Data sewa arsip tidak ditemukan.' }, { status: 404 });
+      }
+      return NextResponse.json({ success: true, message: `Sewa ${restored[0]} dipulihkan dari arsip.` });
+    }
 
     await expireOverdueRentals();
 

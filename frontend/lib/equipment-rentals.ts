@@ -56,6 +56,7 @@ export interface EquipmentRentalOrder {
   updatedAt: string;
   approvedAt?: string | null;
   rejectedReason?: string | null;
+  archivedAt?: string | null;
   // DP tunai di kasir
   dpAmount?: number | null;
   dpPaidAt?: string | null;
@@ -119,6 +120,7 @@ export function toRentalDTO(r: RentalRow): EquipmentRentalOrder {
     cashierNotes: r.cashierNotes,
     approvedAt: r.approvedAt?.toISOString() || null,
     rejectedReason: r.rejectedReason,
+    archivedAt: r.archivedAt?.toISOString() || null,
     dpAmount: r.dpAmount !== null ? Number(r.dpAmount) : null,
     dpPaidAt: r.dpPaidAt?.toISOString() || null,
     dpForfeited: r.dpForfeited,

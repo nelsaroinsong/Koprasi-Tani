@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { actorFromSession, logAudit, rpAudit } from '@/lib/audit-log';
-import { archiveMessage, archiveOrders } from '@/lib/archive';
+import { archiveMessage, archiveOrders, unarchiveOrders } from '@/lib/archive';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { getCache, setCache, delCachePattern } from '@/lib/redis';
@@ -269,5 +269,27 @@ export async function DELETE(request: Request) {
       { error: error.message || 'Gagal menghapus pesanan' },
       { status: 500 }
     );
+  }
+}
+
+// 3. PATCH { action: 'UNARCHIVE', orderIds } -> pulihkan pesanan dari arsip
+export async function PATCH(request: Request) {
+  try {
+    const session = await auth();
+    if ((session?.user as any)?.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Akses khusus administrator' }, { status: 403 });
+    }
+    const body = await request.json().catch(() => ({}));
+    const ids: string[] = Array.isArray(body.orderIds) ? body.orderIds.map(String) : [];
+    if (body.action !== 'UNARCHIVE' || ids.length === 0) {
+      return NextResponse.json({ error: 'Aksi tidak valid' }, { status: 400 });
+    }
+    const restored = await unarchiveOrders(ids, actorFromSession(session));
+    if (restored.length === 0) {
+      return NextResponse.json({ error: 'Tidak ada pesanan arsip yang cocok.' }, { status: 404 });
+    }
+    return NextResponse.json({ success: true, message: `${restored.length} pesanan dipulihkan dari arsip.` });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Gagal memulihkan pesanan' }, { status: 500 });
   }
 }

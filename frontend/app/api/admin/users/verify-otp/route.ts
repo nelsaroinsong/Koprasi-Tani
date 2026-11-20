@@ -1,3 +1,4 @@
+import { enforceRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { getOtp, clearOtp, markEmailVerified } from '@/lib/otp-store';
@@ -5,6 +6,9 @@ import { getOtp, clearOtp, markEmailVerified } from '@/lib/otp-store';
 export async function POST(request: Request) {
   try {
     const session = await auth();
+    // Batasi frekuensi request (anti spam / tebak-tebakan)
+    const limited = await enforceRateLimit(request, RATE_LIMITS.otpVerify, session?.user?.email);
+    if (limited) return limited;
 
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Tidak terotentikasi' }, { status: 401 });

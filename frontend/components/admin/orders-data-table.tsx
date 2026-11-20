@@ -49,6 +49,8 @@ import {
   Square,
   ShoppingBag,
   Wallet,
+  Archive,
+  ArchiveRestore,
   KeyRound,
   TimerReset,
 } from 'lucide-react';
@@ -77,6 +79,7 @@ const STATUS_TABS = [
   { key: 'SIAP_DIAMBIL', label: 'Siap Diambil', dot: 'bg-indigo-600' },
   { key: 'SELESAI', label: 'Selesai', dot: 'bg-emerald-600' },
   { key: 'DIBATALKAN', label: 'Dibatalkan', dot: 'bg-rose-600' },
+  { key: 'ARSIP', label: 'Arsip', dot: 'bg-slate-300' },
 ];
 
 const DATE_PRESETS = [
@@ -305,7 +308,9 @@ export function OrdersDataTable({
       }
 
       const targetStatus = isDashboard ? 'MENUNGGU_PEMBAYARAN' : filterStatus;
-      if (targetStatus !== 'ALL') {
+      if (targetStatus === 'ARSIP') {
+        params.set('archived', 'true');
+      } else if (targetStatus !== 'ALL') {
         params.set('status', targetStatus);
       }
 
@@ -403,6 +408,24 @@ export function OrdersDataTable({
       return;
     }
     setCancelTarget(null);
+  };
+
+  const handleUnarchive = async (order: any) => {
+    try {
+      const res = await fetch('/api/admin/orders', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'UNARCHIVE', orderIds: [order.id] }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Gagal memulihkan pesanan');
+      showToast(data.message || `Pesanan #${order.orderNumber} dipulihkan`);
+      setSelectedOrder(null);
+      notifyAdminDataChanged();
+      fetchOrders();
+    } catch (err: any) {
+      showToast(err.message || 'Gagal memulihkan pesanan');
+    }
   };
 
   const handleExtendPickup = async (orderId: string) => {
@@ -832,6 +855,7 @@ export function OrdersDataTable({
                 if (tab.key === 'SIAP_DIAMBIL') count = stats.siapDiambilCount;
                 if (tab.key === 'SELESAI') count = stats.selesaiCount;
                 if (tab.key === 'DIBATALKAN') count = stats.dibatalkanCount;
+                if (tab.key === 'ARSIP') count = filterStatus === 'ARSIP' ? pagination.totalCount : (null as unknown as number);
 
                 return (
                   <button
@@ -1393,13 +1417,23 @@ export function OrdersDataTable({
 
                               <DropdownMenuSeparator className="my-1 border-slate-100" />
 
-                              <DropdownMenuItem
-                                onClick={() => setOrderToDelete(order)}
-                                className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-rose-600 hover:bg-rose-50"
-                              >
-                                <Trash2 className="w-3.5 h-3.5 text-rose-600" />
-                                <span>Arsipkan Pesanan</span>
-                              </DropdownMenuItem>
+                              {order.archivedAt ? (
+                                <DropdownMenuItem
+                                  onClick={() => handleUnarchive(order)}
+                                  className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-slate-700 hover:bg-slate-100"
+                                >
+                                  <ArchiveRestore className="w-3.5 h-3.5 text-slate-500" />
+                                  <span>Pulihkan dari Arsip</span>
+                                </DropdownMenuItem>
+                              ) : (
+                                <DropdownMenuItem
+                                  onClick={() => setOrderToDelete(order)}
+                                  className="cursor-pointer rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-rose-600 hover:bg-rose-50"
+                                >
+                                  <Archive className="w-3.5 h-3.5 text-rose-600" />
+                                  <span>Arsipkan Pesanan</span>
+                                </DropdownMenuItem>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
@@ -1933,6 +1967,16 @@ export function OrdersDataTable({
                 <Printer className="w-3.5 h-3.5 text-slate-600" />
                 <span>Cetak Struk / Nota</span>
               </button>
+              {selectedOrder.archivedAt && (
+                <button
+                  type="button"
+                  onClick={() => handleUnarchive(selectedOrder)}
+                  className="px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                >
+                  <ArchiveRestore className="w-3.5 h-3.5 text-slate-600" />
+                  <span>Pulihkan dari Arsip</span>
+                </button>
+              )}
 
               <div className="flex items-center gap-2">
                 {['MENUNGGU_PEMBAYARAN', 'DIPROSES', 'SIAP_DIAMBIL'].includes(selectedOrder.status) && (

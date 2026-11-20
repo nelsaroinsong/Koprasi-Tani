@@ -22,6 +22,7 @@ import {
   MINAHASA_UTARA_KECAMATAN,
   isMinahasaUtaraAddress,
 } from '@/lib/address-validation';
+import { applyBaseLayer, buildBaseMapStyle, MAP_MAX_ZOOM } from '@/lib/map-tiles';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
 function detectMinahasaUtaraDistrict(address: string | null | undefined): string | null {
@@ -284,54 +285,11 @@ export default function LocationMapPreview({
 
       map = new maplibregl.Map({
         container: mapContainerRef.current,
-        style: {
-          version: 8,
-          sources: {
-            'google-streets': {
-              type: 'raster',
-              tiles: [
-                'https://mt0.google.com/vt/lyrs=m&hl=id&x={x}&y={y}&z={z}',
-                'https://mt1.google.com/vt/lyrs=m&hl=id&x={x}&y={y}&z={z}',
-              ],
-              tileSize: 256,
-              attribution: '&copy; Google Maps & OpenStreetMap',
-            },
-            'google-hybrid': {
-              type: 'raster',
-              tiles: [
-                'https://mt0.google.com/vt/lyrs=y&hl=id&x={x}&y={y}&z={z}',
-                'https://mt1.google.com/vt/lyrs=y&hl=id&x={x}&y={y}&z={z}',
-              ],
-              tileSize: 256,
-              attribution: '&copy; Google Satellite Hybrid',
-            },
-          },
-          layers: [
-            {
-              id: 'layer-streets',
-              type: 'raster',
-              source: 'google-streets',
-              minzoom: 0,
-              maxzoom: 21,
-              layout: {
-                visibility: 'none',
-              },
-            },
-            {
-              id: 'layer-hybrid',
-              type: 'raster',
-              source: 'google-hybrid',
-              minzoom: 0,
-              maxzoom: 21,
-              layout: {
-                visibility: 'visible',
-              },
-            },
-          ],
-        },
+        style: buildBaseMapStyle('hybrid'),
         center: [initCoords.lng, initCoords.lat],
         zoom: 16,
-        attributionControl: false,
+        attributionControl: { compact: true },
+        maxZoom: MAP_MAX_ZOOM,
       });
 
       mapInstanceRef.current = map;
@@ -436,24 +394,7 @@ export default function LocationMapPreview({
 
   // Sinkronisasi layer Peta Jalan vs Satelit Hybrid
   useEffect(() => {
-    const map = mapInstanceRef.current;
-    if (!map || !map.isStyleLoaded()) return;
-    try {
-      if (map.getLayer('layer-streets')) {
-        map.setLayoutProperty(
-          'layer-streets',
-          'visibility',
-          mapStyleMode === 'streets' ? 'visible' : 'none'
-        );
-      }
-      if (map.getLayer('layer-hybrid')) {
-        map.setLayoutProperty(
-          'layer-hybrid',
-          'visibility',
-          mapStyleMode === 'hybrid' ? 'visible' : 'none'
-        );
-      }
-    } catch {}
+    applyBaseLayer(mapInstanceRef.current, mapStyleMode);
   }, [mapStyleMode]);
 
   // Resize peta saat keluar/masuk mode Fullscreen Mobile
@@ -875,7 +816,7 @@ export default function LocationMapPreview({
           )}
 
           {/* Kontrol Zoom & GPS Cepat (Kanan Bawah Peta) */}
-          <div className="absolute bottom-2.5 right-2.5 z-10 flex flex-col gap-1.5">
+          <div className="absolute bottom-9 right-2.5 z-10 flex flex-col gap-1.5">
             <button
               type="button"
               onClick={handleDetectMyLocation}

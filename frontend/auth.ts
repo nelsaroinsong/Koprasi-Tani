@@ -4,6 +4,7 @@ import Credentials from 'next-auth/providers/credentials';
 import { prisma } from '@/lib/prisma';
 import { verifyPassword } from '@/lib/auth-passwords';
 import { cookies } from 'next/headers';
+import { checkRateLimit, hitRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 export const ADMIN_LOGIN_INTENT_COOKIE = 'ksps_admin_login';
 const ADMIN_LOGIN_PAGE = '/admin-koperasi-sinar-pagi-sejahtera';
@@ -36,6 +37,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const email = String(credentials.email).trim().toLowerCase();
         const password = String(credentials.password);
 
+        // Kunci sementara setelah terlalu banyak percobaan gagal (anti tebak password)
+        const lock = await checkRateLimit(RATE_LIMITS.adminLoginFail, email);
+        if (!lock.allowed) {
+          console.warn(`[Admin Auth] ${email} dikunci sementara (${lock.retryAfter} detik) karena terlalu banyak percobaan gagal`);
+          return null;
+        }
+        const failed = async () => {
+          await hitRateLimit(RATE_LIMITS.adminLoginFail, email);
+          return null;
+        };
+
         try {
           const user = await prisma.user.findUnique({
             where: { email },
@@ -43,7 +55,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
           if (!user || user.role !== 'ADMIN' || !user.isActive) {
             console.warn(`[Admin Auth] Akses ditolak untuk email: ${email} (Bukan admin aktif)`);
-            return null;
+            return failed();
           }
 
           if (!user.password) {
@@ -54,7 +66,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           const isValid = verifyPassword(password, user.password);
           if (!isValid) {
             console.warn(`[Admin Auth] Password salah untuk admin: ${email}`);
-            return null;
+            return failed();
           }
 
           return {

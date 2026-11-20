@@ -1,3 +1,4 @@
+import { after } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendNotificationEmail } from '@/lib/mailer';
 import { delCache } from '@/lib/redis';
@@ -97,9 +98,17 @@ export async function notifyUser(input: NotifyInput): Promise<boolean> {
   }
 }
 
-/** Jalankan tanpa menunggu (agar respons API tetap cepat), error sudah ditangani di dalam. */
+/**
+ * Jalankan tanpa menunggu (agar respons API tetap cepat), error sudah ditangani di dalam.
+ * Di dalam request memakai `after()` Next.js: di serverless (Vercel) fungsi tetap hidup sampai
+ * notifikasi & email selesai. Di luar request (penjadwal, test) langsung dijalankan.
+ */
 export function notifyInBackground(input: NotifyInput) {
-  void notifyUser(input);
+  try {
+    after(() => notifyUser(input));
+  } catch {
+    void notifyUser(input);
+  }
 }
 
 // ------------------------------------------------------------------

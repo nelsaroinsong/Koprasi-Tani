@@ -1,3 +1,4 @@
+import { enforceRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { NextResponse } from 'next/server';
 import { notifyPetaniNewOrder } from '@/lib/user-notifications';
 import { auth } from '@/auth';
@@ -9,6 +10,9 @@ import { effectivePickupDeadline, expireOverduePickupOrders } from '@/lib/order-
 export async function POST(request: Request) {
   try {
     const session = await auth();
+    // Batasi frekuensi request (anti spam / tebak-tebakan)
+    const limited = await enforceRateLimit(request, RATE_LIMITS.checkout, session?.user?.email);
+    if (limited) return limited;
 
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Silakan login terlebih dahulu untuk checkout pesanan.' }, { status: 401 });

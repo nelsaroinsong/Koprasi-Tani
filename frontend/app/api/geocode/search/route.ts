@@ -1,3 +1,4 @@
+import { googleNearbyPlaces, googleReverseGeocode, googleTextSearch } from '@/lib/google-maps-official';
 import { NextResponse } from 'next/server';
 
 // Daftar cepat desa & kecamatan populer di Minahasa Utara untuk pencarian instan
@@ -57,53 +58,19 @@ export async function GET(request: Request) {
       category: item.category,
     }));
 
-    // 2. Pencarian langsung ke Google Map Index (mencakup PT, Toko, Gereja, Sekolah, Jalan Lorong di Minut)
+    // 2. Google Places API (New) RESMI bila GOOGLE_MAPS_API_KEY diset; tanpa key dilewati
     const googleMapResults: typeof localMatches = [];
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3800);
       const searchQ = qLower.includes('minahasa') ? q : `${q} Minahasa Utara`;
-      const gUrl = `https://www.google.com/search?tbm=map&authuser=0&hl=id&gl=id&q=${encodeURIComponent(
-        searchQ
-      )}&pb=!4m12!1m3!1d15000!2d124.96!3d1.46!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!7i10!10b1`;
-
-      const gRes = await fetch(gUrl, {
-        headers: {
-          'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-        },
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-
-      if (gRes.ok) {
-        const text = await gRes.text();
-        if (text.startsWith(")]}'")) {
-          const parsed = JSON.parse(text.slice(4));
-          const list = parsed?.[0]?.[1];
-          if (Array.isArray(list)) {
-            for (const item of list) {
-              const entry = item?.[14];
-              if (!entry) continue;
-              const name: string = entry[11] || '';
-              const rawAddr: string = entry[18] || entry[39] || '';
-              const lat: number = entry[9]?.[2];
-              const lng: number = entry[9]?.[3];
-              const category: string = entry[13]?.[0] || 'Tempat';
-
-              if (!name || typeof lat !== 'number' || typeof lng !== 'number') continue;
-
-              googleMapResults.push({
-                placeId: `gmap-${entry[10] || Math.random().toString(36).slice(2, 7)}`,
-                name: name.trim(),
-                displayName: stripPlusCode(rawAddr) || `${name}, Minahasa Utara`,
-                lat,
-                lng,
-                category,
-              });
-            }
-          }
-        }
+      for (const p of await googleTextSearch(searchQ)) {
+        googleMapResults.push({
+          placeId: `gmap-${p.id}`,
+          name: p.name.trim(),
+          displayName: stripPlusCode(p.address) || `${p.name}, Minahasa Utara`,
+          lat: p.lat,
+          lng: p.lng,
+          category: p.category || 'Tempat',
+        });
       }
     } catch {}
 

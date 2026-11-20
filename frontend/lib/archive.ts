@@ -102,3 +102,46 @@ export function archiveMessage(kind: 'pesanan' | 'sewa', r: ArchiveResult) {
   }
   return parts.join('. ') || `Tidak ada ${kind} yang diarsipkan.`;
 }
+
+/** Kembalikan pesanan dari arsip ke daftar admin */
+export async function unarchiveOrders(ids: string[], actor: AuditActor | null): Promise<string[]> {
+  const orders = await prisma.order.findMany({
+    where: { id: { in: ids }, archivedAt: { not: null } },
+    select: { id: true, orderNumber: true },
+  });
+  if (orders.length === 0) return [];
+  await prisma.order.updateMany({ where: { id: { in: orders.map((o) => o.id) } }, data: { archivedAt: null } });
+  await delCachePattern('admin:orders:*').catch(() => {});
+  for (const o of orders) {
+    await logAudit({
+      actor,
+      action: 'ORDER_UNARCHIVE',
+      entityType: 'ORDER',
+      entityId: o.id,
+      entityLabel: `#${o.orderNumber}`,
+      summary: `Memulihkan pesanan #${o.orderNumber} dari arsip`,
+    });
+  }
+  return orders.map((o) => `#${o.orderNumber}`);
+}
+
+/** Kembalikan sewa dari arsip ke daftar admin */
+export async function unarchiveRentals(ids: string[], actor: AuditActor | null): Promise<string[]> {
+  const rentals = await prisma.equipmentRental.findMany({
+    where: { id: { in: ids }, archivedAt: { not: null } },
+    select: { id: true, rentalCode: true },
+  });
+  if (rentals.length === 0) return [];
+  await prisma.equipmentRental.updateMany({ where: { id: { in: rentals.map((r) => r.id) } }, data: { archivedAt: null } });
+  for (const r of rentals) {
+    await logAudit({
+      actor,
+      action: 'RENTAL_UNARCHIVE',
+      entityType: 'RENTAL',
+      entityId: r.id,
+      entityLabel: `#${r.rentalCode}`,
+      summary: `Memulihkan sewa #${r.rentalCode} dari arsip`,
+    });
+  }
+  return rentals.map((r) => `#${r.rentalCode}`);
+}

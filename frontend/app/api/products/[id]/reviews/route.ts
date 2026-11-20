@@ -1,3 +1,4 @@
+import { enforceRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
@@ -80,6 +81,9 @@ export async function POST(
   try {
     const { id: productId } = await params;
     const session = await auth();
+    // Batasi frekuensi request (anti spam / tebak-tebakan)
+    const limited = await enforceRateLimit(request, RATE_LIMITS.review, session?.user?.email);
+    if (limited) return limited;
 
     if (!session?.user?.email) {
       return NextResponse.json(

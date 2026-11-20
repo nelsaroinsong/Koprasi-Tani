@@ -6,9 +6,12 @@
     "dev": "next dev -H 0.0.0.0",
     "build": "next build",
     "start": "next start",
+    "postinstall": "prisma generate",
     "lint": "eslint .",
     "clean": "next clean",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --no-warnings --import ./tests/support/register.mjs --test \"tests/unit/*.test.ts\"",
+    "test:db": "node --env-file=.env --experimental-strip-types --no-warnings --import ./tests/support/register.mjs --test --test-concurrency=1 \"tests/integration/*.test.ts\""
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1137.0",
