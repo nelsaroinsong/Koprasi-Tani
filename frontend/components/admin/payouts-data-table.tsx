@@ -60,6 +60,16 @@ export function PayoutsDataTable() {
   const [selectedPetaniPayout, setSelectedPetaniPayout] = useState<any | null>(null);
   const [petaniToPayCash, setPetaniToPayCash] = useState<any | null>(null);
   const [isPayingCash, setIsPayingCash] = useState(false);
+  const [payoutCodeInput, setPayoutCodeInput] = useState('');
+  const [payoutCodeError, setPayoutCodeError] = useState<string | null>(null);
+  const [isCodeInputFocused, setIsCodeInputFocused] = useState(false);
+
+  // Reset kode verifikasi setiap kali modal serah terima cash dibuka/ditutup
+  useEffect(() => {
+    setPayoutCodeInput('');
+    setPayoutCodeError(null);
+    setIsCodeInputFocused(false);
+  }, [petaniToPayCash]);
 
   const fetchPayouts = useCallback(async () => {
     try {
@@ -119,12 +129,19 @@ export function PayoutsDataTable() {
     return filteredList.slice(start, start + limit);
   }, [filteredList, currentPage, limit]);
 
-  // Handler: Serahkan Cash ke Petani
+  // Handler: Serahkan Cash ke Petani (Wajib verifikasi kode 6 digit 15 detik dari HP petani)
   const handleConfirmPayCash = async () => {
     if (!petaniToPayCash) return;
 
+    const cleanCode = payoutCodeInput.replace(/\D/g, '').slice(0, 6);
+    if (cleanCode.length !== 6) {
+      setPayoutCodeError('Masukkan 6 digit kode verifikasi yang tampil di HP petani.');
+      return;
+    }
+
     try {
       setIsPayingCash(true);
+      setPayoutCodeError(null);
       const res = await fetch('/api/admin/payouts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -132,9 +149,9 @@ export function PayoutsDataTable() {
           petaniId: petaniToPayCash.petani.id,
           // Persis item yang tampil di konfirmasi -> total yang dicatat = uang yang diserahkan
           itemIds: petaniToPayCash.pendingItems.map((it: any) => it.id),
+          payoutCode: cleanCode,
         }),
       });
-      notifyAdminDataChanged();
 
       const data = await res.json();
       if (!res.ok) {
@@ -142,9 +159,18 @@ export function PayoutsDataTable() {
           setPetaniToPayCash(null);
           setSelectedPetaniPayout(null);
           fetchPayouts();
+          showToast({
+            title: 'Data Berubah',
+            message: data.error || 'Data pencairan berubah, daftar telah dimuat ulang.',
+            type: 'warning',
+          });
+          return;
         }
-        throw new Error(data.error || 'Gagal menyerahkan uang cash ke petani.');
+        setPayoutCodeError(data.error || 'Kode verifikasi tidak valid atau sudah kedaluwarsa.');
+        return;
       }
+
+      notifyAdminDataChanged();
 
       showToast({
         title: 'Uang Cash Diserahkan',
@@ -154,13 +180,11 @@ export function PayoutsDataTable() {
 
       setPetaniToPayCash(null);
       setSelectedPetaniPayout(null);
+      setPayoutCodeInput('');
+      setPayoutCodeError(null);
       fetchPayouts();
     } catch (err: any) {
-      showToast({
-        title: 'Gagal Memproses',
-        message: err.message || 'Terjadi kesalahan.',
-        type: 'error',
-      });
+      setPayoutCodeError(err.message || 'Terjadi kesalahan saat memverifikasi kode.');
     } finally {
       setIsPayingCash(false);
     }
@@ -521,77 +545,159 @@ export function PayoutsDataTable() {
         </div>
       </div>
 
-      {/* Modal Konfirmasi Serahkan Cash */}
+      {/* Modal Konfirmasi & Verifikasi Kode Serahkan Cash */}
       <Dialog open={Boolean(petaniToPayCash)} onOpenChange={(open) => !open && !isPayingCash && setPetaniToPayCash(null)}>
-        <DialogContent showCloseButton={false} className="max-w-md p-0 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden">
+        <DialogContent
+          showCloseButton={false}
+          className="max-w-[400px] w-[92vw] p-1.5 bg-[#f3f4f6] border border-slate-200/90 rounded-[24px] shadow-2xl overflow-hidden"
+        >
           {petaniToPayCash && (
-            <>
-              <div className="p-5">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center shrink-0">
-                    <HandCoins className="w-5 h-5 text-emerald-700" />
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleConfirmPayCash();
+              }}
+              className="flex flex-col"
+            >
+              {/* Top Strip pada Layer Abu-Abu (Informasi Penerima & Total) */}
+              <div className="px-4 py-3 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-[14px] font-semibold text-slate-900 truncate leading-snug">
+                    {petaniToPayCash.petani.name}
                   </div>
-                  <div>
-                    <DialogTitle className="text-[15px] font-semibold text-slate-900">
-                      Konfirmasi Serah Terima Cash
-                    </DialogTitle>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      Pastikan uang fisik sudah diterima petani.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-4 rounded-xl border border-slate-200 divide-y divide-slate-100 text-xs">
-                  <div className="px-4 py-2.5 flex justify-between">
-                    <span className="text-slate-500">Penerima</span>
-                    <span className="font-medium text-slate-900">{petaniToPayCash.petani.name}</span>
-                  </div>
-                  <div className="px-4 py-2.5 flex justify-between">
-                    <span className="text-slate-500">Jumlah item</span>
-                    <span className="font-medium text-slate-900">{petaniToPayCash.pendingItems.length} item</span>
-                  </div>
-                  <div className="px-4 py-3 flex justify-between items-center bg-slate-50/60">
-                    <span className="text-slate-700 font-medium">Total diserahkan</span>
-                    <span className="text-lg font-semibold text-slate-900 tabular-nums">
+                  <div className="text-[11.5px] text-slate-500 mt-0.5 tabular-nums flex items-center gap-1.5">
+                    <span className="font-semibold text-emerald-700">
                       {rp(petaniToPayCash.siapDicairkanCash)}
                     </span>
+                    <span className="text-slate-300">•</span>
+                    <span>{petaniToPayCash.pendingItems.length} item siap cair</span>
                   </div>
                 </div>
-
-                <p className="text-[11px] text-slate-400 mt-3 leading-relaxed">
-                  Setelah dikonfirmasi, transaksi dicatat lunas dan muncul di riwayat akun petani. Tindakan ini tidak dapat dibatalkan.
-                </p>
-              </div>
-
-              <div className="px-5 py-3.5 border-t border-slate-100 flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setPetaniToPayCash(null)}
                   disabled={isPayingCash}
-                  className="h-8 px-3.5 text-xs font-medium text-slate-700 border border-slate-200 rounded-lg hover:bg-slate-50 transition cursor-pointer"
+                  aria-label="Tutup dialog verifikasi"
+                  className="w-8 h-8 rounded-full text-slate-500 hover:text-slate-800 hover:bg-slate-200/70 flex items-center justify-center transition cursor-pointer shrink-0 disabled:opacity-40"
                 >
-                  Batal
-                </button>
-                <button
-                  type="button"
-                  onClick={handleConfirmPayCash}
-                  disabled={isPayingCash}
-                  className="h-8 px-3.5 inline-flex items-center gap-1.5 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition cursor-pointer disabled:opacity-60"
-                >
-                  {isPayingCash ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      Memproses...
-                    </>
-                  ) : (
-                    <>
-                      <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
-                      Ya, Sudah Diserahkan
-                    </>
-                  )}
+                  <X className="w-4 h-4" />
                 </button>
               </div>
-            </>
+
+              {/* Inner White Card */}
+              <div className="bg-white rounded-[20px] p-5 border border-slate-200/60 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
+                <DialogTitle className="text-[15px] font-semibold text-slate-900 tracking-tight">
+                  Masukkan kode verifikasi
+                </DialogTitle>
+                <p id="payout-code-hint" className="text-xs text-slate-500 mt-1 leading-relaxed">
+                  Minta petani membuka <strong className="font-semibold text-slate-700">Dashboard → Kode Ambil Tunai</strong>, lalu ketik 6 digit kode aktif (berganti tiap 20 detik).
+                </p>
+
+                {/* 6 Squircle Visual Slots backed by ONE accessible OTP input */}
+                <div className="mt-4">
+                  <label htmlFor="payout-verify-code" className="sr-only">
+                    Kode verifikasi 6 digit dari HP petani
+                  </label>
+                  <div className="relative">
+                    <div className="grid grid-cols-6 gap-2" aria-hidden="true">
+                      {Array.from({ length: 6 }).map((_, idx) => {
+                        const digit = payoutCodeInput[idx] || '';
+                        const isActiveSlot =
+                          isCodeInputFocused &&
+                          (idx === payoutCodeInput.length ||
+                            (payoutCodeInput.length === 6 && idx === 5));
+
+                        return (
+                          <div
+                            key={idx}
+                            className={`h-13 sm:h-14 rounded-2xl border bg-white flex items-center justify-center font-mono text-lg sm:text-xl font-semibold tabular-nums transition-all duration-150 ${
+                              payoutCodeError
+                                ? 'border-rose-400 text-rose-600 bg-rose-50/30'
+                                : isActiveSlot
+                                ? 'border-emerald-600 ring-2 ring-emerald-500/20 text-slate-900'
+                                : digit
+                                ? 'border-emerald-600/80 text-slate-800'
+                                : 'border-slate-200 text-slate-400'
+                            }`}
+                          >
+                            {digit ? (
+                              <span>{digit}</span>
+                            ) : isActiveSlot ? (
+                              <span className="w-0.5 h-5 bg-emerald-600 rounded-full animate-pulse" />
+                            ) : null}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <input
+                      id="payout-verify-code"
+                      name="payoutCode"
+                      type="text"
+                      autoFocus
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      pattern="\d{6}"
+                      maxLength={6}
+                      required
+                      aria-describedby="payout-code-hint"
+                      aria-invalid={Boolean(payoutCodeError)}
+                      value={payoutCodeInput}
+                      onFocus={() => setIsCodeInputFocused(true)}
+                      onBlur={() => setIsCodeInputFocused(false)}
+                      onChange={(e) => {
+                        setPayoutCodeInput(e.target.value.replace(/\D/g, '').slice(0, 6));
+                        setPayoutCodeError(null);
+                      }}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-text text-base"
+                    />
+                  </div>
+
+                  {payoutCodeError && (
+                    <p role="alert" className="text-[11.5px] text-rose-600 font-medium mt-2.5 text-center leading-snug">
+                      {payoutCodeError}
+                    </p>
+                  )}
+                </div>
+
+                {/* Status Spinner / Action Row */}
+                <div className="mt-5">
+                  {isPayingCash ? (
+                    <div className="py-1.5 flex flex-col items-center justify-center gap-2">
+                      <span
+                        className="w-6 h-6 rounded-full border-2 border-emerald-100 border-t-emerald-600 animate-spin"
+                        aria-label="Memverifikasi kode"
+                      />
+                      <span className="text-[11.5px] text-slate-500 font-medium">
+                        Memverifikasi & mencatat serah terima...
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setPetaniToPayCash(null)}
+                        className="h-10 px-4 text-xs font-semibold text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 transition cursor-pointer"
+                      >
+                        Batal
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={payoutCodeInput.length !== 6}
+                        className="flex-1 h-10 px-4 inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
+                        <span>Verifikasi & Serahkan</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <p className="text-[11px] text-slate-400 mt-3 text-center leading-relaxed">
+                  Transaksi dicatat lunas di akun petani setelah kode cocok dan tidak dapat dibatalkan.
+                </p>
+              </div>
+            </form>
           )}
         </DialogContent>
       </Dialog>

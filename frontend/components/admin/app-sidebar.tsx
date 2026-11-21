@@ -109,7 +109,7 @@ function TreeBranchItem({
 
 export function AppSidebar({ user, ...props }: AppSidebarProps) {
   const { activeTab, setActiveTab } = useAdmin()
-  const { toggleSidebar, state } = useSidebar()
+  const { toggleSidebar, state, isMobile } = useSidebar()
   const isCollapsed = state === "collapsed"
   const { badges, refresh: refreshBadges, markSeen } = useAdminNotifications()
   const transaksiBadge = badges.pesananToko + badges.pesananSewa + badges.bagiHasil
@@ -896,10 +896,10 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
             </DropdownMenuTrigger>
 
             <DropdownMenuContent
-              side="top"
-              align={isCollapsed ? "center" : "start"}
-              sideOffset={8}
-              className={`${isCollapsed ? "w-60" : "w-(--radix-dropdown-menu-trigger-width) min-w-56"} rounded-xl p-1.5 shadow-lg border-slate-200 bg-white z-50 text-xs`}
+              side={isMobile ? "top" : "right"}
+              align="end"
+              sideOffset={10}
+              className="w-60 rounded-xl p-1.5 shadow-lg border-slate-200 bg-white z-50 text-xs"
             >
               <DropdownMenuLabel className="px-2.5 py-1.5 min-w-0">
                 <div className="font-semibold text-slate-900 truncate" title={adminName}>{adminName}</div>

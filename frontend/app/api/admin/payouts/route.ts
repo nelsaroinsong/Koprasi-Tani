@@ -4,6 +4,8 @@ import { notifyPayoutPaid } from '@/lib/user-notifications';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { getCache, setCache, delCache, delCachePattern } from '@/lib/redis';
+import { normalizePayoutCode, verifyPayoutCode } from '@/lib/payout-code';
+import { enforceRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 // 1. GET: Ambil Rekap Dana Cash & Penyerahan Keuntungan Petani
 export async function GET() {
@@ -162,14 +164,63 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { petaniId, itemIds } = body;
+    const { petaniId, itemIds, payoutCode } = body;
 
     if (!petaniId && (!itemIds || itemIds.length === 0)) {
       return NextResponse.json({ error: 'ID Petani atau ID Item wajib ditentukan.' }, { status: 400 });
     }
 
+    // Tentukan ID petani target untuk memverifikasi kode 15 detik dari HP petani
+    let verifiedPetaniId: string | null = petaniId ? String(petaniId) : null;
+    if (!verifiedPetaniId && Array.isArray(itemIds) && itemIds.length > 0) {
+      const sampleItems = await prisma.orderItem.findMany({
+        where: { id: { in: itemIds.map(String) } },
+        select: { petaniId: true },
+      });
+      const distinctPetaniIds = Array.from(new Set(sampleItems.map((i) => i.petaniId).filter(Boolean)));
+      if (distinctPetaniIds.length > 1) {
+        return NextResponse.json(
+          { error: 'Penyerahan tunai harus diproses satu petani dalam satu waktu agar kode verifikasi valid.' },
+          { status: 400 }
+        );
+      }
+      verifiedPetaniId = distinctPetaniIds[0] || null;
+    }
+
+    if (!verifiedPetaniId) {
+      return NextResponse.json({ error: 'Data petani penerima tidak ditemukan.' }, { status: 400 });
+    }
+
+    const normalizedCode = normalizePayoutCode(payoutCode);
+    if (normalizedCode.length !== 6) {
+      return NextResponse.json(
+        { error: 'Masukkan 6 digit kode verifikasi yang tampil di HP petani sebelum menyerahkan uang tunai.' },
+        { status: 400 }
+      );
+    }
+
+    const limited = await enforceRateLimit(
+      request,
+      RATE_LIMITS.payoutVerify,
+      `${session.user.email}:${verifiedPetaniId}`
+    );
+    if (limited) {
+      return limited;
+    }
+
+    if (!verifyPayoutCode(verifiedPetaniId, normalizedCode)) {
+      return NextResponse.json(
+        {
+          error:
+            'Kode verifikasi tidak cocok atau sudah kedaluwarsa. Minta petani membacakan kode 6 digit terbaru yang sedang tampil di dashboardnya.',
+        },
+        { status: 400 }
+      );
+    }
+
     const whereClause: Record<string, any> = {
       payoutStatus: 'MENUNGGU_PENCAIRAN',
+      petaniId: verifiedPetaniId,
       // Hanya item dari pesanan yang sudah SELESAI & lunas yang boleh dicairkan
       order: { status: 'SELESAI', isPaid: true },
     };
@@ -178,9 +229,6 @@ export async function POST(request: Request) {
     // agar jumlah uang yang diserahkan sama dengan yang tercatat.
     if (itemIds && Array.isArray(itemIds) && itemIds.length > 0) {
       whereClause.id = { in: itemIds.map(String) };
-    }
-    if (petaniId) {
-      whereClause.petaniId = petaniId;
     }
 
     // Ambil & tandai dalam satu transaksi; tolak jika sebagian sudah diproses permintaan lain (klik ganda)
@@ -237,8 +285,8 @@ export async function POST(request: Request) {
         entityType: 'PAYOUT',
         entityId: pid,
         entityLabel: targetItems.find((t) => t.petaniId === pid)?.petani?.name || 'Petani',
-        summary: `Menyerahkan tunai ${rpAudit(info.total)} ke ${targetItems.find((t) => t.petaniId === pid)?.petani?.name || 'petani'} (${info.count} item)`,
-        details: { total: info.total, orderItemIds: info.ids },
+        summary: `Menyerahkan tunai ${rpAudit(info.total)} ke ${targetItems.find((t) => t.petaniId === pid)?.petani?.name || 'petani'} (${info.count} item) dengan verifikasi kode`,
+        details: { total: info.total, orderItemIds: info.ids, verifiedWithRollingCode: true },
       });
     }
 

@@ -23,6 +23,7 @@ export const RATE_LIMITS = {
   upload: { name: 'upload', limit: 30, windowSec: 10 * 60 },
   otpSend: { name: 'otp-send', limit: 5, windowSec: 10 * 60 },
   otpVerify: { name: 'otp-verify', limit: 10, windowSec: 10 * 60 },
+  payoutVerify: { name: 'payout-verify', limit: 15, windowSec: 5 * 60 },
   /** gagal login admin (dihitung hanya saat gagal) */
   adminLoginFail: { name: 'admin-login-fail', limit: 5, windowSec: 15 * 60 },
 } satisfies Record<string, RateLimitRule>;

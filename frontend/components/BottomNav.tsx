@@ -228,7 +228,7 @@ export default function BottomNav({ activePage }: BottomNavProps = {}) {
   return (
     <nav
       aria-label="Navigasi Bawah Layanan Koperasi"
-      className="nav-pill-track fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-[#dce1d6] lg:hidden pb-[env(safe-area-inset-bottom,0px)] shadow-xs"
+      className="nav-pill-track fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-[#dce1d6] lg:hidden pt-1 pb-[max(0.875rem,env(safe-area-inset-bottom,0px))] shadow-xs"
     >
       <div
         ref={containerRef}

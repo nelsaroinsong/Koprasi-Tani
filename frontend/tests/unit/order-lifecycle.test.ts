@@ -5,9 +5,13 @@ import {
   effectivePickupDeadline,
   extendPickupDeadline,
   generatePickupCode,
+  generateRollingPickupCode,
   normalizePickupCode,
+  PICKUP_CODE_STEP_MS,
+  PICKUP_CODE_STEP_SECONDS,
   PICKUP_WINDOW_HOURS,
   stripPickupCode,
+  verifyRollingPickupCode,
 } from '@/lib/order-lifecycle';
 
 const H = 3_600_000;
@@ -49,5 +53,23 @@ describe('Serah terima pesanan (kode ambil & batas waktu)', () => {
     assert.equal('pickupCode' in out, false);
     assert.equal(out.hasPickupCode, true);
     assert.equal(stripPickupCode({ id: 'y', pickupCode: null }).hasPickupCode, false);
+  });
+
+  test(`kode ambil dinamis berganti tiap ${PICKUP_CODE_STEP_SECONDS} detik & validasi grace window`, () => {
+    assert.equal(PICKUP_CODE_STEP_SECONDS, 20);
+    const secret = 'test-pickup-secret';
+    const slotStart = Math.floor(1_760_000_000_000 / PICKUP_CODE_STEP_MS) * PICKUP_CODE_STEP_MS;
+    const t0 = slotStart + 1_000;
+    const g0 = generateRollingPickupCode('ord-1', '961519', t0, secret);
+    const gSame = generateRollingPickupCode('ord-1', '961519', slotStart + PICKUP_CODE_STEP_MS - 500, secret);
+    const gNext = generateRollingPickupCode('ord-1', '961519', slotStart + PICKUP_CODE_STEP_MS + 500, secret);
+
+    assert.match(g0.code, /^\d{6}$/);
+    assert.equal(g0.code, gSame.code);
+    assert.notEqual(g0.code, gNext.code);
+    assert.equal(verifyRollingPickupCode('ord-1', '961519', g0.code, slotStart + 18_000, { secret }), true);
+    assert.equal(verifyRollingPickupCode('ord-1', '961519', g0.code, slotStart + PICKUP_CODE_STEP_MS + 4_000, { secret }), true);
+    assert.equal(verifyRollingPickupCode('ord-1', '961519', g0.code, slotStart + 2 * PICKUP_CODE_STEP_MS + 1_000, { secret }), false);
+    assert.equal(verifyRollingPickupCode('ord-2', '961519', g0.code, t0, { secret }), false);
   });
 });

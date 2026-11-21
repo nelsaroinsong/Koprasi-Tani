@@ -242,6 +242,7 @@ export function OrdersDataTable({
   const [pickupTarget, setPickupTarget] = useState<any | null>(null);
   const [pickupCodeInput, setPickupCodeInput] = useState('');
   const [pickupCodeError, setPickupCodeError] = useState<string | null>(null);
+  const [isPickupCodeFocused, setIsPickupCodeFocused] = useState(false);
 
   // Jam berjalan untuk hitung mundur batas ambil (diperbarui tiap 30 detik)
   const [nowTick, setNowTick] = useState(() => Date.now());
@@ -1532,87 +1533,164 @@ export function OrdersDataTable({
 
       {/* Verifikasi Kode Ambil saat Serah Terima di Kasir */}
       <Dialog open={Boolean(pickupTarget)} onOpenChange={(open) => !open && !isUpdatingStatus && setPickupTarget(null)}>
-        <DialogContent className="max-w-sm p-6 bg-white border border-slate-200 rounded-2xl shadow-xl">
+        <DialogContent
+          showCloseButton={false}
+          className="max-w-[400px] w-[92vw] p-1.5 bg-[#f3f4f6] border border-slate-200/90 rounded-[24px] shadow-2xl overflow-hidden"
+        >
           {pickupTarget && (
             <form
               onSubmit={(e) => {
                 e.preventDefault();
                 handleConfirmPickup();
               }}
-              className="space-y-4"
+              className="flex flex-col"
             >
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center shrink-0">
-                  <KeyRound className="w-5 h-5 text-emerald-700" />
-                </div>
+              {/* Top Strip pada Layer Abu-Abu */}
+              <div className="px-4 py-3 flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <DialogTitle className="text-base font-bold text-slate-900">Serah Terima Pesanan</DialogTitle>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    #{pickupTarget.orderNumber} · {pickupTarget.pembeli?.name || 'Pembeli'}
-                  </p>
+                  <div className="text-[14px] font-semibold text-slate-900 truncate leading-snug">
+                    {pickupTarget.pembeli?.name || 'Pembeli'}
+                  </div>
+                  <div className="text-[11.5px] text-slate-500 mt-0.5 tabular-nums flex items-center gap-1.5">
+                    <span className="font-semibold text-emerald-700">
+                      Rp {Number(pickupTarget.totalAmount).toLocaleString('id-ID')}
+                    </span>
+                    <span className="text-slate-300">•</span>
+                    <span className="font-mono truncate">#{pickupTarget.orderNumber}</span>
+                  </div>
                 </div>
-              </div>
-
-              {pickupTarget.hasPickupCode ? (
-                <div className="space-y-1.5">
-                  <label htmlFor="pickup-code" className="text-xs font-semibold text-slate-800">
-                    Kode ambil dari HP pembeli
-                  </label>
-                  <input
-                    id="pickup-code"
-                    autoFocus
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    maxLength={6}
-                    value={pickupCodeInput}
-                    onChange={(e) => {
-                      setPickupCodeInput(e.target.value.replace(/\D/g, '').slice(0, 6));
-                      setPickupCodeError(null);
-                    }}
-                    placeholder="••••••"
-                    className={`w-full h-14 text-center font-mono text-[26px] font-bold tracking-[0.45em] text-slate-900 bg-white border rounded-xl focus:outline-none focus:ring-2 transition ${
-                      pickupCodeError ? 'border-rose-300 focus:ring-rose-500/40' : 'border-slate-200 focus:ring-slate-900/30'
-                    }`}
-                  />
-                  {pickupCodeError ? (
-                    <p className="text-[11.5px] text-rose-600 font-medium">{pickupCodeError}</p>
-                  ) : (
-                    <p className="text-[11.5px] text-slate-500">
-                      Minta pembeli membuka halaman pesanannya, lalu ketik 6 digit kode yang tampil.
-                    </p>
-                  )}
-                </div>
-              ) : (
-                <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-[11.5px] text-amber-800">
-                  Pesanan ini dibuat sebelum fitur kode ambil ada. Pastikan nama & nomor HP pembeli sesuai sebelum
-                  menyerahkan barang.
-                  {pickupCodeError && <div className="mt-1 font-semibold text-rose-600">{pickupCodeError}</div>}
-                </div>
-              )}
-
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-[11.5px] text-slate-600">
-                Dengan menyelesaikan, Anda menyatakan pembayaran tunai{' '}
-                <b className="text-slate-900">Rp {Number(pickupTarget.totalAmount).toLocaleString('id-ID')}</b> sudah
-                diterima dan barang diserahkan.
-              </div>
-
-              <div className="flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setPickupTarget(null)}
                   disabled={isUpdatingStatus}
-                  className="h-9 px-3.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 cursor-pointer"
+                  aria-label="Tutup dialog serah terima"
+                  className="w-8 h-8 rounded-full text-slate-500 hover:text-slate-800 hover:bg-slate-200/70 flex items-center justify-center transition cursor-pointer shrink-0 disabled:opacity-40"
                 >
-                  Batal
+                  <X className="w-4 h-4" />
                 </button>
-                <button
-                  type="submit"
-                  disabled={isUpdatingStatus || (pickupTarget.hasPickupCode && pickupCodeInput.length !== 6)}
-                  className="h-9 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  {isUpdatingStatus ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" strokeWidth={2.5} />}
-                  Selesaikan Pesanan
-                </button>
+              </div>
+
+              {/* Inner White Card */}
+              <div className="bg-white rounded-[20px] p-5 border border-slate-200/60 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
+                <DialogTitle className="text-[15px] font-semibold text-slate-900 tracking-tight">
+                  Serah terima pesanan
+                </DialogTitle>
+
+                {pickupTarget.hasPickupCode ? (
+                  <>
+                    <p id="pickup-code-hint" className="text-xs text-slate-500 mt-1 leading-relaxed">
+                      Minta pembeli membuka halaman pesanannya, lalu masukkan 6 digit kode ambil aktif (berganti tiap 20 detik).
+                    </p>
+
+                    <div className="mt-4">
+                      <label htmlFor="pickup-code" className="sr-only">
+                        Kode ambil 6 digit dari HP pembeli
+                      </label>
+                      <div className="relative">
+                        <div className="grid grid-cols-6 gap-2" aria-hidden="true">
+                          {Array.from({ length: 6 }).map((_, idx) => {
+                            const digit = pickupCodeInput[idx] || '';
+                            const isActiveSlot =
+                              isPickupCodeFocused &&
+                              (idx === pickupCodeInput.length ||
+                                (pickupCodeInput.length === 6 && idx === 5));
+
+                            return (
+                              <div
+                                key={idx}
+                                className={`h-13 sm:h-14 rounded-2xl border bg-white flex items-center justify-center font-mono text-lg sm:text-xl font-semibold tabular-nums transition-all duration-150 ${
+                                  pickupCodeError
+                                    ? 'border-rose-400 text-rose-600 bg-rose-50/30'
+                                    : isActiveSlot
+                                    ? 'border-emerald-600 ring-2 ring-emerald-500/20 text-slate-900'
+                                    : digit
+                                    ? 'border-emerald-600/80 text-slate-800'
+                                    : 'border-slate-200 text-slate-400'
+                                }`}
+                              >
+                                {digit ? (
+                                  <span>{digit}</span>
+                                ) : isActiveSlot ? (
+                                  <span className="w-0.5 h-5 bg-emerald-600 rounded-full animate-pulse" />
+                                ) : null}
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        <input
+                          id="pickup-code"
+                          name="pickupCode"
+                          type="text"
+                          autoFocus
+                          inputMode="numeric"
+                          autoComplete="one-time-code"
+                          pattern="\d{6}"
+                          maxLength={6}
+                          required
+                          aria-describedby="pickup-code-hint"
+                          aria-invalid={Boolean(pickupCodeError)}
+                          value={pickupCodeInput}
+                          onFocus={() => setIsPickupCodeFocused(true)}
+                          onBlur={() => setIsPickupCodeFocused(false)}
+                          onChange={(e) => {
+                            setPickupCodeInput(e.target.value.replace(/\D/g, '').slice(0, 6));
+                            setPickupCodeError(null);
+                          }}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-text text-base"
+                        />
+                      </div>
+
+                      {pickupCodeError && (
+                        <p role="alert" className="text-[11.5px] text-rose-600 font-medium mt-2.5 text-center leading-snug">
+                          {pickupCodeError}
+                        </p>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="mt-3 p-3 rounded-xl bg-amber-50 border border-amber-200 text-[11.5px] text-amber-800 leading-relaxed">
+                    Pesanan ini dibuat sebelum fitur kode ambil ada. Pastikan nama & nomor HP pembeli sesuai sebelum
+                    menyerahkan barang.
+                    {pickupCodeError && <div className="mt-1 font-semibold text-rose-600">{pickupCodeError}</div>}
+                  </div>
+                )}
+
+                <div className="mt-5">
+                  {isUpdatingStatus ? (
+                    <div className="py-1.5 flex flex-col items-center justify-center gap-2">
+                      <span
+                        className="w-6 h-6 rounded-full border-2 border-emerald-100 border-t-emerald-600 animate-spin"
+                        aria-label="Memverifikasi kode ambil"
+                      />
+                      <span className="text-[11.5px] text-slate-500 font-medium">
+                        Memverifikasi & menyelesaikan pesanan...
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setPickupTarget(null)}
+                        className="h-10 px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-600 transition cursor-pointer"
+                      >
+                        Batal
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={pickupTarget.hasPickupCode && pickupCodeInput.length !== 6}
+                        className="flex-1 h-10 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold inline-flex items-center justify-center gap-1.5 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
+                        <span>Selesaikan Pesanan</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <p className="text-[11px] text-slate-400 mt-3 text-center leading-relaxed">
+                  Dengan menyelesaikan, pembayaran tunai <strong className="text-slate-600">Rp {Number(pickupTarget.totalAmount).toLocaleString('id-ID')}</strong> dicatat lunas dan barang sudah diserahkan.
+                </p>
               </div>
             </form>
           )}

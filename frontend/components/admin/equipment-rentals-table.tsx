@@ -2436,44 +2436,48 @@ export function EquipmentRentalsTable() {
           if (!open) setRentalToApprove(null);
         }}
       >
-        <DialogContent className="max-w-md w-full p-0 overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-2xl">
-          <div className="p-5 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center">
-                <ShieldCheck className="w-5 h-5" />
+        <DialogContent
+          showCloseButton={false}
+          data-lenis-prevent="true"
+          className="max-w-md w-[94vw] max-h-[90dvh] p-0 overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-2xl flex flex-col gap-0"
+        >
+          <div className="px-4 py-3.5 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between gap-2 shrink-0">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+                <ShieldCheck className="w-4 h-4" />
               </div>
-              <div>
-                <DialogTitle className="text-sm font-bold text-slate-900">
+              <div className="min-w-0">
+                <DialogTitle className="text-sm font-bold text-slate-900 truncate">
                   Persetujuan Sewa & Batas Bayar Kasir
                 </DialogTitle>
-                <p className="text-[11px] text-slate-500">
+                <p className="text-[11px] text-slate-500 truncate">
                   No. Pengajuan #{rentalToApprove?.rentalCode}
                 </p>
               </div>
             </div>
-            <DialogClose className="w-8 h-8 rounded-lg hover:bg-slate-200/60 flex items-center justify-center text-slate-400 hover:text-slate-700 transition">
+            <DialogClose className="w-8 h-8 rounded-lg hover:bg-slate-200/60 flex items-center justify-center text-slate-400 hover:text-slate-700 transition cursor-pointer shrink-0">
               <X className="w-4 h-4" />
             </DialogClose>
           </div>
 
-          <div className="p-5 space-y-4 text-xs">
+          <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3.5 space-y-3 text-xs">
             {/* Info Pemohon & Biaya */}
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 space-y-1.5">
-              <div className="flex justify-between">
-                <span className="text-slate-500">Nama Pemohon:</span>
-                <span className="font-semibold text-slate-800">{rentalToApprove?.userName}</span>
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 space-y-1">
+              <div className="flex justify-between gap-2">
+                <span className="text-slate-500">Nama Pemohon</span>
+                <span className="font-semibold text-slate-800 text-right truncate">{rentalToApprove?.userName}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Jadwal Pemakaian:</span>
-                <span className="font-semibold text-slate-800">
+              <div className="flex justify-between gap-2">
+                <span className="text-slate-500">Jadwal Pemakaian</span>
+                <span className="font-semibold text-slate-800 tabular-nums">
                   {rentalToApprove?.startDate}
                   {rentalToApprove?.endDate && rentalToApprove.endDate !== rentalToApprove.startDate
                     ? ` – ${rentalToApprove.endDate}`
                     : ''}
                 </span>
               </div>
-              <div className="flex justify-between border-t border-slate-200 pt-1.5 font-medium">
-                <span className="text-slate-700">Total Biaya Sewa:</span>
+              <div className="flex justify-between gap-2 border-t border-slate-200 pt-1.5 font-medium">
+                <span className="text-slate-700">Total Biaya Sewa</span>
                 <span className="font-bold text-slate-900 tabular-nums">
                   Rp {Number(rentalToApprove?.totalEstimasi || 0).toLocaleString('id-ID')}
                 </span>
@@ -2481,7 +2485,7 @@ export function EquipmentRentalsTable() {
             </div>
 
             {rentalToApprove?.conflict?.blocked && (
-              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-[11px] text-rose-800 flex items-start gap-2">
+              <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-[11px] text-rose-800 flex items-start gap-2">
                 <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
                 <span>
                   <span className="font-bold block">Jadwal bentrok, pengajuan ini tidak bisa disetujui.</span>
@@ -2490,7 +2494,7 @@ export function EquipmentRentalsTable() {
               </div>
             )}
             {!rentalToApprove?.conflict?.blocked && (rentalToApprove?.conflict?.competingWith.length || 0) > 0 && (
-              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-800 flex items-start gap-2">
+              <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-800 flex items-start gap-2">
                 <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                 <span>
                   Pengajuan <b>#{rentalToApprove!.conflict!.competingWith.join(', #')}</b> meminta unit yang sama di
@@ -2501,70 +2505,70 @@ export function EquipmentRentalsTable() {
 
             {/* Pilihan Batas Waktu Bayar Kasir */}
             <div className="space-y-2">
-              <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider">
-                Pilih Batas Waktu Pembayaran di Kasir Koperasi:
+              <label className="block text-xs font-bold text-slate-800">
+                Pilih batas waktu pembayaran di kasir
               </label>
 
-              <div className="space-y-2">
-                <label className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition ${deadlineChoice === 'H_MINUS_1' ? 'bg-blue-50/70 border-blue-300 ring-1 ring-blue-500/20' : 'bg-white border-slate-200 hover:bg-slate-50'}`}>
+              <div className="space-y-1.5">
+                <label className={`flex items-start gap-2.5 p-2.5 rounded-xl border cursor-pointer transition ${deadlineChoice === 'H_MINUS_1' ? 'bg-blue-50/70 border-blue-300 ring-1 ring-blue-500/20' : 'bg-white border-slate-200 hover:bg-slate-50'}`}>
                   <input
                     type="radio"
                     name="deadlineChoice"
                     value="H_MINUS_1"
                     checked={deadlineChoice === 'H_MINUS_1'}
                     onChange={() => setDeadlineChoice('H_MINUS_1')}
-                    className="mt-0.5 accent-blue-600"
+                    className="mt-0.5 accent-blue-600 shrink-0"
                   />
-                  <div>
-                    <span className="font-bold text-slate-900 block">Sehari sebelum pemakaian, 16:30 WITA (Disarankan)</span>
-                    <span className="text-[11px] text-slate-500">Penyewa tidak perlu bayar jauh hari. Jika tidak lunas, unit sempat ditawarkan ke penyewa lain.</span>
+                  <div className="min-w-0">
+                    <span className="font-bold text-slate-900 block leading-snug">Sehari sebelum pemakaian, 16:30 WITA (Disarankan)</span>
+                    <span className="text-[11px] text-slate-500 leading-snug block mt-0.5">Penyewa tidak perlu bayar jauh hari. Jika tidak lunas, unit sempat ditawarkan ke penyewa lain.</span>
                     <span className="text-[11px] font-semibold text-blue-700 block mt-0.5">Batas: {previewDeadline('H_MINUS_1')}</span>
                   </div>
                 </label>
 
-                <label className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition ${deadlineChoice === 'HARI_H' ? 'bg-blue-50/70 border-blue-300 ring-1 ring-blue-500/20' : 'bg-white border-slate-200 hover:bg-slate-50'}`}>
+                <label className={`flex items-start gap-2.5 p-2.5 rounded-xl border cursor-pointer transition ${deadlineChoice === 'HARI_H' ? 'bg-blue-50/70 border-blue-300 ring-1 ring-blue-500/20' : 'bg-white border-slate-200 hover:bg-slate-50'}`}>
                   <input
                     type="radio"
                     name="deadlineChoice"
                     value="HARI_H"
                     checked={deadlineChoice === 'HARI_H'}
                     onChange={() => setDeadlineChoice('HARI_H')}
-                    className="mt-0.5 accent-blue-600"
+                    className="mt-0.5 accent-blue-600 shrink-0"
                   />
-                  <div>
-                    <span className="font-bold text-slate-900 block">Hari pemakaian, 10:00 WITA</span>
-                    <span className="text-[11px] text-slate-500">Bayar saat mengambil alat di gudang pada hari H.</span>
+                  <div className="min-w-0">
+                    <span className="font-bold text-slate-900 block leading-snug">Hari pemakaian, 10:00 WITA</span>
+                    <span className="text-[11px] text-slate-500 leading-snug block mt-0.5">Bayar saat mengambil alat di gudang pada hari H.</span>
                     <span className="text-[11px] font-semibold text-blue-700 block mt-0.5">Batas: {previewDeadline('HARI_H')}</span>
                   </div>
                 </label>
 
-                <label className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition ${deadlineChoice === 'DUA_JAM' ? 'bg-blue-50/70 border-blue-300 ring-1 ring-blue-500/20' : 'bg-white border-slate-200 hover:bg-slate-50'}`}>
+                <label className={`flex items-start gap-2.5 p-2.5 rounded-xl border cursor-pointer transition ${deadlineChoice === 'DUA_JAM' ? 'bg-blue-50/70 border-blue-300 ring-1 ring-blue-500/20' : 'bg-white border-slate-200 hover:bg-slate-50'}`}>
                   <input
                     type="radio"
                     name="deadlineChoice"
                     value="DUA_JAM"
                     checked={deadlineChoice === 'DUA_JAM'}
                     onChange={() => setDeadlineChoice('DUA_JAM')}
-                    className="mt-0.5 accent-blue-600"
+                    className="mt-0.5 accent-blue-600 shrink-0"
                   />
-                  <div>
-                    <span className="font-bold text-slate-900 block">2 jam dari sekarang</span>
-                    <span className="text-[11px] text-slate-500">Untuk sewa mendadak (hari ini/besok).</span>
+                  <div className="min-w-0">
+                    <span className="font-bold text-slate-900 block leading-snug">2 jam dari sekarang</span>
+                    <span className="text-[11px] text-slate-500 leading-snug block mt-0.5">Untuk sewa mendadak (hari ini/besok).</span>
                     <span className="text-[11px] font-semibold text-blue-700 block mt-0.5">Batas: {previewDeadline('DUA_JAM')}</span>
                   </div>
                 </label>
 
-                <label className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition ${deadlineChoice === 'CUSTOM' ? 'bg-blue-50/70 border-blue-300 ring-1 ring-blue-500/20' : 'bg-white border-slate-200 hover:bg-slate-50'}`}>
+                <label className={`flex items-start gap-2.5 p-2.5 rounded-xl border cursor-pointer transition ${deadlineChoice === 'CUSTOM' ? 'bg-blue-50/70 border-blue-300 ring-1 ring-blue-500/20' : 'bg-white border-slate-200 hover:bg-slate-50'}`}>
                   <input
                     type="radio"
                     name="deadlineChoice"
                     value="CUSTOM"
                     checked={deadlineChoice === 'CUSTOM'}
                     onChange={() => setDeadlineChoice('CUSTOM')}
-                    className="mt-0.5 accent-blue-600"
+                    className="mt-0.5 accent-blue-600 shrink-0"
                   />
-                  <div className="flex-1">
-                    <span className="font-bold text-slate-900 block">Tentukan Waktu Sendiri (Kustom)</span>
+                  <div className="flex-1 min-w-0">
+                    <span className="font-bold text-slate-900 block leading-snug">Tentukan Waktu Sendiri (Kustom)</span>
                     {deadlineChoice === 'CUSTOM' && (
                       <>
                         <input
@@ -2585,7 +2589,7 @@ export function EquipmentRentalsTable() {
               </div>
             </div>
 
-            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-800 flex items-start gap-2">
+            <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-800 flex items-start gap-2 leading-relaxed">
               <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
               <span>
                 Unit hanya dikunci pada tanggal pemakaian pemohon, bukan sejak hari ini. Batas bayar tidak pernah melewati hari H pukul 10:00 WITA. Jika belum lunas hingga batas ini, reservasi otomatis kadaluarsa dan unit bebas kembali.
@@ -2593,11 +2597,11 @@ export function EquipmentRentalsTable() {
             </div>
           </div>
 
-          <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-2">
+          <div className="px-4 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-2 shrink-0">
             <button
               type="button"
               onClick={() => setRentalToApprove(null)}
-              className="px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-200/60 transition cursor-pointer"
+              className="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-200/60 transition cursor-pointer"
             >
               Batal
             </button>
@@ -2621,27 +2625,31 @@ export function EquipmentRentalsTable() {
           if (!open) setRentalForCashier(null);
         }}
       >
-        <DialogContent className="max-w-md w-full p-0 overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-2xl">
-          <div className="p-5 border-b border-emerald-100 bg-emerald-50/70 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center">
-                <Banknote className="w-5 h-5" />
+        <DialogContent
+          showCloseButton={false}
+          data-lenis-prevent="true"
+          className="max-w-md w-[94vw] max-h-[90dvh] p-0 overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-2xl flex flex-col gap-0"
+        >
+          <div className="px-4 py-3.5 border-b border-emerald-100 bg-emerald-50/70 flex items-center justify-between gap-2 shrink-0">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                <Banknote className="w-4 h-4" />
               </div>
-              <div>
-                <DialogTitle className="text-sm font-bold text-slate-900">
+              <div className="min-w-0">
+                <DialogTitle className="text-sm font-bold text-slate-900 truncate">
                   Penerimaan Pembayaran Tunai Kasir
                 </DialogTitle>
-                <p className="text-[11px] text-emerald-800">
+                <p className="text-[11px] text-emerald-800 truncate">
                   Konfirmasi setoran tunai & penguncian unit
                 </p>
               </div>
             </div>
-            <DialogClose className="w-8 h-8 rounded-lg hover:bg-emerald-200/50 flex items-center justify-center text-slate-400 hover:text-slate-700 transition cursor-pointer">
+            <DialogClose className="w-8 h-8 rounded-lg hover:bg-emerald-200/50 flex items-center justify-center text-slate-400 hover:text-slate-700 transition cursor-pointer shrink-0">
               <X className="w-4 h-4" />
             </DialogClose>
           </div>
 
-          <div className="p-5 space-y-4 text-xs">
+          <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-4 text-xs">
             <div className="p-4 bg-emerald-50/60 border border-emerald-200 rounded-2xl text-center space-y-1">
               <span className="text-[11px] font-semibold text-emerald-800 uppercase tracking-wider block">
                 {cashierMode === 'DP' ? `DP ${DP_PERSEN}% Diterima Kasir:` : 'Pelunasan Diterima Kasir:'}
@@ -2701,7 +2709,7 @@ export function EquipmentRentalsTable() {
             </div>
           </div>
 
-          <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-2">
+          <div className="px-4 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-2 shrink-0">
             <button
               type="button"
               onClick={() => setRentalForCashier(null)}
@@ -2736,21 +2744,25 @@ export function EquipmentRentalsTable() {
           if (!open) setRentalForReceipt(null);
         }}
       >
-        <DialogContent className="max-w-md w-full p-0 overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-2xl">
-          <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Printer className="w-4 h-4 text-emerald-700" />
-              <DialogTitle className="text-sm font-bold text-slate-900">
+        <DialogContent
+          showCloseButton={false}
+          data-lenis-prevent="true"
+          className="max-w-md w-[94vw] max-h-[90dvh] p-0 overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-2xl flex flex-col gap-0"
+        >
+          <div className="px-4 py-3.5 border-b border-slate-100 flex items-center justify-between gap-2 shrink-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <Printer className="w-4 h-4 text-emerald-700 shrink-0" />
+              <DialogTitle className="text-sm font-bold text-slate-900 truncate">
                 Kuitansi Pelunasan Kasir Koperasi
               </DialogTitle>
             </div>
-            <DialogClose className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 transition cursor-pointer">
+            <DialogClose className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 transition cursor-pointer shrink-0">
               <X className="w-4 h-4" />
             </DialogClose>
           </div>
 
           {rentalForReceipt && (
-            <div className="p-6 bg-amber-50/20 text-slate-800 text-xs font-sans space-y-4 border-y border-dashed border-slate-200">
+            <div className="flex-1 min-h-0 overflow-y-auto p-5 bg-amber-50/20 text-slate-800 text-xs font-sans space-y-4 border-y border-dashed border-slate-200">
               <div className="text-center pb-3 border-b border-slate-200">
                 <div className="font-black text-sm text-[#233414]">KOPERASI SINAR PAGI SEJAHTERA</div>
                 <div className="text-[10px] text-slate-500">Unit Usaha Penyewaan Alsintan Pertanian</div>
@@ -2819,7 +2831,7 @@ export function EquipmentRentalsTable() {
             </div>
           )}
 
-          <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-2">
+          <div className="px-4 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-2 shrink-0">
             <button
               type="button"
               onClick={() => setRentalForReceipt(null)}

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, use } from 'react';
+import React, { useState, useEffect, useRef, useCallback, use } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import AppHeader from '@/components/AppHeader';
@@ -24,6 +24,8 @@ import {
   Building2,
   Share2,
   X,
+  Copy,
+  Check,
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
@@ -69,6 +71,46 @@ export default function OrderDetailPage({
   // Countdown timer state for 72h auto cancel
   const [timeRemaining, setTimeRemaining] = useState<string>('');
   const [isExpired, setIsExpired] = useState(false);
+  const [copiedPickupCode, setCopiedPickupCode] = useState(false);
+
+  // Rolling 20-second pickup code state
+  const [rollingPickupState, setRollingPickupState] = useState<{
+    code: string;
+    stepSeconds: number;
+    expiresAtLocalMs: number;
+  } | null>(null);
+  const [pickupCodeRemainingMs, setPickupCodeRemainingMs] = useState(20_000);
+  const isFetchingPickupCodeRef = useRef(false);
+
+  const handleCopyPickupCode = async (code: string) => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(code);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = code;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      setCopiedPickupCode(true);
+      showToast({
+        title: 'Kode Disalin',
+        message: 'Kode ambil pesanan 6 digit berhasil disalin.',
+        type: 'success',
+      });
+      setTimeout(() => setCopiedPickupCode(false), 1800);
+    } catch {
+      showToast({
+        title: 'Gagal Menyalin',
+        message: 'Silakan salin atau tunjukkan kode secara langsung ke kasir.',
+        type: 'error',
+      });
+    }
+  };
 
   useEffect(() => {
     fetch('/api/koperasi/info')
@@ -84,6 +126,91 @@ export default function OrderDetailPage({
   // mis. setelah petugas kasir memverifikasi kode ambil.
   const [refreshKey, setRefreshKey] = useState(0);
   const hasLoadedRef = useRef(false);
+
+  // Sync rolling pickup code state when orderData initially arrives
+  useEffect(() => {
+    if (!isRental && orderData?.status === 'SIAP_DIAMBIL' && orderData?.pickupCode) {
+      const stepSeconds = Number(orderData.pickupCodeStepSeconds) || 20;
+      const remainingMs = Math.max(1000, Number(orderData.pickupCodeRemainingMs) || stepSeconds * 1000);
+      setRollingPickupState({
+        code: String(orderData.pickupCode),
+        stepSeconds,
+        expiresAtLocalMs: Date.now() + remainingMs,
+      });
+      setPickupCodeRemainingMs(remainingMs);
+    } else {
+      setRollingPickupState(null);
+    }
+  }, [
+    isRental,
+    orderData?.id,
+    orderData?.status,
+    orderData?.pickupCode,
+    orderData?.pickupCodeStepSeconds,
+    orderData?.pickupCodeRemainingMs,
+  ]);
+
+  const fetchRollingPickupCode = useCallback(async (orderId: string) => {
+    if (isFetchingPickupCodeRef.current) return;
+    isFetchingPickupCodeRef.current = true;
+    try {
+      const res = await fetch(`/api/orders/${encodeURIComponent(orderId)}/pickup-code`, {
+        cache: 'no-store',
+      });
+      const data = await res.json();
+      if (!res.ok) return;
+
+      if (!data.active) {
+        setRollingPickupState(null);
+        setRefreshKey((k) => k + 1);
+        return;
+      }
+
+      const stepSeconds = Number(data.stepSeconds) || 20;
+      const remainingMs = Math.max(1000, Number(data.remainingMs) || stepSeconds * 1000);
+      setCopiedPickupCode(false);
+      setRollingPickupState({
+        code: String(data.code),
+        stepSeconds,
+        expiresAtLocalMs: Date.now() + remainingMs,
+      });
+      setPickupCodeRemainingMs(remainingMs);
+    } catch {
+      // Abaikan gangguan jaringan sementara; akan dicoba lagi otomatis pada siklus berikutnya
+    } finally {
+      isFetchingPickupCodeRef.current = false;
+    }
+  }, []);
+
+  // Auto-rotate kode ambil setiap 20 detik saat status SIAP_DIAMBIL
+  useEffect(() => {
+    if (isRental || orderData?.status !== 'SIAP_DIAMBIL' || !orderData?.id || !rollingPickupState) {
+      return;
+    }
+
+    const orderId = String(orderData.id);
+    const tick = () => {
+      const left = Math.max(0, rollingPickupState.expiresAtLocalMs - Date.now());
+      setPickupCodeRemainingMs(left);
+      if (left <= 0) {
+        fetchRollingPickupCode(orderId);
+      }
+    };
+
+    tick();
+    const timer = setInterval(tick, 200);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        fetchRollingPickupCode(orderId);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [isRental, orderData?.id, orderData?.status, rollingPickupState, fetchRollingPickupCode]);
 
   // Fetch data pesanan atau sewa alat
   useEffect(() => {
@@ -653,25 +780,117 @@ export default function OrderDetailPage({
                     </div>
 
                     {/* Akumulasi Batas Waktu Pembayaran 24 Jam (Tahap Bayar di Kasir: Dihitung 24 jam sejak siap diambil) */}
-                    {/* Kode Ambil: ditunjukkan ke petugas kasir saat serah terima */}
-                    {orderData.status === 'SIAP_DIAMBIL' && orderData.pickupCode && (
-                      <div className="mt-2.5 p-4 rounded-xl bg-[#233414] text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div>
-                          <div className="text-[11px] font-semibold uppercase tracking-wider text-[#D4F63D]">
-                            Kode Ambil Pesanan
+                    {/* Kode Ambil: dinamis 20 detik, serasi dengan gaya kartu verifikasi berlapis */}
+                    {orderData.status === 'SIAP_DIAMBIL' && (rollingPickupState?.code || orderData.pickupCode) && (() => {
+                      const activeCode = rollingPickupState?.code || String(orderData.pickupCode);
+                      const stepSeconds = rollingPickupState?.stepSeconds || 20;
+                      const totalMs = stepSeconds * 1000;
+                      const progress = Math.min(1, Math.max(0, pickupCodeRemainingMs / totalMs));
+                      const radius = 10;
+                      const circumference = 2 * Math.PI * radius;
+                      const dashOffset = circumference * (1 - progress);
+                      const isLow = pickupCodeRemainingMs <= 3500;
+                      const secondsLeft = Math.max(1, Math.ceil(pickupCodeRemainingMs / 1000));
+
+                      return (
+                        <div className="mt-3 p-1.5 bg-[#f3f4f6] border border-slate-200/90 rounded-[24px]">
+                          {/* Top Strip pada Layer Abu-Abu */}
+                          <div className="px-4 py-2.5 flex items-center justify-between gap-2">
+                            <span className="text-[13px] font-semibold text-slate-900">
+                              Kode Ambil Pesanan
+                            </span>
+                            <span className="text-[11px] font-semibold text-emerald-700">
+                              Siap diambil di kasir
+                            </span>
                           </div>
-                          <p className="text-[11px] text-white/75 mt-0.5 max-w-xs leading-relaxed">
-                            Tunjukkan kode ini ke petugas kasir saat mengambil & membayar. Jangan bagikan ke orang lain.
-                          </p>
+
+                          {/* Inner White Card */}
+                          <div className="bg-white rounded-[20px] p-4 sm:p-5 border border-slate-200/60 shadow-[0_1px_2px_rgba(15,23,42,0.03)] text-center">
+                            <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
+                              Tunjukkan 6 digit kode di bawah ke petugas kasir saat mengambil & membayar. Kode berganti otomatis setiap {stepSeconds} detik.
+                            </p>
+
+                            <div
+                              className="mt-3.5 max-w-[320px] mx-auto grid grid-cols-6 gap-2"
+                              aria-live="polite"
+                              aria-label={`Kode ambil ${activeCode.split('').join(' ')}`}
+                            >
+                              {activeCode.split('').map((digit: string, idx: number) => (
+                                <div
+                                  key={idx}
+                                  className={`h-12 sm:h-13 rounded-2xl border bg-white flex items-center justify-center font-mono text-lg sm:text-xl font-semibold text-slate-800 tabular-nums select-all transition-colors duration-200 ${
+                                    isLow ? 'border-amber-500/80' : 'border-emerald-600/85'
+                                  }`}
+                                >
+                                  {digit}
+                                </div>
+                              ))}
+                            </div>
+
+                            {/* Circular Countdown Ring 20 Detik */}
+                            <div className="mt-4 flex items-center justify-center gap-2 text-xs text-slate-500 tabular-nums">
+                              <svg
+                                className="w-6 h-6 -rotate-90 shrink-0"
+                                viewBox="0 0 24 24"
+                                aria-hidden="true"
+                              >
+                                <circle
+                                  cx="12"
+                                  cy="12"
+                                  r={radius}
+                                  fill="none"
+                                  stroke="#e2e8f0"
+                                  strokeWidth="2.5"
+                                />
+                                <circle
+                                  cx="12"
+                                  cy="12"
+                                  r={radius}
+                                  fill="none"
+                                  stroke={isLow ? '#f59e0b' : '#16a34a'}
+                                  strokeWidth="2.5"
+                                  strokeLinecap="round"
+                                  strokeDasharray={circumference}
+                                  strokeDashoffset={dashOffset}
+                                  className="transition-[stroke-dashoffset,stroke] duration-200 ease-linear"
+                                />
+                              </svg>
+                              <span>
+                                Kode baru dalam <strong className="font-semibold text-slate-700">{secondsLeft} dtk</strong>
+                              </span>
+                            </div>
+
+                            <div className="mt-4 max-w-[320px] mx-auto">
+                              <button
+                                type="button"
+                                onClick={() => handleCopyPickupCode(activeCode)}
+                                className={`w-full h-10 px-4 rounded-xl text-xs font-semibold inline-flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                                  copiedPickupCode
+                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                    : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                                }`}
+                              >
+                                {copiedPickupCode ? (
+                                  <>
+                                    <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
+                                    <span>Kode Tersalin</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy className="w-3.5 h-3.5" />
+                                    <span>Salin Kode</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
+
+                            <p className="text-[11px] text-slate-400 mt-2.5 leading-relaxed">
+                              Jangan bagikan tangkapan layar kode ini kepada orang lain demi keamanan pesanan Anda.
+                            </p>
+                          </div>
                         </div>
-                        <div
-                          className="font-mono text-[28px] sm:text-[32px] font-black tracking-[0.3em] text-[#D4F63D] tabular-nums select-all"
-                          aria-label={`Kode ambil ${orderData.pickupCode.split('').join(' ')}`}
-                        >
-                          {orderData.pickupCode}
-                        </div>
-                      </div>
-                    )}
+                      );
+                    })()}
 
                     {orderData.status === 'SIAP_DIAMBIL' && (
                       <div className="mt-2.5 p-3 rounded-xl bg-amber-50/95 border border-amber-300 text-amber-950 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
@@ -838,10 +1057,13 @@ export default function OrderDetailPage({
 
               {/* Daftar Barang / Alat */}
               <div className="p-4 sm:p-5 space-y-3">
-                <div className="text-xs font-bold uppercase tracking-wider text-[#526046]">
-                  {isRental
-                    ? `Daftar Alat Disewa (${orderData.items?.length || 1} Unit)`
-                    : `Rincian Komoditas (${orderData.items?.length || 1} Barang)`}
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="text-sm font-bold text-[#1a2610] tracking-tight">
+                    {isRental ? 'Daftar Alat Disewa' : 'Rincian Komoditas'}
+                  </h3>
+                  <span className="text-xs font-medium text-[#526046] tabular-nums">
+                    {orderData.items?.length || 1} {isRental ? 'unit' : 'barang'}
+                  </span>
                 </div>
 
                 <div className="space-y-3">
@@ -855,14 +1077,14 @@ export default function OrderDetailPage({
                       return (
                         <div
                           key={item.id}
-                          className="p-3 sm:p-4 rounded-2xl bg-[#f4f5f1]/80 border border-[#dce1d6] space-y-2.5"
+                          className="p-3.5 sm:p-4 rounded-xl bg-[#f8f9f6] border border-[#dce1d6] space-y-3"
                         >
-                          <div className="flex items-start gap-3">
+                          <div className="flex items-center gap-3">
                             {item.product?.imageUrl ? (
                               <img
                                 src={getPrimaryImage(item.product.imageUrl)}
                                 alt={item.product.nama}
-                                className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl object-cover border border-[#dce1d6] shrink-0 shadow-2xs"
+                                className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl object-cover border border-[#dce1d6] shrink-0"
                               />
                             ) : (
                               <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-[#e2f2c8]/60 text-[#233414] flex items-center justify-center shrink-0 border border-[#c9e39e]">
@@ -870,51 +1092,60 @@ export default function OrderDetailPage({
                               </div>
                             )}
 
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-start justify-between gap-2">
-                                <h4 className="text-sm font-bold text-[#1a2610] leading-snug line-clamp-1 sm:line-clamp-2">
+                            <div className="min-w-0 flex-1 flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <h4 className="text-sm font-bold text-[#1a2610] leading-snug line-clamp-2">
                                   {item.namaProduk || item.product?.nama || 'Komoditas Pertanian'}
                                 </h4>
-                                <div className="text-right shrink-0">
-                                  <span className="text-[10px] text-[#5b6950] block font-medium leading-none">Subtotal</span>
-                                  <span className="text-sm sm:text-base font-black text-[#1a2610] mt-0.5 block tabular-nums">
-                                    Rp {itemSubtotal.toLocaleString('id-ID')}
-                                  </span>
-                                </div>
+                                <p className="text-xs text-[#526046] mt-0.5 leading-snug tabular-nums">
+                                  {item.quantity} {item.satuan || item.product?.satuan || 'unit'} × Rp{' '}
+                                  {Number(item.hargaPerSatuan).toLocaleString('id-ID')}
+                                </p>
                               </div>
 
-                              <div className="text-xs text-[#526046] mt-0.5 tabular-nums">
-                                {item.quantity} {item.satuan || item.product?.satuan || 'unit'} × Rp{' '}
-                                {Number(item.hargaPerSatuan).toLocaleString('id-ID')}
+                              <div className="text-right shrink-0">
+                                <span className="text-xs text-[#5b6950] block font-medium leading-tight">
+                                  Subtotal
+                                </span>
+                                <span className="text-sm sm:text-base font-bold text-[#1a2610] mt-0.5 block leading-snug tabular-nums">
+                                  Rp {itemSubtotal.toLocaleString('id-ID')}
+                                </span>
                               </div>
-
-                              {item.petani?.name && (
-                                <div className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-lg bg-white/90 border border-[#dce1d6] text-xs text-[#2b4413] shadow-2xs max-w-full">
-                                  <span className="text-[#5b6950] text-[11px] font-normal shrink-0">Mitra Petani:</span>
-                                  <span className="font-bold text-[#1a2610] truncate">
-                                    {item.petani.name}
-                                  </span>
-                                </div>
-                              )}
                             </div>
                           </div>
 
-                          {orderData.status === 'SELESAI' && (
-                            <div className="pt-2 border-t border-[#dce1d6] flex items-center gap-2 flex-wrap">
-                              <button
-                                type="button"
-                                onClick={() => setReviewItem(item)}
-                                className="px-3 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold transition flex items-center gap-1 cursor-pointer"
-                              >
-                                <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-400" />
-                                <span>Beri Ulasan</span>
-                              </button>
-                              <Link
-                                href={`/toko/${item.productId || item.product?.id}`}
-                                className="text-xs text-[#233414] hover:text-[#344d15] hover:underline font-bold"
-                              >
-                                Lihat Halaman Produk →
-                              </Link>
+                          {(item.petani?.name || orderData.status === 'SELESAI') && (
+                            <div className="pt-2.5 border-t border-[#e5e9df] flex items-center justify-between gap-2 flex-wrap">
+                              {item.petani?.name ? (
+                                <div className="inline-flex items-center gap-1.5 text-xs text-[#526046] min-w-0">
+                                  <Store className="w-3.5 h-3.5 text-[#344d15] shrink-0" aria-hidden="true" />
+                                  <span className="shrink-0">Mitra Petani:</span>
+                                  <span className="font-semibold text-[#1a2610] truncate">
+                                    {item.petani.name}
+                                  </span>
+                                </div>
+                              ) : (
+                                <span />
+                              )}
+
+                              {orderData.status === 'SELESAI' && (
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <button
+                                    type="button"
+                                    onClick={() => setReviewItem(item)}
+                                    className="px-3 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                                  >
+                                    <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-400" />
+                                    <span>Beri Ulasan</span>
+                                  </button>
+                                  <Link
+                                    href={`/toko/${item.productId || item.product?.id}`}
+                                    className="text-xs text-[#233414] hover:text-[#344d15] hover:underline font-bold"
+                                  >
+                                    Lihat Produk →
+                                  </Link>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
@@ -938,14 +1169,14 @@ export default function OrderDetailPage({
                       return (
                         <div
                           key={idx}
-                          className="p-3 sm:p-4 rounded-2xl bg-[#f4f5f1]/80 border border-[#dce1d6] space-y-2.5"
+                          className="p-3.5 sm:p-4 rounded-xl bg-[#f8f9f6] border border-[#dce1d6] space-y-3"
                         >
-                          <div className="flex items-start gap-3">
+                          <div className="flex items-center gap-3">
                             {item.imageUrl ? (
                               <img
                                 src={getPrimaryImage(item.imageUrl)}
                                 alt={itemName}
-                                className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl object-cover border border-[#dce1d6] shrink-0 shadow-2xs"
+                                className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl object-cover border border-[#dce1d6] shrink-0"
                               />
                             ) : (
                               <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-[#e2f2c8]/60 text-[#233414] flex items-center justify-center shrink-0 border border-[#c9e39e]">
@@ -953,36 +1184,38 @@ export default function OrderDetailPage({
                               </div>
                             )}
 
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-start justify-between gap-2">
-                                <h4 className="text-sm font-bold text-[#1a2610] leading-snug line-clamp-1 sm:line-clamp-2">
+                            <div className="min-w-0 flex-1 flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <h4 className="text-sm font-bold text-[#1a2610] leading-snug line-clamp-2">
                                   {itemName}
                                 </h4>
-                                <div className="text-right shrink-0">
-                                  <span className="text-[10px] text-[#5b6950] block font-medium leading-none">Subtotal</span>
-                                  <span className="text-sm sm:text-base font-black text-[#1a2610] mt-0.5 block tabular-nums">
-                                    Rp {itemSubtotal.toLocaleString('id-ID')}
-                                  </span>
-                                </div>
+                                <p className="text-xs text-[#526046] mt-0.5 leading-snug tabular-nums">
+                                  {itemQty} unit × Rp {itemPrice.toLocaleString('id-ID')} / {itemUnit}
+                                </p>
                               </div>
 
-                              <div className="text-xs text-[#526046] mt-0.5 tabular-nums">
-                                {itemQty} unit × Rp {itemPrice.toLocaleString('id-ID')} / {itemUnit}
-                              </div>
-
-                              <div className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-lg bg-white border border-[#dce1d6] text-xs text-[#1a2610] max-w-full">
-                                <Calendar className="w-3.5 h-3.5 text-[#5b6950] shrink-0" aria-hidden="true" />
-                                <span className="font-semibold truncate">
-                                  {fmtDate(item.startDate || orderData.startDate)}
-                                  {(item.endDate || orderData.endDate) &&
-                                  String(item.endDate || orderData.endDate).slice(0, 10) !==
-                                    String(item.startDate || orderData.startDate).slice(0, 10)
-                                    ? ` – ${fmtDate(item.endDate || orderData.endDate)}`
-                                    : ''}{' '}
-                                  · {itemDuration} {itemUnit}
+                              <div className="text-right shrink-0">
+                                <span className="text-xs text-[#5b6950] block font-medium leading-tight">
+                                  Subtotal
+                                </span>
+                                <span className="text-sm sm:text-base font-bold text-[#1a2610] mt-0.5 block leading-snug tabular-nums">
+                                  Rp {itemSubtotal.toLocaleString('id-ID')}
                                 </span>
                               </div>
                             </div>
+                          </div>
+
+                          <div className="pt-2.5 border-t border-[#e5e9df] flex items-center gap-1.5 text-xs text-[#526046]">
+                            <Calendar className="w-3.5 h-3.5 text-[#344d15] shrink-0" aria-hidden="true" />
+                            <span className="font-semibold text-[#1a2610] truncate">
+                              {fmtDate(item.startDate || orderData.startDate)}
+                              {(item.endDate || orderData.endDate) &&
+                              String(item.endDate || orderData.endDate).slice(0, 10) !==
+                                String(item.startDate || orderData.startDate).slice(0, 10)
+                                ? ` – ${fmtDate(item.endDate || orderData.endDate)}`
+                                : ''}{' '}
+                              · {itemDuration} {itemUnit}
+                            </span>
                           </div>
                         </div>
                       );
@@ -994,11 +1227,11 @@ export default function OrderDetailPage({
               <div className="p-4 sm:p-5 bg-[#f4f5f1]/60 border-t border-[#dce1d6] grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
                 {/* Info Lokasi */}
                 <div className="p-3.5 bg-white rounded-xl border border-[#dce1d6] space-y-1">
-                  <div className="text-[11px] font-bold uppercase tracking-wider text-[#526046] flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5 text-[#233414]" />
+                  <div className="text-xs font-bold text-[#1a2610] flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-[#233414] shrink-0" />
                     <span>{isRental ? 'Lokasi Lahan Kebun Pertanian' : 'Lokasi Serah Terima & Kasir'}</span>
                   </div>
-                  <div className="text-[#1a2610] font-medium leading-relaxed">
+                  <div className="text-[#526046] font-medium leading-relaxed">
                     {isRental
                       ? orderData.lokasiLahan || orderData.farmLocationAddress || 'Wilayah Minahasa Utara'
                       : warehouseAddress}
@@ -1009,7 +1242,7 @@ export default function OrderDetailPage({
                         href={`https://www.google.com/maps?q=${orderData.farmLocationGps.lat},${orderData.farmLocationGps.lng}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[#233414] hover:text-[#344d15] font-bold hover:underline inline-flex items-center gap-1 text-[11px]"
+                        className="text-[#233414] hover:text-[#344d15] font-bold hover:underline inline-flex items-center gap-1 text-xs"
                       >
                         <span>Buka Koordinat GPS di Google Maps</span>
                         <ExternalLink className="w-3 h-3" />
@@ -1020,13 +1253,13 @@ export default function OrderDetailPage({
 
                 {/* Catatan Pembeli */}
                 <div className="p-3.5 bg-white rounded-xl border border-[#dce1d6] space-y-1">
-                  <div className="text-[11px] font-bold uppercase tracking-wider text-[#526046] flex items-center gap-1.5">
-                    <FileText className="w-3.5 h-3.5 text-[#233414]" />
+                  <div className="text-xs font-bold text-[#1a2610] flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5 text-[#233414] shrink-0" />
                     <span>Catatan Pesanan</span>
                   </div>
-                  <div className="text-[#1a2610] italic">
+                  <div className="text-[#526046] leading-relaxed">
                     {orderData.catatan || orderData.notes ? (
-                      <span>{orderData.catatan || orderData.notes}</span>
+                      <span className="text-[#1a2610]">{orderData.catatan || orderData.notes}</span>
                     ) : (
                       <span className="text-[#5b6950]">Tidak ada catatan khusus untuk pesanan ini.</span>
                     )}

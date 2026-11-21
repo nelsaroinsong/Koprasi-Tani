@@ -6,6 +6,7 @@ import { delCachePattern } from '@/lib/redis';
 import {
   effectivePickupDeadline,
   expireOverduePickupOrders,
+  generateRollingPickupCode,
   PICKUP_WINDOW_HOURS,
 } from '@/lib/order-lifecycle';
 
@@ -80,25 +81,34 @@ export async function GET(
       if (expired > 0) order = (await findOrder()) ?? order;
     }
 
-    // Kode ambil hanya untuk pemilik pesanan (pembeli), bukan admin/petani
+    // Kode ambil hanya untuk pemilik pesanan (pembeli), berganti dinamis setiap 20 detik
     const isOwner = order.pembeliId === currentUser.id;
     const { pickupCode, ...orderWithoutCode } = order;
+    const rollingPickup =
+      isOwner && order.status === 'SIAP_DIAMBIL' && pickupCode
+        ? generateRollingPickupCode(order.id, pickupCode)
+        : null;
 
-    return NextResponse.json({
-      success: true,
-      order: {
-        ...orderWithoutCode,
-        pickupCode: isOwner && order.status === 'SIAP_DIAMBIL' ? pickupCode : null,
-        pickupDeadline: effectivePickupDeadline(order)?.toISOString() ?? null,
-        pickupWindowHours: PICKUP_WINDOW_HOURS,
-        totalAmount: Number(order.totalAmount),
-        items: (order.items || []).map((i: any) => ({
-          ...i,
-          hargaPerSatuan: Number(i.hargaPerSatuan),
-          subtotal: Number(i.subtotal),
-        })),
+    return NextResponse.json(
+      {
+        success: true,
+        order: {
+          ...orderWithoutCode,
+          pickupCode: rollingPickup?.code ?? null,
+          pickupCodeStepSeconds: rollingPickup?.stepSeconds ?? null,
+          pickupCodeRemainingMs: rollingPickup?.remainingMs ?? null,
+          pickupDeadline: effectivePickupDeadline(order)?.toISOString() ?? null,
+          pickupWindowHours: PICKUP_WINDOW_HOURS,
+          totalAmount: Number(order.totalAmount),
+          items: (order.items || []).map((i: any) => ({
+            ...i,
+            hargaPerSatuan: Number(i.hargaPerSatuan),
+            subtotal: Number(i.subtotal),
+          })),
+        },
       },
-    });
+      { headers: { 'Cache-Control': 'no-store, private' } }
+    );
   } catch (error) {
     console.error('Error saat mengambil detail pesanan:', error);
     return NextResponse.json({ error: 'Gagal mengambil detail pesanan' }, { status: 500 });

@@ -1,21 +1,24 @@
 'use client';
 
 import { saleStatus } from '@/lib/transaction-labels';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import AppHeader from '@/components/AppHeader';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import {
   Warehouse,
   ShoppingBag,
   Coins,
   Check,
   CheckCircle2,
-  RefreshCw,
   Loader2,
   Clock,
   Search,
   ReceiptText,
   ArrowUpRight,
+  KeyRound,
+  Copy,
+  X,
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
@@ -75,6 +78,22 @@ export default function DashboardPetaniPage() {
 
   // Active Section Tab (Komoditas Saya vs Riwayat Penjualan)
   const [activeSection, setActiveSection] = useState<'PANEN' | 'PENJUALAN'>('PANEN');
+
+  // Rolling 15-Second Cash Payout Verification Code Modal State
+  const [isPayoutCodeOpen, setIsPayoutCodeOpen] = useState(false);
+  const [payoutCodeLoading, setPayoutCodeLoading] = useState(false);
+  const [payoutCodeError, setPayoutCodeError] = useState<string | null>(null);
+  const [payoutCodeData, setPayoutCodeData] = useState<{
+    code: string;
+    cashSiapDiambil: number;
+    itemCount: number;
+    stepSeconds: number;
+    expiresAtLocalMs: number;
+  } | null>(null);
+  const [payoutAlreadyDisbursed, setPayoutAlreadyDisbursed] = useState(false);
+  const [payoutRemainingMs, setPayoutRemainingMs] = useState(20_000);
+  const [copiedPayoutCode, setCopiedPayoutCode] = useState(false);
+  const isFetchingPayoutCodeRef = useRef(false);
 
   // Auth Protection Guard
   useEffect(() => {
@@ -187,6 +206,116 @@ export default function DashboardPetaniPage() {
     }
   }, [user?.id, user?.role, fetchDashboardStats, fetchMyProducts]);
 
+  // Fetch server-signed 15-second rolling verification code for cash pickup at koperasi
+  const fetchPayoutCode = useCallback(async (silent = false) => {
+    if (isFetchingPayoutCodeRef.current) return;
+    isFetchingPayoutCodeRef.current = true;
+    try {
+      if (!silent) {
+        setPayoutCodeLoading(true);
+      }
+      setPayoutCodeError(null);
+      const res = await fetch('/api/petani/payout-code', { cache: 'no-store' });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Gagal memuat kode verifikasi.');
+      }
+
+      if (!data.hasReadyCash) {
+        setPayoutCodeData(null);
+        setPayoutAlreadyDisbursed(true);
+        fetchDashboardStats(true);
+        return;
+      }
+
+      const remainingMs = Math.max(1000, Number(data.remainingMs) || 20_000);
+      setPayoutAlreadyDisbursed(false);
+      setCopiedPayoutCode(false);
+      setPayoutCodeData({
+        code: String(data.code),
+        cashSiapDiambil: Number(data.cashSiapDiambil) || 0,
+        itemCount: Number(data.itemCount) || 0,
+        stepSeconds: Number(data.stepSeconds) || 20,
+        expiresAtLocalMs: Date.now() + remainingMs,
+      });
+      setPayoutRemainingMs(remainingMs);
+    } catch (err: any) {
+      setPayoutCodeError(err.message || 'Gagal memuat kode verifikasi.');
+    } finally {
+      isFetchingPayoutCodeRef.current = false;
+      setPayoutCodeLoading(false);
+    }
+  }, [fetchDashboardStats]);
+
+  // Auto-fetch & keep rotating every 15s ONLY while modal is open
+  useEffect(() => {
+    if (!isPayoutCodeOpen) {
+      setPayoutCodeData(null);
+      setPayoutCodeError(null);
+      setPayoutAlreadyDisbursed(false);
+      return;
+    }
+
+    fetchPayoutCode(false);
+
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        fetchPayoutCode(true);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [isPayoutCodeOpen, fetchPayoutCode]);
+
+  useEffect(() => {
+    if (!isPayoutCodeOpen || !payoutCodeData) return;
+
+    const tick = () => {
+      const left = Math.max(0, payoutCodeData.expiresAtLocalMs - Date.now());
+      setPayoutRemainingMs(left);
+      if (left <= 0) {
+        fetchPayoutCode(true);
+      }
+    };
+
+    tick();
+    const timer = setInterval(tick, 200);
+    return () => clearInterval(timer);
+  }, [isPayoutCodeOpen, payoutCodeData, fetchPayoutCode]);
+
+  const handleCopyPayoutCode = async () => {
+    if (!payoutCodeData?.code) return;
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(payoutCodeData.code);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = payoutCodeData.code;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      setCopiedPayoutCode(true);
+      showToast({
+        title: 'Kode Disalin',
+        message: 'Kode 6 digit berhasil disalin ke clipboard.',
+        type: 'success',
+      });
+      setTimeout(() => setCopiedPayoutCode(false), 1800);
+    } catch {
+      showToast({
+        title: 'Gagal Menyalin',
+        message: 'Silakan salin atau bacakan kode secara manual.',
+        type: 'error',
+      });
+    }
+  };
+
   const filteredProducts = myProducts.filter((p) => {
     if (!searchProductQuery.trim()) return true;
     const q = searchProductQuery.toLowerCase();
@@ -280,6 +409,16 @@ export default function DashboardPetaniPage() {
                     : 'Ambil di kasir koperasi'}
                 </span>
               </div>
+              {stats.cashSiapDiambil > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setIsPayoutCodeOpen(true)}
+                  className="mt-2.5 w-full py-1.5 px-2.5 rounded-lg bg-[#D4F63D] hover:bg-[#c5e92c] text-[#1a2610] text-[10px] sm:text-xs font-extrabold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                >
+                  <KeyRound className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                  <span className="truncate">Kode Ambil Tunai</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -575,6 +714,189 @@ export default function DashboardPetaniPage() {
           </div>
         )}
       </main>
+
+      {/* Modal Kode Verifikasi Pengambilan Uang Tunai (Serasi dengan Modal Admin) */}
+      <Dialog open={isPayoutCodeOpen} onOpenChange={setIsPayoutCodeOpen}>
+        <DialogContent
+          showCloseButton={false}
+          className="max-w-[400px] w-[92vw] p-1.5 bg-[#f3f4f6] border border-slate-200/90 rounded-[24px] shadow-2xl overflow-hidden"
+        >
+          <div className="flex flex-col">
+            {/* Top Strip pada Layer Abu-Abu (Saldo & Jumlah Item) */}
+            <div className="px-4 py-3 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-[14px] font-semibold text-slate-900 truncate leading-snug">
+                  Saldo Siap Diambil
+                </div>
+                <div className="text-[11.5px] text-slate-500 mt-0.5 tabular-nums flex items-center gap-1.5">
+                  <span className="font-semibold text-emerald-700">
+                    Rp {(payoutCodeData?.cashSiapDiambil ?? stats.cashSiapDiambil).toLocaleString('id-ID')}
+                  </span>
+                  {payoutCodeData && !payoutAlreadyDisbursed && (
+                    <>
+                      <span className="text-slate-300">•</span>
+                      <span>{payoutCodeData.itemCount} item</span>
+                    </>
+                  )}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsPayoutCodeOpen(false)}
+                aria-label="Tutup dialog kode verifikasi"
+                className="w-8 h-8 rounded-full text-slate-500 hover:text-slate-800 hover:bg-slate-200/70 flex items-center justify-center transition cursor-pointer shrink-0"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Inner White Card */}
+            <div className="bg-white rounded-[20px] p-5 border border-slate-200/60 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
+              <DialogTitle className="text-[15px] font-semibold text-slate-900 tracking-tight">
+                Kode verifikasi kasir
+              </DialogTitle>
+              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                Tunjukkan 6 digit kode di bawah ke petugas kasir saat menerima uang tunai. Kode berganti otomatis setiap 20 detik.
+              </p>
+
+              {payoutCodeData && !payoutAlreadyDisbursed && (() => {
+                const totalMs = payoutCodeData.stepSeconds * 1000;
+                const progress = Math.min(1, Math.max(0, payoutRemainingMs / totalMs));
+                const radius = 10;
+                const circumference = 2 * Math.PI * radius;
+                const dashOffset = circumference * (1 - progress);
+                const isLow = payoutRemainingMs <= 3500;
+                const secondsLeft = Math.max(1, Math.ceil(payoutRemainingMs / 1000));
+
+                return (
+                  <>
+                    {/* 6 Squircle Digit Boxes (Identik dengan UI Verifikasi Admin) */}
+                    <div
+                      className="mt-4 grid grid-cols-6 gap-2"
+                      aria-live="polite"
+                      aria-label={`Kode verifikasi ${payoutCodeData.code.split('').join(' ')}`}
+                    >
+                      {payoutCodeData.code.split('').map((digit, idx) => (
+                        <div
+                          key={idx}
+                          className={`h-13 sm:h-14 rounded-2xl border bg-white flex items-center justify-center font-mono text-lg sm:text-xl font-semibold tabular-nums transition-colors duration-200 select-all ${
+                            isLow
+                              ? 'border-amber-500/80 text-slate-800'
+                              : 'border-emerald-600/85 text-slate-800'
+                          }`}
+                        >
+                          {digit}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Circular Countdown Ring + Label */}
+                    <div className="mt-4 flex items-center justify-center gap-2 text-xs text-slate-500 tabular-nums">
+                      <svg
+                        className="w-6 h-6 -rotate-90 shrink-0"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                      >
+                        <circle
+                          cx="12"
+                          cy="12"
+                          r={radius}
+                          fill="none"
+                          stroke="#e2e8f0"
+                          strokeWidth="2.5"
+                        />
+                        <circle
+                          cx="12"
+                          cy="12"
+                          r={radius}
+                          fill="none"
+                          stroke={isLow ? '#f59e0b' : '#16a34a'}
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                          strokeDasharray={circumference}
+                          strokeDashoffset={dashOffset}
+                          className="transition-[stroke-dashoffset,stroke] duration-200 ease-linear"
+                        />
+                      </svg>
+                      <span>
+                        Kode baru dalam <strong className="font-semibold text-slate-700">{secondsLeft} dtk</strong>
+                      </span>
+                    </div>
+
+                    {/* Tombol Salin Kode */}
+                    <div className="mt-4">
+                      <button
+                        type="button"
+                        onClick={handleCopyPayoutCode}
+                        className={`w-full h-10 px-4 rounded-xl text-xs font-semibold inline-flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                          copiedPayoutCode
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                        }`}
+                      >
+                        {copiedPayoutCode ? (
+                          <>
+                            <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
+                            <span>Kode Tersalin</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3.5 h-3.5" />
+                            <span>Salin Kode</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    <p className="text-[11px] text-slate-400 mt-3 text-center leading-relaxed">
+                      Jangan bagikan tangkapan layar kode ini kepada orang lain demi keamanan dana Anda.
+                    </p>
+                  </>
+                );
+              })()}
+
+              {payoutCodeLoading && !payoutCodeData && !payoutAlreadyDisbursed && (
+                <div className="mt-5 py-6 flex flex-col items-center justify-center gap-2">
+                  <span className="w-6 h-6 rounded-full border-2 border-emerald-100 border-t-emerald-600 animate-spin" />
+                  <span className="text-xs text-slate-500">Menyiapkan kode verifikasi...</span>
+                </div>
+              )}
+
+              {payoutCodeError && (
+                <div className="mt-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 space-y-2 text-center">
+                  <p>{payoutCodeError}</p>
+                  <button
+                    type="button"
+                    onClick={() => fetchPayoutCode(false)}
+                    className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-semibold cursor-pointer"
+                  >
+                    Coba Lagi
+                  </button>
+                </div>
+              )}
+
+              {payoutAlreadyDisbursed && (
+                <div className="mt-4 py-4 text-center space-y-2">
+                  <div className="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center mx-auto">
+                    <CheckCircle2 className="w-5 h-5" />
+                  </div>
+                  <p className="text-sm font-semibold text-slate-900">Dana Tunai Sudah Diserahkan</p>
+                  <p className="text-xs text-slate-500">
+                    Tidak ada sisa saldo tunai yang menunggu pencairan di kasir.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setIsPayoutCodeOpen(false)}
+                    className="mt-2 w-full h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition cursor-pointer"
+                  >
+                    Selesai
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

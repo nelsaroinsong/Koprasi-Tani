@@ -150,11 +150,11 @@ export function notifyOrderStatus(order: OrderLike, opts?: { extended?: boolean 
     },
     SIAP_DIAMBIL: {
       title: `Pesanan ${no} siap diambil`,
-      message: `Datang ke kasir koperasi sebelum ${fmtDateTime(order.pickupDeadline)}, tunjukkan kode ambil, lalu bayar tunai ${rp(order.totalAmount)}. Lewat batas, pesanan dibatalkan otomatis.`,
+      message: `Datang ke kasir koperasi sebelum ${fmtDateTime(order.pickupDeadline)}, tunjukkan kode ambil aktif di halaman pesanan (berganti tiap 20 detik), lalu bayar tunai ${rp(order.totalAmount)}. Lewat batas, pesanan dibatalkan otomatis.`,
       email: {
-        subject: `Pesanan ${no} siap diambil — kode ambil ${order.pickupCode || ''}`.trim(),
-        highlight: order.pickupCode ? { label: 'Kode Ambil Pesanan', value: order.pickupCode } : null,
-        actionLabel: 'Lihat Pesanan',
+        subject: `Pesanan ${no} siap diambil di kasir koperasi`,
+        highlight: null,
+        actionLabel: 'Buka Kode Ambil Pesanan',
       },
     },
     SELESAI: {

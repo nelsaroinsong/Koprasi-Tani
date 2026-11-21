@@ -169,12 +169,12 @@
 body:has(nav[aria-label="Navigasi Bawah Layanan Koperasi"]) {
   background-color: #f4f5f1;
   background-image: none;
-  padding-bottom: calc(3.5rem + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(3.75rem + max(0.875rem, env(safe-area-inset-bottom, 0px)));
 }
 
 @media (min-width: 640px) {
   body:has(nav[aria-label="Navigasi Bawah Layanan Koperasi"]) {
-    padding-bottom: calc(3.75rem + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(4rem + max(0.875rem, env(safe-area-inset-bottom, 0px)));
   }
 }
 

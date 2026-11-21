@@ -14,7 +14,9 @@ import {
   normalizePickupCode,
   PICKUP_WINDOW_HOURS,
   stripPickupCode,
+  verifyRollingPickupCode,
 } from '@/lib/order-lifecycle';
+import { enforceRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
   MENUNGGU_PEMBAYARAN: ['DIPROSES', 'DIBATALKAN'],
@@ -105,7 +107,7 @@ export async function PATCH(
         );
       }
 
-      // 3. Serah terima wajib kode ambil dari pembeli (pesanan lama tanpa kode tetap bisa diselesaikan)
+      // 3. Serah terima wajib kode ambil dinamis (20 detik) dari pembeli (pesanan lama tanpa kode tetap bisa diselesaikan)
       if (status === 'SELESAI' && existingOrder.pickupCode) {
         const code = normalizePickupCode(body.pickupCode);
         if (code.length !== 6) {
@@ -114,9 +116,20 @@ export async function PATCH(
             { status: 400 }
           );
         }
-        if (code !== existingOrder.pickupCode) {
+        const limited = await enforceRateLimit(
+          request,
+          RATE_LIMITS.payoutVerify,
+          `pickup:${session.user.email}:${existingOrder.id}`
+        );
+        if (limited) return limited;
+
+        if (!verifyRollingPickupCode(existingOrder.id, existingOrder.pickupCode, code)) {
           return NextResponse.json(
-            { error: 'Kode ambil tidak cocok. Periksa kembali kode di HP pembeli.', code: 'PICKUP_CODE_INVALID' },
+            {
+              error:
+                'Kode ambil tidak cocok atau sudah kedaluwarsa. Minta pembeli membacakan kode 6 digit terbaru di halaman pesanannya.',
+              code: 'PICKUP_CODE_INVALID',
+            },
             { status: 400 }
           );
         }
