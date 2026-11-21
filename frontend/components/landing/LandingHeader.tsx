@@ -4,10 +4,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createPortal } from 'react-dom';
-import { ArrowRight, Menu, X } from 'lucide-react';
+import { ArrowRight, Download, Menu, X } from 'lucide-react';
 import { gsap } from 'gsap';
 import { useAuth } from '@/context/auth-context';
 import { useSmoothScroll } from '@/components/providers/smooth-scroll-provider';
+import { canOfferInstall, startInstall, useInstallState } from '@/lib/pwa-install';
 
 export default function LandingHeader() {
   const { user } = useAuth();
@@ -120,6 +121,15 @@ export default function LandingHeader() {
       },
       '-=0.1'
     );
+  };
+
+  // Pasang aplikasi (PWA) dari menu: dialog instal harus dipanggil langsung saat diklik (Android),
+  // lalu menu ditutup; di iPhone banner petunjuk akan muncul setelah menu tertutup.
+  const installState = useInstallState();
+  const showInstallItem = canOfferInstall(installState);
+  const handleInstallFromMenu = () => {
+    void startInstall();
+    handleCloseMenu();
   };
 
   const navigateTo = (href: string) => {
@@ -253,7 +263,7 @@ export default function LandingHeader() {
             </button>
           </div>
 
-          {/* Main Navigation Links: Exactly 4 numbered items 01-04 */}
+          {/* Main Navigation Links: 01-04 + 05 Pasang Aplikasi (bila perangkat mendukung) */}
           <div
             ref={itemsRef}
             className="my-auto py-4 sm:py-6 space-y-6 sm:space-y-8"
@@ -313,6 +323,23 @@ export default function LandingHeader() {
                 </span>
               </button>
             </div>
+
+            {showInstallItem && (
+              <div>
+                <button
+                  onClick={handleInstallFromMenu}
+                  className="group flex items-baseline gap-4 sm:gap-5 py-1 focus:outline-none cursor-pointer text-left w-full"
+                >
+                  <span className="font-mono text-xs sm:text-sm font-semibold tracking-wider text-white/50 group-hover:text-white">
+                    05
+                  </span>
+                  <span className="flex items-center gap-3 text-3xl sm:text-[40px] font-normal tracking-tight text-[#D4F63D] group-hover:translate-x-1.5 transition-all duration-200">
+                    Pasang Aplikasi
+                    <Download className="w-6 h-6 sm:w-7 sm:h-7 stroke-[2]" />
+                  </span>
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Bottom Section: Full-width Action Button (Secondary links section removed as requested) */}

@@ -3,22 +3,20 @@
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { Download, Share, SquarePlus, X } from 'lucide-react';
+import { canOfferInstall, clearInstallHelp, startInstall, useInstallState } from '@/lib/pwa-install';
 
 /**
- * Banner "Pasang Aplikasi" (PWA):
- * - Android/Chrome/Edge: tombol Pasang memanggil dialog instal bawaan browser (beforeinstallprompt).
- * - iPhone/iPad Safari: tidak ada dialog otomatis, jadi tampilkan petunjuk "Bagikan → Tambah ke Layar Utama".
- * Tidak tampil bila sudah terpasang, di halaman admin, atau setelah ditutup (diingat 14 hari).
+ * Banner "Pasang Aplikasi" (PWA) dengan animasi masuk/keluar.
+ * - Android/Chrome/Edge: tombol Pasang membuka dialog instal bawaan browser.
+ * - iPhone/iPad Safari: petunjuk "Bagikan → Tambah ke Layar Utama".
+ * Tidak tampil bila sudah terpasang, di halaman admin/login, atau setelah ditutup (diingat 14 hari) —
+ * kecuali diminta lagi dari menu "Pasang Aplikasi".
  */
-
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
-}
 
 const DISMISS_KEY = 'koperasi_install_dismissed_at';
 const DISMISS_DAYS = 14;
 const HIDDEN_PREFIXES = ['/admin', '/login', '/auth-callback', '/onboarding'];
+const ANIM_MS = 320;
 
 function recentlyDismissed() {
   try {
@@ -29,80 +27,81 @@ function recentlyDismissed() {
   }
 }
 
-function isStandalone() {
-  return (
-    window.matchMedia?.('(display-mode: standalone)').matches ||
-    // Safari iOS
-    (navigator as Navigator & { standalone?: boolean }).standalone === true
-  );
-}
-
-function isIosSafari() {
-  const ua = navigator.userAgent;
-  const ios = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  const otherBrowser = /CriOS|FxiOS|EdgiOS|OPiOS/i.test(ua);
-  return ios && !otherBrowser;
-}
-
 export default function InstallAppPrompt() {
   const pathname = usePathname();
-  const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
-  const [mode, setMode] = useState<'android' | 'ios' | null>(null);
+  const install = useInstallState();
+  const [dismissed, setDismissed] = useState(() => typeof window !== 'undefined' && recentlyDismissed());
+  const [iosReady, setIosReady] = useState(false);
+  // render: elemen ada di DOM; open: posisi akhir animasi (terlihat)
+  const [render, setRender] = useState(false);
+  const [open, setOpen] = useState(false);
 
+  // iPhone tidak punya event instal: tampilkan petunjuk setelah jeda singkat
   useEffect(() => {
-    if (isStandalone() || recentlyDismissed()) return;
+    if (!install.isIos) return;
+    const t = window.setTimeout(() => setIosReady(true), 2500);
+    return () => window.clearTimeout(t);
+  }, [install.isIos]);
 
-    const onPrompt = (e: Event) => {
-      e.preventDefault(); // tahan dialog bawaan, tampilkan lewat tombol kita
-      setDeferred(e as BeforeInstallPromptEvent);
-      setMode('android');
-    };
-    const onInstalled = () => {
-      setMode(null);
-      setDeferred(null);
-    };
-    window.addEventListener('beforeinstallprompt', onPrompt);
-    window.addEventListener('appinstalled', onInstalled);
+  const onHiddenPage = HIDDEN_PREFIXES.some((p) => pathname?.startsWith(p));
+  const want =
+    canOfferInstall(install) &&
+    (install.helpRequested || (!dismissed && !onHiddenPage && (install.canPrompt || iosReady)));
 
-    // iOS tidak punya beforeinstallprompt: tampilkan petunjuk setelah jeda singkat
-    const t = isIosSafari() ? window.setTimeout(() => setMode('ios'), 2500) : undefined;
-
+  // Animasi: masuk = pasang di DOM lalu geser naik; keluar = geser turun lalu lepas dari DOM
+  useEffect(() => {
+    let raf1 = 0;
+    let raf2 = 0;
+    let timer = 0;
+    if (want) {
+      raf1 = requestAnimationFrame(() => {
+        setRender(true);
+        raf2 = requestAnimationFrame(() => setOpen(true));
+      });
+    } else {
+      raf1 = requestAnimationFrame(() => setOpen(false));
+      timer = window.setTimeout(() => setRender(false), ANIM_MS);
+    }
     return () => {
-      window.removeEventListener('beforeinstallprompt', onPrompt);
-      window.removeEventListener('appinstalled', onInstalled);
-      if (t) window.clearTimeout(t);
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+      window.clearTimeout(timer);
     };
-  }, []);
+  }, [want]);
 
-  if (!mode || HIDDEN_PREFIXES.some((p) => pathname?.startsWith(p))) return null;
+  if (!render) return null;
+
+  const isAndroid = install.canPrompt;
 
   const dismiss = () => {
     try {
       localStorage.setItem(DISMISS_KEY, String(Date.now()));
     } catch {}
-    setMode(null);
+    setDismissed(true);
+    clearInstallHelp();
   };
 
-  const install = async () => {
-    if (!deferred) return;
-    await deferred.prompt();
-    await deferred.userChoice.catch(() => null);
-    setDeferred(null);
-    setMode(null);
+  const handleInstall = async () => {
+    const result = await startInstall();
+    if (result !== 'help') clearInstallHelp();
   };
 
   return (
     <div
       role="dialog"
       aria-label="Pasang aplikasi Koperasi Tani"
-      className="fixed left-3 right-3 bottom-[calc(76px+env(safe-area-inset-bottom))] sm:bottom-5 sm:left-auto sm:right-5 sm:w-[360px] z-[60] rounded-2xl bg-white border border-[#dce1d6] shadow-[0_12px_32px_rgba(26,38,16,0.18)] p-3.5"
+      aria-hidden={!open}
+      style={{ transitionDuration: `${ANIM_MS}ms` }}
+      className={`fixed left-3 right-3 bottom-[calc(76px+env(safe-area-inset-bottom))] sm:bottom-5 sm:left-auto sm:right-5 sm:w-[360px] z-[60] rounded-2xl bg-white border border-[#dce1d6] shadow-[0_12px_32px_rgba(26,38,16,0.18)] p-3.5 transition-[opacity,transform] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none ${
+        open ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-6 scale-[0.98] pointer-events-none'
+      }`}
     >
       <div className="flex items-start gap-3">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/icons/icon-192.png" alt="" className="w-11 h-11 rounded-xl shrink-0" />
+        <img src="/icons/icon-192.png" alt="" className="w-11 h-11 rounded-xl shrink-0 border border-[#eaede7]" />
         <div className="min-w-0 flex-1">
           <div className="text-[13.5px] font-bold text-[#1a2610]">Pasang Aplikasi Koperasi Tani</div>
-          {mode === 'android' ? (
+          {isAndroid ? (
             <p className="text-[12px] text-[#526046] mt-0.5 leading-snug">
               Buka lebih cepat dari layar utama HP, tanpa perlu mengetik alamat web.
             </p>
@@ -122,7 +121,7 @@ export default function InstallAppPrompt() {
           <X className="w-4 h-4" />
         </button>
       </div>
-      {mode === 'android' && (
+      {isAndroid && (
         <div className="mt-3 flex justify-end gap-2">
           <button
             type="button"
@@ -133,7 +132,7 @@ export default function InstallAppPrompt() {
           </button>
           <button
             type="button"
-            onClick={install}
+            onClick={handleInstall}
             className="h-9 px-4 rounded-xl bg-[#233414] hover:bg-[#344d15] text-white text-[12.5px] font-bold flex items-center gap-1.5 cursor-pointer"
           >
             <Download className="w-4 h-4" />
