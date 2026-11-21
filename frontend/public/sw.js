@@ -5,7 +5,7 @@
  * - Aset statis Next.js (/_next/static, ikon, gambar) di-cache agar cepat dibuka di sinyal lemah.
  * - Bila offline saat membuka halaman, tampilkan halaman /offline.html.
  */
-const VERSION = 'v1';
+const VERSION = 'v2'; // naikkan setiap ikon / aset statis berganti nama sama
 const STATIC_CACHE = `koperasi-static-${VERSION}`;
 const OFFLINE_URL = '/offline.html';
 

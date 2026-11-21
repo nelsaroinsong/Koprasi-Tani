@@ -3,14 +3,16 @@ import type { MetadataRoute } from 'next';
 /** Web App Manifest: web bisa dipasang di layar utama HP seperti aplikasi */
 export default function manifest(): MetadataRoute.Manifest {
   return {
+    id: '/',
     name: 'Koperasi Sinar Pagi Sejahtera',
     short_name: 'Koperasi Tani',
     description: 'Belanja hasil panen, sewa alat pertanian, dan bagi hasil petani Koperasi Sinar Pagi Sejahtera — Minahasa Utara.',
-    start_url: '/toko',
+    // Buka dari beranda (bukan /toko yang mengarahkan tamu ke halaman login)
+    start_url: '/',
     scope: '/',
     display: 'standalone',
     orientation: 'portrait',
-    background_color: '#f4f5f1',
+    background_color: '#ffffff', // latar layar pembuka, serasi dengan ikon
     theme_color: '#233414',
     lang: 'id',
     categories: ['shopping', 'business', 'food'],

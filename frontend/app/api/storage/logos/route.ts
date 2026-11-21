@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSetting, SETTING_KEYS } from '@/lib/app-settings';
+import defaultPartnerLogos from '@/data/partner-logos.json';
 
 
 export interface PartnerLogo {
@@ -9,20 +10,9 @@ export interface PartnerLogo {
   key?: string;
 }
 
-const DEFAULT_LOGOS: PartnerLogo[] = [
-  {
-    id: 'logo-icare',
-    key: 'logo/logo-icare.webp',
-    name: 'ICARE',
-    url: '/api/storage/logo/logo-icare.webp',
-  },
-  {
-    id: 'logo-polimdo',
-    key: 'logo/logo polimdo.png',
-    name: 'POLIMDO',
-    url: '/api/storage/logo/logo polimdo.png',
-  },
-];
+// Daftar bawaan = daftar lengkap di data/partner-logos.json (ICARE, POLIMDO, Pemkab Minut, BRMP).
+// Dipakai bila database belum punya pengaturan logo (mis. database baru di server produksi).
+const DEFAULT_LOGOS: PartnerLogo[] = (defaultPartnerLogos as PartnerLogo[]).filter((l) => l?.url);
 
 async function readLogosFromFile(): Promise<PartnerLogo[]> {
   try {

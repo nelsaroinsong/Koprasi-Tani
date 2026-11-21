@@ -46,6 +46,7 @@ import { SessionProvider } from '@/components/providers/session-provider';
 import { ToastProvider } from '@/context/toast-context';
 import SessionTimeoutManager from '@/components/SessionTimeoutManager';
 import ServiceWorkerRegister from '@/components/ServiceWorkerRegister';
+import InstallAppPrompt from '@/components/InstallAppPrompt';
 import ChunkLoadRecovery from '@/components/ChunkLoadRecovery';
 import SmoothScrollProvider from '@/components/providers/smooth-scroll-provider';
 import { auth } from '@/auth';
@@ -68,6 +69,7 @@ export default async function RootLayout({children}: {children: React.ReactNode}
                 <ChunkLoadRecovery />
                 <SessionTimeoutManager />
                 <ServiceWorkerRegister />
+                <InstallAppPrompt />
                 {children}
               </SmoothScrollProvider>
             </ToastProvider>
