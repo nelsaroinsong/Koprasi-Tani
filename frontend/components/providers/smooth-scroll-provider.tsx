@@ -26,37 +26,7 @@ export default function SmoothScrollProvider({ children }: { children: React.Rea
   const lenisRef = useRef<Lenis | null>(null);
 
   useEffect(() => {
-    // 1. Initialize Lenis Smooth Scroll
-    // On touch devices (iOS / Android), avoid hijacking touch events
-    // so fixed position elements (bottom action bars) stay solidly anchored to the screen.
-    const isTouchDevice =
-      typeof window !== 'undefined' &&
-      ('ontouchstart' in window || navigator.maxTouchPoints > 0 || window.innerWidth < 768);
-
-    const lenis = new Lenis({
-      duration: 1.2,
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      orientation: 'vertical',
-      gestureOrientation: 'vertical',
-      smoothWheel: !isTouchDevice,
-      wheelMultiplier: 1,
-      touchMultiplier: 0,
-      infinite: false,
-    });
-
-    lenisRef.current = lenis;
-
-    // 2. Synchronize Lenis with GSAP ScrollTrigger & ticker for ultra fluid motion
-    lenis.on('scroll', ScrollTrigger.update);
-
-    const updateRaf = (time: number) => {
-      lenis.raf(time * 1000);
-    };
-
-    gsap.ticker.add(updateRaf);
-    gsap.ticker.lagSmoothing(0);
-
-    // 3. Handle smooth scrolling for anchor links like #tentang-kami
+    // 1. Handle smooth scrolling for anchor links like #tentang-kami on all devices
     const handleAnchorClick = (e: MouseEvent) => {
       const target = (e.target as HTMLElement)?.closest('a');
       if (!target) return;
@@ -66,15 +36,57 @@ export default function SmoothScrollProvider({ children }: { children: React.Rea
         const el = document.querySelector(href);
         if (el) {
           e.preventDefault();
-          lenis.scrollTo(el as HTMLElement, {
-            offset: -30,
-            duration: 1.4,
-          });
+          if (lenisRef.current) {
+            lenisRef.current.scrollTo(el as HTMLElement, {
+              offset: -30,
+              duration: 1.4,
+            });
+          } else {
+            el.scrollIntoView({ behavior: 'smooth' });
+          }
         }
       }
     };
 
     document.addEventListener('click', handleAnchorClick);
+
+    // 2. Skip Lenis & GSAP 60fps ticker completely on touch/mobile devices or reduced motion
+    // so mobile PWA stays strictly on native compositor scrolling with zero JS main-thread overhead.
+    const isTouchDevice =
+      typeof window !== 'undefined' &&
+      ('ontouchstart' in window || navigator.maxTouchPoints > 0 || window.innerWidth < 768);
+    const prefersReducedMotion =
+      typeof window !== 'undefined' &&
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+    if (isTouchDevice || prefersReducedMotion) {
+      return () => {
+        document.removeEventListener('click', handleAnchorClick);
+      };
+    }
+
+    const lenis = new Lenis({
+      duration: 1.2,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      orientation: 'vertical',
+      gestureOrientation: 'vertical',
+      smoothWheel: true,
+      wheelMultiplier: 1,
+      touchMultiplier: 0,
+      infinite: false,
+    });
+
+    lenisRef.current = lenis;
+
+    // 3. Synchronize Lenis with GSAP ScrollTrigger & ticker on desktop wheel only
+    lenis.on('scroll', ScrollTrigger.update);
+
+    const updateRaf = (time: number) => {
+      lenis.raf(time * 1000);
+    };
+
+    gsap.ticker.add(updateRaf);
+    gsap.ticker.lagSmoothing(0);
 
     return () => {
       document.removeEventListener('click', handleAnchorClick);

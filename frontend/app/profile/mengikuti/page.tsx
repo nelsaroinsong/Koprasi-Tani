@@ -79,7 +79,7 @@ export default function MengikutiPage() {
       <AppHeader activePage="profile" />
 
       {/* Breadcrumb Header */}
-      <div className="bg-white border-b border-[#dce1d6] sticky top-16 z-30">
+      <div className="bg-white border-b border-[#dce1d6] sticky top-14 sm:top-16 z-30">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-2.5 flex items-center justify-between text-xs text-[#526046]">
           <div className="flex items-center gap-1.5 overflow-hidden whitespace-nowrap">
             <Link href="/profile" className="hover:text-[#344d15] flex items-center gap-1 transition font-semibold">

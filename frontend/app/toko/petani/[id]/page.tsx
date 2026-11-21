@@ -239,7 +239,7 @@ export default function PetaniStorePage({
         <AppHeader activePage="none" />
 
         {/* Top Breadcrumb Skeleton */}
-        <div className="bg-white border-b border-[#dce1d6] sticky top-16 z-30">
+        <div className="bg-white border-b border-[#dce1d6] sticky top-14 sm:top-16 z-30">
           <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-24 h-4 bg-[#EAEDE7] rounded animate-pulse" />
@@ -349,7 +349,7 @@ export default function PetaniStorePage({
       <AppHeader activePage="none" />
 
       {/* Top Breadcrumb */}
-      <div className="bg-white border-b border-[#dce1d6] sticky top-16 z-30">
+      <div className="bg-white border-b border-[#dce1d6] sticky top-14 sm:top-16 z-30">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2.5 flex items-center justify-between text-xs text-[#5b6950]">
           <div className="flex items-center gap-1.5 overflow-hidden whitespace-nowrap">
             <Link

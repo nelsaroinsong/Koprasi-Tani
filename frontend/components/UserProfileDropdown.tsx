@@ -54,6 +54,18 @@ interface UserProfileDropdownProps {
   // onOpenSearch deprecated as search is removed from navbar
 }
 
+// Module-level cache to avoid firing redundant /api/user/profile & /api/koperasi/info on every page navigation
+let cachedDropdownProfile: {
+  email: string;
+  followingCount: number;
+  followersCount: number;
+  createdAt: string | null;
+  adminPhone: string | null;
+  at: number;
+} | null = null;
+let cachedKoperasiAlamat: { alamat: string; at: number } | null = null;
+const DROPDOWN_CACHE_TTL_MS = 60_000;
+
 export default function UserProfileDropdown({}: UserProfileDropdownProps = {}) {
   const router = useRouter();
   const pathname = usePathname();
@@ -66,62 +78,113 @@ export default function UserProfileDropdown({}: UserProfileDropdownProps = {}) {
   const [cartCount, setCartCount] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Follow Stats: Mengikuti & Diikuti
-  const [followStats, setFollowStats] = useState<{ followingCount: number; followersCount: number }>({
-    followingCount: 0,
-    followersCount: 0,
-  });
-  const [userCreatedAt, setUserCreatedAt] = useState<string | null>(null);
+  // Follow Stats: Mengikuti & Diikuti (hydrated from module cache immediately)
+  const [followStats, setFollowStats] = useState<{ followingCount: number; followersCount: number }>(() =>
+    cachedDropdownProfile && user?.email && cachedDropdownProfile.email === user.email
+      ? {
+          followingCount: cachedDropdownProfile.followingCount,
+          followersCount: cachedDropdownProfile.followersCount,
+        }
+      : { followingCount: 0, followersCount: 0 }
+  );
+  const [userCreatedAt, setUserCreatedAt] = useState<string | null>(() =>
+    cachedDropdownProfile && user?.email && cachedDropdownProfile.email === user.email
+      ? cachedDropdownProfile.createdAt
+      : null
+  );
+  const [adminPhone, setAdminPhone] = useState<string>(
+    () => cachedDropdownProfile?.adminPhone || '081944078924'
+  );
 
-  const fetchFollowStats = useCallback(async () => {
+  const fetchFollowStats = useCallback(async (force = false) => {
+    const email = user?.email || '';
+    if (
+      !force &&
+      cachedDropdownProfile &&
+      cachedDropdownProfile.email === email &&
+      Date.now() - cachedDropdownProfile.at < DROPDOWN_CACHE_TTL_MS
+    ) {
+      setFollowStats({
+        followingCount: cachedDropdownProfile.followingCount,
+        followersCount: cachedDropdownProfile.followersCount,
+      });
+      if (cachedDropdownProfile.createdAt) {
+        setUserCreatedAt(cachedDropdownProfile.createdAt);
+      }
+      if (cachedDropdownProfile.adminPhone) {
+        setAdminPhone(cachedDropdownProfile.adminPhone);
+      }
+      return;
+    }
+
     try {
       const res = await fetch('/api/user/profile');
       if (res.ok) {
         const data = await res.json();
+        const nextFollowing = data?.user?.followingCount || 0;
+        const nextFollowers = data?.user?.followersCount || 0;
+        const nextCreatedAt = data?.user?.createdAt || null;
+        const nextAdminPhone = data?.adminContact?.phone || null;
+
+        cachedDropdownProfile = {
+          email,
+          followingCount: nextFollowing,
+          followersCount: nextFollowers,
+          createdAt: nextCreatedAt,
+          adminPhone: nextAdminPhone,
+          at: Date.now(),
+        };
+
         if (data.user) {
           setFollowStats({
-            followingCount: data.user.followingCount || 0,
-            followersCount: data.user.followersCount || 0,
+            followingCount: nextFollowing,
+            followersCount: nextFollowers,
           });
-          if (data.user.createdAt) {
-            setUserCreatedAt(data.user.createdAt);
+          if (nextCreatedAt) {
+            setUserCreatedAt(nextCreatedAt);
           }
+        }
+        if (nextAdminPhone) {
+          setAdminPhone(nextAdminPhone);
         }
       }
     } catch (e) {
       console.error('Error fetching follow stats:', e);
     }
-  }, []);
+  }, [user?.email]);
 
+  // Only refresh profile stats when dropdown is actually opened (or once when cache is cold)
   useEffect(() => {
-    if (user) {
-      fetchFollowStats();
+    if (isOpen && user) {
+      fetchFollowStats(true);
     }
-  }, [user, fetchFollowStats]);
-
-  useEffect(() => {
-    if (isOpen) {
-      fetchFollowStats();
-    }
-  }, [isOpen, fetchFollowStats]);
+  }, [isOpen, user, fetchFollowStats]);
 
   // Multi-step Checkout States (Hanya Cash di Koperasi & Ambil di Gudang Koperasi)
   const DEFAULT_PICKUP_LOCATION =
     'Koperasi Sinar Pagi Sejahtera — Jl. Raya Kolongan, Kec. Kalawat, Kabupaten Minahasa Utara, Sulawesi Utara';
   const [cartStep, setCartStep] = useState<'CART' | 'CHECKOUT' | 'SUCCESS'>('CART');
   const [paymentMethod] = useState<'CASH_KOPERASI'>('CASH_KOPERASI');
-  const [pickupLocation, setPickupLocation] = useState(DEFAULT_PICKUP_LOCATION);
+  const [pickupLocation, setPickupLocation] = useState(
+    () => cachedKoperasiAlamat?.alamat || DEFAULT_PICKUP_LOCATION
+  );
   const [orderNotes, setOrderNotes] = useState('');
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
   const [createdOrderResult, setCreatedOrderResult] = useState<any | null>(null);
 
-  // Ambil alamat dinamis kantor & gudang koperasi yang diatur oleh Admin
+  // Lazy-load alamat koperasi hanya saat modal dibuka & dengan cache TTL
   useEffect(() => {
+    if (!activeModal) return;
+    if (cachedKoperasiAlamat && Date.now() - cachedKoperasiAlamat.at < DROPDOWN_CACHE_TTL_MS * 5) {
+      setPickupLocation(cachedKoperasiAlamat.alamat);
+      return;
+    }
     fetch('/api/koperasi/info')
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data?.alamat) {
+          cachedKoperasiAlamat = { alamat: data.alamat, at: Date.now() };
           setPickupLocation(data.alamat);
         }
       })
@@ -143,19 +206,11 @@ export default function UserProfileDropdown({}: UserProfileDropdownProps = {}) {
     }
   }, [user]);
 
-  const [adminPhone, setAdminPhone] = useState<string>('081944078924');
-
-  // Fetch nomor kontak pengurus/admin koperasi aktif
   useEffect(() => {
-    fetch('/api/user/profile')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data?.adminContact?.phone) {
-          setAdminPhone(data.adminContact.phone);
-        }
-      })
-      .catch((err) => console.error('Error fetching admin phone:', err));
-  }, []);
+    if (activeModal) {
+      fetchFollowStats(false);
+    }
+  }, [activeModal, fetchFollowStats]);
 
   useEffect(() => {
     setIsMounted(true);

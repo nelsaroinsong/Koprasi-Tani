@@ -25,6 +25,10 @@ import {
   setCachedNotifications,
 } from '@/lib/notifications';
 
+// Throttle background notification sync across rapid page switches
+let lastNotifSync: { userId: string | null; at: number } | null = null;
+const NOTIF_SYNC_COOLDOWN_MS = 25_000;
+
 export default function NotificationDropdown() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
@@ -48,9 +52,19 @@ export default function NotificationDropdown() {
   };
 
   // Load and sync transactions into notifications
-  const syncNotifications = useCallback(async () => {
+  const syncNotifications = useCallback(async (force = false) => {
     // Jika status auth masih memuat, jangan fallback ke mode tamu agar badge tidak kedap-kedip
     if (isAuthLoading) {
+      return;
+    }
+
+    const currentUserId = user?.id ?? null;
+    if (
+      !force &&
+      lastNotifSync &&
+      lastNotifSync.userId === currentUserId &&
+      Date.now() - lastNotifSync.at < NOTIF_SYNC_COOLDOWN_MS
+    ) {
       return;
     }
 
@@ -65,6 +79,7 @@ export default function NotificationDropdown() {
       ];
       setNotifications(guestNotifs);
       setCachedNotifications(guestNotifs, null);
+      lastNotifSync = { userId: null, at: Date.now() };
       return;
     }
 
@@ -72,6 +87,7 @@ export default function NotificationDropdown() {
       const built = await loadNotifications(user.id);
       setNotifications(built);
       setCachedNotifications(built, user.id);
+      lastNotifSync = { userId: user.id, at: Date.now() };
     } catch (e) {
       console.error('Error syncing notifications:', e);
       const readMap = getStoredReadIds(user.id);
@@ -86,7 +102,7 @@ export default function NotificationDropdown() {
     }
   }, [user, isAuthLoading]);
 
-  // Sync on mount and when user / auth state changes
+  // Sync on mount (respecting cooldown) and when user / auth state changes
   useEffect(() => {
     setIsMounted(true);
     const cached = getCachedNotifications(user?.id);
@@ -94,21 +110,28 @@ export default function NotificationDropdown() {
       setNotifications(cached);
     }
     if (!isAuthLoading) {
-      syncNotifications();
+      syncNotifications(false);
     }
   }, [syncNotifications, isAuthLoading, user?.id]);
+
+  // Refresh immediately when user opens dropdown panel
+  useEffect(() => {
+    if (isOpen && !isAuthLoading) {
+      syncNotifications(true);
+    }
+  }, [isOpen, isAuthLoading, syncNotifications]);
 
   // Listen to transaction events to update notifications live
   useEffect(() => {
     const handleTxUpdate = () => {
-      syncNotifications();
+      syncNotifications(true);
     };
 
     // Cek notifikasi baru tiap 60 detik & saat tab dibuka kembali
     const poll = setInterval(() => {
-      if (document.visibilityState === 'visible') syncNotifications();
+      if (document.visibilityState === 'visible') syncNotifications(true);
     }, 60_000);
-    const onVisible = () => document.visibilityState === 'visible' && syncNotifications();
+    const onVisible = () => document.visibilityState === 'visible' && syncNotifications(true);
     document.addEventListener('visibilitychange', onVisible);
 
     window.addEventListener('koperasi-new-transaction', handleTxUpdate);

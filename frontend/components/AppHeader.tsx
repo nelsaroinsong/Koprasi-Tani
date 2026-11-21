@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useMemo, useState, useEffect, useRef } from 'react';
+import React, { useMemo, useState, useEffect, useLayoutEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { motion, AnimatePresence, LayoutGroup } from 'motion/react';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import {
   ShoppingBag,
   ShoppingCart,
@@ -18,7 +18,6 @@ import {
 import UserProfileDropdown from '@/components/UserProfileDropdown';
 import NotificationDropdown from '@/components/NotificationDropdown';
 import { useAuth } from '@/context/auth-context';
-import BottomNav from '@/components/BottomNav';
 
 export interface SubCategoryItem {
   id?: string;
@@ -48,6 +47,21 @@ const DEFAULT_TOKO_CATEGORIES: SubCategoryItem[] = [
   { id: 'cat-olahan', name: 'Olahan' },
 ];
 
+interface DesktopPillMetrics {
+  x: number;
+  width: number;
+}
+
+interface DesktopPillState {
+  from: DesktopPillMetrics | null;
+  to: DesktopPillMetrics;
+  animate: boolean;
+}
+
+let lastDesktopPill: DesktopPillMetrics | null = null;
+const headerCategoriesCache: Record<string, { items: SubCategoryItem[]; at: number }> = {};
+const HEADER_CATEGORIES_TTL_MS = 5 * 60 * 1000;
+
 export default function AppHeader({
   activePage,
   showCatalogSubNav,
@@ -60,9 +74,16 @@ export default function AppHeader({
   const pathname = usePathname();
   const router = useRouter();
   const { user } = useAuth();
+  const prefersReducedMotion = useReducedMotion();
 
   // Optimistic tab state for instantaneous sliding background response on desktop
   const [optimisticTab, setOptimisticTab] = useState<string | null>(null);
+  const [desktopPillState, setDesktopPillState] = useState<DesktopPillState | null>(null);
+  const desktopNavRef = useRef<HTMLElement>(null);
+  const desktopPillRef = useRef<HTMLDivElement>(null);
+  const desktopLinkRefs = useRef<Record<string, HTMLAnchorElement | null>>({});
+  const initialDesktopPrevRef = useRef<DesktopPillMetrics | null | undefined>(undefined);
+  const prevDesktopTabRef = useRef<string | null>(null);
 
   // Category dropdown popover state for desktop sub-navbar
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
@@ -166,6 +187,103 @@ export default function AppHeader({
 
   const isToko = currentActive === 'toko';
   const isSewaAlat = currentActive === 'sewa-alat';
+
+  // Measure active desktop nav link strictly along horizontal axis relative to navbar container
+  useLayoutEffect(() => {
+    const validKey = desktopNavItems.some((item) => item.key === activeDesktopTab)
+      ? activeDesktopTab
+      : null;
+
+    if (!validKey) {
+      setDesktopPillState(null);
+      lastDesktopPill = null;
+      initialDesktopPrevRef.current = null;
+      prevDesktopTabRef.current = null;
+      return;
+    }
+
+    const activeEl = desktopLinkRefs.current[validKey];
+    if (!activeEl || activeEl.offsetWidth === 0) return;
+
+    const target: DesktopPillMetrics = {
+      x: activeEl.offsetLeft,
+      width: activeEl.offsetWidth,
+    };
+
+    const isInitialMountTab =
+      prevDesktopTabRef.current === null || prevDesktopTabRef.current === validKey;
+
+    if (isInitialMountTab) {
+      if (initialDesktopPrevRef.current === undefined) {
+        initialDesktopPrevRef.current = lastDesktopPill;
+      }
+      prevDesktopTabRef.current = validKey;
+
+      const prev = initialDesktopPrevRef.current;
+      const moved =
+        prev !== null &&
+        (Math.abs(prev.x - target.x) > 1 || Math.abs(prev.width - target.width) > 1);
+      const shouldAnimate = moved && !prefersReducedMotion;
+
+      setDesktopPillState({
+        from: shouldAnimate ? prev : null,
+        to: target,
+        animate: shouldAnimate,
+      });
+    } else {
+      prevDesktopTabRef.current = validKey;
+      setDesktopPillState({
+        from: null,
+        to: target,
+        animate: !prefersReducedMotion,
+      });
+    }
+
+    lastDesktopPill = target;
+  }, [activeDesktopTab, desktopNavItems, prefersReducedMotion]);
+
+  // Keep desktop pill aligned on resize without wobble
+  useEffect(() => {
+    const nav = desktopNavRef.current;
+    if (!nav || typeof ResizeObserver === 'undefined') return;
+
+    const observer = new ResizeObserver(() => {
+      const validKey = desktopNavItems.some((item) => item.key === activeDesktopTab)
+        ? activeDesktopTab
+        : null;
+      if (!validKey) return;
+      const activeEl = desktopLinkRefs.current[validKey];
+      if (!activeEl || activeEl.offsetWidth === 0) return;
+
+      const target: DesktopPillMetrics = {
+        x: activeEl.offsetLeft,
+        width: activeEl.offsetWidth,
+      };
+      lastDesktopPill = target;
+      setDesktopPillState({ from: null, to: target, animate: false });
+    });
+
+    observer.observe(nav);
+    return () => observer.disconnect();
+  }, [activeDesktopTab, desktopNavItems]);
+
+  // Snapshot live horizontal desktop pill position on unmount for smooth route continuity
+  useLayoutEffect(() => {
+    return () => {
+      const nav = desktopNavRef.current;
+      const pill = desktopPillRef.current;
+      if (!nav || !pill) return;
+
+      const navRect = nav.getBoundingClientRect();
+      const pillRect = pill.getBoundingClientRect();
+      if (navRect.width > 0 && pillRect.width > 0) {
+        lastDesktopPill = {
+          x: pillRect.left - navRect.left - nav.clientLeft,
+          width: pillRect.width,
+        };
+      }
+    };
+  }, []);
   const shouldShowSubNav = showCatalogSubNav ?? (isToko || isSewaAlat);
   // Halaman katalog utama punya sidebar filter di desktop (lg+) yang menggantikan sub-navbar ini
   const hasCatalogSidebar = pathname === '/toko' || pathname === '/sewa-alat';
@@ -184,10 +302,19 @@ export default function AppHeader({
       : null;
 
     if (endpoint) {
+      const cached = headerCategoriesCache[endpoint];
+      if (cached && Date.now() - cached.at < HEADER_CATEGORIES_TTL_MS) {
+        setFetchedCategories(cached.items);
+        return () => {
+          isMounted = false;
+        };
+      }
+
       fetch(endpoint)
         .then((res) => res.json())
         .then((data) => {
           if (isMounted && data?.categories && Array.isArray(data.categories)) {
+            headerCategoriesCache[endpoint] = { items: data.categories, at: Date.now() };
             setFetchedCategories(data.categories);
           }
         })
@@ -275,64 +402,76 @@ export default function AppHeader({
             </Link>
           </div>
 
-          {/* Center: Desktop Navigation Links with Smooth Sliding Active Pill */}
-          <LayoutGroup id="desktopHeaderNav">
-            <nav
-              aria-label="Navigasi Utama Desktop"
-              className="hidden lg:flex items-center justify-center gap-1 p-1 rounded-full bg-[#f4f5f1] border border-[#dce1d6] text-xs font-semibold absolute left-1/2 -translate-x-1/2"
-            >
-              {desktopNavItems.map((item) => {
-                const isItemActive = activeDesktopTab === item.key;
-                const Icon = item.icon;
+          {/* Center: Desktop Navigation Links with Smooth Horizontal Sliding Active Pill */}
+          <nav
+            ref={desktopNavRef}
+            aria-label="Navigasi Utama Desktop"
+            className="hidden lg:flex items-center justify-center gap-1 p-1 rounded-full bg-[#f4f5f1] border border-[#dce1d6] text-xs font-semibold absolute left-1/2 -translate-x-1/2"
+          >
+            {desktopPillState && (
+              <motion.div
+                ref={desktopPillRef}
+                aria-hidden="true"
+                initial={
+                  desktopPillState.from
+                    ? { x: desktopPillState.from.x, width: desktopPillState.from.width }
+                    : false
+                }
+                animate={{
+                  x: desktopPillState.to.x,
+                  width: desktopPillState.to.width,
+                }}
+                transition={
+                  desktopPillState.animate && !prefersReducedMotion
+                    ? { type: 'spring', stiffness: 450, damping: 35 }
+                    : { duration: 0 }
+                }
+                className="pointer-events-none absolute left-0 top-1 bottom-1 bg-[#233414] rounded-full shadow-xs z-0"
+              />
+            )}
 
-                return (
-                  <Link
-                    key={item.key}
-                    href={item.href}
-                    prefetch={true}
-                    onClick={() => setOptimisticTab(item.key)}
-                    className={`group relative px-3.5 py-1.5 rounded-full flex items-center gap-1.5 select-none cursor-pointer focus:outline-none transition-colors duration-200 ${
-                      !isItemActive ? 'hover:bg-[#EAEDE7]/70' : ''
-                    }`}
-                    aria-label={item.label}
-                    title={item.label}
-                  >
-                    {/* Animated Sliding Pill Background (Smooth spring transition to active tab) */}
-                    {isItemActive && (
-                      <motion.div
-                        layoutId="activeDesktopNavPill"
-                        className="absolute inset-0 bg-[#233414] rounded-full shadow-xs -z-0"
-                        transition={{
-                          type: 'spring',
-                          stiffness: 450,
-                          damping: 35,
-                        }}
-                      />
-                    )}
+            {desktopNavItems.map((item) => {
+              const isItemActive = activeDesktopTab === item.key;
+              const Icon = item.icon;
 
-                    <span className="relative z-10 flex items-center gap-1.5 font-medium">
-                      <Icon
-                        className={`w-3.5 h-3.5 transition-colors duration-200 shrink-0 ${
-                          isItemActive
-                            ? 'text-[#D4F63D] stroke-[2.2]'
-                            : 'text-[#526046] group-hover:text-[#1a2610] stroke-[1.8]'
-                        }`}
-                      />
-                      <span
-                        className={`transition-colors duration-200 whitespace-nowrap ${
-                          isItemActive
-                            ? 'text-white font-semibold'
-                            : 'text-[#344d15] group-hover:text-[#1a2610]'
-                        }`}
-                      >
-                        {item.label}
-                      </span>
+              return (
+                <Link
+                  key={item.key}
+                  ref={(el) => {
+                    desktopLinkRefs.current[item.key] = el;
+                  }}
+                  href={item.href}
+                  prefetch={true}
+                  onClick={() => setOptimisticTab(item.key)}
+                  aria-current={isItemActive ? 'page' : undefined}
+                  className={`group relative z-10 px-3.5 py-1.5 rounded-full flex items-center gap-1.5 select-none cursor-pointer focus:outline-none transition-colors duration-200 ${
+                    !isItemActive ? 'hover:bg-[#EAEDE7]/70' : ''
+                  }`}
+                  aria-label={item.label}
+                  title={item.label}
+                >
+                  <span className="flex items-center gap-1.5 font-medium">
+                    <Icon
+                      className={`w-3.5 h-3.5 transition-colors duration-200 shrink-0 ${
+                        isItemActive
+                          ? 'text-[#D4F63D] stroke-[2.2]'
+                          : 'text-[#526046] group-hover:text-[#1a2610] stroke-[1.8]'
+                      }`}
+                    />
+                    <span
+                      className={`transition-colors duration-200 whitespace-nowrap ${
+                        isItemActive
+                          ? 'text-white font-semibold'
+                          : 'text-[#344d15] group-hover:text-[#1a2610]'
+                      }`}
+                    >
+                      {item.label}
                     </span>
-                  </Link>
-                );
-              })}
-            </nav>
-          </LayoutGroup>
+                  </span>
+                </Link>
+              );
+            })}
+          </nav>
 
           {/* Right Section: Pencarian, Keranjang Belanja & Profil Dropdown */}
           <div className="flex items-center gap-2 shrink-0 z-10">
@@ -513,7 +652,6 @@ export default function AppHeader({
         } shrink-0 pointer-events-none`}
         aria-hidden="true"
       />
-      <BottomNav activePage={currentActive} />
     </>
   );
 }

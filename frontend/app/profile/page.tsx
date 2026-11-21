@@ -584,25 +584,6 @@ export default function ProfilePage() {
                       className="w-full pl-8 sm:pl-10 pr-3 py-2 sm:px-3.5 sm:py-2.5 text-xs sm:text-sm bg-white border border-[#cfd6c9] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#233414]/15 focus:border-[#233414] transition font-medium text-[#1a2610] placeholder:text-[#5b6950] resize-none"
                     />
                   </div>
-                  <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
-                    <span className="text-[10px] text-[#5b6950] font-medium">Kecamatan Minut:</span>
-                    {['Kalawat', 'Airmadidi', 'Kauditan', 'Dimembe', 'Talawaan', 'Kema', 'Likupang', 'Wori'].map((kec) => (
-                      <button
-                        key={kec}
-                        type="button"
-                        onClick={() =>
-                          setAddress((prev) =>
-                            prev
-                              ? `${prev}, Kec. ${kec}, Minahasa Utara`
-                              : `Desa Kolongan, Kec. ${kec}, Minahasa Utara`
-                          )
-                        }
-                        className="text-[10px] px-2 py-0.5 rounded-full bg-[#f4f5f1] hover:bg-[#dfe4da] text-[#233414] border border-[#cfd6c9] transition cursor-pointer font-medium"
-                      >
-                        +{kec}
-                      </button>
-                    ))}
-                  </div>
                 </div>
               </div>
 

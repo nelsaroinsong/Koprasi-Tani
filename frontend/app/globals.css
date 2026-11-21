@@ -164,14 +164,67 @@
   background-size: 18px 18px;
 }
 
-/* Berikan padding bawah otomatis pada mode mobile HANYA jika halaman memiliki BottomNav */
+/* Mode halaman aplikasi (yang memiliki BottomNav): samakan background body dengan #f4f5f1
+   agar tidak muncul celah bg-dot-pattern di atas navbar bawah atau saat overscroll mobile */
 body:has(nav[aria-label="Navigasi Bawah Layanan Koperasi"]) {
-  padding-bottom: 4.5rem;
+  background-color: #f4f5f1;
+  background-image: none;
+  padding-bottom: calc(3.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 640px) {
+  body:has(nav[aria-label="Navigasi Bawah Layanan Koperasi"]) {
+    padding-bottom: calc(3.75rem + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 @media (min-width: 1024px) {
   body:has(nav[aria-label="Navigasi Bawah Layanan Koperasi"]) {
     padding-bottom: 0;
+  }
+}
+
+/* Compositor-friendly horizontal navbar pill slide with physics-based linear() spring easing */
+.nav-pill-track {
+  contain: layout style;
+}
+
+.nav-pill-indicator {
+  will-change: transform, width;
+  transition:
+    transform 280ms cubic-bezier(0.22, 1, 0.36, 1),
+    width 280ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition-timing-function: linear(
+    0, 0.012 1.2%, 0.048 2.5%, 0.184 5.5%, 0.625 14%, 0.858 21%,
+    0.978 28%, 1.028 36%, 1.036 43%, 1.018 55%, 1.003 70%, 0.999 85%, 1
+  );
+}
+
+.nav-pill-indicator[data-instant="true"] {
+  transition: none;
+}
+
+@keyframes nav-label-in {
+  from {
+    opacity: 0;
+    transform: translate3d(-4px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.nav-label-enter {
+  animation: nav-label-in 170ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-pill-indicator {
+    transition: none;
+  }
+  .nav-label-enter {
+    animation: none;
   }
 }
 

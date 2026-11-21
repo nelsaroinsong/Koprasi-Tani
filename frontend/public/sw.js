@@ -5,7 +5,7 @@
  * - Aset statis Next.js (/_next/static, ikon, gambar) di-cache agar cepat dibuka di sinyal lemah.
  * - Bila offline saat membuka halaman, tampilkan halaman /offline.html.
  */
-const VERSION = 'v3'; // naikkan setiap ikon / aset statis berganti nama sama
+const VERSION = 'v4'; // naikkan setiap ikon / aset statis berganti nama sama
 const STATIC_CACHE = `koperasi-static-${VERSION}`;
 const OFFLINE_URL = '/offline.html';
 
@@ -13,7 +13,7 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches
       .open(STATIC_CACHE)
-      .then((cache) => cache.addAll([OFFLINE_URL, '/icons/icon-192.png']))
+      .then((cache) => cache.addAll([OFFLINE_URL, '/icons/icon-192.png', '/landing/koperasi-full-dark.png']))
       .then(() => self.skipWaiting())
   );
 });
