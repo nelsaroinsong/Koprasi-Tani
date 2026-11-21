@@ -115,6 +115,7 @@
 
 @theme {
   --font-sans: var(--font-dm-sans), "DM Sans", system-ui, -apple-system, sans-serif;
+  --font-editorial: var(--font-inter), "Inter", "Helvetica Neue", system-ui, -apple-system, sans-serif;
   --font-script: var(--font-great-vibes), "Great Vibes", cursive;
   --tracking-tighter: -0.05em;
   --tracking-tight: -0.035em;
@@ -297,4 +298,36 @@ body:has(nav[aria-label="Navigasi Bawah Layanan Koperasi"]) {
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* Editorial Neo-Grotesque typography & accessible horizontal carousel */
+.editorial-section {
+  font-family: var(--font-editorial);
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+.editorial-carousel-track {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x pan-y;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.editorial-carousel-track.is-dragging {
+  scroll-snap-type: none;
+  scroll-behavior: auto !important;
+  user-select: none;
+}
+
+.editorial-carousel-track::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .editorial-carousel-track {
+    scroll-behavior: smooth;
+  }
 }

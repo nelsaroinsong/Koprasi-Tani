@@ -17,14 +17,15 @@ export default function manifest(): MetadataRoute.Manifest {
     lang: 'id',
     categories: ['shopping', 'business', 'food'],
     icons: [
-      { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
-      { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
-      { src: '/icons/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+      // Pakai PNG transparan (purpose: 'any') agar splash screen Android tampil bersih tanpa bingkai abu-abu
+      // dan ukuran logo tetap proporsional (tidak ikut di-zoom 1.5x oleh maskable adaptive icon).
+      { src: '/icons/icon-192.png?v=3', sizes: '192x192', type: 'image/png', purpose: 'any' },
+      { src: '/icons/icon-512.png?v=3', sizes: '512x512', type: 'image/png', purpose: 'any' },
     ],
     shortcuts: [
-      { name: 'Toko Panen', url: '/toko', icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }] },
-      { name: 'Sewa Alat', url: '/sewa-alat', icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }] },
-      { name: 'Pesanan Saya', url: '/pesanan', icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }] },
+      { name: 'Toko Panen', url: '/toko', icons: [{ src: '/icons/icon-192.png?v=3', sizes: '192x192' }] },
+      { name: 'Sewa Alat', url: '/sewa-alat', icons: [{ src: '/icons/icon-192.png?v=3', sizes: '192x192' }] },
+      { name: 'Pesanan Saya', url: '/pesanan', icons: [{ src: '/icons/icon-192.png?v=3', sizes: '192x192' }] },
     ],
   };
 }

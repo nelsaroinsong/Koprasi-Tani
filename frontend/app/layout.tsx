@@ -1,11 +1,18 @@
 import type { Metadata, Viewport } from 'next';
-import { DM_Sans, Great_Vibes } from 'next/font/google';
+import { DM_Sans, Great_Vibes, Inter } from 'next/font/google';
 import './globals.css';
 
 const dmSans = DM_Sans({
   subsets: ['latin'],
   weight: ['300', '400', '500', '600', '700'],
   variable: '--font-dm-sans',
+  display: 'swap',
+});
+
+const inter = Inter({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600'],
+  variable: '--font-inter',
   display: 'swap',
 });
 
@@ -60,7 +67,7 @@ export default async function RootLayout({children}: {children: React.ReactNode}
   }
 
   return (
-    <html lang="id" className={`${dmSans.variable} ${greatVibes.variable} font-sans`}>
+    <html lang="id" className={`${dmSans.variable} ${inter.variable} ${greatVibes.variable} font-sans`}>
       <body className="font-sans antialiased bg-dot-pattern text-slate-800 selection:bg-emerald-100 selection:text-emerald-900" suppressHydrationWarning>
         <SessionProvider session={session}>
           <AuthProvider>

@@ -83,12 +83,12 @@ export default function PartnerLogos() {
     <section
       ref={sectionRef}
       id="partner-logos-section"
-      className="bg-[#f4f5f1] py-8 sm:py-12 border-b border-slate-200/60 overflow-hidden"
+      className="editorial-section bg-[#F8F8F6] py-8 sm:py-12 border-b border-neutral-200/70 overflow-hidden"
     >
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div ref={titleRef} className="text-center mb-5 sm:mb-6 opacity-0 will-change-transform">
-          <span className="text-[10px] sm:text-[11px] font-bold tracking-widest uppercase text-slate-400">
-            Didukung Oleh Instansi &amp; Lembaga Terpercaya
+          <span className="text-[11px] sm:text-[12px] font-medium tracking-[-0.015em] text-neutral-500">
+            Didukung oleh instansi &amp; lembaga terpercaya
           </span>
         </div>
 
