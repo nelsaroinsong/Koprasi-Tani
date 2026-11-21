@@ -445,7 +445,7 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/landing/koperasi-full-white.png"
+                src="/api/images/landing/koperasi-full-white.png"
                 alt="Koperasi Sinar Pagi Sejahtera"
                 className="h-5 w-auto object-contain opacity-90"
               />
@@ -627,7 +627,7 @@ Mohon dipersiapkan di gudang koperasi dan dikonfirmasi ketersediaannya. Terima k
                                   src={
                                     getPrimaryImage(
                                       item.imageUrl,
-                                      'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=200&q=80'
+                                      '/api/images/categories/all.jpg'
                                     )
                                   }
                                   alt={item.nama}

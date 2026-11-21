@@ -947,7 +947,7 @@ function TokoOnlineContent() {
                         src={
                           getPrimaryImage(
                             prod.imageUrl,
-                            'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=600&q=80'
+                            '/api/images/categories/all.jpg'
                           )
                         }
                         alt={prod.nama}
@@ -958,7 +958,7 @@ function TokoOnlineContent() {
                         }`}
                         onError={(e) => {
                           (e.target as HTMLImageElement).src =
-                            'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=600&q=80';
+                            '/api/images/categories/all.jpg';
                         }}
                       />
 

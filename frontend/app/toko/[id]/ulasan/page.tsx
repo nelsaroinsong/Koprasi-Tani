@@ -343,7 +343,7 @@ export default function ProductAllReviewsPage({
             <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden bg-[#f4f5f1] border border-[#EAEDE7] shrink-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={getPrimaryImage(product.imageUrl, 'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=300&q=80')}
+                src={getPrimaryImage(product.imageUrl, '/api/images/categories/all.jpg')}
                 alt={product.nama}
                 className="w-full h-full object-cover"
               />

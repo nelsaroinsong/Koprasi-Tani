@@ -650,14 +650,14 @@ ${notes ? `*Catatan Kebutuhan:* ${notes}\n` : ''}
                         <img
                           src={getPrimaryImage(
                             item.imageUrl,
-                            'https://images.unsplash.com/photo-1592982537447-7440770cbfc9?auto=format&fit=crop&w=300&q=80'
+                            '/api/images/categories/alat.jpg'
                           )}
                           alt={item.nama}
                           onError={(e) => {
                             const target = e.currentTarget;
-                            if (!target.src.includes('unsplash.com')) {
+                            if (!target.src.includes('/api/images/categories/')) {
                               target.src =
-                                'https://images.unsplash.com/photo-1592982537447-7440770cbfc9?auto=format&fit=crop&w=300&q=80';
+                                '/api/images/categories/alat.jpg';
                             }
                           }}
                           className="w-full h-full object-cover"

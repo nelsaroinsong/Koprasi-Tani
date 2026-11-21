@@ -416,14 +416,14 @@ function CartContent() {
                                 src={
                                   getPrimaryImage(
                                     item.imageUrl,
-                                    'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=400&q=80'
+                                    '/api/images/categories/all.jpg'
                                   )
                                 }
                                 alt={item.nama}
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                 onError={(e) => {
                                   (e.target as HTMLImageElement).src =
-                                    'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=400&q=80';
+                                    '/api/images/categories/all.jpg';
                                 }}
                               />
                             </Link>
@@ -500,7 +500,7 @@ function CartContent() {
                               src={
                                 getPrimaryImage(
                                   item.imageUrl,
-                                  'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=400&q=80'
+                                  '/api/images/categories/all.jpg'
                                 )
                               }
                               alt={item.nama}
@@ -674,7 +674,7 @@ function CartContent() {
                                 src={
                                   getPrimaryImage(
                                     item.imageUrl,
-                                    'https://picsum.photos/seed/sewa-alat-koperasi/300/300'
+                                    '/api/images/categories/alat.jpg'
                                   )
                                 }
                                 alt={item.nama}
@@ -790,7 +790,7 @@ function CartContent() {
                               src={
                                 getPrimaryImage(
                                   item.imageUrl,
-                                  'https://picsum.photos/seed/sewa-alat-koperasi/300/300'
+                                  '/api/images/categories/alat.jpg'
                                 )
                               }
                               alt={item.nama}

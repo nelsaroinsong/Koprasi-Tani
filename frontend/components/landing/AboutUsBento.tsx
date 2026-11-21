@@ -29,7 +29,7 @@ const SHOWCASE_ITEMS: ShowcaseItem[] = [
     description:
       'Memprioritaskan ekosistem pertanian alami dan efisiensi sumber daya lokal di seluruh kebun binaan Minahasa Utara.',
     meta: 'Minahasa Utara / Ekosistem Alami',
-    image: '/landing/farmer-pruning.jpg',
+    image: '/api/images/landing/farmer-pruning.jpg',
     imageAlt: 'Petani merawat tanaman pertanian berkelanjutan di Minahasa Utara',
     imagePosition: 'object-center',
   },
@@ -40,7 +40,7 @@ const SHOWCASE_ITEMS: ShowcaseItem[] = [
     description:
       'Menerapkan teknologi digital, pencatatan transaksi real-time, serta timbangan digital 100% akurat bagi anggota.',
     meta: 'Pencatatan Real-Time / Akurasi 100%',
-    image: '/landing/farmer-innovator.jpg',
+    image: '/api/images/landing/farmer-innovator.jpg',
     imageAlt: 'Petani binaan memantau pencatatan pertanian digital melalui tablet',
     imagePosition: 'object-[50%_18%]',
   },
@@ -51,7 +51,7 @@ const SHOWCASE_ITEMS: ShowcaseItem[] = [
     description:
       'Akses penyewaan traktor dan mesin pertanian modern dengan jadwal terkelola dan biaya terjangkau untuk petani.',
     meta: 'Alsintan Koperasi / Jadwal Transparan',
-    image: '/landing/hero-tractor.jpg',
+    image: '/api/images/landing/hero-tractor.jpg',
     imageAlt: 'Traktor dan alat mesin pertanian modern koperasi siap pakai',
     imagePosition: 'object-center',
   },
@@ -62,7 +62,7 @@ const SHOWCASE_ITEMS: ShowcaseItem[] = [
     description:
       'Menjaga kesuburan tanah sekaligus membuka akses jual beli komoditas segar langsung dengan bagi hasil yang adil.',
     meta: 'Tanpa Tengkulak / Bagi Hasil Adil',
-    image: '/landing/farmer-woman.jpg',
+    image: '/api/images/landing/farmer-woman.jpg',
     imageAlt: 'Petani lokal membawa hasil panen jagung segar di lahan pertanian',
     imagePosition: 'object-[50%_18%]',
   },

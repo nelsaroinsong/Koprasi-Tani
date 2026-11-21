@@ -36,7 +36,7 @@ function LoginContent() {
           <div className="w-14 h-14 rounded-2xl bg-[#233414] border border-[#344d15] flex items-center justify-center mx-auto mb-6">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/landing/koperasi-logo-lime.png"
+              src="/api/images/landing/koperasi-logo-lime.png"
               alt="Logo Koperasi Sinar Pagi Sejahtera"
               className="w-7 h-7 object-contain"
             />

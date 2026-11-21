@@ -113,7 +113,7 @@ export function ProductDetailModal({
             <img
               src={
                 product.imageUrl ||
-                'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=700&q=80'
+                '/api/images/categories/all.jpg'
               }
               alt={product.nama}
               className="w-full h-full object-cover"

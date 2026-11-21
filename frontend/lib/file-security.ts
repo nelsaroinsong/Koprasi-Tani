@@ -140,6 +140,7 @@ export function isSafeStorageKey(
     'logo/',
     'categories/',
     'banners/',
+    'landing/',
   ]
 ): boolean {
   if (!key || typeof key !== 'string') return false;

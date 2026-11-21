@@ -18,6 +18,7 @@ import {
   ExternalLink,
   History,
   FileBarChart2,
+  Wrench,
 } from "lucide-react"
 
 import {
@@ -139,6 +140,26 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
 
   const [isSearchOpen, setIsSearchOpen] = React.useState(false)
   const [searchQuery, setSearchQuery] = React.useState("")
+  const [maintPhase, setMaintPhase] = React.useState<"NORMAL" | "ANNOUNCEMENT" | "MAINTENANCE">("NORMAL")
+
+  // Sinkronkan status pemeliharaan & perbarui cookie bypass admin setiap kali panel admin dibuka
+  React.useEffect(() => {
+    let active = true
+    const syncMaint = () => {
+      fetch("/api/admin/maintenance", { cache: "no-store" })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => {
+          if (active && d?.status?.phase) setMaintPhase(d.status.phase)
+        })
+        .catch(() => {})
+    }
+    syncMaint()
+    const t = setInterval(syncMaint, 60_000)
+    return () => {
+      active = false
+      clearInterval(t)
+    }
+  }, [activeTab])
 
   // Collapsible Menu States (Semua dropdown terbuka secara default saat login ke admin dashboard)
   const [isTransaksiOpen, setIsTransaksiOpen] = React.useState(true)
@@ -190,6 +211,7 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
     { group: "Produk dan Layanan", item: "Sewa Alat", label: "Katalog Sewa Alat" },
     { group: "Produk dan Layanan", item: "Kategori Komoditas", label: "Kategori Produk" },
     { group: "Produk dan Layanan", item: "Kategori Sewa Alat", label: "Kategori Sewa Alat" },
+    { group: "Pengaturan", item: "Pemeliharaan Sistem", label: "Pemeliharaan Sistem" },
     { group: "Pengaturan", item: "Pengaturan Akun", label: "Pengaturan Akun" },
     { group: "Analitik", item: "Laporan Keuangan", label: "Laporan Keuangan" },
     { group: "Analitik", item: "Log Aktivitas", label: "Log Aktivitas Admin" },
@@ -221,7 +243,7 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
                   <div className="w-6.5 h-6.5 rounded-lg bg-[#18181B] flex items-center justify-center p-1 shrink-0 shadow-2xs">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src="/landing/koperasi-logo-lime.png"
+                      src="/api/images/landing/koperasi-logo-lime.png"
                       alt="Logo Koperasi"
                       className="w-full h-full object-contain"
                     />
@@ -305,7 +327,7 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src="/landing/koperasi-logo-lime.png"
+                      src="/api/images/landing/koperasi-logo-lime.png"
                       alt="Logo Koperasi"
                       className="w-full h-full object-contain"
                     />
@@ -823,36 +845,102 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
             )}
 
             <SidebarMenu className="space-y-0.5 mt-0.5">
+              {/* Pemeliharaan Sistem */}
               <SidebarMenuItem>
-                {isCollapsed ? (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        onClick={() => setActiveTab("Pengaturan", "Pengaturan Akun")}
-                        className="w-8 h-8 mx-auto rounded-lg flex items-center justify-center text-slate-500 hover:bg-slate-200/50 hover:text-slate-900 transition cursor-pointer"
-                      >
-                        <Settings className="w-4 h-4 stroke-[1.8]" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="right" className="font-medium text-xs">
-                      Pengaturan
-                    </TooltipContent>
-                  </Tooltip>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("Pengaturan", "Pengaturan Akun")}
-                    className={`flex items-center gap-2.5 px-2.5 py-2 w-full rounded-lg text-[13px] transition-all cursor-pointer text-left ${
-                      activeTab.group === "Pengaturan"
-                        ? "bg-white text-slate-900 font-semibold border border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
-                        : "text-slate-600 hover:bg-slate-200/40 hover:text-slate-900 font-medium"
-                    }`}
-                  >
-                    <Settings className="w-4 h-4 text-slate-500 shrink-0 stroke-[1.8]" />
-                    <span className="truncate">Pengaturan</span>
-                  </button>
-                )}
+                {(() => {
+                  const isMaintActive =
+                    activeTab.group === "Pengaturan" && activeTab.item === "Pemeliharaan Sistem"
+                  return isCollapsed ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab("Pengaturan", "Pemeliharaan Sistem")}
+                          className={`relative w-8 h-8 mx-auto rounded-lg flex items-center justify-center transition cursor-pointer ${
+                            isMaintActive
+                              ? "bg-white text-slate-900 border border-[#E5E7EB] shadow-2xs"
+                              : "text-slate-500 hover:bg-slate-200/50 hover:text-slate-900"
+                          }`}
+                        >
+                          <Wrench className="w-4 h-4 stroke-[1.8]" />
+                          {maintPhase !== "NORMAL" && (
+                            <span
+                              className={`absolute top-1 right-1 w-2 h-2 rounded-full ring-2 ring-[#F8F9FA] ${
+                                maintPhase === "MAINTENANCE" ? "bg-rose-500 animate-pulse" : "bg-amber-500"
+                              }`}
+                            />
+                          )}
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="font-medium text-xs">
+                        Pemeliharaan Sistem
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("Pengaturan", "Pemeliharaan Sistem")}
+                      className={`flex items-center justify-between gap-2 px-2.5 py-2 w-full rounded-lg text-[13px] transition-all cursor-pointer text-left ${
+                        isMaintActive
+                          ? "bg-white text-slate-900 font-semibold border border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
+                          : "text-slate-600 hover:bg-slate-200/40 hover:text-slate-900 font-medium"
+                      }`}
+                    >
+                      <span className="flex items-center gap-2.5 min-w-0">
+                        <Wrench className={`w-4 h-4 shrink-0 stroke-[1.8] ${isMaintActive ? "text-slate-800" : "text-slate-500"}`} />
+                        <span className="truncate">Pemeliharaan Sistem</span>
+                      </span>
+                      {maintPhase !== "NORMAL" && (
+                        <span
+                          className={`w-2 h-2 rounded-full shrink-0 ${
+                            maintPhase === "MAINTENANCE" ? "bg-rose-500 animate-pulse" : "bg-amber-500"
+                          }`}
+                          title={maintPhase === "MAINTENANCE" ? "Pemeliharaan sedang aktif" : "Jadwal pengumuman aktif"}
+                        />
+                      )}
+                    </button>
+                  )
+                })()}
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                {(() => {
+                  const isAccountSettingsActive =
+                    activeTab.group === "Pengaturan" && activeTab.item !== "Pemeliharaan Sistem"
+                  return isCollapsed ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab("Pengaturan", "Pengaturan Akun")}
+                          className={`w-8 h-8 mx-auto rounded-lg flex items-center justify-center transition cursor-pointer ${
+                            isAccountSettingsActive
+                              ? "bg-white text-slate-900 border border-[#E5E7EB] shadow-2xs"
+                              : "text-slate-500 hover:bg-slate-200/50 hover:text-slate-900"
+                          }`}
+                        >
+                          <Settings className="w-4 h-4 stroke-[1.8]" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="font-medium text-xs">
+                        Pengaturan
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("Pengaturan", "Pengaturan Akun")}
+                      className={`flex items-center gap-2.5 px-2.5 py-2 w-full rounded-lg text-[13px] transition-all cursor-pointer text-left ${
+                        isAccountSettingsActive
+                          ? "bg-white text-slate-900 font-semibold border border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
+                          : "text-slate-600 hover:bg-slate-200/40 hover:text-slate-900 font-medium"
+                      }`}
+                    >
+                      <Settings className={`w-4 h-4 shrink-0 stroke-[1.8] ${isAccountSettingsActive ? "text-slate-800" : "text-slate-500"}`} />
+                      <span className="truncate">Pengaturan</span>
+                    </button>
+                  )
+                })()}
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroup>

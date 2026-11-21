@@ -395,7 +395,7 @@ export default function AppHeader({
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/landing/koperasi-full-dark.png"
+                src="/api/images/landing/koperasi-full-dark.png"
                 alt="Logo Koperasi Sinar Pagi Sejahtera"
                 className="h-6 sm:h-7 w-auto object-contain transition-transform duration-300 group-hover:scale-102"
               />

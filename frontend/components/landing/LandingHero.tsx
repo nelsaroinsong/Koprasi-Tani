@@ -86,7 +86,7 @@ export default function LandingHero({ isReady = true }: { isReady?: boolean }) {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           ref={imageRef}
-          src="/landing/hero-tractor.jpg"
+          src="/api/images/landing/hero-tractor.jpg"
           alt="Pertanian Modern Minahasa Utara"
           className="w-full h-full object-cover object-center will-change-transform"
         />

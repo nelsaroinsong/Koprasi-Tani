@@ -292,7 +292,7 @@ export default function WeightSweepPreloader({
   label = 'Koperasi Sinar Pagi Sejahtera',
   caption = 'Memuat Ekosistem Pertanian',
   message = 'Dari Minahasa Utara untuk Nusantara.',
-  logoSrc = '/landing/koperasi-full-white.png',
+  logoSrc = '/api/images/landing/koperasi-full-white.png',
   weights = [100, 900],
   hud = true,
   fontFamily = DEFAULT_SANS,

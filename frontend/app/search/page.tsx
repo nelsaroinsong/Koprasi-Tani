@@ -411,7 +411,7 @@ function SearchPageContent() {
                             <img
                               src={
                                 (prod.imageUrl?.includes(',') ? prod.imageUrl.split(',')[0].trim() : prod.imageUrl) ||
-                                'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=400&q=80'
+                                '/api/images/categories/all.jpg'
                               }
                               alt={prod.nama}
                               className={`w-full h-full object-cover transition-transform duration-300 ${
@@ -421,7 +421,7 @@ function SearchPageContent() {
                               }`}
                               onError={(e) => {
                                 (e.target as HTMLImageElement).src =
-                                  'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=400&q=80';
+                                  '/api/images/categories/all.jpg';
                               }}
                             />
                             {isOutOfStock && (
@@ -506,14 +506,14 @@ function SearchPageContent() {
                             <img
                               src={getPrimaryImage(
                                 item.imageUrl,
-                                'https://images.unsplash.com/photo-1592982537447-7440770cbfc9?auto=format&fit=crop&w=400&q=80'
+                                '/api/images/categories/alat.jpg'
                               )}
                               alt={item.nama}
                               onError={(e) => {
                                 const target = e.currentTarget;
-                                if (!target.src.includes('unsplash.com')) {
+                                if (!target.src.includes('/api/images/categories/')) {
                                   target.src =
-                                    'https://images.unsplash.com/photo-1592982537447-7440770cbfc9?auto=format&fit=crop&w=400&q=80';
+                                    '/api/images/categories/alat.jpg';
                                 }
                               }}
                               className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300"

@@ -57,6 +57,7 @@ import InstallAppPrompt from '@/components/InstallAppPrompt';
 import ChunkLoadRecovery from '@/components/ChunkLoadRecovery';
 import SmoothScrollProvider from '@/components/providers/smooth-scroll-provider';
 import BottomNav from '@/components/BottomNav';
+import MaintenanceGuard from '@/components/MaintenanceGuard';
 import { auth } from '@/auth';
 
 export default async function RootLayout({children}: {children: React.ReactNode}) {
@@ -78,6 +79,7 @@ export default async function RootLayout({children}: {children: React.ReactNode}
                 <SessionTimeoutManager />
                 <ServiceWorkerRegister />
                 <InstallAppPrompt />
+                <MaintenanceGuard />
                 {children}
                 <BottomNav />
               </SmoothScrollProvider>

@@ -917,7 +917,7 @@ function SewaAlatContent() {
                       src={
                         getPrimaryImage(
                           item.imageUrl,
-                          'https://picsum.photos/seed/sewa-alat-koperasi/600/600'
+                          '/api/images/categories/alat.jpg'
                         )
                       }
                       alt={item.nama}
@@ -928,7 +928,7 @@ function SewaAlatContent() {
                       }`}
                       onError={(e) => {
                         (e.target as HTMLImageElement).src =
-                          'https://picsum.photos/seed/sewa-alat-koperasi/600/600';
+                          '/api/images/categories/alat.jpg';
                       }}
                     />
 

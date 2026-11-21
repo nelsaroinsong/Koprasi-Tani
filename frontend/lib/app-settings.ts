@@ -6,6 +6,7 @@ export const SETTING_KEYS = {
   warehouseLocation: 'warehouse_location',
   partnerLogos: 'partner_logos',
   popularSearches: 'popular_searches',
+  systemMaintenance: 'system_maintenance',
 } as const;
 
 export async function getSetting<T>(key: string): Promise<T | null> {

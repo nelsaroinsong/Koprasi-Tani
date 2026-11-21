@@ -155,7 +155,7 @@ export default function LandingHeader() {
             <Link href="/" className="flex items-center group focus:outline-none shrink-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/landing/koperasi-full-dark.png"
+                src="/api/images/landing/koperasi-full-dark.png"
                 alt="Logo Koperasi Sinar Pagi Sejahtera"
                 className="h-6 sm:h-7 w-auto object-contain transition-transform duration-300 group-hover:scale-102"
               />
@@ -247,7 +247,7 @@ export default function LandingHeader() {
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/landing/koperasi-full-white.png"
+                src="/api/images/landing/koperasi-full-white.png"
                 alt="Logo Koperasi Sinar Pagi Sejahtera"
                 className="h-6 sm:h-7 w-auto object-contain"
               />

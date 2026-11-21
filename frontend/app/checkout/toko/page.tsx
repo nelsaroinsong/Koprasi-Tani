@@ -536,7 +536,7 @@ Mohon info kesiapan fisik komoditas di gudang koperasi. Terima kasih!`;
                           src={
                             getPrimaryImage(
                               item.imageUrl,
-                              'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=400&q=80'
+                              '/api/images/categories/all.jpg'
                             )
                           }
                           alt={item.nama}

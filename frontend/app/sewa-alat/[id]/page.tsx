@@ -408,7 +408,7 @@ export default function EquipmentDetailPage({
     ? (rawImageUrl.includes(',')
         ? rawImageUrl.split(',').map((s: string) => s.trim()).filter(Boolean)
         : [rawImageUrl])
-    : ['https://picsum.photos/seed/sewa-alat-koperasi/800/800'];
+    : ['/api/images/categories/alat.jpg'];
 
   const handleScroll = () => {
     if (!carouselRef.current) return;
@@ -517,7 +517,7 @@ export default function EquipmentDetailPage({
                         className="w-full h-full object-cover pointer-events-none select-none"
                         onError={(e) => {
                           (e.target as HTMLImageElement).src =
-                            'https://picsum.photos/seed/sewa-alat-koperasi/800/800';
+                            '/api/images/categories/alat.jpg';
                         }}
                       />
                     </div>
@@ -584,7 +584,7 @@ export default function EquipmentDetailPage({
                         className="w-full h-full object-cover"
                         onError={(e) => {
                           (e.target as HTMLImageElement).src =
-                            'https://picsum.photos/seed/sewa-alat-koperasi/800/800';
+                            '/api/images/categories/alat.jpg';
                         }}
                       />
                     </button>
@@ -948,7 +948,7 @@ export default function EquipmentDetailPage({
               src={
                 equipmentImages[currentImageIndex] ||
                 equipmentImages[0] ||
-                'https://picsum.photos/seed/sewa-alat-koperasi/1200/1200'
+                '/api/images/categories/alat.jpg'
               }
               alt={`${equipment.nama} - Foto ${currentImageIndex + 1}`}
               loading="lazy"
@@ -956,7 +956,7 @@ export default function EquipmentDetailPage({
               className="max-w-[92vw] max-h-[82vh] w-auto h-auto object-contain rounded-xl select-none drop-shadow-2xl"
               onError={(e) => {
                 (e.target as HTMLImageElement).src =
-                  'https://picsum.photos/seed/sewa-alat-koperasi/1200/1200';
+                  '/api/images/categories/alat.jpg';
               }}
             />
           </div>

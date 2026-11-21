@@ -350,7 +350,7 @@ export default function EquipmentAllReviewsPage({
             <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden bg-[#f4f5f1] border border-[#EAEDE7] shrink-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={getPrimaryImage(equipment.imageUrl, 'https://images.unsplash.com/photo-1592982537447-7440770cbfc9?auto=format&fit=crop&w=300&q=80')}
+                src={getPrimaryImage(equipment.imageUrl, '/api/images/categories/alat.jpg')}
                 alt={equipment.nama}
                 className="w-full h-full object-cover"
               />

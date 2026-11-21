@@ -408,7 +408,7 @@ export default function ProductDetailPage({
     ? (rawImageUrl.includes(',')
         ? rawImageUrl.split(',').map((s: string) => s.trim()).filter(Boolean)
         : [rawImageUrl])
-    : ['https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=800&q=80'];
+    : ['/api/images/categories/all.jpg'];
 
   const handleScroll = () => {
     if (!carouselRef.current) return;
@@ -992,7 +992,7 @@ export default function ProductDetailPage({
               src={
                 productImages[currentImageIndex] ||
                 productImages[0] ||
-                'https://images.unsplash.com/photo-1544378730-8b5104b18790?auto=format&fit=crop&w=1200&q=90'
+                '/api/images/categories/all.jpg'
               }
               alt={`${product.nama} - Foto ${currentImageIndex + 1}`}
               loading="lazy"

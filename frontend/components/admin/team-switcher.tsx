@@ -36,7 +36,7 @@ export function TeamSwitcher({
           <div className="flex aspect-square size-9 items-center justify-center rounded-xl bg-[#233414] border border-[#344d15] shadow-sm shadow-[#233414]/15 p-1.5 shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/landing/koperasi-logo-lime.png"
+              src="/api/images/landing/koperasi-logo-lime.png"
               alt="Logo Koperasi Sinar Pagi Sejahtera"
               className="w-full h-full object-contain"
             />
